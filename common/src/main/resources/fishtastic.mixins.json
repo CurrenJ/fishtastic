@@ -6,6 +6,7 @@
   "client": [
     "AbstractContainerScreenMixin",
     "AvatarRendererMixin",
+    "ClientLevelCompanionMixin",
     "FishingHookRendererMixin",
     "GameRendererMixin",
     "GuiGraphicsMixin",

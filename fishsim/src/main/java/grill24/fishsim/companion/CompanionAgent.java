@@ -304,6 +304,14 @@ public final class CompanionAgent {
     public String goal() { return perch != null && perch.mode != PerchBody.Mode.SWIM ? "PERCH" : mind.goal.name(); }
     /** A percher's mode and slot, for overlays (null for other classes). */
     public String perchState() { return perch == null ? null : perch.mode + " " + perch.slot; }
+    /** A percher's slot (where it rides or is hopping to), else null. */
+    public PerchBody.Slot perchSlot() { return perch == null ? null : perch.slot; }
+    /** A percher's mode, else null. */
+    public PerchBody.Mode perchMode() { return perch == null ? null : perch.mode; }
+    /** A percher's crouch and landing squash, 0..1, for the animator (0 for other classes). */
+    public float perchSquash() { return perch == null ? 0f : perch.crouch; }
+    /** Dev trigger: as if the owner had idled long enough to settle (see {@link Drives#devDrowsy}). */
+    public void devDrowsy() { drives.devDrowsy(); }
     /** Whether a percher is riding its owner this tick (perched, crouching or settling). */
     public boolean riding() { return perch != null && perch.attached(); }
     /** Whether a percher is on its owner: riding, or pushing off or touching down in a hop. */

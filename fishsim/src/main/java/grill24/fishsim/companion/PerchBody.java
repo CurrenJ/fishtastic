@@ -22,14 +22,14 @@ import java.util.function.Supplier;
  *       (spec E1), then hop back on once the owner is out.</li>
  * </ul>
  */
-final class PerchBody extends Motor {
+public final class PerchBody extends Motor {
 
-    enum Mode { PERCHED, CROUCH, HOP, SETTLE, SWIM }
+    public enum Mode { PERCHED, CROUCH, HOP, SETTLE, SWIM }
 
-    enum Slot {
+    public enum Slot {
         RIGHT_SHOULDER, LEFT_SHOULDER, HEAD, BACK, RIGHT_HAND, LEFT_HAND;
 
-        boolean hand() {
+        public boolean hand() {
             return this == RIGHT_HAND || this == LEFT_HAND;
         }
     }
@@ -422,7 +422,7 @@ final class PerchBody extends Motor {
     // ── The owner's body ───────────────────────────────────────────────────────────────────────
 
     /** Where {@code s} is on the owner right now. */
-    static Vec slotPoint(OwnerState o, Slot s) {
+    public static Vec slotPoint(OwnerState o, Slot s) {
         Vec eye = o.eye();
         Vec f = o.flatForward(), r = o.flatRight();
         return switch (s) {

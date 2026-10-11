@@ -18,9 +18,9 @@ import java.util.Random;
  * Draws a companion fish with its class's idle pose and no simulation behind it
  * (docs/fish-companions.md §3). Used where a companion is attached to something rather than
  * swimming free: the player render layer that draws a percher on its owner's body. (The look-down
- * hand hop is drawn by the world pass along with the rest of the follow box — see ClientCompanion.)
+ * hand is drawn by the world pass — see ClientCompanion.)
  *
- * <p>Everything that comes from a running engine in {@link CompanionFlock} — heading, bank, bell,
+ * <p>Everything that comes from the sim (see {@link CompanionRender}) — heading, bank, bell,
  * retract — is passed in by the caller instead. A perched fish is not going anywhere: its pose is
  * its animation config's idle plus whatever the caller says (a trick spin, a reaction tilt, the
  * anchored class's duck).
@@ -34,11 +34,15 @@ public final class CompanionFishPose {
     private final ItemStackRenderState renderState = new ItemStackRenderState();
     private final Random random = new Random();
 
-    public CompanionFishPose(ItemStack fish, Level level) {
+    /**
+     * @param minLength the smallest length to draw at, blocks — the same floor the world pass uses,
+     *                  so a fish is the same size on its owner's shoulder as when it hops off
+     */
+    public CompanionFishPose(ItemStack fish, Level level, float minLength) {
         FishTankBlockEntityRenderer.ResolvedFishRender render = FishTankBlockEntityRenderer.resolveFishRender(fish, level);
         this.stack = fish.copyWithCount(1);
         this.anim = render.animation();
-        this.length = TankFlockAdapter.renderedLength(fish, render.renderCalibration());
+        this.length = Math.max(TankFlockAdapter.renderedLength(fish, render.renderCalibration()), minLength);
         this.locomotion = TankFlockAdapter.locomotionOf(anim);
         this.seed = fish.hashCode();
     }
@@ -48,6 +52,9 @@ public final class CompanionFishPose {
      * a shoulder so the sprite reads from the front, like a fish pinned to the outside of the arm.
      */
     public boolean flatPose() { return anim instanceof FishAnimationConfig.FloorSit; }
+
+    /** The length it is drawn at, blocks. */
+    public float length() { return length; }
 
     /**
      * Poses and submits the fish at its true-to-scale length. The stack must already sit at the
@@ -65,10 +72,10 @@ public final class CompanionFishPose {
         poseStack.pushPose();
         if (extraYawDeg != 0f) poseStack.mulPose(Axis.YP.rotationDegrees(extraYawDeg));
         if (tiltDeg != 0f) poseStack.mulPose(Axis.XP.rotationDegrees(tiltDeg));
-        // The companion idle-clock rate, same as CompanionFlock's: the tank's sway and pulse rates
+        // The companion idle-clock rate, same as CompanionRender's: the tank's sway and pulse rates
         // are authored for a fish at arm's length, and read frantic on a companion this close to
         // the camera (owner feedback 2026-10-10).
-        float t = gameTimeTicks * CompanionFlock.IDLE_CLOCK_RATE;
+        float t = gameTimeTicks * CompanionRender.IDLE_CLOCK_RATE;
         if (locomotion == Locomotion.ANCHORED) {
             // Planted: the sway is game time, the withdrawal is the caller's envelope.
             FishAnimator.applyAnchored(poseStack, anim, random, t, 0f, scale, false, retract);

@@ -91,6 +91,12 @@ public final class CompanionGroup {
 
     public Follower follower(int i) { return followers[i]; }
 
+    /** Forgets every sampled block, the leader's and the group's — call after a block change nearby. */
+    public void invalidateBlocks() {
+        leader.voxels().invalidate();
+        voxels.invalidate();
+    }
+
     /** A spot on the leader's {@code side}, behind it, clear of blocks — or the leader itself. */
     private Vec stationBesideLeader(int side, double radius) {
         Vec p = station(side, 0);
@@ -284,5 +290,6 @@ public final class CompanionGroup {
         public float renderBank() { return renderBank; }
         public float renderAppear() { return renderAppear; }
         public float renderTailPhase() { return renderTail; }
+        public float speedFactor() { return body.speedFactor(); }
     }
 }

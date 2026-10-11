@@ -1,6 +1,6 @@
 # Fish Companions — Simulation Rewrite Plan
 
-**Written:** 2026-10-11 · **Status: Phases 1 and 2 passed the owner's gate 2026-10-11 (§9.6, §10.6); Phase 3 (into the game) next. GLIDE and DRIFT parked.**
+**Written:** 2026-10-11 · **Status: Phases 1 and 2 passed the owner's gate 2026-10-11 (§9.6, §10.6); Phase 3 (into the game) built, awaiting the owner's solo playtest (§11.7). GLIDE and DRIFT parked.**
 
 **Decision (owner, 2026-10-11):** rebuild companion motion the way the tank was rebuilt
 ([fish-sim-engine-plan.md](fish-sim-engine-plan.md)): a Minecraft-free simulation in `:fishsim`,
@@ -878,3 +878,126 @@ GIFs from `runCompanionHeadless -PsimArgs="--temperament <name> --script <script
 really good and def read." 2 — a left-shoulder crab watching from its own hand: fine as is.
 3 — settling after ~30 s idle: yes. 4 — temperaments (aggressive bites, sprinter overshoot,
 docile nuzzle rate): "already nicely balanced on all these fronts." Phase 3 (into the game) is next.
+
+---
+
+## 11. Phase 3 — into the game, as built (2026-10-11)
+
+| Step | Builds | Gate |
+|---|---|---|
+| **3a** Adapter | `CompanionWorldAdapter`: blocks (non-empty collision shape = solid; water from the fluid state), owner state, points of interest, held item, hurt | 378 fingerprints (`-PfpAll`) bitwise identical to HEAD (equal grounds: a HEAD worktree and this tree, same probe) |
+| **3b** Switch and delete | `ClientCompanion` is now the sim's `CompanionAgent`/`CompanionGroup` plus the bonded stack and drawing; `CompanionFlock` deleted | both loaders build; the self-test's `companionsim` scene passes on both |
+| **3c** Rendering | `CompanionRender`: world pose → `FishAnimator`; `CompanionPerchLayer` for riding perchers | shots on both loaders |
+| **3d** Debug | overlay and `/fishtastic companion` triggers | every trigger works solo |
+| **3e** Cost | sampling cost measured in game | **owner's solo playtest** |
+
+### 11.1 The adapter
+
+- **Blocks.** One `LevelBlocks` per client level, shared by every companion. It has to be one object:
+  `LocalVoxels` forgets everything it sampled whenever the source object changes. Block changes
+  (`LevelRenderer.blockChanged`) and chunk arrivals (`ClientLevel.onChunkLoaded`) make every
+  companion forget its window; cells are resampled lazily.
+- **Owner.** Eye, and velocity from the tick-to-tick eye move. A move of more than 8 blocks in a tick
+  is a teleport (velocity zeroed); a dimension change or respawn rebuilds the companion anyway.
+  View yaw/pitch, sprinting, water at the chest. The camera (first person or not) and FOV are only
+  known for the local player; anyone else's companion assumes first person at 70°.
+- **Hurt (decided).** Vanilla broadcasts the hurt animation to every client, so each client reads
+  `hurtTime` rising for any owner. No packet of our own; remote companions react too.
+- **Points of interest.** Within 12 blocks (8 up and down) of the owner: cats and ocelots, `Enemy`
+  mobs, item entities (stable entity ids). **Other companions (decided):** built from the agents
+  this client already runs, within 16 blocks, id = −1 − owner entity id.
+- **Held.** The old `reactions` order: rod (vanilla or `#fishing_rods`), `#fishing_bait`, own
+  species, `#predator_fish`, name tag, anything with a food component.
+- **Seed.** From the owner's UUID and the bonded fish's item id and size, so it is the same on
+  every client (the old `stack.hashCode()` was an identity hash).
+- **Temperament.** The fish profile's `temperament` key → `Temperament.named(path)`.
+- **Trio.** `CompanionGroup.isTrio` (FREE_SWIM under 20 cm).
+- **Length.** The sim and the drawing both use the true-to-scale length with a 0.25-block floor
+  (the old follow floor). The perch layer uses the same floor, so a fish is the same size on a
+  shoulder as when it hops off.
+- **DRIFT (owner's call, 2026-10-11):** the current first-cut `DriftBody` runs in game as it is.
+
+### 11.2 Rendering
+
+- **World pass** (`CompanionRender`): translate to the interpolated position, turn to the heading
+  (`YP(−yaw)`), pitch the nose (`XP(pitch)`; a drifter's pitch is its bell axis, upright −90, so it
+  tilts by pitch + 90). Then the class's own `FishAnimator` entry point with the sprite's nose
+  forward: swimmers through `applySwimming` on the tail clock (the sim's wrapped tail phase
+  unwrapped per frame into ticks, × the old 0.55 swim clock), with bank and speed factor; gliders
+  `applyGliding` with bank/28°; drifters `applyDrifting` with the pulse as the bell; benthic
+  `applyBenthic` with the crouch squash; anchored `applyAnchored` with the duck. Scale = length ×
+  appear (the fade). Trio followers are drawn the same way from their own poses.
+- **Perch layer.** A percher riding a shoulder, the head or the back is drawn on the player model
+  (slot from the sim). Flat poses (starfish) are stood up on the shoulders *and* now on the head,
+  lifted by half their length — the sim can choose the head, and lying flat there it was a sliver.
+- **Hand.** A percher riding the hand is the world pass's. For its owner in first person it is
+  attached to the view at frame rate (`PerchBody.slotPoint` at the frame's camera, the parrot
+  pattern), so a mouse flick doesn't leave it a tick behind.
+- **Pose hints mapped** (where the old companion had an equivalent): DUCK → the anchored retract
+  envelope; TILT (name tag) → a 25° head roll; BEG → nose up 15°; MILD → nose up 5°. Each is eased
+  per tick and drawn the same in the world pass and the perch layer.
+- **Not mapped (owner to decide how they look):** EXCITED, NOSE, WATCH, HIDE, SLEEPY, PUFF, BITE,
+  PEEK, NUZZLE, TREMBLE. The *moves* behind them all happen (the sim swims to the item, hides,
+  nuzzles, lunges); only the pose colouring is missing. The overlay shows the live hint.
+
+### 11.3 What went
+
+`ClientCompanion`'s motion and behaviour (orbit, figure-eight, peeks, tricks, perch paths, the
+follow steering, the frame yaw, blend weights, docking, at-the-line, scenes): about 2,000 lines.
+`CompanionFlock` (the follow box): deleted. Every old-controller dev hook (trick, peek, outcome,
+scene, legacy/bisect switches), and the self-test scenes built on them (`companion`, `parade`,
+`peek`, `hand`, `fishing`, `scenes`, `polish` 1–3). Kept: bond/equip/sync, the packets (the
+fishing-event and scene handlers are no-ops until fishing and Phase 4 return), the Companions tab
+and its `companionbond` scene, the encyclopedia, `CompanionFishPose`, and the parked dock/PiP
+renderer (registered, draws nothing).
+
+### 11.4 Debug triggers (solo playtest)
+
+```
+/fishtastic companion debug true|false            overlay: species, class, temperament, goal, perch state,
+                                                  pose hint, fade, drive bars, held, points, sim cost
+/fishtastic companion temperament <id>|species    force a temperament (rebuilds the companion)
+/fishtastic companion fake hostile|cat|item|companion|clear
+                                                  scripted things laid out from where you look:
+                                                  a zombie walks up to arm's reach (25 s), a cat strolls
+                                                  in from the right and sits (40 s), an item 2.5 blocks
+                                                  ahead (20 s), a companion swims across in front;
+                                                  each marked with particles
+/fishtastic companion hurt                        it sees you hurt (aggressive bites)
+/fishtastic companion drowsy                      as if you'd idled long enough to settle
+/fishtastic companion phantom <species> [size]    another companion round an imaginary owner 4 blocks ahead
+```
+
+Real mobs, cats, dropped items and held items all work too (`/summon zombie`, Q to drop).
+
+### 11.5 Measured (plan §7 risk 3)
+
+Self-test `companionsim` (NeoForge, superflat; Fabric the same within noise):
+- Standing: 0 block samples per tick once the window is warm; the whole sim step is 20–90 µs per
+  tick, worst 430 µs (a trio's first tick).
+- Walking at 4 b/s for 10 s (the window re-centres every 6 blocks): 3 samples per tick on average
+  (~1 µs), **peak 25 samples in one tick**, worst step 126 µs.
+- Sampling is not worth optimising; the lazy window does its job. Dense terrain is unmeasured but
+  costs the same per cell.
+
+### 11.6 Known gaps and things to look at
+
+- **A hop starts from the model's shoulder, not the sim's slot.** The perch layer places a rider on
+  the player model (body yaw); the sim's slot follows the view yaw, so at the push-off the fish can
+  jump a few centimetres when head and body point different ways.
+- **The garden eel on the back** is the old planted pose: a sliver poking out of the upper back.
+- **The Fabric dev run has Iris with Complementary on**, so Fabric shots are under shaders; NeoForge
+  has none. The perch layer draws under both.
+- **Phantoms** have an imaginary owner who never moves; a percher phantom sits on the imaginary
+  shoulder in mid-air.
+- **Two real clients** remain untested (as before).
+
+### 11.7 For the owner's gate
+
+Solo playtest, both loaders: `/fishtastic companion give @p fishtastic:<species> [size]`, then
+`/fishtastic companion debug true`.
+1. Does it read as the same creature as in the viewer: a trio (bluegill 12), a solo swimmer
+   (bluegill 25), a starfish riding and hopping, the eel, a drifter, a ray (GLIDE parked)?
+2. Held items, a real or fake zombie and cat, dropped items, standing still for ~30 s.
+3. The unmapped pose hints (§11.2): which need a look of their own, and what?
+4. Anything that pops: hop starts (§11.6), fades, teleports, entering water.

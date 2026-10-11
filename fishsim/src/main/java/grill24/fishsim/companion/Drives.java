@@ -157,6 +157,15 @@ final class Drives {
         return temperament;
     }
 
+    /**
+     * Dev trigger (the in-game debug command): as if the owner had already idled long enough to
+     * settle. Nothing in the sim calls it; it only moves the drive the next update would build.
+     */
+    void devDrowsy() {
+        stillTicks = Math.max(stillTicks, REST_ONSET_TICKS + 1);
+        rest = Math.max(rest, SETTLE_AT);
+    }
+
     void update(CompanionWorld w) {
         tick++;
         sinceHurt = w.hurt() ? 0 : Math.min(Integer.MAX_VALUE / 2, sinceHurt + 1);

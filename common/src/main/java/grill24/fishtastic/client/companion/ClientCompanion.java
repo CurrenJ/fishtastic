@@ -1,1609 +1,310 @@
 package grill24.fishtastic.client.companion;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
+import grill24.fishsim.companion.CompanionAgent;
+import grill24.fishsim.companion.CompanionGroup;
+import grill24.fishsim.companion.CompanionTunables;
+import grill24.fishsim.companion.CompanionWorld;
+import grill24.fishsim.companion.OwnerState;
+import grill24.fishsim.companion.PerchBody;
+import grill24.fishsim.companion.PointOfInterest;
+import grill24.fishsim.companion.Temperament;
+import grill24.fishsim.companion.Vec;
 import grill24.fishsim.core.Locomotion;
-import grill24.fishtastic.FishtasticItemTags;
-import grill24.fishtastic.client.FishtasticClientConfig;
-import grill24.fishtastic.client.renderer.CompanionFlock;
+import grill24.FishtasticRegistries;
 import grill24.fishtastic.client.renderer.CompanionFishPose;
-import grill24.fishtastic.companion.CompanionFishingOutcome;
-import grill24.fishtastic.companion.CompanionSceneType;
-import grill24.fishtastic.companion.CompanionFishingOutcome;
-import grill24.fishtastic.util.CatchCelebration;
-import grill24.fishtastic.util.FishingMinigameAnimation;
-import grill24.fishtastic.util.IFishingHookExtension;
-import net.minecraft.client.Camera;
+import grill24.fishtastic.client.renderer.CompanionRender;
+import grill24.fishtastic.data.FishAnimationConfig;
+import grill24.fishtastic.data.FishProfile;
+import grill24.fishtastic.util.ItemSizeHelper;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.SubmitNodeCollector;
-import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.server.level.ParticleStatus;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.entity.projectile.FishingHook;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Matrix4f;
-import org.joml.Vector3fc;
-import org.joml.Vector4f;
 
 import java.util.List;
 import java.util.Locale;
-import java.util.Random;
 import java.util.UUID;
-import java.util.function.Predicate;
 
 /**
- * One companion fish on the client — a player's equipped companion, drawn for its owner and for
- * everyone who can see them (docs/fish-companions.md §3, §3.1, §5.1). {@link ClientCompanions} owns
- * the instances; this class is the per-fish state.
+ * One companion fish on the client: a player's equipped companion, drawn for its owner and for
+ * everyone who can see them (docs/fish-companions-sim-plan.md §3.5). {@link ClientCompanions} owns
+ * the instances.
  *
- * <p>Geometry: the fish lives in a small invisible tank ({@link CompanionFlock}) whose centre moves
- * along the display-mode path — an orbit for free swimmers, high wide arcs for gliders, a spring
- * behind one shoulder for drifters. The two attach classes (benthic, anchored) sit on the owner's
- * body instead: they are drawn by a player render layer ({@code CompanionPerchLayer}) and only
- * enter the world path to hop off. In water every class drops its air anchor and the box swims
- * beside the owner. The baseline paths hang off the companion's own slow frame (§19) — a yaw that
- * follows the owner's body lazily, never the raw camera — while the intentional moments (peeks,
- * held-item reactions, the rod tip, the dock) hunt the view as designed.
+ * <p>All motion and behaviour is the {@code :fishsim} companion sim — a {@link CompanionAgent}, or
+ * a {@link CompanionGroup} for a trio — stepped once per client tick from the snapshot
+ * {@link CompanionWorldAdapter} builds, and interpolated per frame. This class only owns what the
+ * sim can't know: the bonded stack, the species' render data, and drawing.
  *
- * <p><b>Peeks</b> (§3.1, R2.1) are the reason the owner actually sees their companion in first
- * person: when nothing else is holding the fish near the view, every class periodically routes
- * itself through the front of the owner's view — swimmers swim there, perchers hop off and back.
- * The schedule is seeded from the fish so a self-test run is reproducible, and it is rate-limited
- * by a cooldown so it never reads as nagging. The same "is the owner seeing it" signal drives the
- * schedule, so the self-test's visibility count measures the mechanism directly.
- *
- * <p>Only the local player's companion docks: it blends over {@link #DOCK_TICKS} toward a point
- * {@link #DOCK_DEPTH} blocks in front of the camera that projects onto the minigame's dock anchor,
- * and toward a miniature scale. Once fully docked the box is camera-locked and the HUD pass draws
- * it instead. When the owner looks down, the companion hops to a point above the hotbar in front
- * of the camera (§3.1) — drawn by the world pass rather than the first-person hand pass, which
- * renders companion item geometry as a shadow-only silhouette under Iris shaderpacks.
+ * <p>Each client simulates every companion it can see from that owner's synced state, seeded from
+ * the owner and the bonded fish, so a remote companion behaves in character without having to match
+ * frame for frame (plan §3.6).
  */
 public final class ClientCompanion {
-    private static final int DOCK_TICKS = 20;
-    static final float DOCK_DEPTH = 2.0f;
-    /** Smallest length a companion is drawn at while following, blocks — true-to-scale small fish are specks. */
-    private static final float MIN_FOLLOW_LENGTH = 0.25f;
-    /** Docked fish length in engine units, whatever its true size (the dock tank is 0.7 wide). */
-    private static final float DOCK_FISH_LENGTH = 0.3f;
+    /** Smallest length a companion is drawn (and simulated) at, blocks — true-to-scale small fish are specks. */
+    private static final float MIN_LENGTH = 0.25f;
+    private static final CompanionTunables TUNABLES = CompanionTunables.defaults();
 
-    // ── Display-mode paths (§3 table). Blocks and seconds. ─────────────────────
-    private static final float FREE_RADIUS = 1.2f, FREE_DROP = 0.15f, FREE_LAP_SECONDS = 26f;
-    private static final float GLIDE_RADIUS = 2.2f, GLIDE_RISE = 1.55f, GLIDE_LAP_SECONDS = 44f;
-    private static final float DRIFT_BACK = 0.5f, DRIFT_SIDE = 0.5f, DRIFT_DROP = 0.3f;
-    private static final float WATER_AHEAD = 0.85f, WATER_SIDE = 0.7f, WATER_DROP = 0.15f;
-    private static final float PEEK_FORWARD = 1.35f, PEEK_DROP = 0.15f;
-    private static final float SWOOP_RISE = -0.75f;
-    private static final double PHANTOM_RADIUS = 1.2;
-
-    // ── Timings (ticks). ───────────────────────────────────────────────────────
-    private static final int PEEK_OUT = 8, PEEK_HOLD = 70, PEEK_BACK = 10;
-    private static final int PEEK_COOLDOWN_MIN = 300, PEEK_COOLDOWN_VAR = 600;
-    private static final int PEEK_UNSEEN_TICKS = 200;
-    private static final int PEEK_MIN_GAP = 200;
-    private static final int TRICK_COOLDOWN_MIN = 500, TRICK_COOLDOWN_VAR = 700, TRICK_LENGTH = 50;
-    private static final float HAND_HOP_SPEED = 0.15f;
-    private static final float HAND_PITCH = 52f;
-    /** How close the look-down hop sits: near enough to share the hand's screen space. */
-    private static final float HAND_HOP_DEPTH = 0.9f;
-    /** A hostile mob this close makes an anchored companion duck in (§3). */
-    private static final double DUCK_RANGE = 3.0;
-
-    // ── Fishing (§5). Timings/amplitudes are deliberately gentle — R3.3 (how much the docked
-    //    fish moves) is the owner's in-game call, so keep every one of these easy to tune. ─────
-    private static final float LINE_BLEND_SPEED = 0.12f, NIBBLE_BLEND_SPEED = 0.2f;
-    private static final float FLY_PAST_SPEED = 0.06f, FLY_PAST_ZOOM = 2.2f, FLY_PAST_DEPTH = 0.6f;
-    /** How far below its lane the escape drop sinks the fish, blocks, at the droop's peak. */
-    private static final float ESCAPE_SINK = 0.22f, ESCAPE_TILT = 18f;
-    private static final int OUTCOME_CATCH_TICKS = 45, OUTCOME_ESCAPE_TICKS = 60;
-    /** How long a same-species celebration pauses for its greeting before the fly-past (§5). */
-    private static final int GREET_TICKS = 24;
-    /** Dock-lane reaction amplitudes (world units / multipliers) — see {@link #updateDockReactions}. */
-    private static final float DOCK_BOB_LIMIT = 0.13f, DOCK_BOUNCE = 0.035f, DOCK_LEAN_OUT = 0.045f;
-    private static final float DRIFT_SHRINK = 0.14f, GLIDE_DRAIN_SPEED = 1.7f, GLIDE_LAZY_SPEED = 0.75f;
-    /**
-     * Reaction oscillator rates, radians per tick (period = 2π/rate ticks). Originally 0.9/3.1/
-     * 0.7/1.4 rad·t⁻¹, which put the nervous jitter at ~10 Hz and the cheer at ~2.9 Hz — owner
-     * feedback (2026-10-10) called the companion "frantic when it shouldn't" be; these are the
-     * calmed rates. Reactions stay the livelier register; the baseline calm lives in the clock
-     * rates on {@code CompanionFlock}.
-     */
-    private static final float CHEER_RATE = 0.25f, NERVOUS_RATE = 0.9f,
-            DRIFT_PULSE_RATE = 0.35f, BENTHIC_BOUNCE_RATE = 0.3f;
-
-    /** A percher's hold on the rod tip while the owner is fishing (§5): ahead, off-hand, slightly low. */
-    private static final double ROD_TIP_AHEAD = 0.95, ROD_TIP_SIDE = 0.22, ROD_TIP_DROP = 0.18;
-    /** How far off the bobber a swimmer hovers while waiting for a bite — per class, below. */
-    private static final double LINE_HOVER_SIDE = 0.28, LINE_HOVER_UP = 0.12, LINE_HOVER_BACK = 0.2;
-
-    // ── The companion's own frame (post-v1 polish, §19). ───────────────────────
-    // The baseline paths hang off a yaw that follows the owner's BODY lazily rather than the
-    // camera instantly. Owner playtest: "rotating player view causes companion to rapidly
-    // interpolate to a new position... the fish in practice is a separate entity from the player
-    // and should be decoupled from moving strictly linked to player orientation changes." Turning
-    // in place must not relocate the fish — it drifts to its new spot over seconds, like it chose
-    // to move — while walking re-orients it at a rate that keeps up with where you are actually
-    // going. Rates are degrees per tick (≈12°/s standing, ≈80°/s walking), named for in-game
-    // tuning; the intentional view-coupled moments (peeks, held items, rod tip, dock) don't use
-    // this frame.
-    private static final float FRAME_TURN_STILL = 0.6f, FRAME_TURN_MOVING = 4.0f;
-    /** Vanilla's own walk-vs-stand threshold (LivingEntity: sideDist² > 0.0025 blocks²/tick²). */
-    private static final double FRAME_MOVING_SPEED_SQR = 0.0025;
-
-    /** The companion's orientation frame, degrees — eased toward the owner's body yaw, never the camera. */
-    private float frameOrientationYaw;
-    /** The frame yaw at the previous tick, for render interpolation (docs §20). */
-    private float prevFrameOrientationYaw;
-    /**
-     * Dev-only (§19 scene): pause the peek system and the trick scheduler, so a motion
-     * measurement only measures baseline motion. A quick-lap trick triples the orbit rate and a
-     * peek dashes at the view; both would masquerade as camera-following in the numbers.
-     */
-    private boolean devMotionSuppressed;
-    /**
-     * Dev-only (§19 scene): restore the pre-polish basis for a measurement — the baseline paths
-     * read the camera directly again, exactly what the fix replaced — so the scene can measure
-     * "before" and "after" in one run, on one state.
-     */
-    private boolean devCameraLockedFrame;
-
-    // ── Follow steering (playtest round 3, §21). ───────────────────────────────
-    // Owner playtest: "when players move, fish accelerate too fast to move with them, making them
-    // feel like they are strictly bound to player movement even though they are just following
-    // after. However, we don't want fish getting left behind... slow acceleration ramp curve. If
-    // player moves a small number of blocks away, fish meander over. But if player moves much
-    // further away quickly, fish still accelerate eventually up to player speed and catch up as
-    // the player slows or stops."
-    //
-    // The baseline follow is therefore arrive-style steering instead of a fixed per-tick ease:
-    // desired speed grows with the gap (meander for small gaps), the anchor's own motion is
-    // partly fed forward (so tracking a moving anchor settles with a modest breathing gap rather
-    // than a rigid zero-lag match), and acceleration and jerk are capped so the fish commits to a
-    // move over ~a second instead of mirroring every velocity change instantly. Authored moments
-    // (peeks, hops, reactions, the line, scenes, the dock) run a much quicker profile so their
-    // timings are unchanged. All named for in-game tuning.
-    /** Desired speed per block of gap (blocks/tick per block). Meander ≈ 1 m/s at ~1.2 blocks. */
-    private static final double FOLLOW_GAIN = 0.04;
-    /** Baseline speed cap, blocks/tick — just past player sprint (0.28), so a gap always closes. */
-    private static final double FOLLOW_MAX_SPEED = 0.33;
-    /** How fast the follow velocity may change, blocks/tick² — the "slow acceleration ramp". */
-    private static final double FOLLOW_MAX_ACCEL = 0.012;
-    /** How fast the acceleration itself may change — bounded jerk keeps starts and stops soft. */
-    private static final double FOLLOW_MAX_JERK = 0.003;
-    /** How much of the anchor's own motion is fed forward (0 = pure gap-chasing, 1 = matched). */
-    private static final double FOLLOW_FEED_FORWARD = 0.6;
-    /** Beyond this gap the quick profile takes over — a player who got far away is caught up to. */
-    private static final double FOLLOW_FAR_GAP = 16.0;
-    /** Authored moments track much harder (≈ the old ease) so peeks and scenes keep their timing. */
-    private static final double MOMENT_GAIN = 0.35;
-    private static final double MOMENT_MAX_SPEED = 0.7;
-    private static final double MOMENT_MAX_ACCEL = 0.06;
-    private static final double MOMENT_MAX_JERK = 0.02;
-    /** Moments brake onto their target with extra margin — see the arrival-braking note in stepFollow. */
-    private static final double MOMENT_BRAKE_MARGIN = 0.65;
-    /** An escaped fish comes home at a crawl (~1 m/s) for its ~3 s sulk (§5). */
-    private static final double ESCAPE_MAX_SPEED = 0.05;
-    /** Share of a tick's raw anchor motion that survives into the feed-forward (smoothing). */
-    private static final double ANCHOR_VEL_BLEND = 0.35;
-    /**
-     * How much of the fish's own in-box wander the {@code fishCentred} compensation cancels. Dev
-     * switches for the §21 wobble bisect: {@code ffWeight} 0 disables the feed-forward,
-     * {@code compensationWeight} 0 disables the compensation itself.
-     */
-    private double ffWeight = FOLLOW_FEED_FORWARD;
-    private double compensationWeight = 0.7;
-    /** Dev-only (§21 wobble bisect): the pre-round-3 fixed-lerp follow. */
-    private boolean devLegacyFollow;
-    /** Dev-only (§21 wobble A/B): the moment profile without the jerk-aware lookahead. */
-    private boolean devLegacyMomentSteer;
-
-    /** The steering integrator's state: velocity, its derivative, and the smoothed anchor motion. */
-    private Vec3 followVel = Vec3.ZERO;
-    private Vec3 followAccel = Vec3.ZERO;
-    private Vec3 anchorVelocity = Vec3.ZERO;
-    /** The anchor point last tick, for the feed-forward's motion estimate. */
-    @Nullable private Vec3 prevFollowTarget;
-    /** Dev-only (§21 scene): restore the same-sense G2 sweep for an in-run before/after pair. */
-    private boolean devLegacyEight;
-    /** The raw scene-path point (pre-fish-centring) written by {@link #sceneAnchor}, for §21 metrics. */
-    @Nullable private Vec3 lastScenePathPoint;
-
-    // ── Pet-to-pet scenes (§10). The timings come from the packet's scene type; these are the
-    //    presentation shapes, sized so a scene reads as two friends meeting, not a race. ──────────
-    private static final float SCENE_BLEND_SPEED = 0.08f;
-    /** The G1 loop: how wide it circles the midpoint of the two owners, and how high. */
-    private static final double SCENE_LOOP_RADIUS = 1.1, SCENE_HEIGHT = 0.15;
-    /** When the G1 bubble heart pops — half of one 7 s lap, so the pair is mid-loop when it blooms. */
-    private static final int HEART_TICK = 70;
-    /** How large the bubble heart is drawn, blocks per heart-curve unit. */
-    private static final double HEART_SCALE = 0.03;
-    /** How far above the pair's midpoint the heart floats — out of the fish's path and eye-line. */
-    private static final double HEART_RISE = 0.35;
-
-    private static final int PEEK_IDLE = 0, PEEK_OUT_PHASE = 1, PEEK_HOLD_PHASE = 2, PEEK_BACK_PHASE = 3;
-
-    /**
-     * One entry of the held-item reaction table (§3.1): the item test, where the companion goes in
-     * view space (right / up / forward of the owner's eyes; null keeps the normal display-mode
-     * anchor, which on a perch means "stays put"), and a pose tilt. The list is checked in order,
-     * so put the specific items first — the food fallback matches anything edible.
-     */
-    private record Reaction(String name, Predicate<ItemStack> match, @Nullable Vec3 offset, float tiltDeg) {}
-
-    /** The owner, or null for a dev phantom parked at {@link #phantomEye}. */
+    /** The owner, or null for a dev phantom: an imaginary still owner standing at {@link #phantomEye}. */
     @Nullable private final Player owner;
     @Nullable private final Vec3 phantomEye;
-    private final CompanionFlock flock;
-    private final CompanionFishPose pose;
+    private final float phantomYaw;
     private final ItemStack stack;
-    private final int seed;
-    private final boolean percher;
-    private final List<Reaction> reactions;
+    private final long seed;
+    private final Locomotion locomotion;
+    private final float length;
+    private final Temperament temperament;
+    private final boolean trio;
+    private final CompanionRender render;
+    private final CompanionFishPose perchPose;
+    private final CompanionWorldAdapter.OwnerTracker tracker = new CompanionWorldAdapter.OwnerTracker();
 
-    @Nullable private Vec3 center, prevCenter;
-    /** DRIFT's loose spring carries a velocity; the other classes ease positionally. */
-    private Vec3 springVel = Vec3.ZERO;
+    @Nullable private CompanionAgent agent;
+    @Nullable private CompanionGroup group;
+    @Nullable private OwnerState lastOwner;
+    private CompanionWorld.Held lastHeld = CompanionWorld.Held.NONE;
+    private int lastPoints;
+    /** Dev trigger: report the owner hurt on the next tick. */
+    private boolean devHurt;
+    /** Nanoseconds the last sim step took, for the debug overlay. */
+    long stepNanos;
 
-    private float dock, prevDock;
-
-    // ── Behaviour state ────────────────────────────────────────────────────────
-    private double orbitAngle;
-    private long tickCount; // dev-only (§21 wobble bisect): per-instance tick-call rate ground truth
-    private int peekPhase = PEEK_IDLE;
-    private int peekTimer;
-    private float peekBlend;
-    private int peekCount;
-    private long peekStartGuard = Long.MIN_VALUE / 2;
-    /** A percher's (or reaction's) way off the body: 0 on the body, 1 out at the target point. */
-    private float outBlend, prevOutBlend;
-    /** Perchers: where the hop started (world), so the hop path stays continuous. */
-    private Vec3 hopStart = Vec3.ZERO;
-    private float reactionBlend;
-    private int trickCooldown;
-    private int trickTimer;
-    private int trickIndex;
-    private float spinDeg;
-    private float duck, prevDuck;
-    private String reactionName = "";
-    private float reactionTilt;
-    private float handHop, prevHandHop;
-    /** Client tick at which the owner last had this companion on screen (for peek scheduling). */
-    private long lastSeenTick = Long.MIN_VALUE / 2;
-    private boolean visibleNow;
-    private boolean firstPersonHidden;
-
-    // ── Fishing (§5) ───────────────────────────────────────────────────────────
-    /** Where the owner's bobber is (or last was), the anchor every at-the-line state aims at. */
-    private Vec3 linePoint = Vec3.ZERO;
-    private boolean linePointSet;
-    /** 0 = normal display mode, 1 = at the line (waiting, nibbling or watching the minigame). */
-    private float lineWait, prevLineWait;
-    /** 0..1 envelope for the nibble twitch while the bobber is being pulled under. */
-    private float nibble, prevNibble;
-    /** 0..1 envelope for the celebration fly-past toward the camera (tiered catches only, §5). */
-    private float flyPast, prevFlyPast;
-    /** Ticks left of the same-species greeting pause during a celebration. */
-    private int greetHold;
-    /** One greeting per celebration, even if the animation hands the same one back every tick. */
-    private boolean greetedThisCelebration;
-    /** The resolved outcome reaction playing now, and its countdown (§5 catch wiggle / escape droop). */
-    @Nullable private CompanionFishingOutcome outcome;
-    private int outcomeTicks, prevOutcomeTicks;
-    /** Never cleared: the last outcome ever resolved, for the self-test's checks. */
-    private CompanionFishingOutcome lastOutcome = CompanionFishingOutcome.NONE;
-    /** Bar-state reaction inputs, published by the minigame each frame and smoothed here (§5.2). */
-    private float fishProgress = Float.NaN, progressDelta;
-    private boolean barActive;
-    /**
-     * The docked model's own clock, advanced at the bar's reaction speed (GLIDE flaps faster as
-     * progress drains) — a separate accumulator so a rate change never makes the animation jump.
-     */
-    private float dockClock, dockTimeMul = 1f;
-    /** The dock reaction the last rendered frame used — diagnostics for the self-test only. */
-    private DockReaction lastReaction = DockReaction.NONE;
-    /** The sim's raw tail phase and its per-tick advance — the self-test's wiggle numbers. */
-    private float lastRenderPhase, swimPhaseDelta;
-
-    // ── Pet-to-pet scenes (§10) ────────────────────────────────────────────────
-    /** The scene this companion is playing, or null; set by the scene packet (or a dev injection). */
-    @Nullable private CompanionSceneType scene;
-    private long sceneStart;
-    /** The other participant's owner UUID (a player, or a dev phantom's id) — resolved live. */
-    private UUID scenePartner;
-    /** Role from the packet: true when this companion is the packet's second participant. */
-    private boolean sceneSecond;
-    /** The G1 bubble heart fires once per scene, from the first participant (so a client never doubles). */
-    private boolean sceneHeartFired;
-    private float sceneBlend;
-
-    // Per-frame geometry, written by the world pass (it runs first) and read by the HUD pass.
-    private Vec3 frameCenter = Vec3.ZERO;
-    private float frameScale = 1f;
-    private float frameFishSize = 1f;
-    private float frameYaw;
-    private float frameTilt;
-    private boolean frameDocked;
-
-    // ── Frame-rate motion stats (docs §20), sampled in the world pass for the self-test. ───────
-    /** The drawn fish world position the last two sampled frames ago, and their times. */
-    private Vec3 statP1, statP2;
-    private double statT1, statT2;
-    private double statFlickerSum;
-    private double statStepSum;
-    private int statFrameSamples;
-
-    /**
-     * Dev-only (§20 scene): draw the frame yaw un-interpolated AND feed the tick-side compensation
-     * the render scratch — the two pre-round-2 behaviours — so the flicker metric can measure
-     * legacy-vs-fixed in one run, on one state.
-     */
-    private boolean devLegacyFrameYaw;
-
-    public void devLegacyFrameYaw(boolean legacy) {
-        this.devLegacyFrameYaw = legacy;
-    }
-
-    public boolean devIsLegacyFrameYaw() {
-        return devLegacyFrameYaw;
-    }
-
-    /** Reset the flicker window: the self-test samples it over a scene leg. */
-    public void devResetFrameStats() {
-        statP1 = statP2 = null;
-        statT1 = statT2 = 0;
-        statFlickerSum = 0;
-        statStepSum = 0;
-        statFrameSamples = 0;
-    }
-
-    /**
-     * 1 = the fish is oscillating back and forth every other frame; 0 = smooth travel. For a
-     * constant velocity {@code |p(t)-p(t-2)| ≈ 2·|p(t)-p(t-1)|}; a period-2 reverberation makes the
-     * two-frame displacement collapse while the one-frame step stays finite. The owner's report
-     * was exactly this: "very slightly and quickly jumping back and forth" at close range.
-     */
-    public float devFrameFlicker() {
-        return statFrameSamples == 0 ? Float.NaN : (float) (statFlickerSum / statFrameSamples);
-    }
-
-    /** Mean drawn-position step per frame (blocks), the flicker metric's companion. */
-    public float devFrameStep() {
-        return statFrameSamples == 0 ? Float.NaN : (float) (statStepSum / statFrameSamples);
-    }
-
-    public int devFrameSamples() {
-        return statFrameSamples;
-    }
-
-    ClientCompanion(@Nullable Player owner, @Nullable Vec3 phantomEye, ItemStack stack, Level level) {
+    ClientCompanion(@Nullable Player owner, @Nullable Vec3 phantomEye, float phantomYaw, ItemStack stack,
+                    ClientLevel level, @Nullable Temperament override) {
         this.owner = owner;
         this.phantomEye = phantomEye;
+        this.phantomYaw = phantomYaw;
         this.stack = stack.copy();
-        this.seed = this.stack.hashCode();
-        this.flock = new CompanionFlock(stack, level);
-        this.pose = new CompanionFishPose(stack, level);
-        if (owner != null) frameOrientationYaw = owner.yBodyRot;
-        // A dev phantom has no body to sink into (the perch draw needs an owner); it swims its box
-        // whatever the species.
-        this.percher = owner != null
-                && (flock.locomotion() == Locomotion.BENTHIC || flock.locomotion() == Locomotion.ANCHORED);
-        this.orbitAngle = Math.abs(seed % 1000) / 1000.0 * Math.PI * 2;
-        this.reactions = List.of(
-                new Reaction("rod", s -> s.is(Items.FISHING_ROD) || s.is(FishtasticItemTags.FISHING_RODS),
-                        new Vec3(0.38, -0.18, 1.05), 0f),
-                new Reaction("bait", s -> s.is(FishtasticItemTags.FISHING_BAIT), new Vec3(0.12, -0.28, 0.7), -15f),
-                new Reaction("same_species", s -> s.is(this.stack.getItem()), new Vec3(0.3, -0.3, 0.8), 0f),
-                new Reaction("predator", s -> s.is(FishtasticItemTags.PREDATOR_FISH), new Vec3(0.1, 0.2, -0.6), 0f),
-                new Reaction("name_tag", s -> s.is(Items.NAME_TAG), null, 25f),
-                new Reaction("food", s -> s.get(DataComponents.FOOD) != null, new Vec3(0.15, -0.2, 0.9), -5f));
-        Random rng = new Random(seed);
-        // The first peek waits like every other one (a random 7.5–37.5 s), so a freshly bonded
-        // companion neither peeks into the owner's face at once nor follows the same clock as its
-        // siblings — the seeds differ per fish, so the schedules do too.
-        this.peekTimer = PEEK_COOLDOWN_MIN / 2 + rng.nextInt(PEEK_COOLDOWN_VAR);
-        this.trickCooldown = TRICK_COOLDOWN_MIN + rng.nextInt(TRICK_COOLDOWN_VAR);
-        // A freshly bonded companion counts as "just seen": it should not peek into the owner's
-        // face the instant it is equipped. From here the unseen-for-10 s rule schedules the first.
-        this.lastSeenTick = level.getGameTime();
+        this.render = new CompanionRender(stack, level);
+        this.perchPose = new CompanionFishPose(stack, level, MIN_LENGTH);
+        this.locomotion = render.locomotion();
+        this.length = Math.max(render.length(), MIN_LENGTH);
+        float sizeCm = ItemSizeHelper.hasSize(stack) ? ItemSizeHelper.getSize(stack) : Float.MAX_VALUE;
+        this.trio = CompanionGroup.isTrio(locomotion, sizeCm);
+        this.temperament = override != null ? override : temperamentOf(stack, level);
+        this.seed = seedOf(owner != null ? owner.getUUID() : UUID.nameUUIDFromBytes(phantomEye.toString().getBytes()),
+                stack);
+    }
+
+    /** The species' temperament from its fish profile (spec §4), or the baseline. */
+    private static Temperament temperamentOf(ItemStack stack, ClientLevel level) {
+        var itemKey = BuiltInRegistries.ITEM.getResourceKey(stack.getItem());
+        if (itemKey.isEmpty()) return Temperament.BASELINE;
+        return level.registryAccess().lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY)
+                .getOptional(ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, itemKey.get().identifier()))
+                .flatMap(FishProfile::temperament)
+                .map(key -> Temperament.named(key.identifier().getPath()))
+                .orElse(Temperament.BASELINE);
+    }
+
+    /**
+     * The same on every client: the owner and the bonded fish's species and size (never an
+     * identity hash, which differs per JVM).
+     */
+    private static long seedOf(UUID owner, ItemStack stack) {
+        long h = owner.getMostSignificantBits() * 31 + owner.getLeastSignificantBits();
+        h = h * 31 + BuiltInRegistries.ITEM.getKey(stack.getItem()).toString().hashCode();
+        if (ItemSizeHelper.hasSize(stack)) h = h * 31 + Float.floatToIntBits(ItemSizeHelper.getSize(stack));
+        return h ^ (h >>> 29);
     }
 
     ItemStack stack() { return stack; }
 
     @Nullable Player owner() { return owner; }
 
-    boolean isDocked() { return frameDocked; }
-
-    float dockProgress() { return dock; }
-
     public boolean isLocal() {
-        Minecraft mc = Minecraft.getInstance();
-        return owner != null && owner == mc.player;
+        return owner != null && owner == Minecraft.getInstance().player;
     }
 
     // ── Tick ───────────────────────────────────────────────────────────────────
 
     /**
-     * Client tick (20 Hz). {@code anchor} is the minigame's dock anchor when this is the local
-     * player's companion and a minigame is up, otherwise null.
-     */
-    void tick(@Nullable float[] anchor) {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null) return;
-        tickCount++;
-        long now = mc.level.getGameTime();
-        boolean local = isLocal();
-        boolean firstPerson = mc.options.getCameraType().isFirstPerson();
-        boolean inWater = owner != null && owner.isEyeInFluid(FluidTags.WATER);
-        // Keep the previous frame yaw for render interpolation (docs §20): the frame eases at up to
-        // a few degrees per TICK, and drawing it un-interpolated quantizes the box's rotation (and
-        // with it the fish's offset) to tick steps — visible as a close-range jitter.
-        prevFrameOrientationYaw = frameOrientationYaw;
-        if (owner != null) updateFrameOrientation();
-
-        prevDock = dock;
-        float dir = anchor != null ? 1f : -1f;
-        dock = Mth.clamp(dock + dir / DOCK_TICKS, 0f, 1f);
-        boolean docking = dock > 0f;
-        boolean fullyDocked = dock >= 1f && anchor != null;
-        if (dock == 0f) {
-            dockClock = mc.level.getGameTime();
-            dockTimeMul = 1f;
-        }
-
-        prevOutBlend = outBlend;
-        prevHandHop = handHop;
-        prevLineWait = lineWait;
-        updateFishing(mc, local, docking);
-        // A pet-to-pet scene (§10) runs its fixed duration from the packet's start time; losing the
-        // partner (they left or unequipped) ends it early. The clock is the client's own level time,
-        // which tracks the server's — that's what keeps both owners' playback in step.
-        if (scene != null && (now - sceneStart >= scene.durationTicks()
-                || ClientCompanions.scenePartnerPoint(scenePartner) == null)) {
-            scene = null;
-        }
-        sceneBlend = approach(sceneBlend, scene != null ? 1f : 0f, SCENE_BLEND_SPEED);
-        if (scene == CompanionSceneType.G1_SAME_SPECIES) spawnSceneHeart(mc);
-        if (!docking) {
-            updateBehaviour(mc, now, inWater, local);
-        }
-        // The hand hop: local only, first person, looking down (§3.1). Docking wins over it.
-        boolean wantHand = local && !docking && firstPerson
-                && !FishtasticClientConfig.hideOwnCompanionFirstPerson()
-                && mc.player != null && mc.player.getXRot() > HAND_PITCH;
-        handHop = approach(handHop, wantHand ? 1f : 0f, HAND_HOP_SPEED);
-        outBlend = Math.max(peekBlend, reactionBlend);
-        float out = outAmount();
-        float prevOut = Math.max(Math.max(prevOutBlend, prevHandHop), prevLineWait);
-        if (out > 0f && prevOut <= 0f && center != null) hopStart = center;
-
-        // The invisible tank swaps between air, water and the docked model.
-        if (anchor != null) {
-            flock.setMode(CompanionFlock.Mode.DOCKED);
-        } else if (!docking) {
-            flock.setMode(inWater ? CompanionFlock.Mode.WATER : CompanionFlock.Mode.FOLLOW);
-        }
-
-        moveCenter(mc, inWater, docking);
-        flock.setBiasFade(1f - smooth(dock));
-        flock.step();
-        float phase = flock.renderPhase();
-        swimPhaseDelta = phase - lastRenderPhase;
-        lastRenderPhase = phase;
-
-        updateVisibility(mc, local, firstPerson, now, inWater);
-    }
-
-    /** Peeks, tricks, reactions and the duck envelope; everything that is not motion. */
-    private void updateBehaviour(Minecraft mc, long now, boolean inWater, boolean local) {
-        prevDuck = duck;
-
-        updateReaction(mc);
-        updateDuck(mc);
-
-        // Tricks (§3 table's "tricks" column): a quick lap, a swoop, a rise, a spin. Anchored has
-        // no trick of its own — its moment is the duck. Not in water, where every class swims.
-        // Nor mid-scene: a trick would fight the scene's path (§10).
-        if (trickTimer > 0) {
-            trickTimer--;
-            if (trickTimer == 0) {
-                spinDeg = 0f;
-                trickIndex++;
-                trickCooldown = TRICK_COOLDOWN_MIN + (int) (hash(trickIndex * 31 + 7) % TRICK_COOLDOWN_VAR);
-            }
-        } else if (--trickCooldown <= 0 && !inWater && scene == null && !devMotionSuppressed) {
-            trickCooldown = TRICK_COOLDOWN_MIN + (int) (hash(trickIndex * 17 + 3) % TRICK_COOLDOWN_VAR);
-            trickTimer = TRICK_LENGTH;
-        }
-        if (trickTimer > 0 && flock.locomotion() == Locomotion.BENTHIC) {
-            spinDeg = (1f - trickTimer / (float) TRICK_LENGTH) * 360f; // one full turn in place
-        }
-
-        // Peek phase machine (§3.1). Peeks stay out of the way while a reaction already holds the
-        // fish near the view, never run in water — the whole point is the companion the owner
-        // cannot normally see — and pause while the owner is in the minigame, where the bar owns
-        // the middle of the screen (the wait-at-the-bobber setting leaves the fish following, not
-        // photobombing the fight). Nor while the fish is at the fishing line: it is already the
-        // most visible it ever gets, and a peek would yank it off the bobber mid-cast (§5). The
-        // timer simply holds at its current value.
-        boolean ownerFishing = isLocal() && ClientCompanions.activeMinigame() != null;
-        boolean mayPeek = !inWater && reactionName.isEmpty() && !ownerFishing
-                && lineWait < 0.05f && outcome == null && scene == null && !devMotionSuppressed;
-        if (!mayPeek && peekPhase == PEEK_IDLE) peekBlend = 0f;
-        switch (peekPhase) {
-            case PEEK_IDLE -> {
-                peekBlend = 0f;
-                if (mayPeek) {
-                    boolean unseen = local && now - lastSeenTick > PEEK_UNSEEN_TICKS;
-                    if ((--peekTimer <= 0 || unseen) && now - peekStartGuard > PEEK_MIN_GAP) {
-                        peekPhase = PEEK_OUT_PHASE;
-                        peekTimer = PEEK_OUT;
-                        peekCount++;
-                    }
-                }
-            }
-            case PEEK_OUT_PHASE -> {
-                peekBlend = 1f - peekTimer / (float) PEEK_OUT;
-                if (--peekTimer <= 0) {
-                    peekPhase = PEEK_HOLD_PHASE;
-                    peekTimer = PEEK_HOLD;
-                }
-            }
-            case PEEK_HOLD_PHASE -> {
-                peekBlend = 1f;
-                if (--peekTimer <= 0) {
-                    peekPhase = PEEK_BACK_PHASE;
-                    peekTimer = PEEK_BACK;
-                }
-            }
-            case PEEK_BACK_PHASE -> {
-                peekBlend = peekTimer / (float) PEEK_BACK;
-                if (--peekTimer <= 0) {
-                    peekPhase = PEEK_IDLE;
-                    peekBlend = 0f;
-                    peekStartGuard = now;
-                    peekTimer = PEEK_COOLDOWN_MIN + (int) (hash(peekCount) % PEEK_COOLDOWN_VAR);
-                }
-            }
-            default -> throw new IllegalStateException("bad peek phase " + peekPhase);
-        }
-    }
-
-    /**
-     * Advances the companion's own frame toward the owner's body yaw — rate-capped, so the frame
-     * never snaps to a camera flick (see the FRAME_TURN constants). The body yaw itself is already
-     * the "separate entity" reference: vanilla points it at the walk direction, or, standing still,
-     * keeps it lagging within the head-turn envelope rather than pinning it to the view.
-     */
-    private void updateFrameOrientation() {
-        float rate = owner.getDeltaMovement().horizontalDistanceSqr() > FRAME_MOVING_SPEED_SQR
-                ? FRAME_TURN_MOVING : FRAME_TURN_STILL;
-        float step = Mth.clamp(Mth.wrapDegrees(owner.yBodyRot - frameOrientationYaw), -rate, rate);
-        frameOrientationYaw = Mth.wrapDegrees(frameOrientationYaw + step);
-    }
-
-    /** Flat forward of the companion's own frame — the baseline paths build on this, not the camera. */
-    private Vec3 frameForward() {
-        if (devCameraLockedFrame && owner != null) return cameraFlatForward();
-        float r = (float) Math.toRadians(frameOrientationYaw);
-        return new Vec3(-Mth.sin(r), 0, Mth.cos(r));
-    }
-
-    /** The flat camera forward — the pre-polish basis, kept for the §19 measurement seam. */
-    private Vec3 cameraFlatForward() {
-        Vec3 look = owner.getLookAngle();
-        Vec3 flat = new Vec3(look.x, 0, look.z);
-        return flat.lengthSqr() < 1e-6 ? new Vec3(0, 0, 1) : flat.normalize();
-    }
-
-    /** Flat forward of the owner's BODY: the perch and back points sit on the body, not the view. */
-    private Vec3 bodyForward() {
-        float r = (float) Math.toRadians(owner.yBodyRot);
-        return new Vec3(-Mth.sin(r), 0, Mth.cos(r));
-    }
-
-    private long hash(long value) {
-        long h = value * 6364136223846793005L + seed;
-        h ^= h >>> 33;
-        h *= 0xff51afd7ed558ccdL;
-        return Math.abs(h ^ (h >>> 33));
-    }
-
-    // ── Fishing (§5) ───────────────────────────────────────────────────────────
-
-    /**
-     * The owner's bobber is the anchor of every fishing state: while it is out (vanilla keeps the
-     * hook in the world right through a Fishtastic minigame), the companion goes to the line —
-     * unless this is the local player's client and the minigame is up, in which case it docks on
-     * the bar instead (or, with "waits at the bobber", stays exactly here). The synced
-     * {@code DATA_BITING} flag drives the nibble, so every client sees the same twitch.
+     * Client tick (20 Hz): builds this companion's view of the world and steps the sim.
      *
-     * <p>Frozen while docking: the swim to the dock blends from wherever the fish is, so the
-     * at-the-line point must hold still until the swim is over (and the hook may already be gone
-     * by the time the minigame ends — the frozen point is also the fallback anchor then).
+     * @param companions every other companion near enough to matter, as points of interest
      */
-    private void updateFishing(Minecraft mc, boolean local, boolean docking) {
-        prevNibble = nibble;
-        prevFlyPast = flyPast;
-        prevOutcomeTicks = outcomeTicks;
-
-        FishingHook hook = owner == null ? null : owner.fishing;
-        boolean hooked = hook != null && !hook.isRemoved();
-        if (hooked) {
-            Vec3 bobber = hook.position();
-            if (!linePointSet || linePoint.distanceToSqr(bobber) > 36.0) {
-                linePoint = bobber; // a fresh cast: take the new spot at once rather than swimming there
-                linePointSet = true;
-            } else {
-                linePoint = linePoint.lerp(bobber, 0.5);
-            }
-        }
-
-        if (!docking) {
-            boolean minigameUp = local && ClientCompanions.activeMinigame() != null;
-            boolean waitAtBobber = FishtasticClientConfig.companionWaitsAtBobber();
-            boolean wantLine = hooked && !(minigameUp && !waitAtBobber);
-            lineWait = approach(lineWait, wantLine ? 1f : 0f, LINE_BLEND_SPEED);
-            boolean biting = hooked && lineWait > 0.5f && ((IFishingHookExtension) hook).fishtastic$isBiting();
-            nibble = approach(nibble, biting ? 1f : 0f, NIBBLE_BLEND_SPEED);
-        }
-
-        // The outcome envelope (catch wiggle / escape droop). Held while docking so a reaction
-        // cannot start mid-swim; the session-end trigger only fires when the dock is already going.
-        if (outcome != null && !docking && --outcomeTicks <= 0) {
-            outcome = null;
-            outcomeTicks = 0;
-        }
-
-        updateDockReactions(local);
-        if (dock > 0f) dockClock += dockTimeMul;
-    }
-
-    /**
-     * Reads the live minigame's progress and celebration into the reaction state (§5.1/§5.2): the
-     * catch-progress trend (in the zone vs draining) and the celebration flight. The geometric
-     * half of the bar-state reactions — the bobber-tracking bob, the bounce, the lean — is
-     * derived per frame in {@link #computeFrame} from the minigame's published anchors, where the
-     * screen framing is known. Only the local player ever has the bar, so this is local-only; a
-     * remote companion's reactions arrive as events instead.
-     */
-    private void updateDockReactions(boolean local) {
-        barActive = false;
-        if (!local) {
-            fishProgress = Float.NaN;
-            progressDelta = 0f;
-            flyPast = approach(flyPast, 0f, FLY_PAST_SPEED);
-            return;
-        }
-        FishingMinigameAnimation minigame = ClientCompanions.activeMinigame();
-        boolean barUp = minigame != null && !minigame.isHidingNow();
-        if (!barUp) {
-            fishProgress = Float.NaN;
-            progressDelta = 0f;
-            flyPast = approach(flyPast, 0f, FLY_PAST_SPEED);
-            return;
-        }
-        barActive = true;
-        float progress = Float.NaN;
-        for (var target : minigame.getMinigameState().getTargets()) {
-            if (target.getCategory() == grill24.fishtastic.util.FishingTarget.TargetCategory.FISH
-                    && target.getState() == grill24.fishtastic.util.FishingTarget.TargetState.ACTIVE) {
-                progress = Float.isNaN(progress) ? target.getCatchProgress()
-                        : Math.max(progress, target.getCatchProgress());
-            }
-        }
-        float raw = Float.isNaN(progress) || Float.isNaN(fishProgress) ? 0f : progress - fishProgress;
-        // A decaying peak-hold on the negative side only: a drain burst keeps reading as
-        // "draining" for about a second, which is also how long the nervous dart should last —
-        // and it means a check a few ticks after the burst still sees it.
-        progressDelta = Math.min(raw, progressDelta * 0.9f);
-        fishProgress = progress;
-        float drain = Mth.clamp(-progressDelta * 25f, 0f, 1f);
-        dockTimeMul = flock.locomotion() == Locomotion.GLIDE
-                ? Mth.lerp(drain, GLIDE_LAZY_SPEED, GLIDE_DRAIN_SPEED) : 1f;
-
-        CatchCelebration celebration = minigame.getCompanionCelebration();
-        if (celebration != null) {
-            // A same-species catch earns a greeting pause facing the hero fish, then the
-            // fly-past (§5, D4); everything else flies past straight away. Ending — by itself
-            // or by the skip key — drops the celebration reference, which ends the flight
-            // (R3.5). One greeting per celebration.
-            if (!greetedThisCelebration && celebration.getHeroStack().is(stack.getItem())) {
-                greetedThisCelebration = true;
-                greetHold = GREET_TICKS;
-            }
-            if (greetHold > 0) {
-                greetHold--;
-                flyPast = approach(flyPast, 0.35f, FLY_PAST_SPEED);
-            } else if (!celebration.isFinished()) {
-                flyPast = approach(flyPast, 1f, FLY_PAST_SPEED);
-            }
-        } else {
-            greetedThisCelebration = false;
-            flyPast = approach(flyPast, 0f, FLY_PAST_SPEED);
-        }
-    }
-
-    /**
-     * Starts the outcome reaction (catch wiggle / escape droop, §5). Called by the manager when the
-     * local minigame ends, and by the fishing-event packet for another player's companion.
-     */
-    void setFishingOutcome(CompanionFishingOutcome kind) {
-        outcome = kind == CompanionFishingOutcome.NONE ? null : kind;
-        if (kind != CompanionFishingOutcome.NONE) lastOutcome = kind;
-        outcomeTicks = kind == CompanionFishingOutcome.CAUGHT ? OUTCOME_CATCH_TICKS : OUTCOME_ESCAPE_TICKS;
-    }
-
-    /** 0..1 envelope of the escape droop: rises quickly, holds, releases. */
-    private float escapeEnvelope() {
-        if (outcome != CompanionFishingOutcome.ESCAPED || outcomeTicks <= 0) return 0f;
-        float t = outcomeTicks / (float) OUTCOME_ESCAPE_TICKS;
-        return Mth.sin(Mth.clamp((1f - t) * 1.6f, 0f, 1f) * (float) Math.PI);
-    }
-
-    /** The nibble twitch and the escape droop, folded into the rendered tilt. */
-    private float fishingTilt(float partialTick) {
-        float n = Mth.lerp(partialTick, prevNibble, nibble);
-        float twitch = n * 9f * Mth.sin(gameTime(partialTick) * 1.3f);
-        return twitch - escapeEnvelope() * ESCAPE_TILT;
-    }
-
-    /** Where a swimmer hovers while the owner waits for a bite: beside the bobber, class-flavoured. */
-    private Vec3 lineAnchorPoint() {
-        // Deliberately NOT fish-centred (unlike peeks/scenes): centring the FISH on the point made
-        // the target track the fish's own wander, so any tracker chased a moving point and the
-        // drawn fish swung around the bobber (measured 2-5 blocks and hunting, §21). With the box
-        // centred, the fish hovers within its own box wander of the bobber — the natural read.
-        return switch (flock.locomotion()) {
-            case GLIDE -> linePoint.add(0, 0.55, 0); // wide and high, watching from above
-            case DRIFT -> linePoint.add(0, LINE_HOVER_UP, 0); // the spring supplies the lag
-            default -> {
-                if (owner == null) yield linePoint;
-                Vec3 forward = frameForward();
-                Vec3 right = new Vec3(-forward.z, 0, forward.x);
-                yield linePoint.add(right.scale(LINE_HOVER_SIDE)).add(forward.scale(-LINE_HOVER_BACK))
-                        .add(0, LINE_HOVER_UP, 0);
-            }
-        };
-    }
-
-    /** Where a percher rides while the owner is fishing: the rod tip in the main hand (§5). */
-    private Vec3 rodTipPoint() {
-        if (owner == null) return linePoint;
-        Vec3 look = owner.getLookAngle();
-        Vec3 up = owner.getUpVector(1f);
-        Vec3 right = look.cross(up);
-        return owner.getEyePosition()
-                .add(right.scale(-ROD_TIP_SIDE)) // the main hand is the player's right: -right in this basis
-                .add(up.scale(-ROD_TIP_DROP))
-                .add(look.scale(ROD_TIP_AHEAD));
-    }
-
-    // ── Pet-to-pet scenes (§10) ────────────────────────────────────────────────
-
-    /**
-     * Starts (or replaces) the scene this companion is playing. The packet's landing point: the
-     * server has already picked the scene and its start time, and both participants derive their
-     * position from the same arithmetic, so the two owners see the same dance.
-     *
-     * @param second whether this companion is the packet's second participant (selects the role
-     *               that is half a period out of phase — opposite sides of the G1 loop, opposite
-     *               lobes of the G2 eight)
-     */
-    void startScene(CompanionSceneType type, long startTime, UUID partner, boolean second) {
-        scene = type;
-        sceneStart = startTime;
-        scenePartner = partner;
-        sceneSecond = second;
-        sceneHeartFired = false;
-    }
-
-    /**
-     * The point on the scene's shared path this companion should be at right now, or null when
-     * there is no scene. Both scenes are pure functions of (start time, the two owners' current
-     * positions), evaluated tick-side where the tick time is known — no per-frame state, so the
-     * two clients cannot drift.
-     */
-    @Nullable
-    private Vec3 sceneAnchor(Minecraft mc) {
-        if (scene == null || mc.level == null) return null;
-        Vec3 partner = ClientCompanions.scenePartnerPoint(scenePartner);
-        if (partner == null) return null;
-        Vec3 mine = sceneHolderPoint();
-        long elapsed = Math.max(0L, mc.level.getGameTime() - sceneStart);
-        Vec3 point = switch (scene) {
-            case G1_SAME_SPECIES -> {
-                // A vertical ring around the axis between the two owners, the second fish always
-                // opposite the first. Deliberately NOT a horizontal ring around the midpoint: its
-                // near edge would sweep the owners' faces (the midpoint sits only ~1 block ahead
-                // of each of them). A ring in the axis-perpendicular plane stays at least the
-                // owners' separation distance away in every direction both can see.
-                //
-                // The axis is canonicalised to the +x half-space before the perpendicular is taken:
-                // "partner - mine" points the other way for the two participants, and an uncorrected
-                // flip turns the pi phase offset into a mirror (the pair would read as opposite
-                // only half the time) instead of an antipode.
-                float phase = (float) (elapsed % scene.pathTicks()) / scene.pathTicks() * (float) (Math.PI * 2);
-                if (sceneSecond) phase += (float) Math.PI;
-                Vec3 mid = mine.add(partner).scale(0.5);
-                Vec3 axis = new Vec3(partner.x - mine.x, 0, partner.z - mine.z);
-                axis = axis.lengthSqr() < 1e-6 ? new Vec3(0, 0, 1) : axis.normalize();
-                if (axis.x < 0 || (axis.x == 0 && axis.z < 0)) axis = axis.scale(-1);
-                Vec3 across = new Vec3(-axis.z, 0, axis.x);
-                yield mid.add(across.scale(Math.cos(phase) * SCENE_LOOP_RADIUS))
-                        .add(0, SCENE_HEIGHT + Math.sin(phase) * SCENE_LOOP_RADIUS, 0);
-            }
-            case G2_FREE_SWIM_EIGHT -> {
-                // The classic figure eight: two circles tangent at the midpoint of the two owners,
-                // each fish running the whole path half a period behind the other, swapping lobes
-                // every crossing. Both tangent points are the midpoint, so the path is continuous.
-                //
-                // The two lobes are swept with OPPOSITE angular senses (round 3, §21): swept the
-                // same way, their tangents at the shared crossing pointed 180° apart, so the fish
-                // visibly reversed at the intersection. Opposite senses keep the tangent continuous
-                // there — the looping track the owner asked for.
-                //
-                // The radius equals the lobe offset so the circles genuinely meet at `mid`; a
-                // radius floor above that (the old max(0.7, …)) separates the two meeting points
-                // and teleports the fish across the gap at every crossing when owners stand close.
-                Vec3 mid = mine.add(partner).scale(0.5);
-                Vec3 firstLobe = sceneSecond ? partner : mine;
-                Vec3 secondLobe = sceneSecond ? mine : partner;
-                float t = (float) ((elapsed % scene.pathTicks()) / (double) scene.pathTicks());
-                if (sceneSecond) t = (t + 0.5f) % 1f;
-                boolean onFirst = t < 0.5f;
-                Vec3 lobe = onFirst ? firstLobe : secondLobe;
-                float local = (t % 0.5f) * 2f;
-                double dx = mid.x - lobe.x, dz = mid.z - lobe.z;
-                double dLen = Math.sqrt(dx * dx + dz * dz);
-                double radius = Math.max(0.2, dLen);
-                double sense = onFirst || devLegacyEight ? 1.0 : -1.0;
-                // The bob's lobe sign: the two lobes' crossing-point bobs must agree (C0 and C1),
-                // which needs s_A = −s_B — independent of the sweep senses. Skipping this put a
-                // ~0.2-block vertical jump at every crossing even after the senses were fixed
-                // (docs §21: the residual ~70° kink the scene measured).
-                double bobSign = onFirst || devLegacyEight ? 1.0 : -1.0;
-                double angle = Math.atan2(dz, dx) + sense * local * Math.PI * 2;
-                yield lobe.add(Math.cos(angle) * radius,
-                        SCENE_HEIGHT + bobSign * 0.1 * Math.sin(angle),
-                        Math.sin(angle) * radius);
-            }
-        };
-        lastScenePathPoint = point;
-        return fishCentred(point);
-    }
-
-    /**
-     * The point a scene's path is built around: chest height on the owner's body (or a dev
-     * phantom's parked eye). Static per tick — the path follows the owners as they walk.
-     */
-    Vec3 sceneHolderPoint() {
-        Vec3 eye = owner != null ? owner.getEyePosition() : phantomEye;
-        return eye == null ? Vec3.ZERO : eye.add(0, -0.4, 0);
-    }
-
-    /**
-     * The G1 bubble heart (§10): bubbles traced along the classical heart curve, in the local
-     * camera's plane so both owners see it face-on, with a few hearts rising through it. Fired by
-     * the first participant only — either companion's client would draw the same one, so one
-     * spawner per pair per client is the whole load — and it respects the particle setting (R7.5).
-     */
-    private void spawnSceneHeart(Minecraft mc) {
-        if (sceneHeartFired || mc.level == null) return;
-        if (mc.level.getGameTime() - sceneStart < HEART_TICK) return;
-        sceneHeartFired = true; // one pop per scene, whether or not particles are allowed
-        if (mc.options.particles().get() == ParticleStatus.MINIMAL || sceneSecond) return;
-        Vec3 partner = ClientCompanions.scenePartnerPoint(scenePartner);
-        if (partner == null) return;
-        Vec3 centre = sceneHolderPoint().add(partner).scale(0.5).add(0, HEART_RISE, 0);
-        Camera camera = mc.gameRenderer.getMainCamera();
-        Vector3fc left = camera.leftVector();
-        Vec3 right = new Vec3(-left.x(), -left.y(), -left.z());
-        Vector3fc upV = camera.upVector();
-        Vec3 up = new Vec3(upV.x(), upV.y(), upV.z());
-        for (int i = 0; i < 32; i++) {
-            double t = i / 32.0 * Math.PI * 2;
-            double hx = 16 * Math.pow(Math.sin(t), 3);
-            double hy = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
-            Vec3 p = centre.add(right.scale(hx * HEART_SCALE)).add(up.scale(hy * HEART_SCALE));
-            mc.level.addParticle(ParticleTypes.BUBBLE, p.x, p.y, p.z, 0, 0.015, 0);
-        }
-        // One vanilla heart through the middle — several read as one huge blob this close to the eye.
-        mc.level.addParticle(ParticleTypes.HEART, centre.x, centre.y, centre.z, 0, 0.02, 0);
-    }
-
-    /** The held-item reaction for this tick, if any (§3.1 table). First match wins. */
-    private void updateReaction(Minecraft mc) {
-        reactionName = "";
-        reactionTilt = 0f;
+    void tick(ClientLevel level, CompanionWorldAdapter.LevelBlocks blocks, List<PointOfInterest> companions,
+              List<PointOfInterest> devPoints) {
+        OwnerState ownerState;
+        boolean hurt;
+        CompanionWorld.Held held;
+        List<PointOfInterest> points;
         if (owner != null) {
-            ItemStack held = owner.getMainHandItem();
-            if (!held.isEmpty()) {
-                for (Reaction reaction : reactions) {
-                    if (reaction.match.test(held)) {
-                        reactionName = reaction.name;
-                        reactionTilt = reaction.tiltDeg;
-                        break;
-                    }
-                }
-            }
+            ownerState = tracker.owner(owner, isLocal());
+            hurt = tracker.hurt(owner);
+            held = CompanionWorldAdapter.held(owner.getMainHandItem(), stack);
+            points = CompanionWorldAdapter.points(level, owner, companions);
+        } else {
+            boolean wet = level.getFluidState(BlockPos.containing(phantomEye.subtract(0, OwnerState.CHEST_DROP, 0)))
+                    .is(FluidTags.WATER);
+            ownerState = new OwnerState(CompanionWorldAdapter.vec(phantomEye), Vec.ZERO, phantomYaw, 0f,
+                    false, false, true, 70f, wet);
+            hurt = false;
+            held = CompanionWorld.Held.NONE;
+            points = new java.util.ArrayList<>(companions);
         }
-        // A reaction with somewhere to go pulls the fish over (perchers hop out); a tilt-only
-        // reaction (name tag, food) leaves the display-mode anchor alone.
-        float want = reactionOffset() != null ? 1f : 0f;
-        reactionBlend = approach(reactionBlend, want, 0.12f);
-    }
-
-    @Nullable
-    private Vec3 reactionOffset() {
-        if (reactionName.isEmpty()) return null;
-        for (Reaction reaction : reactions) {
-            if (reaction.name.equals(reactionName)) return reaction.offset;
+        if (isLocal() && !devPoints.isEmpty()) {
+            points = new java.util.ArrayList<>(points);
+            points.addAll(devPoints);
         }
-        return null;
-    }
+        hurt |= devHurt;
+        devHurt = false;
+        CompanionWorld world = new CompanionWorld(ownerState, blocks, points, held, hurt);
+        lastOwner = ownerState;
+        lastHeld = held;
+        lastPoints = points.size();
 
-    /** The anchored class's duck-in when a hostile mob is close (§3). */
-    private void updateDuck(Minecraft mc) {
-        float target = 0f;
-        if (owner != null && mc.level != null && flock.locomotion() == Locomotion.ANCHORED) {
-            var mobs = mc.level.getEntities(owner, owner.getBoundingBox().inflate(DUCK_RANGE),
-                    e -> e instanceof net.minecraft.world.entity.monster.Enemy && e.isAlive());
-            target = mobs.isEmpty() ? 0f : 1f;
-        }
-        duck = approach(duck, target, 0.1f);
-    }
-
-    // ── Motion ─────────────────────────────────────────────────────────────────
-
-    /**
-     * How far the fish is pulled off its normal anchor pattern: a peek, a reaction, the hand hop,
-     * a trip to the fishing line, or a pet-to-pet scene (perchers use this to leave their perch,
-     * §5, §10).
-     */
-    private float outAmount() {
-        return Math.max(Math.max(outBlend, handHop), Math.max(lineWait, sceneBlend));
-    }
-
-    private void moveCenter(Minecraft mc, boolean inWater, boolean docking) {
-        if (center == null) {
-            center = prevCenter = anchorTarget(mc, inWater, docking);
-            return;
-        }
-        prevCenter = center;
-        if (percher && !inWater && !docking) {
-            // Attached to the body: rigid on the perch, a hop path while out.
-            Vec3 attach = attachPoint(mc);
-            float out = outAmount();
-            if (out > 0f) {
-                float p = smooth(out);
-                Vec3 target = outPoint(mc);
-                center = hopStart.lerp(target, p).add(0, Math.sin(Math.PI * out) * 0.35, 0);
+        long start = System.nanoTime();
+        if (agent == null) {
+            if (trio) {
+                group = new CompanionGroup(TUNABLES, seed, length, temperament, world);
+                agent = group.leader();
             } else {
-                center = attach;
+                agent = new CompanionAgent(TUNABLES, seed, locomotion, length, temperament, world);
             }
-            return;
-        }
-        Vec3 target = anchorTarget(mc, inWater, docking);
-        // An escaped fish sinks a touch and comes home slowly (~3 s, §5); everything else keeps
-        // its usual ease.
-        float escape = escapeEnvelope();
-        if (escape > 0f) target = target.add(0, -ESCAPE_SINK * escape, 0);
-        if (devLegacyFollow) {
-            center = center.lerp(target, escape > 0f ? 0.14 : 0.35);
-            return;
-        }
-        if (flock.locomotion() == Locomotion.DRIFT && !docking) {
-            // "Behind one shoulder on a loose spring" — velocity-based, so it lags and settles.
-            // The spring already trails the player by ~2 blocks once moving; round 3 left its
-            // character alone and gave the steering to every other baseline path.
-            springVel = springVel.add(target.subtract(center).scale(0.6)).scale(0.82);
-            center = center.add(springVel.scale(0.05));
+        } else if (group != null) {
+            group.step(world);
         } else {
-            stepFollow(target, docking);
+            agent.step(world);
         }
+        stepNanos = System.nanoTime() - start;
+        render.tick(agent);
+    }
+
+    /** Forgets every sampled block (a block changed nearby, or a chunk arrived). */
+    void invalidateBlocks() {
+        if (group != null) group.invalidateBlocks();
+        else if (agent != null) agent.voxels().invalidate();
     }
 
     /**
-     * One tick of arrive-style steering for the box centre (docs §21): the anchor's own motion is
-     * partly fed forward so tracking a walking or turning player reads as following rather than
-     * being bolted on, the gap supplies the desired speed (a small gap is a meander, a huge one
-     * eventually ramps up to the cap and closes), and acceleration and jerk are bounded so no
-     * velocity change is ever instant. Authored moments (peeks, hops, reactions, the line, a
-     * scene, the dock) and a genuinely far-away owner switch to the much quicker profile so their
-     * timings survive; an escaping fish is pinned to a crawl instead.
+     * This companion as another companion's point of interest: the lead fish, with a stable id
+     * that can't collide with an entity's (the owner's entity id, negated).
      */
-    private void stepFollow(Vec3 target, boolean docking) {
-        Vec3 rawAnchorVel = prevFollowTarget == null ? Vec3.ZERO : target.subtract(prevFollowTarget);
-        prevFollowTarget = target;
-        anchorVelocity = anchorVelocity.scale(1.0 - ANCHOR_VEL_BLEND).add(rawAnchorVel.scale(ANCHOR_VEL_BLEND));
-
-        Vec3 err = target.subtract(center);
-        double gap = err.length();
-        boolean moment = docking || outAmount() > 0f || gap > FOLLOW_FAR_GAP;
-        double gain = moment ? MOMENT_GAIN : FOLLOW_GAIN;
-        double maxSpeed = moment ? MOMENT_MAX_SPEED : FOLLOW_MAX_SPEED;
-        double maxAccel = moment ? MOMENT_MAX_ACCEL : FOLLOW_MAX_ACCEL;
-        double maxJerk = moment ? MOMENT_MAX_JERK : FOLLOW_MAX_JERK;
-        if (escapeEnvelope() > 0f) maxSpeed = Math.min(maxSpeed, ESCAPE_MAX_SPEED);
-
-        // Arrival braking (classic arrive) for the authored moments ONLY: their fast capped
-        // approach to a static point (the line, a peek point) otherwise sails past at up to
-        // v²/2a blocks and hunts — measured at the fishing line: arrived at v=0.52, overshot to
-        // 4.6 and oscillated. The baseline follow deliberately has NO cap: its proportional gain
-        // settles without a braking boundary, and putting one on it made the zero-margin edge a
-        // limit cycle (docs §21).
-        double arriveCap = moment
-                ? Math.sqrt(2.0 * maxAccel * Math.max(0.0, gap) * MOMENT_BRAKE_MARGIN) + 0.02
-                : Double.MAX_VALUE;
-        Vec3 desiredVel = clampLength(err.scale(gain).add(anchorVelocity.scale(ffWeight)),
-                Math.min(maxSpeed, arriveCap));
-        // Jerk-aware lookahead (docs §21, wobble): an acceleration already built up cannot vanish
-        // at once — unwinding it at the jerk cap still adds a·|a|/2j of velocity. Aiming the
-        // acceleration at the desired velocity WITHOUT that term overshoots every reversal, and on
-        // the moment profile (gain 0.35 vs jerk 0.02) that overshoot is self-sustaining: any
-        // displacement past ~0.5 block (a whiplash, a scene-end snap) locked the box into a
-        // permanent ±0.6–1.3 block, ~18-tick limit cycle around a perfectly smooth target — the
-        // owner-visible wobble. The baseline profile's gentle gains never cycle; it is left as tuned.
-        Vec3 projectedVel = moment && !devLegacyMomentSteer
-                ? followVel.add(followAccel.scale(followAccel.length() / (2.0 * maxJerk)))
-                : followVel;
-        Vec3 accelTarget = clampLength(desiredVel.subtract(projectedVel), maxAccel);
-        followAccel = followAccel.add(clampLength(accelTarget.subtract(followAccel), maxJerk));
-        followVel = clampLength(followVel.add(followAccel), maxSpeed);
-        center = center.add(followVel);
+    @Nullable
+    PointOfInterest asPoint(int id) {
+        if (agent == null || agent.appear() < 1f) return null;
+        return new PointOfInterest(PointOfInterest.Kind.COMPANION, id, agent.position(), agent.velocity(),
+                agent.radius());
     }
 
-    /** {@code v} rescaled to at most {@code max} blocks long. */
-    private static Vec3 clampLength(Vec3 v, double max) {
-        double len = v.length();
-        return len <= max || len < 1e-9 ? v : v.scale(max / len);
-    }
-
-    /** Where the companion should be this tick, before the spring/ease is applied. */
-    private Vec3 anchorTarget(Minecraft mc, boolean inWater, boolean docking) {
-        // A pet-to-pet scene (§10) wins over every other path for its few seconds — including for a
-        // dev phantom, which has no display-mode path to blend from. Checked before the owner == null
-        // branch so the phantom partner actually travels the shared loop.
-        Vec3 scenePoint = sceneBlend > 0f ? sceneAnchor(mc) : null;
-        if (owner == null) {
-            Vec3 base = phantomAnchor();
-            return scenePoint != null ? base.lerp(scenePoint, smooth(sceneBlend)) : base;
-        }
-        if (docking) {
-            // Stay where the swim to the dock started — the line point if the owner was fishing
-            // (the hook may already be gone once the minigame ends; the frozen point is the
-            // fallback then), the display-mode path otherwise. The blend toward the dock point is
-            // applied at render time so the move is a real swim.
-            return lineWait > 0f ? linePoint : baseAirAnchor(mc);
-        }
-        Vec3 base = inWater ? waterAnchor(mc) : baseAirAnchor(mc);
-        Vec3 reaction = reactionOffset();
-        if (reaction != null) base = fishCentred(viewPoint(mc, reaction));
-        if (lineWait > 0f) {
-            // At the fishing line (§5): swimmers hover by the bobber (per class), perchers ride the
-            // rod tip (handled via outPoint). Blended like a reaction so a cast pulls the fish over
-            // rather than teleporting it.
-            Vec3 anchor = flock.locomotion() == Locomotion.BENTHIC || flock.locomotion() == Locomotion.ANCHORED
-                    ? fishCentred(rodTipPoint())
-                    : lineAnchorPoint();
-            base = base.lerp(anchor, smooth(lineWait));
-        }
-        if (peekBlend > 0f) {
-            // Aim the BOX at the peek point minus most of the fish's own offset inside it, so the
-            // fish itself — not the empty box centre — lands in view. The residual 30% of the
-            // offset is what keeps it a swim rather than a hover.
-            Vec3 anchor = fishCentred(peekPoint(mc));
-            base = base.lerp(anchor, smooth(peekBlend));
-        }
-        if (handHop > 0f && isLocal()) {
-            // "Hops onto your hand / just above the hotbar" when the owner looks down (§3.1). Drawn
-            // by the world pass rather than the first-person hand pass: the hand pass renders
-            // companion item geometry as a shadow-only silhouette under Iris shaderpacks (verified
-            // against ComplementaryReimagined), and at this range the world pass cannot be occluded
-            // by terrain the owner is standing on top of.
-            base = base.lerp(fishCentred(handHopPoint(mc)), smooth(handHop));
-        }
-        if (scenePoint != null) {
-            // A pet-to-pet scene (§10) wins over every other path for its few seconds: the two
-            // companions fly the shared loop/eight, wherever the display modes would have them.
-            base = base.lerp(scenePoint, smooth(sceneBlend));
-        }
-        return base;
-    }
+    // ── Rendering ──────────────────────────────────────────────────────────────
 
     /**
-     * The lead fish's offset from the box centre, rotated into the world by the box's yaw. Tick
-     * time reads the engine's tick-exact position ({@link CompanionFlock#fishOffsetTick}), not the
-     * last frame's interpolated scratch: the compensation is itself part of the tick, and feeding
-     * it frame-rate values was a render→tick feedback path (docs §20).
+     * Draws every fish the world pass owns: everything except a percher riding a shoulder, the head
+     * or the back, which {@link CompanionPerchLayer} draws on the player model. Returns whether
+     * anything was drawn. The stack is camera-relative.
      */
-    private Vec3 worldOffsetOfFish() {
-        if (devLegacyFrameYaw) {
-            // Legacy (§20 scene): the last frame's interpolated scratch — the render→tick feedback.
-            return rotateY(fishOffset().scale(frameScale), -boxYaw());
-        }
-        return rotateY(flock.fishOffsetTick(0).scale(frameScale), -boxYaw());
-    }
+    boolean submitWorld(PoseStack poseStack, SubmitNodeCollector nodes, Vec3 cam, float partialTick) {
+        if (agent == null) return false;
+        if (group != null) group.interpolate(partialTick);
+        else agent.interpolate(partialTick);
+        float gameTime = gameTime(partialTick);
+        boolean glow = glowsNow();
+        boolean drew = false;
 
-    /**
-     * The box's yaw this moment — the companion's own slow frame (§19). The render applies it
-     * directly while following and blends it to the view yaw while docking (where the box must be
-     * camera-exact and side-on); this getter is the following case, which is what the tick-side
-     * compensations ({@link #fishCentred}, visibility, the dev metrics) are computed against.
-     */
-    private float boxYaw() {
-        if (owner == null) return 0f;
-        if (devCameraLockedFrame) return viewYawLive();
-        return frameOrientationYaw;
-    }
-
-    /** The owner's live view yaw — the camera's for the local player, the owner's facing otherwise. */
-    private float viewYawLive() {
-        return owner == Minecraft.getInstance().player ? Minecraft.getInstance().gameRenderer.getMainCamera().yRot()
-                : owner.getViewYRot(1f);
-    }
-
-    /**
-     * The correction that turns "put the box here" into "put the FISH here": the fish's own offset
-     * from the box centre, held back a fraction so some of its wander (a swim, not a hover)
-     * survives. The vertical is compensated in full — a crawler rides its box floor, so a partial
-     * correction would park every benthic peek near the bottom edge of the view.
-     */
-    private Vec3 fishCentred(Vec3 boxPoint) {
-        Vec3 off = worldOffsetOfFish();
-        return boxPoint.subtract(new Vec3(off.x * compensationWeight, off.y * compensationWeight, off.z * compensationWeight));
-    }
-
-    /** {@code Matrix4f.rotateY} applied to a vector — the box pose's own rotation convention. */
-    private static Vec3 rotateY(Vec3 v, float deg) {
-        double a = Math.toRadians(deg);
-        float c = (float) Math.cos(a), s = (float) Math.sin(a);
-        return new Vec3(v.x * c + v.z * s, v.y, -v.x * s + v.z * c);
-    }
-
-    /** The display-mode path in air (§3 table). Built on the companion's own frame (§19). */
-    private Vec3 baseAirAnchor(Minecraft mc) {
-        Vec3 eye = owner.getEyePosition();
-        Vec3 forward = frameForward();
-        Vec3 right = new Vec3(-forward.z, 0, forward.x);
-        return switch (flock.locomotion()) {
-            case GLIDE -> {
-                advanceOrbit(GLIDE_LAP_SECONDS);
-                float rise = GLIDE_RISE;
-                if (trickTimer > 0) {
-                    // The low swoop: dip toward the floor and back over the trick's duration.
-                    float t = 1f - trickTimer / (float) TRICK_LENGTH;
-                    rise = Mth.lerp((float) Math.sin(Math.PI * t), GLIDE_RISE, SWOOP_RISE);
-                    spawnSwoopDust(mc);
-                }
-                yield eye.add(orbitDirection(forward, right).scale(GLIDE_RADIUS)).add(0, rise, 0);
+        if (!drawsOnPerch()) {
+            Vec pos = agent.renderPos();
+            float yaw = agent.renderYaw();
+            float pitch = agent.renderPitch();
+            if (handAttached()) {
+                // Riding the hand in first person: attached to the view at frame rate (the parrot
+                // pattern), so a mouse flick doesn't leave it a tick behind the camera.
+                OwnerState o = frameOwner(partialTick);
+                pos = PerchBody.slotPoint(o, agent.perchSlot());
+                yaw = o.yawDeg();
+                pitch = 0f;
             }
-            case DRIFT -> {
-                Vec3 base = eye.add(forward.scale(-DRIFT_BACK)).add(right.scale(DRIFT_SIDE)).add(0, -DRIFT_DROP, 0);
-                if (trickTimer > 0) {
-                    // Rises and settles.
-                    float t = 1f - trickTimer / (float) TRICK_LENGTH;
-                    base = base.add(0, Math.sin(Math.PI * t) * 0.45, 0);
-                }
-                yield base;
-            }
-            // Only reachable while out (a hop, or a reaction pulling them off); hover ahead.
-            case BENTHIC, ANCHORED -> outPoint(mc);
-            default -> {
-                advanceOrbit(trickTimer > 0 ? FREE_LAP_SECONDS / 3f : FREE_LAP_SECONDS);
-                yield eye.add(orbitDirection(forward, right).scale(FREE_RADIUS)).add(0, -FREE_DROP, 0);
-            }
-        };
-    }
-
-    /** In water every class swims beside the owner (§3, E1), on the companion's own frame (§19). */
-    private Vec3 waterAnchor(Minecraft mc) {
-        Vec3 forward = frameForward();
-        Vec3 right = new Vec3(-forward.z, 0, forward.x);
-        // Same fish-centred correction as a peek: the box lands so the fish — not the box centre —
-        // stays at the owner's side, rather than wandering a body-length off to the left.
-        return fishCentred(owner.getEyePosition().add(forward.scale(WATER_AHEAD)).add(right.scale(WATER_SIDE))
-                .add(0, -WATER_DROP, 0));
-    }
-
-    /**
-     * Where the look-down hop lands: a fixed spot on the screen just above the hotbar, unprojected
-     * at close range. Screen-anchored rather than a view-space offset because looking down rotates
-     * "forward" almost straight down, which would bury a fixed offset under the bottom edge.
-     */
-    private Vec3 handHopPoint(Minecraft mc) {
-        CameraRenderState cs = mc.gameRenderer.getGameRenderState().levelRenderState.cameraRenderState;
-        int w = mc.getWindow().getGuiScaledWidth();
-        int h = mc.getWindow().getGuiScaledHeight();
-        // Slightly toward the main hand, and around the hotbar's top edge.
-        return unproject(mc.gameRenderer.getMainCamera(), cs.projectionMatrix, w * 0.56f, h * 0.78f, w, h, HAND_HOP_DEPTH);
-    }
-
-    /** A point in the owner's view where the whole point is to be seen. */
-    private Vec3 peekPoint(Minecraft mc) {
-        return viewPoint(mc, new Vec3(Math.sin(mc.level.getGameTime() * 0.05) * 0.12, -PEEK_DROP, PEEK_FORWARD));
-    }
-
-    /**
-     * Where an out-of-body percher (or a reaction) wants to be: its reaction point, the rod tip
-     * while the owner is fishing (§5 — benthic fish ride the rod), the scene's path during a
-     * pet-to-pet scene (§10 — perchers hop off and join in), or in view.
-     */
-    private Vec3 outPoint(Minecraft mc) {
-        Vec3 scenePoint = sceneAnchor(mc);
-        if (scenePoint != null) return scenePoint;
-        Vec3 reaction = reactionOffset();
-        if (reaction != null) return viewPoint(mc, reaction);
-        return lineWait > 0.05f ? rodTipPoint() : peekPoint(mc);
-    }
-
-    /**
-     * View-space (right / up / forward of the eyes) point. {@code look × up} is the right vector —
-     * facing south it comes out west, which is the right hand side (east is on your left).
-     */
-    private Vec3 viewPoint(Minecraft mc, Vec3 offset) {
-        Vec3 look = owner.getLookAngle();
-        Vec3 up = owner.getUpVector(1f);
-        Vec3 right = look.cross(up);
-        return owner.getEyePosition().add(right.scale(offset.x)).add(up.scale(offset.y)).add(look.scale(offset.z));
-    }
-
-    private void advanceOrbit(float lapSeconds) {
-        orbitAngle += (float) (2 * Math.PI) / (lapSeconds * 20f);
-    }
-
-    private Vec3 orbitDirection(Vec3 forward, Vec3 right) {
-        return forward.scale(Math.sin(orbitAngle)).add(right.scale(Math.cos(orbitAngle)));
-    }
-
-    /** The point on the owner's body a benthic percher sits at — head or a shoulder, per species. */
-    private Vec3 perchPoint(Minecraft mc) {
-        Vec3 eye = owner.getEyePosition();
-        Vec3 forward = bodyForward();
-        Vec3 right = new Vec3(-forward.z, 0, forward.x);
-        int slot = Math.floorMod(seed, 3);
-        return switch (slot) {
-            case 0 -> eye.add(right.scale(0.3)).add(forward.scale(0.08)).add(0, -0.32, 0);   // right shoulder
-            case 1 -> eye.add(right.scale(-0.3)).add(forward.scale(0.08)).add(0, -0.32, 0);  // left shoulder
-            default -> eye.add(forward.scale(0.06)).add(0, 0.16, 0);                          // head
-        };
-    }
-
-    /** The point on the owner's back an anchored companion pokes out of (§3). */
-    private Vec3 backPoint() {
-        Vec3 eye = owner.getEyePosition();
-        Vec3 forward = bodyForward();
-        Vec3 right = new Vec3(-forward.z, 0, forward.x);
-        return eye.add(forward.scale(-0.28)).add(right.scale(0.05)).add(0, 0.02, 0);
-    }
-
-    private Vec3 attachPoint(Minecraft mc) {
-        return flock.locomotion() == Locomotion.ANCHORED ? backPoint() : perchPoint(mc);
-    }
-
-    /** Dev phantoms have no owner to orbit; they circle their parked eye point on a fixed facing. */
-    private Vec3 phantomAnchor() {
-        return phantomEye.add(new Vec3(Math.sin(orbitAngle), 0, Math.cos(orbitAngle)).scale(PHANTOM_RADIUS));
-    }
-
-    private void spawnSwoopDust(Minecraft mc) {
-        if (owner == null || mc.level == null) return;
-        if (mc.options.particles().get() == ParticleStatus.MINIMAL) return;
-        Vec3 at = center;
-        if (at == null) return;
-        if (at.y > owner.getEyePosition().y - 0.2) return; // only while it is actually low
-        // Find the ground under the fish, within a few blocks, to kick dust off a real floor.
-        for (int dy = 1; dy <= 5; dy++) {
-            BlockPos pos = BlockPos.containing(at.x, at.y - dy, at.z);
-            BlockState state = mc.level.getBlockState(pos);
-            if (!state.getCollisionShape(mc.level, pos).isEmpty()) {
-                double y = pos.getY() + state.getCollisionShape(mc.level, pos).max(net.minecraft.core.Direction.Axis.Y);
-                for (int i = 0; i < 3; i++) {
-                    mc.level.addParticle(ParticleTypes.CLOUD,
-                            at.x + (mc.level.getRandom().nextDouble() - 0.5) * 0.8, y,
-                            at.z + (mc.level.getRandom().nextDouble() - 0.5) * 0.8,
-                            0, 0.02, 0);
-                }
-                return;
+            drew |= render.submit(poseStack, nodes, cam, 0, pos, yaw, pitch, agent.renderBank(),
+                    agent.renderAppear(), agent.renderTailPhase(), agent.speedFactor(), agent.pulse(),
+                    agent.perchSquash(), riding(), gameTime, light(pos, glow));
+        }
+        if (group != null) {
+            for (int i = 0; i < 2; i++) {
+                CompanionGroup.Follower f = group.follower(i);
+                Vec pos = f.renderPos();
+                drew |= render.submit(poseStack, nodes, cam, i + 1, pos, f.renderYaw(), f.renderPitch(),
+                        f.renderBank(), f.renderAppear(), f.renderTailPhase(), f.speedFactor(), 0f, 0f, false, gameTime, light(pos, glow));
             }
         }
+        return drew;
     }
 
-    // ── Visibility (§3.1 acceptance: visible to the owner at regular intervals) ─
-
-    /**
-     * Whether the owner can see the companion this tick, and how long it has been since they could.
-     * Drives both the peek schedule and the self-test's frame counting — the same signal, so the
-     * acceptance metric measures the mechanism that exists to improve it.
-     */
-    private void updateVisibility(Minecraft mc, boolean local, boolean firstPerson, long now, boolean inWater) {
-        visibleNow = false;
-        firstPersonHidden = local && firstPerson && !frameDocked
-                && FishtasticClientConfig.hideOwnCompanionFirstPerson();
-        if (owner == null || firstPersonHidden) return;
-        if (frameDocked) {
-            visibleNow = true; // the HUD pass always draws it
-        } else if (drawsOnPerch()) {
-            // On the owner's own body. Everyone else sees it; its owner does not see their own
-            // player model in first person, which is exactly why peeks exist.
-            visibleNow = !(local && firstPerson);
-        } else {
-            Vec3 at = center;
-            if (at == null) return;
-            // The fish's world point: the box centre plus its offset, rotated by the box's yaw the
-            // same way the draw does (the raw offset is box-local).
-            Vec3 point = at.add(worldOffsetOfFish());
-            CameraRenderState cs = mc.gameRenderer.getGameRenderState().levelRenderState.cameraRenderState;
-            Camera camera = mc.gameRenderer.getMainCamera();
-            Vector4f p = new Vector4f((float) (point.x - camera.position().x), (float) (point.y - camera.position().y),
-                    (float) (point.z - camera.position().z), 1f);
-            new Matrix4f(cs.viewRotationMatrix).transform(p);
-            new Matrix4f(cs.projectionMatrix).transform(p);
-            visibleNow = p.w > 0 && Math.abs(p.x / p.w) < 0.95f && Math.abs(p.y / p.w) < 0.95f;
-        }
-        if (visibleNow) lastSeenTick = now;
+    /** Whether the sim has this percher on its owner's body (perched, crouching or settling). */
+    private boolean riding() {
+        return agent != null && agent.riding();
     }
 
-    // ── World pass ─────────────────────────────────────────────────────────────
+    /** A percher riding its owner's hand, seen by that owner in first person. */
+    private boolean handAttached() {
+        return riding() && agent.perchSlot().hand() && isLocal()
+                && Minecraft.getInstance().options.getCameraType().isFirstPerson();
+    }
+
+    /** The owner's state at this frame's camera, for attachments drawn at frame rate. */
+    private OwnerState frameOwner(float partialTick) {
+        Vec3 eye = owner.getEyePosition(partialTick);
+        return new OwnerState(CompanionWorldAdapter.vec(eye), lastOwner.velocity(), owner.getViewYRot(partialTick),
+                owner.getViewXRot(partialTick), false, false, true, lastOwner.fovDeg(), false);
+    }
+
+    /** True while the player render layer draws this companion on its owner's body. */
+    boolean drawsOnPerch() {
+        if (!riding() || owner == null || owner.isInvisible()) return false;
+        return !agent.perchSlot().hand();
+    }
+
+    /** The perch slot for {@link CompanionPerchLayer}. */
+    PerchBody.Slot perchSlot() {
+        return agent.perchSlot();
+    }
+
+    Locomotion locomotion() { return locomotion; }
+
+    /** A flat pose (a starfish's floor sit) is stood up on a shoulder so the sprite reads from the front. */
+    boolean perchStandsUp() { return perchPose.flatPose(); }
+
+    /** The length the perched fish is drawn at, blocks. */
+    float perchLength() { return perchPose.length(); }
 
     /**
-     * Called from the level submit hook; the stack is camera-relative.
-     *
-     * @return whether the fish was actually submitted (the caller only counts real draws)
+     * Draws the perched fish in the pose space the player layer has set up: its idle animation, the
+     * anchored duck, a head tilt from the pose hint, and the appear fade.
      */
-    boolean submitWorld(PoseStack poseStack, SubmitNodeCollector nodes, Camera camera, float partialTick,
-                        @Nullable float[] anchor, int screenW, int screenH, boolean pipCompare) {
-        if (center == null || flock.isEmpty()) return false;
-        computeFrame(camera, partialTick, anchor, screenW, screenH);
-        flock.interpolate(partialTick);
-        if (frameDocked && !pipCompare) return false; // the HUD pass draws it now
-        if (drawsOnPerch() && !pipCompare) return false; // the player render layer draws it
-
-        Vec3 cam = camera.position();
+    void submitPerched(PoseStack poseStack, SubmitNodeCollector nodes, int light, float partialTick,
+                       float extraYawDeg) {
+        float appear = agent.renderAppear();
+        if (appear <= 0f) return;
         poseStack.pushPose();
-        poseStack.mulPose(boxPose(cam));
-        int light = lightAt(fishOffset());
-        if (glowsNow()) light = LightCoordsUtil.FULL_BRIGHT;
-        sampleFrameStats(partialTick);
-        flock.submit(poseStack, nodes, light, dockedTime(partialTick), frameFishSize, frameTilt,
-                frameCenter, frameYaw, frameScale);
+        if (appear < 1f) poseStack.scale(appear, appear, appear);
+        float tilt = render.hintTilt(partialTick);
+        if (tilt != 0f) poseStack.mulPose(Axis.ZP.rotationDegrees(tilt));
+        perchPose.submit(poseStack, nodes, light, gameTime(partialTick), extraYawDeg, render.hintPitch(partialTick),
+                render.retract(partialTick));
         poseStack.popPose();
-        return true;
     }
 
-    /**
-     * Feeds the flicker metric (docs §20): the drawn fish world position this frame, taken from the
-     * same numbers the pose uses — the interpolated centre plus the fish's offset rotated by the
-     * interpolated box yaw.
-     */
-    private void sampleFrameStats(float partialTick) {
-        Vec3 drawn = frameCenter.add(rotateY(fishOffset().scale(frameScale), -frameYaw));
-        double t = gameTime(partialTick);
-        if (statP1 != null && statP2 != null) {
-            double dt1 = t - statT1, dt0 = statT1 - statT2;
-            // Comparable frame times only: a hitch would poison the ratio.
-            if (dt1 > 1e-3 && dt0 > 1e-3 && Math.abs(dt1 - dt0) < 0.35 * Math.max(dt1, dt0)) {
-                double step = statP1.distanceTo(drawn);
-                if (step > 1e-4) {
-                    double twoFrame = statP2.distanceTo(drawn);
-                    statFlickerSum += Mth.clamp(1.0 - twoFrame / (2.0 * step), 0.0, 1.0);
-                    statStepSum += step;
-                    statFrameSamples++;
-                }
-            }
-        }
-        statP2 = statP1;
-        statT2 = statT1;
-        statP1 = drawn;
-        statT1 = t;
-    }
-
-    /**
-     * The time base for the fish's own idle/swim animation: the wild clock normally, the dock's
-     * own rate-scaled accumulator while docked (GLIDE flaps faster as progress drains, §5.2).
-     */
-    float dockedTime(float partialTick) {
-        return dock > 0f ? dockClock + partialTick * dockTimeMul : gameTime(partialTick);
-    }
-
-    /** A drifter glows at night (§3). */
+    /** A drifter glows at night (spec §3). */
     private boolean glowsNow() {
         Minecraft mc = Minecraft.getInstance();
-        return flock.locomotion() == Locomotion.DRIFT && owner != null && mc.level != null
-                && mc.level.getSkyDarken() >= 4;
+        return locomotion == Locomotion.DRIFT && mc.level != null && mc.level.getSkyDarken() >= 4;
     }
 
-    /**
-     * Camera-relative, world-oriented transform of the box: its centre, turned to a yaw, then its
-     * scale. The local player's box turns with the camera (so the dock box stays side-on and the
-     * follow box keeps its place relative to the view); anyone else's turns with its owner.
-     */
-    Matrix4f boxPose(Vec3 cam) {
-        return new Matrix4f()
-                .translate((float) (frameCenter.x - cam.x), (float) (frameCenter.y - cam.y), (float) (frameCenter.z - cam.z))
-                .rotateY((float) Math.toRadians(-frameYaw))
-                .scale(frameScale);
-    }
-
-    /**
-     * The geometric half of the bar-state reactions (§5.2), derived per frame from the minigame's
-     * published anchors: the bobber-tracking bob (FREE_SWIM), the bounce and grip tilt (BENTHIC),
-     * the lean out and retract (ANCHORED), the progress-synced pulse and shrink (DRIFT) and the
-     * flap-rate multiplier (GLIDE). Amplitudes are small on purpose (R3.3): the fish reacts
-     * without pulling the player's eye off the bar.
-     */
-    private record DockReaction(Vec3 offset, float scaleMul, float tilt) {
-        static final DockReaction NONE = new DockReaction(Vec3.ZERO, 1f, 0f);
-    }
-
-    private DockReaction computeDockReaction(float partialTick, float[] anchor, int screenW, int screenH, Matrix4f projection) {
-        FishingMinigameAnimation minigame = ClientCompanions.activeMinigame();
-        if (minigame == null) return DockReaction.NONE;
-        FishingMinigameAnimation.CompanionAnchors anchors = minigame.companionAnchors(screenW, screenH);
-        float clock = gameTime(partialTick);
-        float drain = Mth.clamp(-progressDelta * 25f, 0f, 1f);
-        float inZone = !Float.isNaN(fishProgress) && fishProgress > 0.05f && drain < 0.5f ? 1f : 0f;
-        // Screen pixels to world units at the dock depth, so a reaction measured against the
-        // bobber's screen position moves the fish by the same visual amount.
-        float worldPerPx = 2f * DOCK_DEPTH / Math.max(projection.m11() * screenH, 1e-3f);
-        return switch (flock.locomotion()) {
-            case FREE_SWIM -> {
-                // Moves in step with the bobber sprite (its offset from the bar's middle), cheers
-                // while the fish is in the zone, darts nervously as progress drains.
-                float bob = Mth.clamp((anchors.bobberScreenY() - screenH / 2f) * worldPerPx * 0.25f,
-                        -DOCK_BOB_LIMIT, DOCK_BOB_LIMIT);
-                float cheer = inZone * DOCK_BOUNCE * Mth.sin(clock * CHEER_RATE);
-                float jitter = drain * 0.02f * Mth.sin(clock * NERVOUS_RATE);
-                yield new DockReaction(new Vec3(0, bob * 0.6f + cheer + jitter, 0), 1f, 0f);
-            }
-            case GLIDE -> DockReaction.NONE; // its flap rate is the shared dock clock — see updateDockReactions
-            case DRIFT -> {
-                // Pulses in time with progress; shrinks as it drains.
-                float pulse = 1f + 0.05f * Mth.sin(clock * DRIFT_PULSE_RATE + (Float.isNaN(fishProgress) ? 0f : fishProgress) * 25f);
-                yield new DockReaction(Vec3.ZERO, pulse * (1f - drain * DRIFT_SHRINK), 0f);
-            }
-            case BENTHIC -> {
-                // Bounces in place while the fish is in the zone; grips and tilts as it drains.
-                float bounce = inZone * DOCK_BOUNCE * Math.abs(Mth.sin(clock * BENTHIC_BOUNCE_RATE));
-                yield new DockReaction(new Vec3(0, bounce - drain * 0.02f, 0), 1f, drain * 16f);
-            }
-            case ANCHORED -> new DockReaction(new Vec3(0, DOCK_LEAN_OUT * (inZone - drain), 0), 1f, 0f);
-            default -> DockReaction.NONE;
-        };
-    }
-
-    private void computeFrame(Camera camera, float partialTick, @Nullable float[] anchor, int screenW, int screenH) {
-        Vec3 follow = prevCenter.lerp(center, partialTick);
-        float d = smooth(Mth.lerp(partialTick, prevDock, dock));
-        float fly = smooth(Mth.lerp(partialTick, prevFlyPast, flyPast));
-        // The companion's own frame while following (§19): a camera flick rotates the view, not the
-        // fish's world. Docked, the box must be camera-exact (side-on by design), so the dock blend
-        // carries the frame over to the view yaw instead of snapping at the dock's first tick.
-        // Interpolated between ticks (§20) like the centre, so the box's rotation is as smooth as
-        // its translation.
-        float frameYawFollow = devLegacyFrameYaw ? frameOrientationYaw
-                : prevFrameOrientationYaw
-                + Mth.wrapDegrees(frameOrientationYaw - prevFrameOrientationYaw) * partialTick;
-        float viewYaw = owner == null ? 0f
-                : owner == Minecraft.getInstance().player ? camera.yRot() : owner.getViewYRot(partialTick);
-        frameYaw = devCameraLockedFrame ? viewYaw
-                : d > 0f
-                ? frameYawFollow + Mth.wrapDegrees(viewYaw - frameYawFollow) * d
-                : frameYawFollow;
-        // The catch wiggle (and only it) rides the rendered position: the sim keeps its calm path
-        // while the fish visibly celebrates (§5).
-        follow = follow.add(0, catchWiggle(partialTick), 0);
-        CameraRenderState cs = Minecraft.getInstance().gameRenderer.getGameRenderState().levelRenderState.cameraRenderState;
-        DockReaction reaction = d > 0f && anchor != null
-                ? computeDockReaction(partialTick, anchor, screenW, screenH, cs.projectionMatrix)
-                : DockReaction.NONE;
-        lastReaction = reaction;
-        frameTilt = reactionTilt + fishingTilt(partialTick) + reaction.tilt();
-        float length = Math.max(flock.length(), 1e-3f);
-        float followSize = Math.max(1f, MIN_FOLLOW_LENGTH / length);
-        if (d <= 0f || anchor == null) {
-            frameCenter = follow;
-            frameScale = 1f;
-            frameFishSize = followSize;
-            frameDocked = false;
-            return;
-        }
-        frameFishSize = Mth.lerp(d, followSize, DOCK_FISH_LENGTH / length);
-        // The fly-past (§5): toward the camera, slightly toward the middle of the screen, zoomed.
-        // Ends — via the blend falling back to 0 — when the celebration ends or is skipped (R3.5).
-        float depth = Mth.lerp(fly, DOCK_DEPTH, FLY_PAST_DEPTH);
-        float gx = Mth.lerp(fly, anchor[0], screenW * 0.5f);
-        float gy = Mth.lerp(fly, anchor[1], screenH * 0.46f);
-        Vec3 dockPoint = unproject(camera, cs.projectionMatrix, gx, gy, screenW, screenH, depth);
-        frameCenter = follow.lerp(dockPoint, d).add(reaction.offset());
-        frameScale = Mth.lerp(d, 1f, dockScale(cs.projectionMatrix, anchor[2], screenH)
-                * reaction.scaleMul() * Mth.lerp(fly, 1f, FLY_PAST_ZOOM));
-        frameDocked = d >= 1f;
-    }
-
-    /** The quiet happy wiggle after a catch (§5), on the rendered position only. */
-    private float catchWiggle(float partialTick) {
-        if (outcome != CompanionFishingOutcome.CAUGHT) return 0f;
-        float t = Mth.lerp(partialTick, prevOutcomeTicks, outcomeTicks);
-        float env = Mth.sin(Mth.clamp(1f - t / OUTCOME_CATCH_TICKS, 0f, 1f) * (float) Math.PI);
-        return 0.03f * env * Mth.sin(gameTime(partialTick) * 0.7f);
-    }
-
-    /** Miniature scale at which the box's half-width covers {@code halfSizePx} of the screen at the dock depth. */
-    private static float dockScale(Matrix4f projection, float halfSizePx, int screenH) {
-        float screenFraction = halfSizePx / (screenH / 2f);         // of the half-height
-        float worldHalfHeight = DOCK_DEPTH / projection.m11();      // depth * tan(fovY/2)
-        return screenFraction * worldHalfHeight / CompanionFlock.DOCK_HALF_EXTENT;
-    }
-
-    /** The world point {@code depth} blocks ahead of the camera that projects onto GUI pixel (x, y). */
-    private static Vec3 unproject(Camera camera, Matrix4f projection, float guiX, float guiY, int screenW, int screenH, float depth) {
-        float ndcX = 2f * guiX / screenW - 1f;
-        float ndcY = 1f - 2f * guiY / screenH;
-        float right = ndcX * depth / projection.m00();
-        float up = ndcY * depth / projection.m11();
-        Vector3fc fwd = camera.forwardVector(), upV = camera.upVector(), left = camera.leftVector();
-        Vec3 cam = camera.position();
-        return new Vec3(
-                cam.x + fwd.x() * depth + upV.x() * up - left.x() * right,
-                cam.y + fwd.y() * depth + upV.y() * up - left.y() * right,
-                cam.z + fwd.z() * depth + upV.z() * up - left.z() * right);
-    }
-
-    /** Called from {@link CompanionPipRenderer} inside the docked fish's view-space pose. */
-    void submitDockedFish(PoseStack poseStack, SubmitNodeCollector nodes, int light, float gameTime) {
-        // The stack is already at the box centre; the flock places each fish at its own offset.
-        // gameTime here is already {@link #dockedTime} — the HUD pass builds the render state.
-        // The box numbers are the dock's own frame: the camera-locked box is the tank, and its
-        // motion is the drawn motion, so the facing metric has nothing extra to correct for.
-        flock.submit(poseStack, nodes, light, gameTime, frameFishSize, frameTilt, Vec3.ZERO, 0f, 1f);
-    }
-
-    // ── Perch layer / hand pass ────────────────────────────────────────────────
-
-    /** True while this companion sits on its owner's body and is drawn by the player render layer. */
-    boolean drawsOnPerch() {
-        if (!percher || outAmount() > 0f || frameDocked) return false;
-        if (owner == null || owner.isInvisible()) return false;
-        return !owner.isEyeInFluid(FluidTags.WATER);
-    }
-
-    /**
-     * Draws the perched fish in whatever pose space the caller has set up. The caller (the player
-     * render layer, or the hand pass) owns the position and orientation; this adds only the fish's
-     * own idle animation, its trick spin, the anchored duck and the reaction tilt.
-     */
-    void submitPoseOnly(PoseStack poseStack, SubmitNodeCollector nodes, int light, float gameTimeTicks,
-                        float extraYawDeg, float extraTiltDeg) {
-        float spin = flock.locomotion() == Locomotion.BENTHIC ? spinDeg : 0f;
-        float duckAmount = flock.locomotion() == Locomotion.ANCHORED ? duck : 0f;
-        pose.submit(poseStack, nodes, light, gameTimeTicks, extraYawDeg + spin, extraTiltDeg + reactionTilt, duckAmount);
-    }
-
-    public boolean handHopActive() { return handHop > 0.05f; }
-
-    // ── Helpers ────────────────────────────────────────────────────────────────
-
-    /** The first fish's offset in the box this frame, with the dock clamp's fading bias. */
-    Vec3 fishOffset() {
-        return flock.fishOffset(0);
-    }
-
-    int lightAt(Vec3 localOffset) {
+    private static int light(Vec pos, boolean glow) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null) return LightCoordsUtil.FULL_BRIGHT;
-        return LevelRenderer.getLightCoords(mc.level, BlockPos.containing(frameCenter.add(localOffset.scale(frameScale))));
+        if (glow || mc.level == null) return LightCoordsUtil.FULL_BRIGHT;
+        return LevelRenderer.getLightCoords(mc.level, BlockPos.containing(pos.x(), pos.y(), pos.z()));
     }
 
     static float gameTime(float partialTick) {
@@ -1611,369 +312,53 @@ public final class ClientCompanion {
         return mc.level == null ? 0f : mc.level.getGameTime() + partialTick;
     }
 
-    private static float smooth(float t) {
-        return t * t * (3f - 2f * t);
-    }
-
-    private static float approach(float value, float target, float speed) {
-        if (value < target) return Math.min(target, value + speed);
-        return Math.max(target, value - speed);
-    }
-
-    // ── Dev accessors (self-test) ──────────────────────────────────────────────
-
-    /** Dev-only: start a peek now, whatever the schedule says (self-test scenes). */
-    void devStartPeek() {
-        if (peekPhase == PEEK_IDLE) {
-            peekPhase = PEEK_OUT_PHASE;
-            peekTimer = PEEK_OUT;
-            peekCount++;
-        }
-    }
-
-    /** Dev-only: start (or restart) this class's trick now — what `/fishtastic companion trick` calls. */
-    void devStartTrick() {
-        trickTimer = TRICK_LENGTH;
-        trickIndex++;
-        if (flock.locomotion() == Locomotion.BENTHIC) spinDeg = 0f; // restart the spin from upright
-    }
-
-    /** Dev-only: whether a trick is playing right now. */
-    public boolean devTrickActive() {
-        return trickTimer > 0;
-    }
-
-    /** Dev-only (§21 wobble bisect): raw orbit angle in degrees. */
-    public double devOrbitAngleDeg() { return Math.toDegrees(orbitAngle); }
-
-    /** Dev-only (§21 wobble bisect): remaining ticks of the active trick (0 = none). */
-    public int devTrickTimer() { return trickTimer; }
-
-    /** Dev-only (§21 wobble bisect): per-instance tick-call count — the call-rate ground truth. */
-    public long devTickCount() { return tickCount; }
-
-    /** Dev-only (§21 wobble bisect): current peek blend (0 = idle, 1 = at the held peek point). */
-    public float devPeekBlend() { return peekBlend; }
-
-    /** Dev-only (§21 wobble bisect): scene blend (0 = none, 1 = fully on the scene path). */
-    public float devSceneBlend() { return sceneBlend; }
-
-    /** Dev-only (§21 wobble bisect): the out blend (peek/reaction) driving moment steering. */
-    public float devOutAmount() { return outAmount(); }
-
-    /** Dev-only (§21 wobble bisect): the fishing-line blend. */
-    public float devLineWait() { return lineWait; }
-
-    /**
-     * Dev-only (§21 scene): pin the display-mode orbit phase. The phase seeds from the bonded
-     * fish's identity hash, so it differs per world — walk-window gap checks otherwise sample a
-     * random orbit phase (measured 0.23–0.57 across runs) and flake.
-     */
-    public void devSetOrbitPhaseDeg(double deg) { orbitAngle = Math.toRadians(deg); }
-
-    /** Dev-only: end any pet-to-pet scene now — what `/fishtastic companion scene stop` calls. */
-    void endScene() {
-        scene = null;
-        sceneHeartFired = false;
-    }
-
-    /** Dev-only (§19 scene): pause the peek system so a motion measurement only measures motion. */
-    void devSuppressMotion(boolean suppressed) { devMotionSuppressed = suppressed; }
-
-    /** Dev-only (§19 scene): restore the pre-polish camera-locked basis, for the "before" number. */
-    void devCameraLockedFrame(boolean cameraLocked) { devCameraLockedFrame = cameraLocked; }
-
-    /** Dev-only: whether the pre-polish camera-locked basis is currently forced (the §19 seam). */
-    boolean devIsCameraLockedFrame() { return devCameraLockedFrame; }
-
-    /** Dev-only (§21 scene): restore the same-sense G2 sweep, for the crossing "before" number. */
-    void devLegacyEight(boolean legacy) { devLegacyEight = legacy; }
-
-    /** Dev-only (§21 wobble bisect): 0 disables the follow feed-forward entirely. */
-    void devFeedForward(double weight) { ffWeight = weight; }
-
-    /** Dev-only (§21 wobble bisect): 0 disables the fish-centring compensation entirely. */
-    void devCompensation(double weight) { compensationWeight = weight; }
-
-    /** Dev-only (§21 wobble bisect): restore the pre-round-3 fixed-lerp follow entirely. */
-    void devLegacyFollow(boolean legacy) { devLegacyFollow = legacy; }
-
-    /** Dev-only (§21 wobble A/B): drop the moment profile's jerk-aware lookahead. */
-    void devLegacyMomentSteer(boolean legacy) { devLegacyMomentSteer = legacy; }
-
-    /** Dev-only (§21 wobble bisect): a floor on the follow box's side. */
-    void devFollowBoxSide(int side) { flock.setDevMinSide(side); }
-
-    /** Dev diagnostics (§21 wobble bisect): the sim-local position/velocity of the lead fish. */
-    public float[] devSimState() { return flock.simState(); }
-
-    /** Dev diagnostics (§21 wobble trace): the companion's own frame yaw, degrees. */
-    public float devFrameYaw() { return frameOrientationYaw; }
-
-    /**
-     * Dev-only (§21 scene): the raw scene-path point the last {@link #sceneAnchor} computed,
-     * before the fish-centring correction — the pure path, so the crossing's tangent continuity
-     * can be measured without the fish's own wander in the samples.
-     */
-    @Nullable
-    Vec3 devScenePathPoint() { return lastScenePathPoint; }
-
-    /** Dev diagnostics (§21 scene): the steering integrator's current speed, blocks/tick. */
-    public double devFollowSpeed() { return followVel.length(); }
-
-    /** Dev diagnostics (§21 scene): the box centre's gap to its anchor after this tick's step. */
-    public double devFollowGap() {
-        return center == null || prevFollowTarget == null ? 0.0 : prevFollowTarget.subtract(center).length();
-    }
-
-    /** Dev diagnostics (§21 scene): the anchor point this tick (post-blend), for CSV dumps. */
-    @Nullable
-    public Vec3 devFollowTarget() { return prevFollowTarget; }
-
-    /** Dev diagnostics (§21 scene): the box centre after this tick's step, for CSV dumps. */
-    @Nullable
-    public Vec3 devFollowCenter() { return center; }
-
-    /** Dev diagnostics (§21 scene): the steering velocity after this tick's step. */
-    public Vec3 devFollowVelocity() { return followVel; }
+    // ── Dev hooks and diagnostics ──────────────────────────────────────────────
 
     /** Dev-only: the bonded fish itself — the dev commands clone it to park a phantom partner. */
     public ItemStack devStack() { return stack; }
 
-    /** Dev diagnostics: the lead fish's presented-facing dot with its world velocity (§19). */
-    public float devFaceDot() { return flock.faceDot(); }
+    @Nullable public CompanionAgent agent() { return agent; }
 
-    // Facing stats for the §20 scene: mean/max angular error against the world-velocity
-    // heading while moving, and the fastest presented turn (the snap bound).
+    public Temperament temperament() { return temperament; }
 
-    public float devFaceErrMeanDeg() { return flock.faceErrMeanDeg(); }
+    void devHurt() { devHurt = true; }
 
-    public float devFaceErrMaxDeg() { return flock.faceErrMaxDeg(); }
+    void devDrowsy() {
+        if (agent != null) agent.devDrowsy();
+    }
 
-    public float devHeadingRateMaxDegPerSec() { return flock.headingRateMaxDegPerSec(); }
+    /** Whether the owner can see the lead fish this tick (the sim's own judgement). */
+    boolean seenByOwner() {
+        return agent != null && agent.seen();
+    }
 
-    public int devFacingSamples() { return flock.facingSampleCount(); }
-
-    public void devResetFacingStats() { flock.resetMotionStats(); }
-
-    /** Dev diagnostics: the lead fish's world speed (blocks/tick) that the facing dot pairs with. */
-    public float devFaceSpeed() { return flock.faceSpeed(); }
-
-    /** The display class as a stable name for logs and checks. */
+    /** The display class as a stable name for logs, overlays and checks. */
     public String displayClassName() {
-        if (flock.isTrio()) return "trio";
-        return flock.locomotion().name().toLowerCase(Locale.ROOT);
+        if (trio) return "trio";
+        return locomotion.name().toLowerCase(Locale.ROOT);
     }
 
-    public boolean isPerchedNow() {
-        return drawsOnPerch();
+    /** The debug overlay's lines (goal, drives, pose hint, temperament). */
+    List<String> debugLines() {
+        if (agent == null) return List.of("companion: not stepped yet");
+        CompanionAgent a = agent;
+        String perch = a.perchState() == null ? "" : "  perch " + a.perchState().toLowerCase(Locale.ROOT);
+        return List.of(
+                String.format(Locale.ROOT, "%s  %s  temperament %s  %.2f blocks",
+                        BuiltInRegistries.ITEM.getKey(stack.getItem()).getPath(), displayClassName(),
+                        temperament.name(), length),
+                String.format(Locale.ROOT, "goal %s (%.1f s)%s  pose %s  fade %s", a.goal(),
+                        a.goalTicks() / 20f, perch, a.poseHint(), a.fade()),
+                "curiosity " + bar(a.curiosity()) + "  wariness " + bar(a.wariness())
+                        + "  rest " + bar(a.rest()) + (a.resting() ? " settled" : ""),
+                "proximity " + bar(a.proximity()) + "  attention " + bar(a.attention())
+                        + "  seen " + (a.seen() ? "yes" : "no (" + a.unseenTicks() / 20 + " s)"),
+                String.format(Locale.ROOT, "held %s  points %d  owner %.1f blocks  step %d us",
+                        lastHeld, lastPoints, a.ownerDistance(), stepNanos / 1000));
     }
 
-    /**
-     * Which body slot a percher sits in: 0 right shoulder, 1 left shoulder, 2 head. A flat pose
-     * (a starfish) is re-slotted off the crown — stood up on a shoulder it reads from the front,
-     * but lying flat on the head it is a sliver from every angle but straight above.
-     */
-    public int perchSlot() {
-        if (locomotion() == Locomotion.ANCHORED) return 3;
-        int slot = Math.floorMod(seed, 3);
-        return slot == 2 && perchStandsUp() ? 0 : slot;
-    }
-
-    /** The display class this companion moves as. */
-    public Locomotion locomotion() {
-        return flock.locomotion();
-    }
-
-    /** Whether its idle pose lies flat and should be stood up for a shoulder perch. */
-    public boolean perchStandsUp() {
-        return pose.flatPose();
-    }
-
-    public boolean isPeeking() {
-        return peekPhase != PEEK_IDLE;
-    }
-
-    /** True while the companion's tank is in water mode, i.e. it dropped its air anchor. */
-    public boolean inWaterMode() {
-        return flock.mode() == CompanionFlock.Mode.WATER;
-    }
-
-    public boolean visibleToOwner() { return visibleNow; }
-
-    public boolean hiddenInFirstPerson() { return firstPersonHidden; }
-
-    public int fishCount() { return flock.fishCount(); }
-
-    public String reactionName() { return reactionName; }
-
-    public float duckAmount() { return duck; }
-
-    public float spinDegrees() { return spinDeg; }
-
-    public int peekStarts() { return peekCount; }
-
-    /** The pet-to-pet scene this companion is playing, or null (§10). */
-    @Nullable
-    public CompanionSceneType sceneType() { return scene; }
-
-    public boolean isInScene() { return scene != null; }
-
-    /** Dev diagnostics: the midpoint of a running scene's two owners, or null without one. */
-    @Nullable
-    public Vec3 devSceneMidpoint() {
-        if (scene == null) return null;
-        Vec3 partner = ClientCompanions.scenePartnerPoint(scenePartner);
-        return partner == null ? null : sceneHolderPoint().add(partner).scale(0.5);
-    }
-
-    /** Dev diagnostics: the box centre this tick, or null before the first tick. */
-    @Nullable
-    public Vec3 devCenter() { return center; }
-
-    /**
-     * Dev diagnostics: where the lead fish actually is in the world this tick. Unlike
-     * {@link #devCenter()} this includes the fish's offset inside the box (minus the wander the
-     * scene anchors deliberately keep), so scene-path checks measure the fish, not the box.
-     */
-    @Nullable
-    public Vec3 devFishPoint() {
-        return center == null ? null : center.add(worldOffsetOfFish());
-    }
-
-    /** Height (blocks) of the companion above the owner's eyes; null when there is no owner. */
-    @Nullable
-    public Double heightAboveOwnerEye() {
-        if (owner == null || center == null) return null;
-        return center.y - owner.getEyePosition().y;
-    }
-
-    public float horizontalDistanceToOwner() {
-        if (owner == null || center == null) return -1f;
-        Vec3 d = center.subtract(owner.getEyePosition());
-        return (float) Math.sqrt(d.x * d.x + d.z * d.z);
-    }
-
-    /** How far behind the companion's own frame the fish is (positive = behind; §19's reference). */
-    public float behindness() {
-        if (owner == null || center == null) return 0f;
-        Vec3 f = frameForward();
-        Vec3 d = center.subtract(owner.getEyePosition());
-        return (float) -(d.x * f.x + d.z * f.z);
-    }
-
-    /** Dev diagnostics: the companion's own frame yaw (degrees), for the polish scene's logs. */
-    public float devAnchorYaw() { return frameOrientationYaw; }
-
-    // ── Fishing dev accessors (self-test) ──────────────────────────────────────
-
-    /** How far the fish is into its at-the-line state (0..1). */
-    public float lineWaitAmount() { return lineWait; }
-
-    /** The nibble twitch envelope (0..1). */
-    public float nibbleAmount() { return nibble; }
-
-    /** The celebration fly-past blend (0..1); > 0 only during a tiered celebration (§5). */
-    public float flyPastAmount() { return flyPast; }
-
-    /** The outcome reaction playing now, or NONE. */
-    public CompanionFishingOutcome fishingOutcome() {
-        return outcome == null ? CompanionFishingOutcome.NONE : outcome;
-    }
-
-    /**
-     * The most recent outcome ever set, never cleared — dev diagnostics, so a scene can check
-     * what resolved even after the reaction's window has passed.
-     */
-    public CompanionFishingOutcome devLastOutcome() {
-        return lastOutcome;
-    }
-
-    /** Distance from the fish to the owner's live bobber, blocks; -1 when there is no hook. */
-    public double lineDistance() {
-        if (owner == null || owner.fishing == null || center == null) return -1;
-        return center.add(worldOffsetOfFish()).distanceTo(owner.fishing.position());
-    }
-
-    /**
-     * Distance from the fish's RENDERED position to the bobber, blocks; -1 without a hook. The
-     * dock swim is a render-time blend (the world anchor holds still), so this is the metric that
-     * shows the fish has left the line.
-     */
-    public double devFrameDistanceToHook() {
-        if (owner == null || owner.fishing == null) return -1;
-        // The fully rendered position: the interpolated centre, the frame-offset scratch, and the
-        // interpolated box yaw — the same numbers the last world submit drew with.
-        return frameCenter.add(rotateY(fishOffset().scale(frameScale), -frameYaw))
-                .distanceTo(owner.fishing.position());
-    }
-
-    /**
-     * Dev diagnostics: the companion's oscillation rates — the sim's raw tail phase per tick, and
-     * the presented rates once the companion clock rates apply (see {@code CompanionFlock}'s
-     * SWIM_CLOCK_RATE/IDLE_CLOCK_RATE and the reaction rates below). Owner feedback made the
-     * baseline calm a named, tunable quantity; this line is how a scene shows it.
-     */
-    public String devWiggleRates() {
-        float rawHz = swimPhaseDelta * 20f / (float) (2 * Math.PI);
-        float toHz = 20f / (2f * (float) Math.PI);
-        return String.format(Locale.ROOT,
-                "tailRaw=%.2f rad/t (%.2f Hz) tailEff=%.2f Hz swimRate=%.2f idleRate=%.2f "
-                        + "reactions: cheer=%.2fHz nervous=%.2fHz driftPulse=%.2fHz benthicBounce=%.2fHz",
-                swimPhaseDelta, rawHz, rawHz * CompanionFlock.SWIM_CLOCK_RATE,
-                CompanionFlock.SWIM_CLOCK_RATE, CompanionFlock.IDLE_CLOCK_RATE,
-                CHEER_RATE * toHz, NERVOUS_RATE * toHz, DRIFT_PULSE_RATE * toHz, BENTHIC_BOUNCE_RATE * toHz);
-    }
-
-    /** The watched fish target's catch progress, or NaN when none is active (§5.2 input). */
-    public float devFishProgress() { return fishProgress; }
-
-    /** The catch progress's per-tick trend; negative means the bar is draining (§5.2). */
-    public float devProgressDelta() { return progressDelta; }
-
-    /** The dock reaction applied by the last rendered frame — its offset and tilt — for checks. */
-    String dockReactionDebug() {
-        return String.format(Locale.ROOT, "offset=(%.3f,%.3f,%.3f) scale=%.3f tilt=%.1f timeMul=%.2f progress=%s delta=%.3f",
-                lastReaction.offset().x, lastReaction.offset().y, lastReaction.offset().z,
-                lastReaction.scaleMul(), lastReaction.tilt(), dockTimeMul,
-                Float.isNaN(fishProgress) ? "none" : String.format(Locale.ROOT, "%.2f", fishProgress),
-                progressDelta);
-    }
-
-    /** Dev diagnostics: the owner's main-hand item id, or "-" for an empty hand / no owner. */
-    private String heldItemDebug() {
-        if (owner == null) return "-";
-        ItemStack held = owner.getMainHandItem();
-        return held.isEmpty() ? "-" : String.valueOf(net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(held.getItem()));
-    }
-
-    /** Dev diagnostics: the owner's selected hotbar slot, or -1 for no owner. */
-    private int selectedSlotDebug() {
-        return owner == null ? -1 : owner.getInventory().getSelectedSlot();
-    }
-
-    /** Dev diagnostics: where the box and fish are relative to the camera, and the dock state. */
-    String debugState(@Nullable float[] anchor, int screenW, int screenH) {
-        Minecraft mc = Minecraft.getInstance();
-        Camera camera = mc.gameRenderer.getMainCamera();
-        Vec3 rel = frameCenter.subtract(camera.position());
-        CameraRenderState cs = mc.gameRenderer.getGameRenderState().levelRenderState.cameraRenderState;
-        Vec3 off = fishOffset();
-        Vector4f p = new Vector4f((float) off.x, (float) off.y, (float) off.z, 1f);
-        boxPose(camera.position()).transform(p);
-        new Matrix4f(cs.viewRotationMatrix).transform(p);
-        float viewZ = p.z;
-        new Matrix4f(cs.projectionMatrix).transform(p);
-        float gx = (p.x / p.w + 1f) / 2f * screenW, gy = (1f - p.y / p.w) / 2f * screenH;
-        return String.format(Locale.ROOT,
-                "owner=%s stack=%s class=%s perched=%s peek=%d(%.2f) seen=%s reaction=%s hand=[%s sel=%d] hand=%.2f duck=%.2f line=%.2f(%.2f) nibble=%.2f outcome=%s fly=%.2f docked=%s dock=%.2f anchor=%s centreRel=(%.2f,%.2f,%.2f) scale=%.3f fishSize=%.2f fishGui=(%.1f,%.1f) viewZ=%.2f | %s | %s",
-                owner == null ? "phantom" : owner.getName().getString(), stack.getHoverName().getString(),
-                displayClassName(), isPerchedNow(), peekPhase, peekBlend, visibleNow,
-                reactionName.isEmpty() ? "-" : reactionName, heldItemDebug(), selectedSlotDebug(),
-                handHop, duck,
-                lineWait, lineDistance(), nibble, fishingOutcome(), flyPast, frameDocked, dock,
-                anchor == null ? "null" : java.util.Arrays.toString(anchor),
-                rel.x, rel.y, rel.z, frameScale, frameFishSize, gx, gy, viewZ, flock.debug(),
-                dockReactionDebug());
+    private static String bar(float v) {
+        int n = Mth.clamp(Math.round(v * 10), 0, 10);
+        return "[" + "|".repeat(n) + ".".repeat(10 - n) + "]";
     }
 }
