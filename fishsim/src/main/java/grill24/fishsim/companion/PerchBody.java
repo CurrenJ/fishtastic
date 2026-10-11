@@ -20,11 +20,16 @@ import java.util.function.Supplier;
  *       planted.</li>
  *   <li><b>In water</b> both hop off and swim with the free-swim body under the {@link Mind}
  *       (spec E1), then hop back on once the owner is out.</li>
+ *   <li><b>On the ground</b> (BENTHIC, docs/fish-companions-benthic-follow.md): on land a benthic
+ *       lives on the ground, walking with a {@link GroundBody} that a {@link GroundMind} steers,
+ *       and hops up to the owner only to show itself on the hand, to take cover, or when the
+ *       owner rides or glides off. Past what it can follow on foot it asks the agent for the fade
+ *       onto its perch, and (until Phase 2's dismount) stays there.</li>
  * </ul>
  */
 public final class PerchBody extends Motor {
 
-    public enum Mode { PERCHED, CROUCH, HOP, SETTLE, SWIM }
+    public enum Mode { PERCHED, CROUCH, HOP, SETTLE, SWIM, GROUND, GROUND_CROUCH }
 
     public enum Slot {
         RIGHT_SHOULDER, LEFT_SHOULDER, HEAD, BACK, RIGHT_HAND, LEFT_HAND;
@@ -87,12 +92,37 @@ public final class PerchBody extends Motor {
     private Vec lastOwnerVel = Vec.ZERO;
     int hops;
 
+    // The ground (BENTHIC only; null for an anchored percher).
+    final GroundBody ground;
+    final GroundMind gmind;
+    private final float length;
+    /** It lives on the ground (BENTHIC): its perch is somewhere it visits, not home. */
+    boolean homeGround;
+    /** Where a hop off the owner (or out of the water) lands on the ground; null otherwise. */
+    private Vec groundTarget;
+    /** Set when it wants the agent's fade onto its perch (it can't follow on foot). */
+    boolean wantsFade;
+    /** A hop from the ground is being crouched for: to this slot, or else to {@link #waterTarget}. */
+    private Slot crouchSlot;
+    private int groundHopCooldown, riderWait;
+    /** This tick's velocity jumped by design: a launch off the ground or out of the water. */
+    boolean impulse;
+    double lastImpulse;
+
     PerchBody(CompanionTunables t, Locomotion locomotion, Body swim, OwnerState owner, double radius, float length,
               long seed, Drives drives) {
+        this(t, locomotion, swim, owner, radius, length, seed, drives, null, null, null);
+    }
+
+    PerchBody(CompanionTunables t, Locomotion locomotion, Body swim, OwnerState owner, double radius, float length,
+              long seed, Drives drives, GroundBody ground, GroundMind gmind, LocalVoxels voxels) {
         super(locomotion, Gait.of(Locomotion.FREE_SWIM, t), Vec.ZERO, radius);
         this.t = t;
         this.drives = drives;
         this.swim = swim;
+        this.ground = ground;
+        this.gmind = gmind;
+        this.length = length;
         this.rng = seed * 0x9E3779B97F4A7C15L + 0x2545F4914F6CDD1DL;
         if (rng == 0) rng = 1;
         this.pace = Math.sqrt(Math.max(0.15, length) / 0.3);
@@ -106,6 +136,15 @@ public final class PerchBody extends Motor {
         this.attentionThreshold = drawTicks(t.attentionMinSeconds, t.attentionMaxSeconds);
         this.wanderTicks = drawTicks(20, 45);
         attach(owner);
+        if (ground != null) {
+            homeGround = true;
+            Vec spot = groundSpot(owner, voxels);
+            if (spot != null) {
+                ground.placeOnFloor(spot, owner.yawDeg(), voxels);
+                enter(Mode.GROUND);
+                copyFromGround();
+            }
+        }
     }
 
     /** Whether it rides the owner this tick (perched, crouching or settling). */
@@ -139,8 +178,12 @@ public final class PerchBody extends Motor {
         modeTicks++;
         Vec before = vel;
         Mode was = mode;
+        impulse = false;
+        lastImpulse = 0;
         updateDrives(o, seen);
         switch (mode) {
+            case GROUND -> groundStep(o, v, onSwimStart);
+            case GROUND_CROUCH -> groundCrouch(o, v);
             case PERCHED -> {
                 attach(o);
                 crouch = Math.max(0f, crouch - 0.15f);
@@ -163,6 +206,18 @@ public final class PerchBody extends Motor {
             case SWIM -> {
                 swim.step(swimIntent.get(), 1, ownerAvoid.get(), v, Capsule.ownerBody(o));
                 copyFrom(swim);
+                if (homeGround && dryTicks >= DRY_TICKS && !o.inWater() && modeTicks >= REMOUNT_COOLDOWN) {
+                    // Out of the water onto the ground beside the owner, not onto them.
+                    Vec to = groundSpot(o, v);
+                    double T = to != null && pos.distanceTo(to) < HOP_RANGE ? clearHopTime(v, pos, to, o) : -1;
+                    if (T > 0) {
+                        hopTarget = null;
+                        waterTarget = null;
+                        groundTarget = to;
+                        launchFrom(o, pos, to, T);
+                    }
+                    return;
+                }
                 if (dryTicks >= DRY_TICKS && !o.inWater() && ownerSteady() && modeTicks >= REMOUNT_COOLDOWN) {
                     Slot target = home;
                     Vec to = slotPoint(o, target);
@@ -177,6 +232,10 @@ public final class PerchBody extends Motor {
         }
         if (mode != Mode.SWIM) acc = vel.sub(before).scale(1 / DT);
         if (mode == Mode.SWIM && was != Mode.SWIM) onSwimStart.run();
+        if (mode != Mode.SWIM && was == Mode.SWIM && ground != null) {
+            // Out of the water: no swim to blend from.
+            acc = Vec.ZERO;
+        }
     }
 
     // ── Deciding where to be ───────────────────────────────────────────────────────────────────
@@ -210,9 +269,25 @@ public final class PerchBody extends Motor {
         // Something interesting in the owner's hand: over to it, and stay while it holds the interest.
         Drives.Interest it = drives.target;
         boolean heldInterest = it != null && it.isHeld() && drives.curiosity >= HAND_CURIOSITY;
+        if (homeGround && (o.riding() || o.gliding())) {
+            // Riding or gliding off with it aboard: it stays on (Phase 2 brings it down).
+            homeGround = false;
+            return null;
+        }
         if (slot.hand()) {
             // Back home once it has been seen a while and the owner isn't looking down at it.
-            if (!lookingDown && !heldInterest && handTicks >= drawTicksOnce()) return home;
+            if (!lookingDown && !heldInterest && handTicks >= drawTicksOnce()) {
+                if (homeGround) {
+                    hopDown(o, v);
+                    return null;
+                }
+                return home;
+            }
+            return null;
+        }
+        if (homeGround) {
+            // Up here only for cover (now passed) or the start: back down to the ground.
+            hopDown(o, v);
             return null;
         }
         if (lookingDown || heldInterest) return hand();
@@ -282,7 +357,12 @@ public final class PerchBody extends Motor {
             // The owner is jumping or on stairs: wait, crouched, for them to settle.
             return;
         }
-        Vec to = slotPoint(o, hopTarget);
+        if (hopTarget == null && groundTarget != null) {
+            // Down to the ground beside where the owner is now, not where they were when it crouched.
+            Vec now = groundSpot(o, v);
+            if (now != null) groundTarget = now;
+        }
+        Vec to = hopTarget != null ? slotPoint(o, hopTarget) : groundTarget;
         double T = clearHopTime(v, pos, to, o);
         if (T < 0) {
             // No clear way there (a ceiling, a wall): stay put and try again later.
@@ -307,6 +387,10 @@ public final class PerchBody extends Motor {
         return -1;
     }
 
+    /** Extra room a leap off the ground wants round its arc: its flight bends to follow a moving owner. */
+    private static final double GROUND_LEAP_MARGIN = 0.15;
+    private double arcMargin;
+
     private void launchFrom(OwnerState o, Vec from, Vec to) {
         launchFrom(o, from, to, hopTimeFor(from.distanceTo(to)));
     }
@@ -316,8 +400,14 @@ public final class PerchBody extends Motor {
         Vec aim = hopTarget != null ? to.add(o.velocity().scale(T)) : to;
         hopTime = T;
         hopElapsed = 0;
-        launchedFromOwner = mode != Mode.SWIM;
+        launchedFromOwner = mode != Mode.SWIM && mode != Mode.GROUND_CROUCH;
+        Vec was = vel;
         vel = aim.sub(from).scale(1 / T).add(0, 0.5 * GRAVITY * T, 0);
+        if (!launchedFromOwner && ground != null) {
+            // Off the ground or out of the water: a push-off, by design a jump in velocity.
+            impulse = true;
+            lastImpulse = vel.sub(was).length();
+        }
         pos = from;
         yaw = (float) aim.sub(from).yawDeg();
         pitch = 0f;
@@ -327,24 +417,45 @@ public final class PerchBody extends Motor {
 
     private void fly(OwnerState o, LocalVoxels v) {
         hopElapsed += DT;
+        if (groundTarget != null && vel.y() < 0 && pos.y() + vel.y() * DT < groundTarget.y() + 0.4) {
+            // Coming down onto the ground: the ground body takes the touchdown (it lands on the
+            // floor rather than overshooting a point resting on it).
+            enterGroundFalling();
+            return;
+        }
         double left = Math.max(DT, hopTime - hopElapsed);
-        Vec to = hopTarget != null ? slotPoint(o, hopTarget) : waterTarget;
+        Vec to = hopTarget != null ? slotPoint(o, hopTarget) : groundTarget != null ? groundTarget : waterTarget;
         // Where the current arc comes down, against where the target will be by then.
         Vec landing = pos.add(vel.scale(left)).add(0, -0.5 * GRAVITY * left * left, 0);
         Vec targetThen = hopTarget != null ? to.add(o.velocity().scale(left)) : to;
         Vec correction = targetThen.sub(landing).scale(2 / (left * left)).clampLength(AIR_CONTROL);
-        vel = vel.add(correction.add(0, -GRAVITY, 0).scale(DT));
-        Vec h = vel.horizontal();
+        Vec dv = correction.add(0, -GRAVITY, 0).scale(DT);
+        Vec after = vel.add(dv);
+        Vec h = after.horizontal();
         if (h.length() > 0.3) yaw = (float) h.yawDeg();
         crouch = Math.max(0f, crouch - 0.2f);
-        move(v, vel.length() > 1e-6 ? vel.normalize() : Vec.UP);
+        if (ground != null) {
+            // A benthic's hops step at the midpoint velocity: exact under constant acceleration,
+            // so it flies the arc that was checked clear (the Euler step runs low and clips the
+            // edge of a terrace it was meant to clear).
+            vel = vel.add(dv.scale(0.5));
+            move(v, after.length() > 1e-6 ? after.normalize() : Vec.UP);
+            if (!backstopLastStep) vel = after;
+        } else {
+            vel = after;
+            move(v, vel.length() > 1e-6 ? vel.normalize() : Vec.UP);
+        }
         if (backstopLastStep) {
-            // Something got in the way mid-air: swim it out from here instead.
-            startSwim();
+            // Something got in the way mid-air: swim it out from here instead (or, a benthic on
+            // land, fall to the ground).
+            if (groundTarget != null || ground != null && waterTarget == null && !v.water(pos)) enterGroundFalling();
+            else startSwim();
             return;
         }
         if (hopElapsed >= hopTime - 1e-9 || pos.distanceTo(to) < 0.08) {
-            if (hopTarget == null) {
+            if (hopTarget == null && groundTarget != null) {
+                enterGroundFalling();
+            } else if (hopTarget == null) {
                 startSwim();
             } else {
                 slot = hopTarget;
@@ -363,11 +474,7 @@ public final class PerchBody extends Motor {
 
     /** Off the perch into the water beside the owner. */
     private void startWaterHop(OwnerState o, LocalVoxels v) {
-        Vec f = o.flatForward(), r = o.flatRight();
-        Vec[] options = {o.chest().add(f.scale(1.0)).add(r.scale(0.6)).add(0, -0.4, 0),
-                o.chest().add(f.scale(1.0)).add(r.scale(-0.6)).add(0, -0.4, 0),
-                o.chest().add(f.scale(-1.0)).add(0, -0.4, 0)};
-        for (Vec w : options) {
+        for (Vec w : waterOptions(o)) {
             double T = v.sphereClear(w, radius + 0.1) ? clearHopTime(v, pos, w, o) : -1;
             if (T > 0) {
                 hopTarget = null;
@@ -379,10 +486,242 @@ public final class PerchBody extends Motor {
         startSwim(); // nowhere clear to hop: just let go
     }
 
+    private static Vec[] waterOptions(OwnerState o) {
+        Vec f = o.flatForward(), r = o.flatRight();
+        return new Vec[]{o.chest().add(f.scale(1.0)).add(r.scale(0.6)).add(0, -0.4, 0),
+                o.chest().add(f.scale(1.0)).add(r.scale(-0.6)).add(0, -0.4, 0),
+                o.chest().add(f.scale(-1.0)).add(0, -0.4, 0)};
+    }
+
     private void startSwim() {
         swim.placeMoving(pos, vel, yaw);
         hopTarget = null;
+        groundTarget = null;
         enter(Mode.SWIM);
+    }
+
+    // -- On the ground --------------------------------------------------------------------------
+
+    /** One tick walking: unless something calls it up onto its owner or into the water. */
+    private void groundStep(OwnerState o, LocalVoxels v, Runnable onSwimStart) {
+        ground.tempo = drives.temperament().pace();
+        if (groundHopCooldown > 0) groundHopCooldown--;
+        boolean ready = ground.onFloor() && groundHopCooldown == 0;
+        if (wetTicks >= WATER_TICKS && ready) {
+            // The owner is swimming: in already, swim; otherwise hop in beside them.
+            if (v.water(pos)) {
+                startSwim();
+                return;
+            }
+            for (Vec w : waterOptions(o)) {
+                if (v.sphereClear(w, radius + 0.1) && w.distanceTo(pos) < HOP_RANGE) {
+                    beginGroundHop(null, w);
+                    return;
+                }
+            }
+        }
+        if (o.riding() || o.gliding()) {
+            // Nothing on the ground keeps up with a horse or elytra: climb on, or fade onto the perch.
+            riderWait++;
+            if (riderWait > 20 || slotPoint(o, home).distanceTo(pos) > HOP_RANGE) {
+                wantsFade = true;
+            } else if (ready && ownerSteady()) {
+                // Climbing on as they set off: only once they're steady enough to land on.
+                beginGroundHop(home, null);
+                return;
+            }
+        } else {
+            riderWait = 0;
+        }
+        if (ready && o.velocity().y() > -0.5) {
+            Slot cover = coverSlot(o);
+            boolean lookingDown = lookDownTicks >= LOOK_DOWN_TICKS;
+            Drives.Interest it = drives.target;
+            boolean heldInterest = it != null && it.isHeld() && drives.curiosity >= HAND_CURIOSITY;
+            Slot up = cover != null ? cover
+                    : lookingDown || heldInterest || unseenTicks >= groundAttention() ? hand() : null;
+            // Only from somewhere a hop up is clear (not from behind them, through their body).
+            arcMargin = GROUND_LEAP_MARGIN;
+            boolean clear = up != null && slotPoint(o, up).distanceTo(pos) <= CLOSE_RANGE
+                    && clearHopTime(v, pos, slotPoint(o, up), o) > 0;
+            arcMargin = 0;
+            if (clear) {
+                beginGroundHop(up, null);
+                return;
+            }
+            // Out of reach of the hand it wants to show itself on: come up alongside first.
+            gmind.wantClose = up != null && up.hand();
+            gmind.closeSide = home == Slot.LEFT_SHOULDER ? -1 : 1;
+        } else {
+            gmind.wantClose = gmind.wantClose && unseenTicks >= groundAttention();
+        }
+        gmind.step(o, v, drives, length);
+        if (gmind.wantsFade) wantsFade = true;
+        copyFromGround();
+    }
+
+    /** How close to a slot it starts a hop up to it from the ground: within a hop, with room to spare for a moving owner. */
+    private static final double CLOSE_RANGE = 2.6;
+
+    private void beginGroundHop(Slot toSlot, Vec toWater) {
+        gmind.wantClose = false;
+        crouchSlot = toSlot;
+        waterTarget = toWater;
+        groundTarget = null;
+        enter(Mode.GROUND_CROUCH);
+    }
+
+    /** Brakes, turns to face where it's going, crouches, and goes, if the way is clear. */
+    private void groundCrouch(OwnerState o, LocalVoxels v) {
+        Vec to = crouchSlot != null ? slotPoint(o, crouchSlot) : waterTarget;
+        Vec d = to.sub(pos).horizontal();
+        float face = d.lengthSqr() > 1e-6 ? (float) d.yawDeg() : ground.yaw;
+        // Beside an owner on the move it leaps on the run, keeping pace until it faces the slot;
+        // beside a still one it stops, faces it and crouches.
+        boolean running = crouchSlot != null && o.horizontalSpeed() > 0.6;
+        if (running) {
+            // At the owner's level, so it follows them down a step on the way.
+            ground.walk(new Vec(to.x(), GroundMind.ownerFloor(o, v).y(), to.z()), o.horizontalSpeed() * 1.1,
+                    GroundBody.Rhythm.SCURRY, null, face, v);
+        } else {
+            ground.walk(ground.standing(), 0, GroundBody.Rhythm.AMBLE, null, face, v);
+        }
+        copyFromGround();
+        crouch = Math.min(1f, crouch + 1f / crouchTicks());
+        boolean faced = Math.abs(Body.wrap(face - ground.yaw)) < (running ? 12f : 4f);
+        boolean settled = running ? modeTicks >= 2 && levelAhead(o, v) : modeTicks >= crouchTicks() && ground.speed < 0.3;
+        if (settled && faced && ground.onFloor() && (crouchSlot == null || ownerSteady())) {
+            arcMargin = GROUND_LEAP_MARGIN;
+            double T = to.distanceTo(pos) <= HOP_RANGE ? clearHopTime(v, pos, to, o) : -1;
+            arcMargin = 0;
+            if (T < 0) {
+                abortGroundHop();
+                return;
+            }
+            hopTarget = crouchSlot;
+            groundTarget = null;
+            launchFrom(o, pos, to, T);
+            return;
+        }
+        if (modeTicks > 40 || (o.riding() || o.gliding()) && ++riderWait > 20) {
+            abortGroundHop();
+            if (o.riding() || o.gliding()) wantsFade = true;
+        }
+    }
+
+    /**
+     * Whether the owner's ground stays level for the next second of their walk: a leap at a hand
+     * that's about to step down (or up) a terrace bends its arc into the riser.
+     */
+    private boolean levelAhead(OwnerState o, LocalVoxels v) {
+        Vec feet = GroundMind.ownerFloor(o, v);
+        Vec step = o.velocity().horizontal().scale(0.25);
+        for (int i = 1; i <= 4; i++) {
+            Vec p = feet.add(step.scale(i));
+            double f = v.floorBelow(p.x(), p.z(), feet.y() + 1.05, 2.1, 0.05);
+            if (Double.isNaN(f) || Math.abs(f - feet.y()) > 0.1) return false;
+        }
+        return true;
+    }
+
+    private void abortGroundHop() {
+        crouchSlot = null;
+        waterTarget = null;
+        groundHopCooldown = 20;
+        // Try again shortly: down on the ground it is out of sight more than it is on a shoulder.
+        unseenTicks = Math.min(unseenTicks, Math.max(0, groundAttention() - 40));
+        enter(Mode.GROUND);
+    }
+
+    /**
+     * Unseen this long on the ground, it goes to show itself on the hand: sooner than from a
+     * shoulder, because down on the ground behind its owner it is out of sight most of the time.
+     */
+    private int groundAttention() {
+        return (int) (attentionThreshold * 0.6);
+    }
+
+    /** Off the owner down to the ground beside them, if there's a clear hop to somewhere to stand. */
+    private void hopDown(OwnerState o, LocalVoxels v) {
+        if (!ownerSteady()) return;
+        Vec to = groundSpot(o, v);
+        double T = to != null ? clearHopTime(v, pos, to, o) : -1;
+        if (T < 0) {
+            enter(Mode.PERCHED); // nowhere to land just now: look again shortly
+            return;
+        }
+        hopTarget = null;
+        waterTarget = null;
+        groundTarget = to;
+        startCrouchToGround();
+    }
+
+    private void startCrouchToGround() {
+        enter(Mode.CROUCH);
+    }
+
+    /**
+     * Somewhere on the ground beside the owner a body could stand (its centre, resting on the
+     * floor), on the side it rides, or null.
+     */
+    Vec groundSpot(OwnerState o, LocalVoxels v) {
+        if (ground == null) return null;
+        Vec feet = GroundMind.ownerFloor(o, v);
+        Vec f = o.flatForward(), r = o.flatRight();
+        double side = home == Slot.LEFT_SHOULDER || slot == Slot.LEFT_HAND ? -1 : 1;
+        Vec[] options = {feet.add(r.scale(0.9 * side)).add(f.scale(0.3)),
+                feet.add(r.scale(1.1 * side)).add(f.scale(-0.5)),
+                feet.add(r.scale(-0.9 * side)).add(f.scale(0.3)),
+                feet.add(f.scale(-1.1)),
+                feet.add(f.scale(1.3))};
+        for (Vec c : options) {
+            double fl = ground.footprintFloorFrom(v, c.x(), c.z(), feet.y());
+            if (Double.isNaN(fl) || Math.abs(fl - feet.y()) > 1.0 || !ground.flatAt(v, c.x(), c.z(), fl)) continue;
+            Vec at = new Vec(c.x(), fl + radius + LocalVoxels.GROUND_LIFT, c.z());
+            if (v.sphereClear(at, radius)) return at;
+        }
+        return null;
+    }
+
+    private void enterGroundFalling() {
+        ground.placeFalling(pos, vel, yaw);
+        groundTarget = null;
+        hopTarget = null;
+        enter(Mode.GROUND);
+    }
+
+    private void copyFromGround() {
+        pos = ground.pos;
+        vel = ground.vel;
+        acc = ground.acc;
+        speed = ground.speed;
+        yaw = ground.yaw;
+        pitch = ground.pitch;
+        bank = 0f;
+        yawRate = ground.yawRate;
+        tailPhase = ground.tailPhase;
+        burstDrive = ground.burstDrive;
+        backstopLastStep = ground.backstopLastStep;
+        lastImpact = ground.lastImpact;
+        crouch = Math.max(ground.squash, mode == Mode.GROUND_CROUCH ? crouch : 0f);
+        if (ground.impulse) {
+            impulse = true;
+            lastImpulse = Math.max(lastImpulse, ground.lastImpulse);
+        }
+    }
+
+    /** Whether it is on the ground: walking, or crouching there for a hop. */
+    boolean onGround() {
+        return mode == Mode.GROUND || mode == Mode.GROUND_CROUCH;
+    }
+
+    /** Dev trigger: back down to the ground from wherever it is (Phase 2's dismount, by hand). */
+    void devGround() {
+        if (ground == null) return;
+        homeGround = true;
+        wantsFade = false;
+        gmind.wantsFade = false;
+        gmind.strandedTicks = 0;
     }
 
     private double hopTimeFor(double dist) {
@@ -404,7 +743,7 @@ public final class PerchBody extends Motor {
         for (int i = 0; i <= n; i++) {
             double s = T * i / n;
             pts[i] = a.add(v0.scale(s)).add(0, -0.5 * GRAVITY * s * s, 0);
-            if (i > 0 && !v.sphereClear(pts[i], radius)) return false;
+            if (i > 0 && !v.sphereClear(pts[i], radius + arcMargin)) return false;
             onBody[i] = Mind.insideOwner(o, pts[i], radius);
             if (!onBody[i]) {
                 if (firstOff < 0) firstOff = i;
@@ -475,11 +814,12 @@ public final class PerchBody extends Motor {
 
     @Override
     long backstopCount() {
-        return backstops + swim.backstops;
+        return backstops + swim.backstops + (ground != null ? ground.backstops : 0);
     }
 
     @Override
     float speedFactor() {
+        if (onGround()) return ground.speedFactor();
         return mode == Mode.SWIM ? swim.speedFactor() : 0.6f;
     }
 
@@ -494,6 +834,14 @@ public final class PerchBody extends Motor {
         slot = home;
         enter(Mode.PERCHED);
         attach(o);
+        if (ground != null) {
+            // On its perch now; it stays there until Phase 2's dismount (or the dev trigger).
+            homeGround = false;
+            wantsFade = false;
+            gmind.wantsFade = false;
+            gmind.strandedTicks = 0;
+            groundTarget = null;
+        }
     }
 
     // ── Randomness ─────────────────────────────────────────────────────────────────────────────

@@ -23,6 +23,15 @@ public final class OwnerScript {
             "stairwell", "low_ceiling", "pond_dive", "wading", "about_face", "jumping", "creative_flight",
             "held_items", "hostile_approach", "cat_lounging", "item_drops", "companion_passes");
 
+    /**
+     * Scripts for companions on the ground (docs/fish-companions-benthic-follow.md section 7, Phase 1):
+     * terrain a walker has to get over, and travel it can't follow on foot. Kept apart from
+     * {@link #NAMES} so the swimmers' table and fingerprints don't run them.
+     */
+    public static final List<String> GROUND_NAMES = List.of(
+            "walk_flat", "walk_meander", "stairs_up_down", "slab_path", "step_gaps", "parkour_gap",
+            "ladder", "closed_door", "sprint_away", "ride_off", "elytra_glide", "plaice_walk_flat");
+
     public static final double WALK = 4.317, SPRINT = 5.612;
 
     /** One step of a script; returns true when it's finished. */
@@ -122,6 +131,10 @@ public final class OwnerScript {
         public BlockQuery world;
         /** Feet follow the ground (steps up, falls, jumps) instead of staying at one height. */
         public boolean terrain;
+        /** Riding something (a horse): reported to the companion until set back. */
+        public boolean riding;
+        /** Flying with elytra: reported to the companion until set back. */
+        public boolean gliding;
         private Vec desiredVel = Vec.ZERO;
         private boolean lookOverride, teleported, flying, swimming, jump;
         private Vec prevFeet;
@@ -202,7 +215,8 @@ public final class OwnerScript {
             boolean inWater = world != null && world.water(
                     (int) Math.floor(chest.x()), (int) Math.floor(chest.y()), (int) Math.floor(chest.z()));
             return new OwnerState(eye, realVel, yaw, pitch,
-                    vel.horizontalLength() > (WALK + SPRINT) / 2, teleported, firstPerson, fov, inWater);
+                    vel.horizontalLength() > (WALK + SPRINT) / 2, teleported, firstPerson, fov, inWater,
+                    riding, gliding);
         }
 
         /**
@@ -212,8 +226,11 @@ public final class OwnerScript {
         private boolean followGround(double vy, double prevY, double dt) {
             double ground = groundUnder(prevY);
             int bx = (int) Math.floor(feet.x()), bz = (int) Math.floor(feet.z());
-            int gy = (int) Math.floor(Math.max(ground, prevY) + 1e-6);
-            if (world.solid(bx, gy, bz) || world.solid(bx, gy + 1, bz)) return false;
+            double footY = Math.max(ground, prevY);
+            int gy = (int) Math.floor(footY + 1e-6);
+            // A partial block (a slab) the feet stand on top of isn't in the way.
+            boolean atFeet = world.solid(bx, gy, bz) && gy + world.top(bx, gy, bz) > footY + 1e-6;
+            if (atFeet || world.solid(bx, gy + 1, bz)) return false;
             boolean onGround = prevY <= ground + 1e-6;
             if (jump && onGround) vy = JUMP_SPEED;
             vy -= GRAVITY * dt;
@@ -236,7 +253,7 @@ public final class OwnerScript {
             int bx = (int) Math.floor(feet.x()), bz = (int) Math.floor(feet.z());
             int top = (int) Math.floor(y + 1e-6);
             for (int by = top; by > top - 12; by--) {
-                if (world.solid(bx, by, bz)) return by + 1;
+                if (world.solid(bx, by, bz)) return by + world.top(bx, by, bz);
             }
             return top - 12;
         }
@@ -360,6 +377,67 @@ public final class OwnerScript {
         };
     }
 
+    /**
+     * Runs toward a point at {@code speed} without slowing, and jumps once when the feet cross
+     * {@code jumpZ} heading that way: a running jump over a gap.
+     */
+    static Segment runJump(double x, double z, double speed, double jumpZ) {
+        boolean[] jumped = {false};
+        return p -> {
+            Vec to = new Vec(x - p.feet.x(), 0, z - p.feet.z());
+            if (to.length() < 0.3) {
+                jumped[0] = false;
+                return true;
+            }
+            boolean north = z > jumpZ;
+            // Re-armed whenever it's back on the take-off side (the script loops).
+            if (north ? p.feet.z() < jumpZ - 2 : p.feet.z() > jumpZ + 2) jumped[0] = false;
+            // A tick early: the pilot judges the jump from where the feet land this tick, which
+            // at the edge is already over the gap.
+            double reach = Math.max(0.3, p.vel.horizontalLength() * 0.05);
+            if (!jumped[0] && (north ? p.feet.z() + reach >= jumpZ : p.feet.z() - reach <= jumpZ)) {
+                p.jump();
+                jumped[0] = true;
+            }
+            p.move(to.normalize().scale(speed));
+            return false;
+        };
+    }
+
+    /**
+     * {@code then}, with the owner riding (or not) from its first tick on: getting on or off a
+     * mount takes no tick of its own.
+     */
+    static Segment riding(boolean on, Segment then) {
+        return p -> {
+            p.riding = on;
+            return then.tick(p);
+        };
+    }
+
+    /** {@code then}, with the owner gliding on elytra (or not) from its first tick on. */
+    static Segment gliding(boolean on, Segment then) {
+        return p -> {
+            p.gliding = on;
+            return then.tick(p);
+        };
+    }
+
+    /**
+     * {@code then}, having asked for the scene's door to be shut or opened on its first tick. The
+     * run applies it once nothing is in the doorway (a player waits for a companion to come through).
+     */
+    static Segment door(boolean closed, Segment then) {
+        boolean[] asked = {false};
+        return p -> {
+            if (!asked[0] && p.world instanceof VoxelScene v) v.requestDoor(closed);
+            asked[0] = true;
+            boolean done = then.tick(p);
+            if (done) asked[0] = false;
+            return done;
+        };
+    }
+
     static Segment teleportTo(double x, double y, double z) {
         return p -> {
             p.teleport(new Vec(x, y, z));
@@ -468,10 +546,10 @@ public final class OwnerScript {
             }
             case "elytra" -> {
                 s.add(waitTicks(40));
-                s.add(flyTo(0.5, y + 12, 20.5, 8));
+                s.add(gliding(true, flyTo(0.5, y + 12, 20.5, 8)));
                 s.add(flyTo(0.5, y + 12, 260.5, 28));
                 s.add(flyTo(0.5, y, 275.5, 8));
-                s.add(waitTicks(100));
+                s.add(gliding(false, waitTicks(100)));
                 s.add(teleportTo(0.5, y, 0.5));
                 s.add(waitTicks(60));
                 return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s);
@@ -673,7 +751,134 @@ public final class OwnerScript {
                         ScriptedPoints.passer(P, 3, 2400, 1400, new Vec(-5, y + 1.4, 6), new Vec(6, y + 1.4, 1), 1.2, 0.2),
                         ScriptedPoints.alongside(P, 4, 2400, 1800, 2300, 3.0, 0.5, 1.2, 0.2));
             }
-            default -> throw new IllegalArgumentException("unknown script " + name + " (have " + NAMES + ")");
+            // -- Ground scripts (GROUND_NAMES) --
+            case "walk_flat" -> {
+                s.add(waitTicks(40));
+                s.add(walkTo(0.5, 30.5, WALK));
+                s.add(waitTicks(60));
+                s.add(walkTo(0.5, 0.5, WALK));
+                s.add(waitTicks(60));
+                return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s).withTerrain();
+            }
+            case "walk_meander" -> {
+                // Wandering about at a stroll and a walk, with pauses: where a line would wave.
+                for (int i = 0; i < 24; i++) {
+                    double a = r.nextDouble() * Math.PI * 2, d = 3 + r.nextDouble() * 12;
+                    s.add(walkTo(Math.cos(a) * d, Math.sin(a) * d, r.nextDouble() < 0.5 ? WALK * 0.5 : WALK));
+                    if (r.nextDouble() < 0.4) s.add(waitTicks(20 + r.nextInt(80)));
+                }
+                s.add(walkTo(0.5, 0.5, WALK));
+                return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s).withTerrain();
+            }
+            case "stairs_up_down" -> {
+                s.add(waitTicks(40));
+                s.add(walkTo(0.5, 14.5, WALK));
+                s.add(waitTicks(60));
+                s.add(walkTo(2.5, 16.5, WALK));
+                s.add(walkTo(-1.5, 16.5, WALK));
+                s.add(walkTo(0.5, 12.5, WALK));
+                s.add(walkTo(0.5, -2.5, WALK));
+                s.add(waitTicks(60));
+                return new OwnerScript(name, "half_stairs", new Vec(0.5, y, -2.5), 0f, s).withTerrain();
+            }
+            case "slab_path" -> {
+                s.add(waitTicks(40));
+                s.add(walkTo(0.5, 25.5, WALK));
+                s.add(waitTicks(60));
+                s.add(walkTo(0.5, -5.5, WALK));
+                s.add(waitTicks(60));
+                return new OwnerScript(name, "slab_path", new Vec(0.5, y, -5.5), 0f, s).withTerrain();
+            }
+            case "step_gaps" -> {
+                s.add(waitTicks(40));
+                s.add(walkTo(0.5, 26.5, WALK));
+                s.add(waitTicks(60));
+                s.add(walkTo(0.5, 0.5, WALK));
+                s.add(waitTicks(60));
+                return new OwnerScript(name, "terraces", new Vec(0.5, y, 0.5), 0f, s).withTerrain();
+            }
+            case "parkour_gap" -> {
+                // A running jump over a two-wide trench, a look round, and back over it.
+                s.add(waitTicks(40));
+                s.add(runJump(0.5, 15.5, SPRINT, 7.6));
+                s.add(walkTo(0.5, 16.5, WALK));
+                s.add(waitTicks(80));
+                s.add(runJump(0.5, 1.5, SPRINT, 10.4));
+                s.add(walkTo(0.5, 0.5, WALK));
+                s.add(waitTicks(80));
+                return new OwnerScript(name, "trench", new Vec(0.5, y, 0.5), 0f, s).withTerrain();
+            }
+            case "ladder" -> {
+                // Up a ladder onto a cliff five blocks high, a walk along the top, and back down.
+                s.add(waitTicks(40));
+                s.add(walkTo(0.5, 5.5, WALK));
+                s.add(flyTo(0.5, y + 5.4, 5.5, 2.35));
+                s.add(flyTo(0.5, y + 5.05, 7.5, 2));
+                s.add(walkTo(0.5, 16.5, WALK));
+                s.add(waitTicks(100));
+                s.add(walkTo(0.5, 7.0, WALK));
+                s.add(flyTo(0.5, y + 5.4, 5.5, 2));
+                s.add(flyTo(0.5, y + 0.4, 5.5, 2.35));
+                s.add(walkTo(0.5, 0.5, WALK));
+                s.add(waitTicks(100));
+                return new OwnerScript(name, "cliff", new Vec(0.5, y, 0.5), 0f, s).withTerrain();
+            }
+            case "closed_door" -> {
+                // Through a door, shut it behind (once the doorway is clear), wait, open it, back.
+                s.add(waitTicks(40));
+                s.add(walkTo(0.5, 15.5, WALK));
+                s.add(door(true, waitTicks(140)));
+                s.add(door(false, waitTicks(20)));
+                s.add(walkTo(0.5, 0.5, WALK));
+                s.add(waitTicks(60));
+                return new OwnerScript(name, "door_wall", new Vec(0.5, y, 0.5), 0f, s).withTerrain();
+            }
+            case "sprint_away" -> {
+                s.add(waitTicks(40));
+                s.add(walkTo(0.5, 60.5, SPRINT));
+                s.add(waitTicks(100));
+                s.add(walkTo(0.5, 0.5, WALK));
+                s.add(waitTicks(100));
+                return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s).withTerrain();
+            }
+            case "ride_off" -> {
+                // Up onto a horse, a moment in the saddle, a ride, and off again at the far end.
+                s.add(waitTicks(60));
+                s.add(riding(true, flyTo(0.5, y + 0.85, 1.0, 3)));
+                s.add(hover(30));
+                s.add(flyTo(0.5, y + 0.85, 50.5, 9));
+                s.add(hover(40));
+                s.add(riding(false, flyTo(1.5, y + 0.4, 50.5, 3)));
+                s.add(walkTo(1.5, 40.5, WALK));
+                s.add(waitTicks(100));
+                s.add(teleportTo(0.5, y, 0.5));
+                s.add(waitTicks(40));
+                return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s).withTerrain();
+            }
+            case "elytra_glide" -> {
+                s.add(waitTicks(60));
+                s.add(gliding(true, flyTo(0.5, y + 10, 15.5, 8)));
+                s.add(flyTo(0.5, y + 10, 120.5, 20));
+                s.add(flyTo(0.5, y + 0.4, 132.5, 8));
+                s.add(gliding(false, walkTo(0.5, 125.5, WALK)));
+                s.add(waitTicks(100));
+                s.add(teleportTo(0.5, y, 0.5));
+                s.add(waitTicks(40));
+                return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s).withTerrain();
+            }
+            case "plaice_walk_flat" -> {
+                // A walk, a long stand, and a few turns: the plaice's glide in all its paces.
+                s.add(waitTicks(40));
+                s.add(walkTo(0.5, 20.5, WALK));
+                s.add(hold(200));
+                s.add(walkTo(8.5, 24.5, WALK * 0.5));
+                s.add(walkTo(-4.5, 12.5, WALK));
+                s.add(waitTicks(80));
+                s.add(walkTo(0.5, 0.5, WALK));
+                s.add(waitTicks(60));
+                return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s).withTerrain();
+            }
+            default -> throw new IllegalArgumentException("unknown script " + name + " (have " + NAMES + " " + GROUND_NAMES + ")");
         }
     }
 

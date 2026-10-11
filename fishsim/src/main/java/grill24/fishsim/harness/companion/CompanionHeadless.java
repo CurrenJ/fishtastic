@@ -70,7 +70,8 @@ public final class CompanionHeadless {
             }
         }
         Files.createDirectories(out);
-        List<String> scripts = scriptArg.equals("all") ? OwnerScript.NAMES : List.of(scriptArg.split(","));
+        List<String> scripts = scriptArg.equals("all") ? OwnerScript.NAMES
+                : scriptArg.equals("ground") ? OwnerScript.GROUND_NAMES : List.of(scriptArg.split(","));
         String prefix = (trio ? "trio_"
                 : locomotion == Locomotion.FREE_SWIM ? "" : locomotion.name().toLowerCase(java.util.Locale.ROOT) + "_")
                 + (temperament == grill24.fishsim.companion.Temperament.BASELINE ? "" : temperament.name() + "_");
@@ -82,6 +83,7 @@ public final class CompanionHeadless {
                 CompanionRun.Metrics m = export(run, script, prefix, ticks, Math.min(gifTicks, ticks), out);
                 String line = m.summary();
                 if (run.group != null) line += " | " + run.followerMetrics().summary();
+                if (run.agent.locomotion() == grill24.fishsim.core.Locomotion.BENTHIC) line += " | " + run.groundMetrics().summary();
                 System.out.printf("%-13s %s%n", script, line);
                 csv.printf("%s,%d,%d,\"%s\"%n", script, seed, ticks, line);
             }

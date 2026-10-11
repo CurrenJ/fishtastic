@@ -5,6 +5,7 @@ import grill24.fishsim.companion.CompanionGroup;
 import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.companion.CompanionTunables;
 import grill24.fishsim.companion.CompanionWorld;
+import grill24.fishsim.companion.GroundGait;
 import grill24.fishsim.companion.LocalVoxels;
 import grill24.fishsim.companion.OwnerState;
 import grill24.fishsim.companion.Temperament;
@@ -39,7 +40,9 @@ public final class CompanionRun {
     public record Sample(OwnerState owner, Vec pos, Vec vel, Vec acc, float yaw, float pitch, float bank,
                          float turn, String goal, boolean seen, double ownerDist, float appear,
                          CompanionAgent.Fade fade, boolean backstop, double impact, int goalTicks, float pulse, double thrust,
-                         boolean riding, String pose, float curiosity) {}
+                         boolean riding, String pose, float curiosity,
+                         boolean impulse, double impulseSize, boolean onGround, boolean feetDown, double lag,
+                         boolean reachable, boolean doorClosed) {}
 
     public final VoxelScene scene;
     public final OwnerScript script;
@@ -62,6 +65,24 @@ public final class CompanionRun {
     public CompanionRun(String scriptName, long seed, Locomotion locomotion, float length, CompanionTunables tunables,
                         boolean record) {
         this(scriptName, seed, locomotion, length, Temperament.BASELINE, tunables, record, false);
+    }
+
+    /** A benthic of a given size, temperament and ground gait (docs/fish-companions-benthic-follow.md). */
+    public static CompanionRun benthic(String scriptName, long seed, float length, Temperament temperament, GroundGait gait,
+                                       CompanionTunables tunables, boolean record) {
+        return new CompanionRun(scriptName, seed, Locomotion.BENTHIC, length, temperament, gait, tunables, record);
+    }
+
+    private CompanionRun(String scriptName, long seed, Locomotion locomotion, float length, Temperament temperament,
+                         GroundGait gait, CompanionTunables tunables, boolean record) {
+        this.script = OwnerScript.named(scriptName, seed);
+        this.scene = script.scene;
+        this.tunables = tunables;
+        this.record = record;
+        this.world = script.nextWorld();
+        this.owner = world.owner();
+        this.group = null;
+        this.agent = new CompanionAgent(tunables, seed, locomotion, length, temperament, gait, world);
     }
 
     /** A solo companion of the given temperament (spec §4). */
@@ -98,7 +119,9 @@ public final class CompanionRun {
             this.agent = group.leader();
         } else {
             this.group = null;
-            this.agent = new CompanionAgent(tunables, seed, locomotion, length, temperament, world);
+            // A benthic walks the ground (docs/fish-companions-benthic-follow.md), with the crawl.
+            this.agent = new CompanionAgent(tunables, seed, locomotion, length, temperament,
+                    locomotion == Locomotion.BENTHIC ? GroundGait.CRAWL : null, world);
         }
     }
 
@@ -110,9 +133,17 @@ public final class CompanionRun {
     public final CompanionGroup group;
     public final List<FollowerSample[]> followerSamples = new ArrayList<>();
 
+    private int sceneVersion;
+
     public void tick() {
         world = script.nextWorld();
         owner = world.owner();
+        // A door shuts only once nothing is in the doorway; any block change refreshes what's cached.
+        scene.applyDoor(d -> doorClear(d));
+        if (scene.version() != sceneVersion) {
+            sceneVersion = scene.version();
+            agent.voxels().invalidate();
+        }
         if (group != null) {
             group.step(world);
             if (record) {
@@ -131,8 +162,20 @@ public final class CompanionRun {
             samples.add(new Sample(owner, agent.position(), agent.velocity(), agent.acceleration(),
                     agent.yaw(), agent.pitch(), agent.bank(), agent.lastTurnDeg(), agent.goal(),
                     seenNow(), agent.ownerDistance(), agent.appear(), agent.fade(), agent.backstopLastStep(), agent.lastImpact(), agent.goalTicks(), agent.pulse(), agent.thrust(), agent.onOwner(),
-                    agent.poseHint().name(), agent.curiosity()));
+                    agent.poseHint().name(), agent.curiosity(), agent.impulse(), agent.lastImpulse(),
+                    agent.onGround(), agent.feetDown(), agent.groundLag(), agent.groundReachable(), scene.doorClosed()));
         }
+    }
+
+    /** Whether the companion (and the owner) are clear of the door's cells. */
+    private boolean doorClear(int[] d) {
+        double r = agent.radius();
+        Vec p = agent.position();
+        boolean fish = p.x() + r < d[0] || p.x() - r > d[3] || p.y() + r < d[1] || p.y() - r > d[4]
+                || p.z() + r < d[2] || p.z() - r > d[5];
+        Vec f = owner.feet();
+        boolean own = f.x() + 0.3 < d[0] || f.x() - 0.3 > d[3] || f.z() + 0.3 < d[2] || f.z() - 0.3 > d[5];
+        return fish && own;
     }
 
     /**
@@ -328,7 +371,11 @@ public final class CompanionRun {
         String prevGoal = null;
         Vec prevAcc = null;
         boolean prevContact = false;
+        boolean prevImpulse = false;
+        double maxImpulse = 0;
+        boolean door = scene.doorClosed();
         for (Sample s : samples) {
+            asAt(s, truth);
             truth.update(scene, s.owner().eye());
             // On its owner (riding, or pushing off and touching down), a percher is part of their
             // silhouette, as a parrot is: where it is, how it moves and how close it is to the
@@ -341,7 +388,12 @@ public final class CompanionRun {
             // the tick after it re-adds the blocked component; neither is the body's own motion.
             boolean contact = s.backstop() || prevContact;
             prevContact = s.backstop();
-            if (settled && !contact) {
+            // A launch or touchdown jumps the velocity by design, and the tick after it re-adds the
+            // jump: an impulse, measured on its own, not the body's acceleration.
+            boolean jumped = s.impulse() || prevImpulse;
+            prevImpulse = s.impulse();
+            if (s.impulse()) maxImpulse = Math.max(maxImpulse, s.impulseSize());
+            if (settled && !contact && !jumped) {
                 maxAcc = Math.max(maxAcc, s.acc().length());
                 // A backstop stop is a collision, counted on its own; it isn't the body's own jerk.
                 if (prevAcc != null && !s.backstop()) maxJerk = Math.max(maxJerk, s.acc().sub(prevAcc).length() / dt);
@@ -365,7 +417,7 @@ public final class CompanionRun {
                 if (insideBody(s.owner(), s.pos())) insideOwner++;
                 if (s.pos().distanceTo(s.owner().camera()) < Visibility.NEAR + r) nearClip++;
             }
-            prevAcc = settled && !contact ? s.acc() : null;
+            prevAcc = settled && !contact && !jumped ? s.acc() : null;
 
             if (s.seen()) {
                 seenTicks++;
@@ -391,6 +443,7 @@ public final class CompanionRun {
                 // is the mind's own goal clock. A fade's reset (goal clock 0 on the switching tick;
                 // a decision has already counted 1) re-places the fish rather than deciding.
                 boolean baseSwap = isBase(prevGoal) && isBase(s.goal());
+                // A benthic catching up on foot (spec section 6) is the walk's emergency, like a swimmer's catch-up.
                 boolean reset = s.goalTicks() == 0;
                 // A percher going into or out of the water swaps bodies; that isn't the mind deciding.
                 boolean perchSwap = prevGoal.equals("PERCH") || s.goal().equals("PERCH");
@@ -405,6 +458,7 @@ public final class CompanionRun {
             prevGoalTicks = s.goalTicks();
             prevGoal = s.goal();
         }
+        restoreDoor(door);
         int n = samples.size();
         double mean = speedN == 0 ? 0 : sumSpeed / speedN;
         double var = speedN == 0 ? 0 : Math.max(0, sumSpeed2 / speedN - mean * mean);
@@ -419,7 +473,103 @@ public final class CompanionRun {
     }
 
     private static boolean isBase(String goal) {
-        return goal.equals("LOITER") || goal.equals("SETTLE") || goal.equals("ESCORT");
+        return goal.equals("LOITER") || goal.equals("SETTLE") || goal.equals("ESCORT")
+                // A benthic on the ground idles or follows as its owner stops and starts.
+                || goal.equals("GROUND_IDLE") || goal.equals("GROUND_FOLLOW");
+    }
+
+    // ── On the ground (docs/fish-companions-benthic-follow.md section 7) ───────────────────────────
+
+    /**
+     * What a benthic did on the ground.
+     *
+     * @param groundShare      share of ticks walking the ground
+     * @param maxFloorError    worst gap between its underside and the floor under it while its feet are down, blocks
+     * @param floorErrorTicks  ticks with its feet down more than {@link #FLOOR_EPS} off the floor
+     * @param longestStuckSeconds longest run on the ground, far from its owner and not moving
+     * @param fades            fades onto the perch (it couldn't follow on foot)
+     * @param maxImpulse       the biggest velocity jump at a launch or touchdown, blocks/s
+     * @param meanLag          mean lag behind the owner along their way while following or catching up, blocks
+     * @param maxLag           worst lag on the ground, blocks
+     * @param catchUpShare     share of ground ticks catching up
+     * @param hops             hops taken (onto the owner, off them, across gaps, up steps excluded)
+     * @param gapHops          hops across gaps it couldn't walk
+     */
+    public record GroundMetrics(double groundShare, double maxFloorError, int floorErrorTicks, double longestStuckSeconds,
+                                long fades, double maxImpulse, double meanLag, double maxLag, double catchUpShare,
+                                int hops, int gapHops) {
+        public String summary() {
+            return String.format("ground=%.0f%% floorErr=%.3f (%d) stuck=%.1fs fades=%d impulse=%.1f lag=%.1f/%.1f "
+                            + "catchUp=%.0f%% hops=%d gapHops=%d",
+                    groundShare * 100, maxFloorError, floorErrorTicks, longestStuckSeconds, fades, maxImpulse,
+                    meanLag, maxLag, catchUpShare * 100, hops, gapHops);
+        }
+    }
+
+    /** How far off the floor counts as not on it, blocks. */
+    public static final double FLOOR_EPS = 0.01;
+
+    /** The ground metrics over the recorded run (a benthic's; zeros for anything else). */
+    public GroundMetrics groundMetrics() {
+        LocalVoxels truth = new LocalVoxels();
+        double r = agent.radius(), dt = CompanionAgent.DT;
+        int ground = 0, floorErrTicks = 0, stuck = 0, longestStuck = 0, catching = 0, lagN = 0;
+        double maxErr = 0, maxImpulse = 0, sumLag = 0, maxLag = 0;
+        boolean door = scene.doorClosed();
+        for (Sample s : samples) {
+            asAt(s, truth);
+            truth.update(scene, s.owner().eye());
+            if (s.impulse()) maxImpulse = Math.max(maxImpulse, s.impulseSize());
+            if (!s.onGround()) {
+                stuck = 0;
+                continue;
+            }
+            ground++;
+            if (s.feetDown()) {
+                double bottom = s.pos().y() - r - LocalVoxels.GROUND_LIFT;
+                double floor = Double.NEGATIVE_INFINITY;
+                int x0 = (int) Math.floor(s.pos().x() - r), x1 = (int) Math.floor(s.pos().x() + r);
+                int z0 = (int) Math.floor(s.pos().z() - r), z1 = (int) Math.floor(s.pos().z() + r);
+                for (int x = x0; x <= x1; x++) {
+                    for (int z = z0; z <= z1; z++) {
+                        double f = truth.columnFloor(x, z, bottom + 0.05, 6);
+                        if (!Double.isNaN(f)) floor = Math.max(floor, f);
+                    }
+                }
+                double err = Double.isInfinite(floor) ? 6 : Math.abs(bottom - floor);
+                maxErr = Math.max(maxErr, err);
+                if (err > FLOOR_EPS) floorErrTicks++;
+            }
+            boolean far = s.owner().feet().sub(s.pos()).horizontalLength() > 4.5;
+            stuck = far && s.vel().horizontalLength() < 0.2 ? stuck + 1 : 0;
+            longestStuck = Math.max(longestStuck, stuck);
+            if (s.goal().equals("CATCH_UP")) catching++;
+            if (s.goal().equals("GROUND_FOLLOW") || s.goal().equals("CATCH_UP")) {
+                sumLag += s.lag();
+                lagN++;
+            }
+            maxLag = Math.max(maxLag, s.lag());
+        }
+        restoreDoor(door);
+        int n = samples.size();
+        return new GroundMetrics(n == 0 ? 0 : ground / (double) n, maxErr, floorErrTicks, longestStuck * dt,
+                agent.groundFades(), maxImpulse, lagN == 0 ? 0 : sumLag / lagN, maxLag,
+                ground == 0 ? 0 : catching / (double) ground, agent.hops(), agent.gapHops());
+    }
+
+    private void restoreDoor(boolean closed) {
+        if (!scene.hasDoor()) return;
+        scene.setDoorClosed(closed);
+        sceneVersion = scene.version();
+    }
+
+    /** Puts the scene's door as it was at sample {@code s}, so the truth checks see the blocks of that tick. */
+    private void asAt(Sample s, LocalVoxels truth) {
+        if (scene.hasDoor() && s.doorClosed() != scene.doorClosed()) {
+            scene.setDoorClosed(s.doorClosed());
+            sceneVersion = scene.version();
+            truth.invalidate();
+        }
     }
 
     /** Whether {@code p} is inside the owner's body capsule. */

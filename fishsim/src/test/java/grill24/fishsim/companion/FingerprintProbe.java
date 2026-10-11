@@ -31,13 +31,23 @@ class FingerprintProbe {
             }
         }
         if (System.getProperty("fpAll") == null) return;
-        for (Locomotion c : List.of(Locomotion.FREE_SWIM, Locomotion.GLIDE, Locomotion.BENTHIC, Locomotion.ANCHORED)) {
+        for (Locomotion c : List.of(Locomotion.FREE_SWIM, Locomotion.GLIDE, Locomotion.BENTHIC, Locomotion.ANCHORED, Locomotion.DRIFT)) {
             for (String script : OwnerScript.NAMES) {
                 for (long seed = 1; seed <= 3; seed++) {
                     CompanionRun run = new CompanionRun(script, seed, c, CompanionTunables.defaults(), true);
                     run.run(2400);
                     System.out.printf("FPA %-9s %-15s #%d %016x%n", c, script, seed, hash(run));
                 }
+            }
+        }
+        // A benthic with no ground gait: the game's path until Phase 5 wires the gait in
+        // (docs/fish-companions-benthic-follow.md §8). Must hash as the Phase 3 BENTHIC did.
+        for (String script : OwnerScript.NAMES) {
+            for (long seed = 1; seed <= 3; seed++) {
+                CompanionRun run = CompanionRun.benthic(script, seed, CompanionRun.lengthOf(Locomotion.BENTHIC),
+                        Temperament.BASELINE, null, CompanionTunables.defaults(), true);
+                run.run(2400);
+                System.out.printf("FPA %-9s %-15s #%d %016x%n", "PERCHER", script, seed, hash(run));
             }
         }
         for (String script : OwnerScript.NAMES) {

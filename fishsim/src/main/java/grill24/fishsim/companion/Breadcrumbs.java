@@ -26,8 +26,12 @@ final class Breadcrumbs {
         size = 0;
     }
 
+    int size() {
+        return size;
+    }
+
     /** The {@code i}-th newest crumb (0 = newest). */
-    private Vec get(int i) {
+    Vec get(int i) {
         return ring[((head - i) % CAPACITY + CAPACITY) % CAPACITY];
     }
 

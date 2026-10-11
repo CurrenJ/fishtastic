@@ -3,6 +3,7 @@ package grill24.fishsim.viewer;
 import grill24.fishsim.companion.CompanionAgent;
 import grill24.fishsim.companion.CompanionTunables;
 import grill24.fishsim.companion.CompanionWorld;
+import grill24.fishsim.companion.GroundGait;
 import grill24.fishsim.companion.LocalVoxels;
 import grill24.fishsim.companion.OwnerState;
 import grill24.fishsim.companion.PointOfInterest;
@@ -60,6 +61,10 @@ import java.util.Set;
  *   Things to react to (manual owner): H cycle the held item · Z a zombie walks up · C a cat
  *   strolls over · I drop an item ahead · O another companion swims past · K get hurt
  *   X clear them all
+ *   Benthics on the ground: J jump · M get on / off a mount · E start / stop gliding (elytra)
+ *   G send a benthic riding its perch back down to the ground (Phase 2's dismount, by hand)
+ *   The terrain scenes (half_stairs, slab_path, terraces, trench, cliff, door_wall,
+ *   benthic_park) and the ground owner scripts are in the dropdowns.
  * </pre>
  *
  * The "owner" dropdown switches between manual control and any headless owner script (played
@@ -84,6 +89,10 @@ public final class CompanionViewer {
     private OwnerState owner;
     private long seed = 1;
     private Locomotion locomotion = Locomotion.FREE_SWIM;
+    /** A benthic's ground gait and length (the class dropdown's crab, plaice, slug, spider crab). */
+    private GroundGait gait = GroundGait.CRAWL;
+    private float benthicLength = CompanionRun.lengthOf(Locomotion.BENTHIC);
+    private boolean jumpNext;
     private Temperament temperament = Temperament.BASELINE;
 
     /** Something placed from the keyboard: it walks toward the owner and stops, or travels on, or lies there. */
@@ -164,6 +173,10 @@ public final class CompanionViewer {
                     case KeyEvent.VK_O -> place(PointOfInterest.Kind.COMPANION, 6, -60, 1.5, 0, 0.2, 1.2, Vec.ZERO);
                     case KeyEvent.VK_K -> hurtNext = true;
                     case KeyEvent.VK_X -> placed.clear();
+                    case KeyEvent.VK_J -> jumpNext = true;
+                    case KeyEvent.VK_M -> pilotOrScript().riding = !pilotOrScript().riding;
+                    case KeyEvent.VK_E -> pilotOrScript().gliding = !pilotOrScript().gliding;
+                    case KeyEvent.VK_G -> agent.devGround();
                     default -> { }
                 }
             }
@@ -275,7 +288,8 @@ public final class CompanionViewer {
             return group.leader();
         }
         group = null;
-        return new CompanionAgent(tunables, seed, locomotion, CompanionRun.lengthOf(locomotion), temperament, world());
+        float length = locomotion == Locomotion.BENTHIC ? benthicLength : CompanionRun.lengthOf(locomotion);
+        return new CompanionAgent(tunables, seed, locomotion, length, temperament, gait, world());
     }
 
     /** What the companion perceives: the owner and the scene, plus the script's points of interest when one plays. */
@@ -290,6 +304,7 @@ public final class CompanionViewer {
     private boolean hurtNow;
 
     private CompanionWorld scriptWorld;
+    private int sceneVersion;
 
     /** Runs whole 20 Hz ticks for the real time that has passed, then interpolates the remainder. */
     private void advance() {
@@ -332,6 +347,10 @@ public final class CompanionViewer {
             Vec move = fwd.scale(f).add(right.scale(r)).normalize();
             boolean sprint = keys.contains(KeyEvent.VK_SHIFT) && f > 0;
             pilot.move(move.scale(sprint ? OwnerScript.SPRINT : OwnerScript.WALK));
+            if (jumpNext) {
+                pilot.jump();
+                jumpNext = false;
+            }
             if (teleportNext) {
                 pilot.teleport(pilot.feet.add(fwd.scale(60)));
                 teleportNext = false;
@@ -341,6 +360,18 @@ public final class CompanionViewer {
         }
         hurtNow = hurtNext;
         hurtNext = false;
+        // A scripted door shuts once the fish isn't in the doorway.
+        scene.applyDoor(d -> {
+            Vec p = agent.position();
+            double r = agent.radius();
+            return p.x() + r < d[0] || p.x() - r > d[3] || p.y() + r < d[1] || p.y() - r > d[4]
+                    || p.z() + r < d[2] || p.z() - r > d[5];
+        });
+        if (scene.version() != sceneVersion) {
+            sceneVersion = scene.version();
+            agent.voxels().invalidate();
+            renderCache.invalidate();
+        }
         if (group != null) group.step(world()); else agent.step(world());
         trail.addLast(agent.position());
         if (trail.size() > TRAIL) trail.removeFirst();
@@ -357,8 +388,8 @@ public final class CompanionViewer {
         g.setColor(new Color(0, 0, 0, 140));
         g.fillRect(0, FP_H - 22, FP_W, 22);
         g.setColor(Color.WHITE);
-        g.drawString("WASD move · Shift sprint · drag/arrows look · F view · T teleport · Space pause · N step · R reseed"
-                + (paused ? "   [PAUSED]" : ""), 8, FP_H - 7);
+        g.drawString("WASD move · Shift sprint · J jump · drag/arrows look · F view · T teleport · M mount · E glide · G ground"
+                + " · Space pause · N step · R reseed" + (paused ? "   [PAUSED]" : ""), 8, FP_H - 7);
     }
 
     private JPanel controls() {
@@ -370,16 +401,25 @@ public final class CompanionViewer {
         List<String> modes = new ArrayList<>();
         modes.add(MANUAL);
         modes.addAll(OwnerScript.NAMES);
+        modes.addAll(OwnerScript.GROUND_NAMES);
         JComboBox<String> ownerBox = new JComboBox<>(modes.toArray(new String[0]));
         Runnable apply = () -> {
             reset((String) sceneBox.getSelectedItem(), (String) ownerBox.getSelectedItem());
             canvas.requestFocusInWindow();
         };
-        JComboBox<String> classBox = new JComboBox<>(new String[]{"FREE_SWIM", "TRIO", "GLIDE", "DRIFT", "BENTHIC", "ANCHORED"});
+        JComboBox<String> classBox = new JComboBox<>(new String[]{"FREE_SWIM", "TRIO", "GLIDE", "DRIFT",
+                "BENTHIC", "BENTHIC plaice", "BENTHIC slug", "BENTHIC spider crab", "ANCHORED"});
         classBox.addActionListener(e -> {
             String c = (String) classBox.getSelectedItem();
             trio = c.equals("TRIO");
-            locomotion = trio ? Locomotion.FREE_SWIM : Locomotion.valueOf(c);
+            gait = c.equals("BENTHIC plaice") ? GroundGait.RIPPLE : GroundGait.CRAWL;
+            benthicLength = switch (c) {
+                case "BENTHIC plaice" -> 0.35f;
+                case "BENTHIC slug" -> 0.12f;
+                case "BENTHIC spider crab" -> 0.6f;
+                default -> CompanionRun.lengthOf(Locomotion.BENTHIC);
+            };
+            locomotion = trio ? Locomotion.FREE_SWIM : c.startsWith("BENTHIC") ? Locomotion.BENTHIC : Locomotion.valueOf(c);
             apply.run();
         });
         sceneBox.addActionListener(e -> apply.run());

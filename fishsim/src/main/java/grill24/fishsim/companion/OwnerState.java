@@ -14,10 +14,20 @@ package grill24.fishsim.companion;
  * @param firstPerson the owner's camera is at their eye; otherwise it sits behind them
  * @param fovDeg      vertical field of view
  * @param inWater     water at the owner's chest: deep enough to swim, not a puddle at their feet
+ * @param riding      the owner rides something (a horse, a boat, a minecart): nothing on the ground
+ *                    keeps up, so a ground companion climbs on or fades onto its perch
+ * @param gliding     the owner flies with elytra (the same for a ground companion)
  */
 public record OwnerState(Vec eye, Vec velocity, float yawDeg, float pitchDeg,
                          boolean sprinting, boolean teleported, boolean firstPerson, float fovDeg,
-                         boolean inWater) {
+                         boolean inWater, boolean riding, boolean gliding) {
+
+    /** An owner on foot (or swimming, or in creative flight): neither riding nor gliding. */
+    public OwnerState(Vec eye, Vec velocity, float yawDeg, float pitchDeg,
+                      boolean sprinting, boolean teleported, boolean firstPerson, float fovDeg,
+                      boolean inWater) {
+        this(eye, velocity, yawDeg, pitchDeg, sprinting, teleported, firstPerson, fovDeg, inWater, false, false);
+    }
 
     public static final double EYE_HEIGHT = 1.62;
     public static final double BODY_HEIGHT = 1.8;

@@ -93,6 +93,12 @@ public final class CompanionRenderer {
         faces.sort((p, q) -> Double.compare(q.depth(), p.depth()));
         for (Face face : faces) fill(g, cam, face.pts(), face.color(), true);
 
+        if (!o.firstPerson()) {
+            // The owner, so a third-person view shows where a ground companion is from their feet.
+            Vec mid = o.feet().add(0, OwnerState.BODY_HEIGHT / 2, 0);
+            drawBox(g, cam, mid, new Vec(OwnerState.BODY_RADIUS, OwnerState.BODY_HEIGHT / 2, OwnerState.BODY_RADIUS),
+                    new Color(0x3D5A80));
+        }
         Vec fish = a.renderPos();
         LocalVoxels voxels = a.voxels();
         double fishDepth = cam.toCam(fish).z();
@@ -199,13 +205,21 @@ public final class CompanionRenderer {
                     if (!blocks.solid(x, y, z)) continue;
                     double dx = x + 0.5 - cam.pos().x(), dy = y + 0.5 - cam.pos().y(), dz = z + 0.5 - cam.pos().z();
                     if (dx * dx + dy * dy + dz * dz > VIEW_RADIUS * VIEW_RADIUS) continue;
+                    // Partial blocks (slabs, carpets) are drawn as tall as they are.
+                    double top = blocks.top(x, y, z);
                     for (int[] d : dirs) {
-                        if (blocks.solid(x + d[0], y + d[1], z + d[2])) continue;
+                        int nx = x + d[0], ny = y + d[1], nz = z + d[2];
+                        if (blocks.solid(nx, ny, nz)) {
+                            // A side hidden by a neighbour at least as tall; a top hidden only if full.
+                            if (d[1] == 0 && blocks.top(nx, ny, nz) >= top) continue;
+                            if (d[1] == 1 && top >= 1) continue;
+                            if (d[1] == -1) continue;
+                        }
                         // Face centre and back-face test.
                         Vec n = new Vec(d[0], d[1], d[2]);
                         Vec c = new Vec(x + 0.5 + d[0] * 0.5, y + 0.5 + d[1] * 0.5, z + 0.5 + d[2] * 0.5);
                         if (c.sub(cam.pos()).dot(n) >= 0) continue;
-                        Vec[] q = quad(x, y, z, d);
+                        Vec[] q = quad(x, y, z, d, top);
                         Color base = d[1] == 1 && !blocks.solid(x, y + 1, z) && y <= cy - 1
                                 ? (((x + z) & 1) == 0 ? GRASS : GRASS_ALT) : STONE;
                         double shade = 0.55 + 0.45 * Math.max(0, n.dot(LIGHT));
@@ -217,7 +231,11 @@ public final class CompanionRenderer {
     }
 
     private static Vec[] quad(int x, int y, int z, int[] d) {
-        double x0 = x, y0 = y, z0 = z, x1 = x + 1, y1 = y + 1, z1 = z + 1;
+        return quad(x, y, z, d, 1);
+    }
+
+    private static Vec[] quad(int x, int y, int z, int[] d, double top) {
+        double x0 = x, y0 = y, z0 = z, x1 = x + 1, y1 = y + top, z1 = z + 1;
         if (d[0] != 0) {
             double fx = d[0] > 0 ? x1 : x0;
             return new Vec[]{new Vec(fx, y0, z0), new Vec(fx, y1, z0), new Vec(fx, y1, z1), new Vec(fx, y0, z1)};
@@ -427,7 +445,7 @@ public final class CompanionRenderer {
         int y = (int) Math.floor(fish.y());
         for (int k = 0; k < 8; k++, y--) {
             if (blocks.solid(x, y, z)) {
-                double top = y + 1.002;
+                double top = y + blocks.top(x, y, z) + 0.002;
                 double height = fish.y() - top;
                 double rad = a.length() * 0.35 * a.renderAppear();
                 Vec[] ring = new Vec[10];
@@ -461,6 +479,14 @@ public final class CompanionRenderer {
         y = bar(g, x, y, "rest", a.rest(), new Color(0x93C47D));
         y = bar(g, x, y, "burst", Math.min(1f, a.burstDrive() / 1.5f), new Color(0x6FA8DC));
         g.drawString(String.format("%.1f b/s  %.1f blk", a.velocity().length(), a.ownerDistance()), x, y + 4);
+        if (a.onGround()) {
+            g.setColor(new Color(0, 0, 0, 120));
+            g.fillRect(4, 158, 196, 34);
+            g.setColor(Color.WHITE);
+            g.drawString(String.format("ground %s  lag %.1f%s", a.groundPhase().toLowerCase(java.util.Locale.ROOT),
+                    a.groundLag(), a.groundReachable() ? "" : " stranded"), x, 172);
+            g.drawString(String.format("fades %d  gap hops %d", a.groundFades(), a.gapHops()), x, 186);
+        }
     }
 
     private static int bar(Graphics2D g, int x, int y, String label, float v, Color c) {
@@ -571,6 +597,13 @@ public final class CompanionRenderer {
                 g.setColor(Color.DARK_GRAY);
                 g.draw(new java.awt.geom.Ellipse2D.Double(px - pr, py - pr, pr * 2, pr * 2));
             }
+        }
+
+        // The owner's trail at their feet, which a benthic on the ground follows.
+        g.setColor(new Color(120, 90, 40, 140));
+        for (Vec c : a.footTrail()) {
+            double tx = SX.applyAsDouble(c.x()), ty = SY.applyAsDouble(c.z());
+            g.fill(new java.awt.geom.Ellipse2D.Double(tx - 1.5, ty - 1.5, 3, 3));
         }
 
         // Owner.
