@@ -443,6 +443,31 @@ public final class ClientCompanions {
         if (local != null) local.devLegacyFrameYaw(legacy);
     }
 
+    /** Dev-only (§21 scene): restore the same-sense G2 sweep, for the crossing "before" number. */
+    public static void devLegacyEight(boolean legacy) {
+        ClientCompanion local = local();
+        if (local != null) local.devLegacyEight(legacy);
+    }
+
+    /** Dev-only (§21 scene): the local companion's raw scene-path point (pre-fish-centring). */
+    @Nullable
+    public static Vec3 devScenePathPoint() {
+        ClientCompanion local = local();
+        return local == null ? null : local.devScenePathPoint();
+    }
+
+    /** Dev-only (§21 scene): the local companion's steering speed this tick, blocks/tick. */
+    public static double devFollowSpeed() {
+        ClientCompanion local = local();
+        return local == null ? 0.0 : local.devFollowSpeed();
+    }
+
+    /** Dev-only (§21 scene): the local companion's gap to its anchor after this tick. */
+    public static double devFollowGap() {
+        ClientCompanion local = local();
+        return local == null ? 0.0 : local.devFollowGap();
+    }
+
     /** Dev-only: the ids of every dev phantom currently parked, for the dev commands and scenes. */
     public static Set<UUID> devPhantomIds() {
         return new HashSet<>(PHANTOMS.keySet());

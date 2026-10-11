@@ -1,8 +1,8 @@
 # Fish Companions — Implementation Handoff
 
-> **Read this first to resume.** Current as of 2026-10-10 (evening): **v1 complete** (phases 0–6),
-> first-playtest polish shipped, and playtest round 2 fixed and committed (§20); playtest round 3 in flight
-> (follow-acceleration ramp, figure-eight crossing). Branch: `26.1.2`. Nothing is pushed.
+> **Read this first to resume.** Current as of 2026-10-11: **v1 complete** (phases 0–6), all
+> playtest rounds through round 3 fixed and verified on both loaders (§19–§21). Branch: `26.1.2`.
+> Nothing is pushed.
 
 **To resume in a new session, say:**
 > Read `docs/fish-companions-handoff.md` and continue the fish companions work from the next item,
@@ -25,6 +25,7 @@
 | Post-playtest polish: calm idle, view-decoupling, face-velocity, solo commands | ✅ Done, both loaders | `37406056` |
 | **Playtest round 2**: motion jitter, tank-faithful facing (sim-rate cap), slowed pet-to-pet scenes, tab listing filter, picker scroll bug | ✅ Done — Fabric run 5 + NeoForge: 119/119 checks, 0 failures each, on the final tree (see fish-companions.md §20) | `7628b579` |
 | Later: personality (§4), world (§6) and player (§7) reactions; scenes G3–G6; signature companions | Not started | — |
+| **Playtest round 3**: follow-acceleration ramp (arrive steering + braking) and the G2 crossing fix | ✅ Done — Fabric + NeoForge full suites: 129/129 checks, 0 failures each, on the final tree (see fish-companions.md §21) | — |
 | Tank interactions (E3, E4) | Deferred by owner — do not build | — |
 
 **v1 = phases 0–5 plus scenes G1/G2** (R8.1). Everything was built fork-per-phase, verified

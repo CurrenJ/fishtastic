@@ -158,6 +158,56 @@ public final class ClientCompanion {
      */
     private boolean devCameraLockedFrame;
 
+    // ── Follow steering (playtest round 3, §21). ───────────────────────────────
+    // Owner playtest: "when players move, fish accelerate too fast to move with them, making them
+    // feel like they are strictly bound to player movement even though they are just following
+    // after. However, we don't want fish getting left behind... slow acceleration ramp curve. If
+    // player moves a small number of blocks away, fish meander over. But if player moves much
+    // further away quickly, fish still accelerate eventually up to player speed and catch up as
+    // the player slows or stops."
+    //
+    // The baseline follow is therefore arrive-style steering instead of a fixed per-tick ease:
+    // desired speed grows with the gap (meander for small gaps), the anchor's own motion is
+    // partly fed forward (so tracking a moving anchor settles with a modest breathing gap rather
+    // than a rigid zero-lag match), and acceleration and jerk are capped so the fish commits to a
+    // move over ~a second instead of mirroring every velocity change instantly. Authored moments
+    // (peeks, hops, reactions, the line, scenes, the dock) run a much quicker profile so their
+    // timings are unchanged. All named for in-game tuning.
+    /** Desired speed per block of gap (blocks/tick per block). Meander ≈ 1 m/s at ~1.2 blocks. */
+    private static final double FOLLOW_GAIN = 0.04;
+    /** Baseline speed cap, blocks/tick — just past player sprint (0.28), so a gap always closes. */
+    private static final double FOLLOW_MAX_SPEED = 0.33;
+    /** How fast the follow velocity may change, blocks/tick² — the "slow acceleration ramp". */
+    private static final double FOLLOW_MAX_ACCEL = 0.012;
+    /** How fast the acceleration itself may change — bounded jerk keeps starts and stops soft. */
+    private static final double FOLLOW_MAX_JERK = 0.003;
+    /** How much of the anchor's own motion is fed forward (0 = pure gap-chasing, 1 = matched). */
+    private static final double FOLLOW_FEED_FORWARD = 0.6;
+    /** Beyond this gap the quick profile takes over — a player who got far away is caught up to. */
+    private static final double FOLLOW_FAR_GAP = 16.0;
+    /** Authored moments track much harder (≈ the old ease) so peeks and scenes keep their timing. */
+    private static final double MOMENT_GAIN = 0.35;
+    private static final double MOMENT_MAX_SPEED = 0.7;
+    private static final double MOMENT_MAX_ACCEL = 0.06;
+    private static final double MOMENT_MAX_JERK = 0.02;
+    /** Moments brake onto their target with extra margin — see the arrival-braking note in stepFollow. */
+    private static final double MOMENT_BRAKE_MARGIN = 0.65;
+    /** An escaped fish comes home at a crawl (~1 m/s) for its ~3 s sulk (§5). */
+    private static final double ESCAPE_MAX_SPEED = 0.05;
+    /** Share of a tick's raw anchor motion that survives into the feed-forward (smoothing). */
+    private static final double ANCHOR_VEL_BLEND = 0.35;
+
+    /** The steering integrator's state: velocity, its derivative, and the smoothed anchor motion. */
+    private Vec3 followVel = Vec3.ZERO;
+    private Vec3 followAccel = Vec3.ZERO;
+    private Vec3 anchorVelocity = Vec3.ZERO;
+    /** The anchor point last tick, for the feed-forward's motion estimate. */
+    @Nullable private Vec3 prevFollowTarget;
+    /** Dev-only (§21 scene): restore the same-sense G2 sweep for an in-run before/after pair. */
+    private boolean devLegacyEight;
+    /** The raw scene-path point (pre-fish-centring) written by {@link #sceneAnchor}, for §21 metrics. */
+    @Nullable private Vec3 lastScenePathPoint;
+
     // ── Pet-to-pet scenes (§10). The timings come from the packet's scene type; these are the
     //    presentation shapes, sized so a scene reads as two friends meeting, not a race. ──────────
     private static final float SCENE_BLEND_SPEED = 0.08f;
@@ -697,7 +747,11 @@ public final class ClientCompanion {
 
     /** Where a swimmer hovers while the owner waits for a bite: beside the bobber, class-flavoured. */
     private Vec3 lineAnchorPoint() {
-        Vec3 point = switch (flock.locomotion()) {
+        // Deliberately NOT fish-centred (unlike peeks/scenes): centring the FISH on the point made
+        // the target track the fish's own wander, so any tracker chased a moving point and the
+        // drawn fish swung around the bobber (measured 2-5 blocks and hunting, §21). With the box
+        // centred, the fish hovers within its own box wander of the bobber — the natural read.
+        return switch (flock.locomotion()) {
             case GLIDE -> linePoint.add(0, 0.55, 0); // wide and high, watching from above
             case DRIFT -> linePoint.add(0, LINE_HOVER_UP, 0); // the spring supplies the lag
             default -> {
@@ -708,7 +762,6 @@ public final class ClientCompanion {
                         .add(0, LINE_HOVER_UP, 0);
             }
         };
-        return fishCentred(point);
     }
 
     /** Where a percher rides while the owner is fishing: the rod tip in the main hand (§5). */
@@ -781,21 +834,39 @@ public final class ClientCompanion {
                 // The classic figure eight: two circles tangent at the midpoint of the two owners,
                 // each fish running the whole path half a period behind the other, swapping lobes
                 // every crossing. Both tangent points are the midpoint, so the path is continuous.
+                //
+                // The two lobes are swept with OPPOSITE angular senses (round 3, §21): swept the
+                // same way, their tangents at the shared crossing pointed 180° apart, so the fish
+                // visibly reversed at the intersection. Opposite senses keep the tangent continuous
+                // there — the looping track the owner asked for.
+                //
+                // The radius equals the lobe offset so the circles genuinely meet at `mid`; a
+                // radius floor above that (the old max(0.7, …)) separates the two meeting points
+                // and teleports the fish across the gap at every crossing when owners stand close.
                 Vec3 mid = mine.add(partner).scale(0.5);
                 Vec3 firstLobe = sceneSecond ? partner : mine;
                 Vec3 secondLobe = sceneSecond ? mine : partner;
                 float t = (float) ((elapsed % scene.pathTicks()) / (double) scene.pathTicks());
                 if (sceneSecond) t = (t + 0.5f) % 1f;
-                Vec3 lobe = t < 0.5f ? firstLobe : secondLobe;
+                boolean onFirst = t < 0.5f;
+                Vec3 lobe = onFirst ? firstLobe : secondLobe;
                 float local = (t % 0.5f) * 2f;
                 double dx = mid.x - lobe.x, dz = mid.z - lobe.z;
-                double radius = Math.max(0.7, Math.sqrt(dx * dx + dz * dz));
-                double angle = Math.atan2(dz, dx) + local * Math.PI * 2;
+                double dLen = Math.sqrt(dx * dx + dz * dz);
+                double radius = Math.max(0.2, dLen);
+                double sense = onFirst || devLegacyEight ? 1.0 : -1.0;
+                // The bob's lobe sign: the two lobes' crossing-point bobs must agree (C0 and C1),
+                // which needs s_A = −s_B — independent of the sweep senses. Skipping this put a
+                // ~0.2-block vertical jump at every crossing even after the senses were fixed
+                // (docs §21: the residual ~70° kink the scene measured).
+                double bobSign = onFirst || devLegacyEight ? 1.0 : -1.0;
+                double angle = Math.atan2(dz, dx) + sense * local * Math.PI * 2;
                 yield lobe.add(Math.cos(angle) * radius,
-                        SCENE_HEIGHT + 0.1 * Math.sin(angle),
+                        SCENE_HEIGHT + bobSign * 0.1 * Math.sin(angle),
                         Math.sin(angle) * radius);
             }
         };
+        lastScenePathPoint = point;
         return fishCentred(point);
     }
 
@@ -917,11 +988,58 @@ public final class ClientCompanion {
         if (escape > 0f) target = target.add(0, -ESCAPE_SINK * escape, 0);
         if (flock.locomotion() == Locomotion.DRIFT && !docking) {
             // "Behind one shoulder on a loose spring" — velocity-based, so it lags and settles.
+            // The spring already trails the player by ~2 blocks once moving; round 3 left its
+            // character alone and gave the steering to every other baseline path.
             springVel = springVel.add(target.subtract(center).scale(0.6)).scale(0.82);
             center = center.add(springVel.scale(0.05));
         } else {
-            center = center.lerp(target, escape > 0f ? 0.14 : 0.35);
+            stepFollow(target, docking);
         }
+    }
+
+    /**
+     * One tick of arrive-style steering for the box centre (docs §21): the anchor's own motion is
+     * partly fed forward so tracking a walking or turning player reads as following rather than
+     * being bolted on, the gap supplies the desired speed (a small gap is a meander, a huge one
+     * eventually ramps up to the cap and closes), and acceleration and jerk are bounded so no
+     * velocity change is ever instant. Authored moments (peeks, hops, reactions, the line, a
+     * scene, the dock) and a genuinely far-away owner switch to the much quicker profile so their
+     * timings survive; an escaping fish is pinned to a crawl instead.
+     */
+    private void stepFollow(Vec3 target, boolean docking) {
+        Vec3 rawAnchorVel = prevFollowTarget == null ? Vec3.ZERO : target.subtract(prevFollowTarget);
+        prevFollowTarget = target;
+        anchorVelocity = anchorVelocity.scale(1.0 - ANCHOR_VEL_BLEND).add(rawAnchorVel.scale(ANCHOR_VEL_BLEND));
+
+        Vec3 err = target.subtract(center);
+        double gap = err.length();
+        boolean moment = docking || outAmount() > 0f || gap > FOLLOW_FAR_GAP;
+        double gain = moment ? MOMENT_GAIN : FOLLOW_GAIN;
+        double maxSpeed = moment ? MOMENT_MAX_SPEED : FOLLOW_MAX_SPEED;
+        double maxAccel = moment ? MOMENT_MAX_ACCEL : FOLLOW_MAX_ACCEL;
+        double maxJerk = moment ? MOMENT_MAX_JERK : FOLLOW_MAX_JERK;
+        if (escapeEnvelope() > 0f) maxSpeed = Math.min(maxSpeed, ESCAPE_MAX_SPEED);
+
+        // Arrival braking (classic arrive): the desired speed may never exceed what maxAccel can
+        // shed over the remaining gap (v²/2a ≤ gap). Without it a fast approach to a static
+        // target (the line, a peek point) sails past at up to v²/2a blocks and hunts around it —
+        // measured at the fishing line: arrived at v=0.52, overshot to 4.6 and oscillated. The
+        // moments brake earlier still (margin < 1): tick discretization and the jerk ramp let the
+        // boundary ride overshoot slightly, and their approaches should read as an ease-in.
+        double brakeMargin = moment ? MOMENT_BRAKE_MARGIN : 1.0;
+        double arriveCap = Math.sqrt(2.0 * maxAccel * Math.max(0.0, gap) * brakeMargin) + 0.02;
+        Vec3 desiredVel = clampLength(err.scale(gain).add(anchorVelocity.scale(FOLLOW_FEED_FORWARD)),
+                Math.min(maxSpeed, arriveCap));
+        Vec3 accelTarget = clampLength(desiredVel.subtract(followVel), maxAccel);
+        followAccel = followAccel.add(clampLength(accelTarget.subtract(followAccel), maxJerk));
+        followVel = clampLength(followVel.add(followAccel), maxSpeed);
+        center = center.add(followVel);
+    }
+
+    /** {@code v} rescaled to at most {@code max} blocks long. */
+    private static Vec3 clampLength(Vec3 v, double max) {
+        double len = v.length();
+        return len <= max || len < 1e-9 ? v : v.scale(max / len);
     }
 
     /** Where the companion should be this tick, before the spring/ease is applied. */
@@ -1511,6 +1629,36 @@ public final class ClientCompanion {
 
     /** Dev-only: whether the pre-polish camera-locked basis is currently forced (the §19 seam). */
     boolean devIsCameraLockedFrame() { return devCameraLockedFrame; }
+
+    /** Dev-only (§21 scene): restore the same-sense G2 sweep, for the crossing "before" number. */
+    void devLegacyEight(boolean legacy) { devLegacyEight = legacy; }
+
+    /**
+     * Dev-only (§21 scene): the raw scene-path point the last {@link #sceneAnchor} computed,
+     * before the fish-centring correction — the pure path, so the crossing's tangent continuity
+     * can be measured without the fish's own wander in the samples.
+     */
+    @Nullable
+    Vec3 devScenePathPoint() { return lastScenePathPoint; }
+
+    /** Dev diagnostics (§21 scene): the steering integrator's current speed, blocks/tick. */
+    public double devFollowSpeed() { return followVel.length(); }
+
+    /** Dev diagnostics (§21 scene): the box centre's gap to its anchor after this tick's step. */
+    public double devFollowGap() {
+        return center == null || prevFollowTarget == null ? 0.0 : prevFollowTarget.subtract(center).length();
+    }
+
+    /** Dev diagnostics (§21 scene): the anchor point this tick (post-blend), for CSV dumps. */
+    @Nullable
+    public Vec3 devFollowTarget() { return prevFollowTarget; }
+
+    /** Dev diagnostics (§21 scene): the box centre after this tick's step, for CSV dumps. */
+    @Nullable
+    public Vec3 devFollowCenter() { return center; }
+
+    /** Dev diagnostics (§21 scene): the steering velocity after this tick's step. */
+    public Vec3 devFollowVelocity() { return followVel; }
 
     /** Dev-only: the bonded fish itself — the dev commands clone it to park a phantom partner. */
     public ItemStack devStack() { return stack; }

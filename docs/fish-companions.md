@@ -984,3 +984,85 @@ earlier failures are what pointed at the scene speed and are superseded: run 2 (
 min −0.09; run 3 (2160°/s cap, old 2 s ring) PASS 0.20; run 4 (140°/s cap, stale window)
 min −0.20. Open for the owner: the turn-rate cap, the hysteresis band and both scene timings are
 named constants, tunable in game like the rest.
+
+---
+
+## 21. Playtest round 3 (2026-10-11)
+
+Two owner items from the in-game pass: the follow-acceleration ramp and the G2 figure-eight
+crossing. Self-test scene `companionpolish3` (opt-in) measures both per tick.
+
+**Follow steering (arrive-style).** Owner: "when players move, fish accelerate too fast to move
+with them, making them feel like they are strictly bound to player movement even though they are
+just following after... slow acceleration ramp curve. If player moves a small number of blocks
+away, fish meander over. But if player moves much further away quickly, fish still accelerate
+eventually up to player speed and catch up as the player slows or stops."
+
+The baseline follow is no longer a fixed per-tick ease (`lerp(target, 0.35)`); it is a velocity
+integrator (`ClientCompanion.stepFollow`). Desired speed grows with the gap (`FOLLOW_GAIN 0.04`
+per block), the anchor's own motion is fed forward (smoothed at `ANCHOR_VEL_BLEND 0.35`, weighted
+`FOLLOW_FEED_FORWARD 0.6`) so walking settles with a modest breathing gap instead of a rigid
+zero-lag match, acceleration is bounded at `FOLLOW_MAX_ACCEL 0.012` blocks/tick² with bounded jerk
+(`FOLLOW_MAX_JERK 0.003`), and the speed cap (`FOLLOW_MAX_SPEED 0.33`) sits just past player
+sprint so a gap always closes. An owner further than `FOLLOW_FAR_GAP 16` takes the quick profile
+until caught up. Authored moments (peeks, hops, reactions, the line, scenes, the dock) keep a much
+quicker profile (`MOMENT_GAIN 0.35`, cap `0.7`, accel `0.06`, jerk `0.02`) so their timings are
+unchanged; an escaped fish crawls home (`ESCAPE_MAX_SPEED 0.05`); DRIFT keeps its own spring.
+
+Measured (per-tick probe, both loaders): a 3-block stepped walk leaves a **mean 0.44–0.48 gap
+(max 0.72)** and the fish meanders home over **~70 ticks at ≤0.08 blocks/tick**; an 8.4-block
+sprint builds a **3.76–3.89 gap**, peaks at **exactly the 0.330 cap**, holds per-tick
+acceleration at **exactly the 0.012 bound**, is only at **0.017–0.031 eight ticks in**, and closes
+to under 0.6 within **11–12 ticks** of the player stopping.
+
+**Two follow bugs the per-tick probe exposed at the line** (the suite flagged `fish.atBobber` at
+2.5–5.1 blocks and the trace showed why):
+- **No arrival braking.** The moment cap (0.7) is an unreachable braking distance at 0.06 accel
+  (~4 blocks), so a fast approach to a static point sailed past it and hunted (measured: arrived
+  at v=0.52, overshot to 4.6, oscillated). `stepFollow` now applies the classic arrive cap —
+  desired speed never exceeds `√(2·maxAccel·gap·margin)` — with `MOMENT_BRAKE_MARGIN 0.65` for
+  the authored moments so they read as an ease-in and can't ride the discrete boundary over.
+  Measured after: the fish settles at **0.94 blocks** from the bobber.
+- **The fish-centred line anchor.** Centring the FISH on the line point made the target track the
+  fish's own wander, so any tracker chased a jittering point and the drawn fish swung around the
+  bobber. The line anchor is now box-centred (`lineAnchorPoint` no longer calls `fishCentred`);
+  the fish hovers within its own box wander — the natural read — and the feedback is gone.
+
+**G2 figure-eight crossing.** Owner: "They reverse direction of following the figure eight curve
+when they hit the intersection point... They instead should follow a smooth continuous path as one
+would expect on the looping track." The crossing had **two** discontinuities: the lobes were swept
+with the same angular sense (the tangent flips 180° at the shared point), and the vertical bob's
+sign was the same on both lobes where it needed to be mirrored (a ~0.2-block vertical jump at
+every crossing). Fixed with opposite lobe senses plus a lobe-signed bob, which makes the path C1-
+continuous there; the lobe radius now equals the owner offset so the circles genuinely meet (the
+old `max(0.7, …)` floor separated the meeting points and teleported the fish at close range).
+Measured on the raw path per tick: the legacy sweep (a dev seam) reads **110.8° max turn** at the
+crossing (the smear of the 180° flip); the fixed path reads **3.6°** — the circle's own curvature.
+Identical numbers on both loaders (the path is deterministic).
+
+**Pitfalls found and fixed during the phase** (each cost runs):
+- The self-test step queue advances one step per **two** ticks (a step, then a tick of wait) —
+  per-step sampling cannot measure per-tick rates. All curve measurement now goes through a
+  per-client-tick probe (`RenderSelfTest.tickProbe`); raw rows are analysed offline.
+- The scene `run()` helper executes commands from a source anchored at the **world origin**:
+  `~`-relative teleports resolve against the source, not the player (every teleport landed on the
+  same spot). The deterministic walk/sprint legs teleport to absolute positions from a captured
+  base.
+- Probe rows can land twice on one gameTime; every rate computation guards dt ≥ 1 tick.
+- Walk-gap checks read window **means** — the stepped walk's sawtooth makes maxima sample-phase
+  dependent (0.36–0.58 across runs).
+- The §20 polish scene's facing window caught the fish mid-hunt once the hunt existed (velocity
+  reversals polluted the dot: mean 0.37, min −0.30); the arrival-braking fix recovered it with no
+  recalibration — mean **0.76–0.81**, min **0.20–0.48**, no negatives, on both loaders.
+- `polish2`'s frame-sample count is suite-load sensitive (99 under load vs ~300 solo); its guard
+  is a sample-count floor of 60 now, not a quality bar.
+
+**Verification.** Fabric and NeoForge: full 10-scene suites, **129 checks, 0 failures each on the
+final tree** (`fabric/run/logs/polish3-suite2.log`; the NeoForge run's log is
+`neoforge/run/logs/latest.log`, guard verdict PASS, no hang). Scene screenshots reviewed: the
+fixed-crossing shot frames the fish at the crossing point beside the owner; `catch_up` shows it
+arriving large in first person; `meander_home` catches it back out of view (its state is carried
+by the numbers). New diagnostics kept in `companionfishing` (`fish.atBobberDiag`,
+`fish.approach`). Open for the owner, all named constants: the follow band (gain / accel / jerk /
+feed-forward / far-gap), the moment profile and its braking margin; the round-2 scene timings
+stand.

@@ -21,7 +21,9 @@ public enum CompanionSceneType {
     // 140 deg/s, the companion's facing cap — docs §20), and to let the pair move SLOWLY: owner
     // playtest, 2026-10-11: "no need for the scenes to be so rapid, we can take time and let fish
     // move slower." G1's ring turns the nose at ~51 deg/s (~1 block/s along the ring); G2's eight
-    // at ~72 deg/s per lobe with brief binding at its two crossings' U-turns.
+    // at ~72 deg/s per lobe, and since §21 its crossings are tangent-continuous (opposite lobe
+    // sweep senses plus the mirrored crossing bob), so the fish flows through them instead of
+    // reversing.
 
     /** G1: same species — a synchronized loop plus a bubble heart. Two 7 s laps; the heart at 3.5 s. */
     G1_SAME_SPECIES(240, 140),
