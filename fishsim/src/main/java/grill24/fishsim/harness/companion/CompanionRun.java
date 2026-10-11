@@ -7,6 +7,7 @@ import grill24.fishsim.companion.CompanionTunables;
 import grill24.fishsim.companion.CompanionWorld;
 import grill24.fishsim.companion.LocalVoxels;
 import grill24.fishsim.companion.OwnerState;
+import grill24.fishsim.companion.Temperament;
 import grill24.fishsim.companion.Vec;
 import grill24.fishsim.companion.Visibility;
 
@@ -38,7 +39,7 @@ public final class CompanionRun {
     public record Sample(OwnerState owner, Vec pos, Vec vel, Vec acc, float yaw, float pitch, float bank,
                          float turn, String goal, boolean seen, double ownerDist, float appear,
                          CompanionAgent.Fade fade, boolean backstop, double impact, int goalTicks, float pulse, double thrust,
-                         boolean riding) {}
+                         boolean riding, String pose, float curiosity) {}
 
     public final VoxelScene scene;
     public final OwnerScript script;
@@ -60,18 +61,31 @@ public final class CompanionRun {
 
     public CompanionRun(String scriptName, long seed, Locomotion locomotion, float length, CompanionTunables tunables,
                         boolean record) {
-        this(scriptName, seed, locomotion, length, tunables, record, false);
+        this(scriptName, seed, locomotion, length, Temperament.BASELINE, tunables, record, false);
+    }
+
+    /** A solo companion of the given temperament (spec §4). */
+    public CompanionRun(String scriptName, long seed, Locomotion locomotion, Temperament temperament,
+                        CompanionTunables tunables, boolean record) {
+        this(scriptName, seed, locomotion, lengthOf(locomotion), temperament, tunables, record, false);
+    }
+
+    /** A trio whose leader has the given temperament. */
+    public static CompanionRun trio(String scriptName, long seed, Temperament temperament, CompanionTunables tunables,
+                                    boolean record) {
+        return new CompanionRun(scriptName, seed, Locomotion.FREE_SWIM, TRIO_LENGTH, temperament, tunables, record, true);
     }
 
     /** A trio of small free swimmers (spec §2): the agent is the leader; followers are recorded too. */
     public static CompanionRun trio(String scriptName, long seed, CompanionTunables tunables, boolean record) {
-        return new CompanionRun(scriptName, seed, Locomotion.FREE_SWIM, TRIO_LENGTH, tunables, record, true);
+        return new CompanionRun(scriptName, seed, Locomotion.FREE_SWIM, TRIO_LENGTH, Temperament.BASELINE, tunables, record, true);
     }
 
     /** A typical rendered length for a trio member, blocks (a fish under 20 cm). */
     public static final float TRIO_LENGTH = 0.18f;
 
-    private CompanionRun(String scriptName, long seed, Locomotion locomotion, float length, CompanionTunables tunables,
+    private CompanionRun(String scriptName, long seed, Locomotion locomotion, float length, Temperament temperament,
+                         CompanionTunables tunables,
                          boolean record, boolean trio) {
         this.script = OwnerScript.named(scriptName, seed);
         this.scene = script.scene;
@@ -80,11 +94,11 @@ public final class CompanionRun {
         this.world = script.nextWorld();
         this.owner = world.owner();
         if (trio) {
-            this.group = new CompanionGroup(tunables, seed, length, world);
+            this.group = new CompanionGroup(tunables, seed, length, temperament, world);
             this.agent = group.leader();
         } else {
             this.group = null;
-            this.agent = new CompanionAgent(tunables, seed, locomotion, length, world);
+            this.agent = new CompanionAgent(tunables, seed, locomotion, length, temperament, world);
         }
     }
 
@@ -116,7 +130,8 @@ public final class CompanionRun {
         if (record) {
             samples.add(new Sample(owner, agent.position(), agent.velocity(), agent.acceleration(),
                     agent.yaw(), agent.pitch(), agent.bank(), agent.lastTurnDeg(), agent.goal(),
-                    seenNow(), agent.ownerDistance(), agent.appear(), agent.fade(), agent.backstopLastStep(), agent.lastImpact(), agent.goalTicks(), agent.pulse(), agent.thrust(), agent.onOwner()));
+                    seenNow(), agent.ownerDistance(), agent.appear(), agent.fade(), agent.backstopLastStep(), agent.lastImpact(), agent.goalTicks(), agent.pulse(), agent.thrust(), agent.onOwner(),
+                    agent.poseHint().name(), agent.curiosity()));
         }
     }
 
@@ -370,7 +385,8 @@ public final class CompanionRun {
             if (prevGoal != null && !prevGoal.equals(s.goal())) {
                 switches++;
                 // Commitment applies to everything but a catch-up taking over in an emergency, the
-                // end of a show-off (finishing, not dithering), and loiter/escort swaps (those
+                // end of a show-off or an inspection (finishing — or the thing went away — not
+                // dithering), and loiter/escort swaps (those
                 // follow the owner starting and stopping, through its own hysteresis). The length
                 // is the mind's own goal clock. A fade's reset (goal clock 0 on the switching tick;
                 // a decision has already counted 1) re-places the fish rather than deciding.
@@ -378,7 +394,10 @@ public final class CompanionRun {
                 boolean reset = s.goalTicks() == 0;
                 // A percher going into or out of the water swaps bodies; that isn't the mind deciding.
                 boolean perchSwap = prevGoal.equals("PERCH") || s.goal().equals("PERCH");
-                if (!s.goal().equals("CATCH_UP") && !prevGoal.equals("SHOW_OFF") && !baseSwap && !reset && !perchSwap
+                boolean finished = prevGoal.equals("SHOW_OFF") || prevGoal.equals("INSPECT") || prevGoal.equals("NUZZLE");
+                // Like a catch-up, taking cover (or squaring up) may cut in: an alarm is an emergency.
+                boolean urgent = s.goal().equals("CATCH_UP") || s.goal().equals("HIDE") || s.goal().equals("GUARD");
+                if (!urgent && !finished && !baseSwap && !reset && !perchSwap
                         && prevGoalTicks >= 0) {
                     shortest = Math.min(shortest, prevGoalTicks);
                 }
@@ -400,7 +419,7 @@ public final class CompanionRun {
     }
 
     private static boolean isBase(String goal) {
-        return goal.equals("LOITER") || goal.equals("ESCORT");
+        return goal.equals("LOITER") || goal.equals("SETTLE") || goal.equals("ESCORT");
     }
 
     /** Whether {@code p} is inside the owner's body capsule. */

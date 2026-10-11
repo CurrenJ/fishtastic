@@ -80,6 +80,8 @@ final class Body extends Motor {
     double tuck;
     /** Multiplier on the top speed: a trio follower sprinting to rejoin its school; 1 otherwise. */
     double speedBoost = 1;
+    /** The temperament's cruising pace (spec §4); 1 leaves the class's gait as it is. */
+    double pace = 1;
     private long noise;
 
     Body(CompanionTunables t, Locomotion locomotion, Vec pos, float yaw, double radius, long seed) {
@@ -103,6 +105,7 @@ final class Body extends Motor {
     void step(Vec desired, double wanderScale, Vec extraAvoid, LocalVoxels voxels, Capsule body) {
         this.obstacle = body;
         this.g = Gait.of(locomotion, t);
+        if (pace != 1) g = g.paced(pace);
         if (locomotion == Locomotion.GLIDE && t.glideTuckMargin > 0) {
             // A glider in tight quarters tucks in: its turning limits move toward a swimmer's as the
             // blocks close round it, eased so its agility never snaps.
@@ -166,6 +169,21 @@ final class Body extends Motor {
         float pitchMax = Math.min(rateMax, g.pitchRateDegPerTick());
         float pitchCmd = clamp((targetPitch - pitch) * HEADING_GAIN, -pitchMax, pitchMax);
         pitchRate += clamp(pitchCmd - pitchRate, -rateAccel, rateAccel);
+        // At speed, the sideways acceleration cap (v·ω) holds for the whole turn, yaw and pitch
+        // together — a fast fish can't corkscrew harder than it can turn flat. (Each axis alone was
+        // capped; a catch-up climbing through a hard turn overran the cap by up to 2%, plan §10.5.)
+        // GLIDE is parked (§9.2) — its low cap would engage this constantly — and its redesign
+        // owns its turning.
+        float latRate = (float) Math.toDegrees(g.maxLateralAccel() * DT / sp);
+        if (locomotion != Locomotion.GLIDE && latRate < g.turnRateDegPerTick()) {
+            double total = Math.hypot(yawRate * Math.cos(Math.toRadians(pitch)), pitchRate);
+            if (total > latRate) {
+                float k = (float) (latRate / total);
+                yaw = wrap(yaw - yawRate + yawRate * k);
+                yawRate *= k;
+                pitchRate *= k;
+            }
+        }
         pitch = clamp(pitch + pitchRate, -g.pitchMaxDeg(), g.pitchMaxDeg());
     }
 

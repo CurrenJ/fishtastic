@@ -2,8 +2,11 @@ package grill24.fishsim.viewer;
 
 import grill24.fishsim.companion.CompanionAgent;
 import grill24.fishsim.companion.CompanionTunables;
+import grill24.fishsim.companion.CompanionWorld;
 import grill24.fishsim.companion.LocalVoxels;
 import grill24.fishsim.companion.OwnerState;
+import grill24.fishsim.companion.PointOfInterest;
+import grill24.fishsim.companion.Temperament;
 import grill24.fishsim.companion.Vec;
 import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.harness.companion.CompanionRun;
@@ -54,6 +57,9 @@ import java.util.Set;
  *
  *   WASD move · Shift sprint · drag mouse or arrow keys to look · F first/third person
  *   T teleport 60 blocks ahead · Space pause · N step one tick · R reseed the fish
+ *   Things to react to (manual owner): H cycle the held item · Z a zombie walks up · C a cat
+ *   strolls over · I drop an item ahead · O another companion swims past · K get hurt
+ *   X clear them all
  * </pre>
  *
  * The "owner" dropdown switches between manual control and any headless owner script (played
@@ -78,6 +84,32 @@ public final class CompanionViewer {
     private OwnerState owner;
     private long seed = 1;
     private Locomotion locomotion = Locomotion.FREE_SWIM;
+    private Temperament temperament = Temperament.BASELINE;
+
+    /** Something placed from the keyboard: it walks toward the owner and stops, or travels on, or lies there. */
+    private static final class Placed {
+        final PointOfInterest.Kind kind;
+        final int id;
+        Vec pos, vel = Vec.ZERO;
+        final double speed, stopAt, radius, height;
+        final Vec travel;
+
+        Placed(PointOfInterest.Kind kind, int id, Vec pos, double speed, double stopAt, double radius, double height, Vec travel) {
+            this.kind = kind;
+            this.id = id;
+            this.pos = pos;
+            this.speed = speed;
+            this.stopAt = stopAt;
+            this.radius = radius;
+            this.height = height;
+            this.travel = travel;
+        }
+    }
+
+    private final List<Placed> placed = new ArrayList<>();
+    private int nextPlacedId = 1000;
+    private CompanionWorld.Held held = CompanionWorld.Held.NONE;
+    private boolean hurtNext;
     /** A trio of small free swimmers, or null for a solo companion. */
     private grill24.fishsim.companion.CompanionGroup group;
     private boolean trio;
@@ -122,6 +154,16 @@ public final class CompanionViewer {
                         agent = newAgent();
                         trail.clear();
                     }
+                    case KeyEvent.VK_H -> {
+                        CompanionWorld.Held[] all = CompanionWorld.Held.values();
+                        held = all[(held.ordinal() + 1) % all.length];
+                    }
+                    case KeyEvent.VK_Z -> place(PointOfInterest.Kind.HOSTILE, 10, 20, 2.0, 1.6, 0.35, 1.0, null);
+                    case KeyEvent.VK_C -> place(PointOfInterest.Kind.CAT, 6, 70, 1.4, 1.8, 0.3, 0.3, null);
+                    case KeyEvent.VK_I -> place(PointOfInterest.Kind.DROPPED_ITEM, 2.5, 0, 0, 0, 0.15, 0.15, null);
+                    case KeyEvent.VK_O -> place(PointOfInterest.Kind.COMPANION, 6, -60, 1.5, 0, 0.2, 1.2, Vec.ZERO);
+                    case KeyEvent.VK_K -> hurtNext = true;
+                    case KeyEvent.VK_X -> placed.clear();
                     default -> { }
                 }
             }
@@ -162,6 +204,38 @@ public final class CompanionViewer {
         }).start();
     }
 
+    /**
+     * Places something {@code dist} blocks from the owner at {@code angle}° from where they look.
+     * It walks up to {@code stopAt} at {@code speed}; a non-null {@code travel} sends it across the
+     * owner's view instead (another companion swimming past).
+     */
+    private void place(PointOfInterest.Kind kind, double dist, double angle, double speed, double stopAt, double radius,
+                       double height, Vec travel) {
+        if (owner == null) return;
+        Vec dir = Vec.fromYawPitch((float) (owner.yawDeg() + angle), 0);
+        Vec at = owner.feet().add(dir.scale(dist)).add(0, height, 0);
+        Vec across = travel == null ? null : Vec.fromYawPitch((float) (owner.yawDeg() + angle + 110), 0).scale(speed);
+        placed.add(new Placed(kind, nextPlacedId++, at, speed, stopAt, radius, height, across));
+        canvas.requestFocusInWindow();
+    }
+
+    /** Moves everything placed from the keyboard on by a tick. */
+    private void movePlaced() {
+        for (Placed p : placed) {
+            if (p.travel != null) {
+                p.vel = p.travel;
+            } else if (p.speed > 0) {
+                Vec to = owner.feet().sub(p.pos).horizontal();
+                double d = to.length();
+                p.vel = d > p.stopAt ? to.normalize().scale(Math.min(p.speed, (d - p.stopAt) * 20)) : Vec.ZERO;
+            }
+            p.pos = p.pos.add(p.vel.scale(CompanionAgent.DT));
+            p.pos = new Vec(p.pos.x(), p.travel != null ? p.pos.y() : owner.feet().y() + p.height, p.pos.z());
+        }
+        placed.removeIf(p -> p.pos.distanceTo(owner.chest()) > 24
+                || (p.kind == PointOfInterest.Kind.DROPPED_ITEM && p.pos.sub(owner.feet()).horizontalLength() < 1.0));
+    }
+
     private OwnerScript.Pilot pilotOrScript() {
         return script != null ? script.pilot() : pilot;
     }
@@ -197,19 +271,25 @@ public final class CompanionViewer {
 
     private CompanionAgent newAgent() {
         if (trio) {
-            group = new grill24.fishsim.companion.CompanionGroup(tunables, seed, CompanionRun.TRIO_LENGTH, world());
+            group = new grill24.fishsim.companion.CompanionGroup(tunables, seed, CompanionRun.TRIO_LENGTH, temperament, world());
             return group.leader();
         }
         group = null;
-        return new CompanionAgent(tunables, seed, locomotion, CompanionRun.lengthOf(locomotion), world());
+        return new CompanionAgent(tunables, seed, locomotion, CompanionRun.lengthOf(locomotion), temperament, world());
     }
 
     /** What the companion perceives: the owner and the scene, plus the script's points of interest when one plays. */
-    private grill24.fishsim.companion.CompanionWorld world() {
-        return scriptWorld != null ? scriptWorld : grill24.fishsim.companion.CompanionWorld.of(owner, scene);
+    private CompanionWorld world() {
+        if (scriptWorld != null) return scriptWorld;
+        List<PointOfInterest> points = new ArrayList<>();
+        for (Placed p : placed) points.add(new PointOfInterest(p.kind, p.id, p.pos, p.vel, p.radius));
+        return new CompanionWorld(owner, scene, points, held, hurtNow);
     }
 
-    private grill24.fishsim.companion.CompanionWorld scriptWorld;
+    /** The owner was hurt this tick (K). */
+    private boolean hurtNow;
+
+    private CompanionWorld scriptWorld;
 
     /** Runs whole 20 Hz ticks for the real time that has passed, then interpolates the remainder. */
     private void advance() {
@@ -257,7 +337,10 @@ public final class CompanionViewer {
                 teleportNext = false;
             }
             owner = pilot.endTick();
+            movePlaced();
         }
+        hurtNow = hurtNext;
+        hurtNext = false;
         if (group != null) group.step(world()); else agent.step(world());
         trail.addLast(agent.position());
         if (trail.size() > TRAIL) trail.removeFirst();
@@ -301,7 +384,16 @@ public final class CompanionViewer {
         });
         sceneBox.addActionListener(e -> apply.run());
         ownerBox.addActionListener(e -> apply.run());
+        List<String> temperNames = new ArrayList<>();
+        temperNames.add(Temperament.BASELINE.name());
+        for (Temperament tm : Temperament.ALL) temperNames.add(tm.name());
+        JComboBox<String> temperBox = new JComboBox<>(temperNames.toArray(new String[0]));
+        temperBox.addActionListener(e -> {
+            temperament = Temperament.named((String) temperBox.getSelectedItem());
+            apply.run();
+        });
         panel.add(row(new JLabel("class"), classBox));
+        panel.add(row(new JLabel("temper"), temperBox));
         panel.add(row(new JLabel("scene"), sceneBox));
         panel.add(row(new JLabel("owner"), ownerBox));
 

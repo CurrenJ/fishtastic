@@ -34,6 +34,7 @@ import java.util.List;
  *   ./gradlew :fishsim:runCompanionHeadless
  *   ./gradlew :fishsim:runCompanionHeadless -PsimArgs="--script walk --seed 3 --ticks 2400"
  *   ./gradlew :fishsim:runCompanionHeadless -PsimArgs="--class GLIDE"   (files prefixed glide_)
+ *   ./gradlew :fishsim:runCompanionHeadless -PsimArgs="--temperament docile --script idle_fixed"   (prefixed docile_)
  * </pre>
  */
 public final class CompanionHeadless {
@@ -48,6 +49,7 @@ public final class CompanionHeadless {
         long seed = 1;
         Locomotion locomotion = Locomotion.FREE_SWIM;
         boolean trio = false;
+        grill24.fishsim.companion.Temperament temperament = grill24.fishsim.companion.Temperament.BASELINE;
         int ticks = 1200;
         int gifTicks = 1200;
         Path out = Path.of("build", "companion-export");
@@ -58,6 +60,7 @@ public final class CompanionHeadless {
                 case "--ticks" -> ticks = Integer.parseInt(args[++i]);
                 case "--gif-ticks" -> gifTicks = Integer.parseInt(args[++i]);
                 case "--out" -> out = Path.of(args[++i]);
+                case "--temperament" -> temperament = grill24.fishsim.companion.Temperament.named(args[++i]);
                 case "--class" -> {
                     String c = args[++i].toUpperCase(java.util.Locale.ROOT);
                     trio = c.equals("TRIO");
@@ -68,13 +71,14 @@ public final class CompanionHeadless {
         }
         Files.createDirectories(out);
         List<String> scripts = scriptArg.equals("all") ? OwnerScript.NAMES : List.of(scriptArg.split(","));
-        String prefix = trio ? "trio_"
-                : locomotion == Locomotion.FREE_SWIM ? "" : locomotion.name().toLowerCase(java.util.Locale.ROOT) + "_";
+        String prefix = (trio ? "trio_"
+                : locomotion == Locomotion.FREE_SWIM ? "" : locomotion.name().toLowerCase(java.util.Locale.ROOT) + "_")
+                + (temperament == grill24.fishsim.companion.Temperament.BASELINE ? "" : temperament.name() + "_");
         try (PrintWriter csv = new PrintWriter(Files.newBufferedWriter(out.resolve(prefix + "metrics.csv")))) {
             csv.println("script,seed,ticks,summary");
             for (String script : scripts) {
-                CompanionRun run = trio ? CompanionRun.trio(script, seed, CompanionTunables.defaults(), true)
-                        : new CompanionRun(script, seed, locomotion, CompanionTunables.defaults(), true);
+                CompanionRun run = trio ? CompanionRun.trio(script, seed, temperament, CompanionTunables.defaults(), true)
+                        : new CompanionRun(script, seed, locomotion, temperament, CompanionTunables.defaults(), true);
                 CompanionRun.Metrics m = export(run, script, prefix, ticks, Math.min(gifTicks, ticks), out);
                 String line = m.summary();
                 if (run.group != null) line += " | " + run.followerMetrics().summary();

@@ -1,6 +1,6 @@
 # Fish Companions — Simulation Rewrite Plan
 
-**Written:** 2026-10-11 · **Status: Phase 1 passed the owner's gate 2026-10-11 (§9.6). Phase 2 in progress (§10). GLIDE and DRIFT parked.**
+**Written:** 2026-10-11 · **Status: Phase 1 passed the owner's gate 2026-10-11 (§9.6). Phase 2 built 2026-10-11 (§10), awaiting the owner's gate (§10.6). GLIDE and DRIFT parked.**
 
 **Decision (owner, 2026-10-11):** rebuild companion motion the way the tank was rebuilt
 ([fish-sim-engine-plan.md](fish-sim-engine-plan.md)): a Minecraft-free simulation in `:fishsim`,
@@ -602,10 +602,10 @@ attention work.
 | **2a** World snapshot (**built**) | `CompanionWorld` (owner, blocks, points of interest, held item, owner hurt) — one per tick, the only thing agents and trios step from | all FREE_SWIM fingerprints bitwise identical, and the new all-class baseline (`-PfpAll`: 4 classes and the trio × 18 scripts × 3 seeds) too |
 | **2b** Seen timing (**measured, not adopted**) | the harness judges "seen" itself; the mind's one-tick-stale judgement A/B'd against a fresh one | 8-seed A/B over every script; adopt only a clear win |
 | **2c** Points of interest in the harness (**built**) | `ScriptedPoints` tracks (mobs walking up, sitters, passers, companions alongside, item drops, a held-item schedule, hurt events); scripts `held_items`, `hostile_approach`, `cat_lounging`, `item_drops`, `companion_passes`; drawn in first person and the top view | old fingerprints unchanged; new scripts in the invariant tables |
-| **2d** Curiosity → INSPECT | `Drives` (curiosity with per-thing memory: novelty, habituation, cooldown); held items as curiosity targets with a pose hint; perchers hop to the hand for a held item, only look at things further off | invariants on every class including the new scripts; notice time, inspect time, second-look habituation |
-| **2e** Wariness → HIDE | hostiles (at once), cats (after a dwell), predator fish in the hand; dwell → habituation → cooldown (R7.2). Swimmers hide on the owner's far side, BENTHIC hops to the far slot or the head (cats), ANCHORED ducks in | never toward the threat; reaches cover in bounded time; habituates to a lounging cat |
-| **2f** Rest → SETTLE | rest builds while the owner idles; slower, closer, longer dwells; perchers stop swapping shoulders | rest rises on long idles; any movement or new thing wakes it within a bound |
-| **2g** Temperaments | all ten, as weights and timing on the above (spec §4) | invariants × temperament; per-temperament GIFs; **owner gate** |
+| **2d** Curiosity → INSPECT (**built**) | `Drives` (curiosity with per-thing memory: novelty, habituation, cooldown); held items as curiosity targets with a pose hint; perchers hop to the hand for a held item, only look at things further off | invariants on every class including the new scripts; notice time, inspect time, second-look habituation |
+| **2e** Wariness → HIDE (**built**) | hostiles (at once), cats (after a dwell), predator fish in the hand; dwell → habituation → cooldown (R7.2). Swimmers hide on the owner's far side, BENTHIC hops to the far slot or the head (cats), ANCHORED ducks in | never toward the threat; reaches cover in bounded time; habituates to a lounging cat |
+| **2f** Rest → SETTLE (**built**) | rest builds while the owner idles; slower, closer, longer dwells; perchers stop swapping shoulders | rest rises on long idles; any movement or new thing wakes it within a bound |
+| **2g** Temperaments (**built**) | all ten, as weights and timing on the above (spec §4) | invariants × temperament; per-temperament GIFs; **owner gate** |
 
 ### 10.1 Steps 2a–2c — as built
 
@@ -634,3 +634,242 @@ attention work.
   the fish slow through screen centre for 2.1–2.3 s (bound 2 s; `pickSpot` only keeps the central
   12° clear within 1.2 blocks). Named `CENTRE_DWELL_GAPS` (bound 50 ticks) until step 2f reworks
   the idle swim.
+
+### 10.2 Step 2d — curiosity → INSPECT, as built
+
+**The drive.** `Drives` is updated by every agent every tick, whatever its body is doing. Things it
+can be curious about: the held item (spec §3.1 categories; a predator fish is fear, not interest),
+dropped items and other companions within 10 blocks of the owner. Each is remembered by id:
+- **noticed** over 0.5 s — a creature takes a beat before it reacts;
+- **novelty** bait 1.0, rod and own species 0.9, other companions 0.8, name tag and dropped
+  items 0.7, food 0.62;
+- **habituation** only while the fish is actually close (`engage`): a few seconds of looking
+  (rod and bait 6 s, food 2.5 s, others 4 s) and it's had enough; unattended things dull over 40 s;
+- **cooldown** 30 s once satisfied; each later visit is 0.6× as interesting, until it has been
+  gone a minute and is forgotten;
+- **kind fatigue** (spec R7.2's item streams): each finished inspection of a dropped item or a
+  companion tires the fish of that kind by 0.25 (max 0.8), wearing off over 90 s;
+- world things count only within 4–5 blocks of the owner, so an inspection never fights the
+  proximity drive.
+
+**The goal.** `INSPECT` (swimmers, and perchers swimming in water): utility = curiosity; ends when
+the thing is gone or no longer the most interesting. It swims to a stand-off spot — for a held item
+in the view's own frame beside and beyond the hand, never deeper than keeps it 14° off centre (a
+0.7-block glider's first version slid to screen centre); for a rod, by its tip; for a world thing,
+a species-sized distance off on the fish's side, a little above — then holds it loosely and noses at
+the thing at a creep. It carries the thing's velocity (a held item moves with a walking owner).
+`PoseHint` tells the animator what the pose should say: EXCITED (rod), BEG (bait), NOSE (own
+species, a dropped item), TILT (name tag), MILD (food), WATCH.
+
+**Perchers.** A held item with curiosity ≥ 0.45 draws a BENTHIC percher to the hand (its own
+side's hand — the Phase 1 rule that keeps a left-shoulder crab from crossing the face) and keeps it
+there while interest lasts; only time on the hand habituates it. Anything else gets a look:
+pose WATCH plus `lookTarget()` for the animator, and watching habituates. ANCHORED only watches.
+
+**Measured** (`CuriosityProbe`, 8 seeds, `held_items`):
+
+| Held | FREE_SWIM notice / engaged / seen while engaged | BENTHIC notice / on the hand |
+|---|---|---|
+| rod | 0.3 s / 4.9 s / 82% | 0.8 s / 3.0 s |
+| bait | 0.6 s / 5.0 s / 92% | 0.6 s / 3.3 s |
+| food | 0.4 s / 1.8 s / 69% | 1.0 s / 0.8 s |
+| own species | 0.3 s / 3.4 s / 69% | 0.8 s / 2.3 s |
+| name tag | 0.4 s / 2.9 s / 72% | 0.9 s / 1.6 s |
+| predator fish | never | never |
+| rod, second time | 0.5 s / 2.7 s / 70% | 0.9 s / 1.2 s |
+
+Item stream (`item_drops`, seven items): 3.4 inspections per 2 min (7.0 before kind fatigue);
+passing companions 4.0. Hostiles and cats draw no curiosity. All 303 earlier fingerprints are
+bitwise unchanged (with nothing to be curious about, the drive is silent); invariants pass on every
+class and script.
+
+**Tried and reverted.** Keeping loiter spots out of the central 12° out to 2.5 blocks (the
+centre-dwell invariant's own zone, against the spike's 1.2): over 8 seeds the longest centre dwell
+fell on nine scripts (elytra 63 → 14, hostile_approach 55 → 13, idle_fixed 50 → 30 ticks) but forest
+contacts rose 54 → 65 and cellar inside-owner 131 → 146, failing two invariants on the test seeds —
+mixed, reverted. The 8-seed sweep also shows the centre-dwell gap is wider than §10.1 said: 40–63
+ticks on nine scripts, Phase 1's included. `CENTRE_DWELL_GAPS` names the three scripts where the test
+seeds catch it; step 2f's idle swim is where it gets fixed.
+
+**For the owner's look.** A left-shoulder crab watches a held item from the left hand, not the
+right one holding it. Is that fine, or should it cross over (a longer hop round the face)?
+
+### 10.3 Step 2e — wariness → HIDE, as built
+
+**The drive** (in `Drives`, beside curiosity). Sources: hostiles within 8 blocks of the owner
+(strongest inside 3), cats within 5 (strongest inside 1.5), a predator fish in the hand. Each is
+remembered by id, following spec R7.2:
+- **dwell** before it alarms: a hostile 4 ticks (a reaction time), a predator fish 4, a cat 2 s;
+- **habituation** while it stays: a cat over 15 s, a held predator over 20 s, a hostile over 40 s
+  but only while it keeps more than 4 blocks off (one closing in never wears off); wariness falls
+  to 30% at full habituation;
+- **cooldown**: once used to a cat or a held predator, a minute before that one can alarm it
+  again, and then it starts half used to it.
+
+**The goal.** `HIDE`: utility 1.2 × wariness, above showing off and curiosity (curiosity is muted
+while anything alarms it); over 0.6 it's an emergency and cuts commitment, like a catch-up. Cover is
+on the owner's far side from the threat — behind the head from a cat or a held predator fish (spec
+§3.1 "hides behind your head", §6), behind the body from a hostile — reached in a quick swim (up to
+0.7 × catch-up speed, routed round the owner) and held loosely, nose toward the danger at a creep.
+Pose HIDE.
+
+**Perchers.** At wariness ≥ 0.4 a BENTHIC percher hops to cover and stays: onto the head from a cat
+("flee onto your head"), otherwise to the shoulder on the far side; pose HIDE with the threat as
+its look target. An ANCHORED fish ducks in (pose DUCK) when a hostile is within 3 blocks or it is
+otherwise wary — it never leaves the back.
+
+**Measured** (`WarinessProbe`, 8 seeds; wariness means are per 5 s across the script):
+
+| | FREE_SWIM | BENTHIC |
+|---|---|---|
+| hostile_approach: reaction / far side while alarmed | 0.20 s / 91% | 0 s / 97% |
+| cat_lounging: reaction / far side | 0.06 s / 90% | 0 s / on the head |
+| held predator: reaction / far side | 0 s / 96% | 0 s / 97% |
+
+The lounging cat shows the R7.2 shape: wariness 0.75 after the dwell, 0.55, 0.26, gone by 25 s,
+and the cooldown keeps it gone. A zombie at arm's reach keeps it hidden throughout (0.96); a
+skeleton standing 7 blocks off barely registers (0.05–0.09).
+After 1.5 s in cover the swimmer is nearer the threat than its owner on 1.9% of alarmed ticks — all
+of them in one moment (traced, 4 seeds): the owner walks off with a zombie trailing them and the
+fish, in cover beyond it, has to pass it to keep up (never closer than 1.45 blocks).
+
+All 303 earlier fingerprints bitwise unchanged; invariants pass on every class and script.
+
+**Named gap.** `GLIDE_COVER_GAPS`: when a hostile walks round the owner the cover spot flips sides,
+and a glider caught close to the owner pivots on the spot at its slow pivot rate for ~2 s, 0.45
+blocks from the eye (near-clip 1.04% of ticks on one seed, bound 1.5% there). A swimmer turns
+through it. GLIDE stays parked.
+
+### 10.4 Step 2f — rest → SETTLE, as built (and a trio fix it exposed)
+
+**The drive** (in `Drives`). Rest starts building once the owner has been still for 10 s, reaching
+1 over a further 45 s (× the temperament's weight). It drains in 1.5 s once they move, in 1 s while
+curiosity or wariness is stirred, and at once if the owner is hurt. Settled = rest crossed 0.5 with
+the owner still, until it falls below 0.3 or they move. Off-hours (Phase 5) will add to the build
+rate; for now there is no input for it.
+
+**The goal.** `SETTLE` replaces LOITER as the idle base goal while settled: the same drift between
+spots, at 0.6× the pace, with lingers 3× as long (4.5–15 s) and half the mill. Its spots alternate
+strictly between the edge of the owner's view (15–28° off centre, 1.6–2.4 blocks out, a little
+below the line of sight — a dozing fish to be seen) and close beside or behind them; none are in
+the central 12° within 2.5 blocks. If the owner turns the view to put the spot in the middle, the
+fish drifts aside after a second, and crossing the middle it never dawdles or lingers. Pose
+SLEEPY while lingering. Show-offs aren't damped: attention stays the guarantee of being seen (a
+first cut damped them and the fish went 30+ s unseen behind its owner). Perchers stop changing
+shoulders while settled (pose SLEEPY) but still hop to the hand when unseen a while.
+
+**Measured** (`RestProbe`, `SeedSweepProbe` with a rest-off temperament on the same tree, 8 seeds):
+- FREE_SWIM over a 10-minute idle: first settles 32 s in, settled 95% of the time, 0.29 vs
+  0.58 b/s loitering, seen 49%. It wakes on the tick its owner sets off.
+- Rest off → on: idle_fixed seen 35 → 44%, longest centre dwell 50 → 32 ticks, show-offs
+  1.13 → 0.69 /min (it's seen at the edge of view instead); idle_looking seen 32 → 40%, longest
+  unseen 21.3 → 27.2 s; camera_sweep centre dwell 30 → 11; companion_passes 43 → 13. Cost:
+  item_drops inside-owner 9 → 20 ticks (8 runs). Walking and obstacle scripts unchanged.
+- Fingerprints: of the 33 spike runs only idle_fixed, idle_looking and camera_sweep changed (as
+  meant); the same three for GLIDE and BENTHIC; ANCHORED none.
+
+**Exposed: trio followers stuck behind a still owner.** With the leader idling on the far side,
+a follower pressed against its owner's back sat there for 4–9 s: its station pull pointed through
+the owner and the body braked for them (traced: follower 0.4 blocks from the owner's axis, its
+line to the leader passing 0.08–0.28 from it). Followers now take the leader's round-the-owner
+waypoint (`Mind.aroundOwner`, made static and shared; the leader is bitwise unchanged) when within
+0.7 blocks of the owner's body in open water (clear 2.5 blocks every way at its height).
+Five variants were A/B'd on 8 seeds × 23 scripts. Every one fixed the open-ground straggle
+(idle_fixed and camera_sweep 3.8 → 0 s, hostile_approach 9.4 → 3.0, cat_lounging 5.5 → 2.5,
+item_drops 4.8 → 1.5, companion_passes 6.0 → 2.3). Without the open-water condition, cramped
+scenes paid for it (corridor contacts 107 → 161, waypoints beside the owner in walls). With it, the
+obstacle-scene differences left are the size of the chaos floor, measured by A/B'ing two
+near-identical variants (forest contacts 221 vs 195, cellar max impact 1.45 vs 4.66 b/s): forest
+straggle 7.2 → 9.9 s appears identically with the open-water reach at 1.5 or 2.5 blocks — routing
+that can't happen inside the forest's 2-wide lanes — so it is one early divergence, not a cost.
+Adopted. All trio fingerprints change.
+
+**Named gap.** `GLIDE_COVER_GAPS` gains `cat_lounging` (cover behind the head; the same glider pivot).
+
+### 10.5 Step 2g — temperaments, as built
+
+**The table** (`Temperament`; spec §4: temperament changes *how*, never *which*). `BASELINE` is the
+Phase 1 behaviour, every weight 1. The ten from the data pack are departures from it:
+
+| Temperament | Weights and timing | Its own move |
+|---|---|---|
+| docile | band 0.8, rest 1.5, dwell 1.3, wariness 0.8, a little stillness | **NUZZLE**: after 5 s of the owner standing still, over to the side of their head for 1.5–2.5 s; cooldown 25–45 s, doubling with each nuzzle in the same still spell (R7.2) |
+| skittish | wariness 2.0, curiosity 0.7, keeps 1.6× further from things it inspects | **peeks out** of cover sideways for a second every 2–4 s |
+| aggressive | curiosity 1.1 | **GUARD**: against a hostile it takes station between the owner and it, puffed up (PUFF), instead of hiding; **bites** the air (BITE, a short lunge when guarding) each time the owner is hurt. A percher squares up on the near shoulder; an eel leans out instead of ducking |
+| sprinter | pace 1.2, rest 0.6 | **races ahead** (2.6 blocks) while the owner sprints, excited |
+| ambusher | curiosity 1.3, dwell 1.5, stillness 0.6 | **stalks** dropped items: creeps to twice the distance, holds still 1–2 s, then darts in |
+| wily | curiosity 1.2 | its pet-to-pet role is Phase 4 |
+| ghost | rest 2.0, dwell 2.0, decisions 1.3, pace 0.8, stillness 0.85 | long, still hovers |
+| erratic | decisions 0.5, dwell 0.6, commitment 0.7, jitter 1.5 | jittery timing |
+| trembler | jitter 1.25 | TREMBLE pose at rest (the animator's shiver) |
+| metronome | regular 1.0, jitter 0.8 | every interval the middle of its range |
+
+Perchers take the weights that apply to them (wariness, curiosity, rest, how often they change
+shoulders) and express the moves as slots and poses. The animator gets everything as `PoseHint`s:
+EXCITED, BEG, NOSE, TILT, MILD, WATCH, HIDE, DUCK, SLEEPY, PUFF, BITE, PEEK, NUZZLE, TREMBLE.
+
+**Measured** (`TemperamentFeatureProbe`, FREE_SWIM, 8 seeds, baseline → temperament): docile 0 →
+4.6 nuzzles per 10-minute idle (4% of the time); sprinter rides > 1 block ahead on 7 → 25% of
+sprinting ticks; ambusher stalks/holds 14% of `item_drops`, top inspect speed 1.89 → 2.61 b/s (the
+dart); aggressive guards 33% of `hostile_approach`, 99% of it close in front of the owner; skittish
+peeks 3.7%; ghost idles at 0.40 → 0.19 b/s and is settled 71 → 78%; trembler shivers 23% of an idle.
+
+**How the table judges a temperament.** A temperament changes every trajectory, so its three test
+seeds land on fresh samples of the baseline's own tails. `TemperamentSweepProbe` measured how often
+each breaks each bound against the baseline on the same seeds: over 40 seeds × the cramped scripts
+the *baseline* breaks the cellar's inside-owner bound in 1 run in 11, so fixed per-run bounds over
+ten temperaments are a lottery. So the temperament rows (FREE_SWIM and BENTHIC × 23 scripts × 3
+seeds) keep every hard invariant unchanged — never in a block, body limits, never tail-first,
+facing, commitment — and hold each statistical bound to the looser of the original and 1.5× the
+baseline's worst run of 40 seeds, computed by the test. Real temperament effects it found, fixed:
+- **ghost and ambusher parked in the owner's face** (longest centre dwell 201 and 132 ticks against
+  the baseline's 63): a still fish lingering at a centred spot. Fixed for everyone (below).
+- **a jittery heading in a tunnel** (skittish 14 contacts/min in the corridor; trembler and erratic
+  +20–35% contacts overall): a jittery temperament now steadies itself between walls.
+- **an acceleration-cap breach** (erratic catch-up, aggressive's cover dart): the body capped yaw
+  and pitch separately, so a fast turn while climbing overran `maxLateralAccel` by up to 2%. The
+  cap now holds for the combined turn at speed. A/B (8 seeds × 23 scripts): baseline identical
+  everywhere (it never engaged); erratic only pond_dive and wading change (max accel 16.8 → 15.5).
+  GLIDE is left out (parked; its low cap would engage constantly). HIDE's dart is also capped at
+  0.7 × catch-up speed all told.
+
+**The loiter centre gap, fixed** (§10.1–10.2's `CENTRE_DWELL_GAPS`, now empty). Every loiter keeps
+the middle of the view clear the way SETTLE does: it never lingers there, and if its spot or the
+fish ends up there (the owner turned to it) it is off elsewhere after a second. The earlier attempt
+(keeping spots out to 2.5 blocks) was mixed; this one leaves spot choice alone. A/B (FREE_SWIM, 8
+seeds × 23 scripts): worst centre dwell 63 → 37 ticks (elytra 63 → 14, held_items 60 → 30, pond_dive
+46 → 18, teleport 36 → 11); forest contacts +9% and cellar inside-owner +5% (inside the chaos floor
+of ±13% measured with near-identical variants); teleport, wading, creative_flight and item_drops
+better. Still temperaments also keep spots out of the centre to 2.5 blocks.
+
+**Named.** `FOREST_IMPACT_GAPS`: a swimmer catching up through trunks meets one at up to ~4 b/s —
+3 of 40 seeds on the Phase 1 code (max 4.15), 4 of 40 now; bound 4.5 there. `PERCHER_TIGHT_SPACE_GAPS`
+gains `doorway` (a shoulder-to-shoulder hop as the owner walks through meets the frame, 5.3 b/s on
+docile). `DOCILE_TIGHT_GAPS`: riding 20% tighter, a docile fish is caught a little more often by an
+owner jumping up through it (+7% inside-owner ticks over 40 seeds; bound 1.5% on `jumping`).
+
+**Fingerprints.** Of the 33 spike runs, step 2f changed the three long-idle scripts (rest) and 2g
+six more (the loiter centre rule: corridor ×2, elytra, forest, sprint_stop, teleport); the rest are
+bitwise as at 8783e094. GLIDE moves only through the shared mind's loiter rule; its body is untouched.
+
+**Viewer.** A temperament picker, and in manual mode keys to make things happen: H cycles the held
+item, Z a zombie walks up, C a cat strolls over, I drops an item ahead, O another companion swims
+past, K the owner gets hurt, X clears them. The overlay shows curiosity, wariness and rest bars and
+the pose hint.
+
+### 10.6 For the owner's gate
+
+`./gradlew :fishsim:runCompanionViewer` (pick a temperament; H/Z/C/I/O/K in manual mode), and the
+GIFs from `runCompanionHeadless -PsimArgs="--temperament <name> --script <script>"` (built:
+`build/companion-export`).
+1. Held items: the swimmer comes over and noses at each (rod tip, bait, its own species), a second
+   rod gets a shorter look, a predator fish sends it behind your head. Do these read as reactions?
+2. A left-shoulder crab watches a held item from the *left* hand (the Phase 1 rule keeps it from
+   crossing your face). Fine, or should it cross to the item's hand?
+3. Hiding: behind you from a zombie in front, in front (low in view) from one behind; onto your
+   head for a crab when a cat comes. Right amount, right speed?
+4. Rest: after ~30 s of standing still the fish settles and dozes at the edge of your view. Too
+   soon, too late?
+5. Temperaments: the aggressive fish bites on every hit (a zombie at arm's reach hits once a
+   second) — too much? The sprinter overshoots ahead after a sprint-and-stop — lively or annoying?
+   Docile nuzzles about every 2 minutes of standing still. Which read as the species, which don't?

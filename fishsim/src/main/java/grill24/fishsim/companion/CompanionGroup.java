@@ -35,6 +35,11 @@ public final class CompanionGroup {
     private static final double SEPARATION_SPEED_SCALE = 1.2;
     /** Off station by more than this, blocks, a follower may sprint to rejoin: up to this x top speed. */
     private static final double SPRINT_GAP = 2.0, SPRINT_BOOST = 1.4;
+    /**
+     * A follower this close to its owner's body (blocks from the surface), in water open this far
+     * every way at its own height, routes round them to its station instead of braking into them.
+     */
+    private static final double ROUND_OWNER_RANGE = 0.7, OPEN_REACH = 2.5;
     /** Beyond this, blocks, a follower has been left behind: it fades and rejoins. */
     private static final double LOST = 14.0;
 
@@ -46,11 +51,16 @@ public final class CompanionGroup {
     private final float length;
 
     public CompanionGroup(CompanionTunables t, long seed, float length, CompanionWorld world) {
+        this(t, seed, length, Temperament.BASELINE, world);
+    }
+
+    /** A trio whose leader has the species' temperament (the followers keep to the leader). */
+    public CompanionGroup(CompanionTunables t, long seed, float length, Temperament temperament, CompanionWorld world) {
         OwnerState owner = world.owner();
         BlockQuery blocks = world.blocks();
         this.t = t;
         this.length = length;
-        this.leader = new CompanionAgent(t, seed, Locomotion.FREE_SWIM, length, world);
+        this.leader = new CompanionAgent(t, seed, Locomotion.FREE_SWIM, length, temperament, world);
         voxels.update(blocks, owner.eye());
         double radius = Math.max(0.08, Math.min(0.3, length * 0.3));
         for (int i = 0; i < 2; i++) {
@@ -164,6 +174,12 @@ public final class CompanionGroup {
                 Vec behind = leaderTrail.trailPoint(leader.position(), STATION_BACK * length * 1.5);
                 if (behind != null) dest = behind;
             }
+            // Pressed against its owner with them between it and its station: round their side, as
+            // the leader would, rather than braking into their back. Only in open water — between
+            // walls the trail already leads it, and a waypoint beside the owner can be in a wall.
+            if (Capsule.ownerBody(owner).distance(body.pos) < ROUND_OWNER_RANGE && openAround(body.pos, body.radius)) {
+                dest = Mind.aroundOwner(owner, voxels, body.pos, dest, body.radius);
+            }
             // Small schooling fish dash to rejoin: well off station, it may outswim the leader.
             boolean behind = body.pos.distanceTo(target) > SPRINT_GAP;
             body.speedBoost = behind ? SPRINT_BOOST : 1;
@@ -171,6 +187,15 @@ public final class CompanionGroup {
             Vec pull = dest.sub(body.pos).scale(STATION_GAIN).clampLength(pullCap);
             Vec desired = leader.velocity().add(pull).add(separation());
             body.step(desired, 0.6, ownerAvoidance(owner), voxels, ownerBody);
+        }
+
+        /** Open water round {@code p}: a clear swim of {@link #OPEN_REACH} blocks every way, at its own height. */
+        private boolean openAround(Vec p, double radius) {
+            for (int k = 0; k < 8; k++) {
+                double a = k * Math.PI / 4;
+                if (!voxels.segmentClear(p, p.add(Math.cos(a) * OPEN_REACH, 0, Math.sin(a) * OPEN_REACH), radius)) return false;
+            }
+            return true;
         }
 
         /** Push away from the leader and the other follower when closer than a comfortable spacing. */

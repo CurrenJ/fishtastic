@@ -66,6 +66,15 @@ record Gait(float cruiseSpeed, float catchUpSpeed, float maxSpeed, float steerin
                 rideHeight, heightSpread, bandScale, hopMin, hopMax, lateralScale, alongOffset);
     }
 
+    /** This gait at {@code k} times the cruising pace (a temperament's); everything else unchanged. */
+    Gait paced(double k) {
+        return new Gait((float) (cruiseSpeed * k), catchUpSpeed, maxSpeed, steeringGain, maxForce,
+                maxLateralAccel, maxJerk, turnRateDegPerTick, pitchMaxDeg, pitchRateDegPerTick, bankMaxDeg,
+                wanderSigma, wanderTheta, wanderAuthority, wanderVertical,
+                burstPeriodSeconds, burstDuty, burstThrust, burstCoast,
+                rideHeight, heightSpread, bandScale, hopMin, hopMax, lateralScale, alongOffset);
+    }
+
     private static float lerp(float a, float b, double k) {
         return (float) (a + (b - a) * Math.min(1, k));
     }

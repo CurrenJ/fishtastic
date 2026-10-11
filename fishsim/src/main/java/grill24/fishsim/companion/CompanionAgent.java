@@ -30,6 +30,11 @@ public final class CompanionAgent {
     private final CompanionTunables t;
     private final Motor body;
     private final Mind mind;
+    /** Curiosity (and, as Phase 2 lands, wariness and rest): what the world around the owner stirs up. */
+    private final Drives drives;
+    private final Temperament temperament;
+    private PoseHint pose = PoseHint.NONE;
+    private Vec lookTarget;
     /** A percher's body (BENTHIC, ANCHORED), else null; its swim body is the one the mind steers. */
     private final PerchBody perch;
     private boolean perchSeen;
@@ -64,9 +69,21 @@ public final class CompanionAgent {
      * @param length     rendered body length in blocks; sets the collision radius
      */
     public CompanionAgent(CompanionTunables t, long seed, Locomotion locomotion, float length, CompanionWorld world) {
+        this(t, seed, locomotion, length, Temperament.BASELINE, world);
+    }
+
+    /**
+     * @param locomotion  the species' class
+     * @param length      rendered body length in blocks; sets the collision radius
+     * @param temperament the species' temperament (spec §4)
+     */
+    public CompanionAgent(CompanionTunables t, long seed, Locomotion locomotion, float length, Temperament temperament,
+                          CompanionWorld world) {
         OwnerState owner = world.owner();
         BlockQuery blocks = world.blocks();
         this.t = t;
+        this.temperament = temperament;
+        this.drives = new Drives(temperament);
         this.length = length;
         this.locomotion = locomotion;
         double radius = Math.max(0.08, Math.min(0.3, length * 0.3));
@@ -74,16 +91,18 @@ public final class CompanionAgent {
         Vec start = besideOwner(owner, radius);
         if (locomotion == Locomotion.BENTHIC || locomotion == Locomotion.ANCHORED) {
             Body swim = new Body(t, Locomotion.FREE_SWIM, start, owner.yawDeg(), radius, seed ^ 0x5DEECE66DL);
-            this.perch = new PerchBody(t, locomotion, swim, owner, radius, length, seed);
+            this.perch = new PerchBody(t, locomotion, swim, owner, radius, length, seed, drives);
             this.body = perch;
-            this.mind = new Mind(t, swim, seed);
+            this.mind = new Mind(t, swim, seed, drives, temperament);
             start = perch.pos;
+            swim.pace = temperament.pace();
         } else {
             this.perch = null;
             this.body = locomotion == Locomotion.DRIFT
                     ? new DriftBody(t, start, owner.yawDeg(), radius, seed ^ 0x5DEECE66DL)
                     : new Body(t, locomotion, start, owner.yawDeg(), radius, seed ^ 0x5DEECE66DL);
-            this.mind = new Mind(t, body, seed);
+            this.mind = new Mind(t, body, seed, drives, temperament);
+            if (body instanceof Body b) b.pace = temperament.pace();
         }
         this.prevPos = start;
         this.renderPos = start;
@@ -102,6 +121,7 @@ public final class CompanionAgent {
         ticks++;
 
         voxels.update(blocks, owner.eye());
+        drives.update(world);
         if (owner.teleported()) crumbs.clear();
         crumbs.record(owner.chest());
 
@@ -115,14 +135,17 @@ public final class CompanionAgent {
             // The drives react to whether it was seen last tick; seen is then judged where the
             // body is now, against this tick's camera (judging last tick's spot against this tick's
             // camera put a crab riding a walking owner's hand out of view).
-            perch.step(owner, voxels, perchSeen, () -> mind.decide(owner, voxels, crumbs),
+            perch.step(owner, voxels, perchSeen, () -> mind.think(owner, voxels, crumbs),
                     () -> mind.ownerAvoidance(owner), () -> mind.reset(owner));
             perchSeen = Visibility.visible(owner, perch.pos, voxels);
             // Riding the owner through a teleport: it went with them, so don't draw it streaking.
             if (perch.attached() && owner.teleported()) prevPos = perch.pos;
+            perchPose();
         } else {
-            Vec desired = mind.decide(owner, voxels, crumbs);
+            Vec desired = mind.think(owner, voxels, crumbs);
             body.step(desired, mind.wanderScale, mind.ownerAvoidance(owner), voxels, Capsule.ownerBody(owner));
+            pose = mind.pose;
+            lookTarget = mind.goal == Mind.Goal.INSPECT && drives.target != null ? drives.target.pos : null;
         }
 
         switch (fade) {
@@ -151,6 +174,49 @@ public final class CompanionAgent {
             }
             case NONE -> { }
         }
+    }
+
+    /**
+     * A percher out of the water shows its curiosity in its pose: nose to a held item it has hopped
+     * onto the hand for, or a watchful look at something it can't go to. Watching a thing in the
+     * world counts as a look, so that wears off; a held item only wears off once it's on the hand
+     * (watching it from the shoulder is just waiting to hop).
+     */
+    private void perchPose() {
+        if (perch.mode == PerchBody.Mode.SWIM) {
+            pose = mind.pose;
+            lookTarget = mind.goal == Mind.Goal.INSPECT && drives.target != null ? drives.target.pos : null;
+            return;
+        }
+        Drives.Interest it = drives.target;
+        pose = PoseHint.NONE;
+        lookTarget = null;
+        boolean guard = temperament.guard() && drives.threat == Drives.Threat.HOSTILE;
+        if (temperament.guard() && drives.sinceHurt < 14) {
+            pose = PoseHint.BITE;
+            lookTarget = drives.threatPos;
+            return;
+        }
+        if (locomotion == Locomotion.ANCHORED && (drives.hostileClose || drives.wariness >= PerchBody.COVER_WARINESS)) {
+            // An aggressive eel leans out at it, puffed; any other ducks in.
+            pose = guard ? PoseHint.PUFF : PoseHint.DUCK;
+            lookTarget = drives.threatPos;
+            return;
+        }
+        if (drives.wariness >= PerchBody.COVER_WARINESS && drives.threatPos != null) {
+            pose = guard ? PoseHint.PUFF : PoseHint.HIDE;
+            lookTarget = drives.threatPos;
+            return;
+        }
+        if (it == null || drives.curiosity < PerchBody.WATCH_CURIOSITY) {
+            if (drives.resting && perch.mode == PerchBody.Mode.PERCHED) pose = PoseHint.SLEEPY;
+            else if (temperament.tremble() && perch.mode == PerchBody.Mode.PERCHED) pose = PoseHint.TREMBLE;
+            return;
+        }
+        lookTarget = it.pos;
+        boolean onHand = perch.slot.hand() && perch.mode == PerchBody.Mode.PERCHED;
+        if (!it.isHeld() || onHand) drives.engage(it, 0, 0);
+        pose = onHand && it.isHeld() ? Mind.poseFor(it) : PoseHint.WATCH;
     }
 
     private void reappear(OwnerState owner) {
@@ -256,6 +322,20 @@ public final class CompanionAgent {
     public double ownerDistance() { return mind.ownerDist; }
     public boolean ownerMoving() { return mind.ownerMoving; }
     public Vec target() { return mind.target; }
+    public float curiosity() { return drives.curiosity; }
+    public float wariness() { return drives.wariness; }
+    public float rest() { return drives.rest; }
+    public boolean resting() { return drives.resting; }
+    /** Where the thing it's wary of is, or null. */
+    public Vec threat() { return drives.threatPos; }
+    public int hides() { return mind.hides; }
+    public int nuzzles() { return mind.nuzzles; }
+    public int inspections() { return mind.inspections; }
+    /** What the pose should say this tick, for the animator. */
+    public PoseHint poseHint() { return pose; }
+    /** What the fish is looking at (an inspected or watched thing), or null. */
+    public Vec lookTarget() { return lookTarget; }
+    public Temperament temperament() { return temperament; }
 
     // ── Interpolated pose (after interpolate) ──────────────────────────────────────────────────
 

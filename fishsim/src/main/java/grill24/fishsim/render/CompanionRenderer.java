@@ -446,13 +446,19 @@ public final class CompanionRenderer {
         g.setFont(new Font(Font.MONOSPACED, Font.BOLD, 12));
         int x = 8, y = 16;
         g.setColor(new Color(0, 0, 0, 120));
-        g.fillRect(4, 4, 196, 92);
+        g.fillRect(4, 4, 196, 152);
         g.setColor(Color.WHITE);
         String state = a.perchState() != null && a.goal().equals("PERCH") ? a.perchState() : a.goal();
         g.drawString(state + "  " + (a.seen() ? "seen" : occluded ? "hidden" : "unseen"), x, y);
         y += 16;
+        String pose = a.poseHint() == grill24.fishsim.companion.PoseHint.NONE ? "" : "pose " + a.poseHint().name().toLowerCase(java.util.Locale.ROOT);
+        g.drawString(a.temperament().name() + "  " + pose, x, y);
+        y += 16;
         y = bar(g, x, y, "proximity", a.proximity(), new Color(0xE06666));
         y = bar(g, x, y, "attention", a.attention(), new Color(0xF6B26B));
+        y = bar(g, x, y, "curiosity", a.curiosity(), new Color(0xF1C232));
+        y = bar(g, x, y, "wariness", a.wariness(), new Color(0x8E7CC3));
+        y = bar(g, x, y, "rest", a.rest(), new Color(0x93C47D));
         y = bar(g, x, y, "burst", Math.min(1f, a.burstDrive() / 1.5f), new Color(0x6FA8DC));
         g.drawString(String.format("%.1f b/s  %.1f blk", a.velocity().length(), a.ownerDistance()), x, y + 4);
     }
@@ -611,6 +617,11 @@ public final class CompanionRenderer {
             case "ESCORT" -> new Color(0x1155CC);
             case "CATCH_UP" -> new Color(0xCC0000);
             case "SHOW_OFF" -> new Color(0xB45F06);
+            case "INSPECT" -> new Color(0xBF9000);
+            case "HIDE" -> new Color(0x674EA7);
+            case "SETTLE" -> new Color(0x6AA84F);
+            case "GUARD" -> new Color(0x990000);
+            case "NUZZLE" -> new Color(0xC27BA0);
             default -> Color.BLACK;
         };
     }

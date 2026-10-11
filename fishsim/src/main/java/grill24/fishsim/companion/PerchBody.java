@@ -57,7 +57,11 @@ final class PerchBody extends Motor {
     private static final float LOOK_DOWN_PITCH = 50f;
     private static final int LOOK_DOWN_TICKS = 15;
 
+    /** Curiosity at which a percher takes notice: a held item draws it to the hand, anything else a look. */
+    static final float WATCH_CURIOSITY = 0.3f, HAND_CURIOSITY = 0.45f;
+
     private final CompanionTunables t;
+    private final Drives drives;
     final Body swim;
     private long rng;
     /** Size pacing: 1 at 0.3 blocks long, slower for bigger bodies. */
@@ -84,9 +88,10 @@ final class PerchBody extends Motor {
     int hops;
 
     PerchBody(CompanionTunables t, Locomotion locomotion, Body swim, OwnerState owner, double radius, float length,
-              long seed) {
+              long seed, Drives drives) {
         super(locomotion, Gait.of(Locomotion.FREE_SWIM, t), Vec.ZERO, radius);
         this.t = t;
+        this.drives = drives;
         this.swim = swim;
         this.rng = seed * 0x9E3779B97F4A7C15L + 0x2545F4914F6CDD1DL;
         if (rng == 0) rng = 1;
@@ -198,20 +203,45 @@ final class PerchBody extends Motor {
             return null;
         }
         if (locomotion == Locomotion.ANCHORED || modeTicks < 10) return null;
+        // Something alarming: over to cover, and stay there until it's passed.
+        Slot cover = coverSlot(o);
+        if (cover != null) return slot == cover ? null : cover;
         boolean lookingDown = lookDownTicks >= LOOK_DOWN_TICKS;
+        // Something interesting in the owner's hand: over to it, and stay while it holds the interest.
+        Drives.Interest it = drives.target;
+        boolean heldInterest = it != null && it.isHeld() && drives.curiosity >= HAND_CURIOSITY;
         if (slot.hand()) {
             // Back home once it has been seen a while and the owner isn't looking down at it.
-            if (!lookingDown && handTicks >= drawTicksOnce()) return home;
+            if (!lookingDown && !heldInterest && handTicks >= drawTicksOnce()) return home;
             return null;
         }
-        if (lookingDown) return hand();
+        if (lookingDown || heldInterest) return hand();
         if (unseenTicks >= attentionThreshold) return hand();
-        if (wanderTicks == 0) {
-            wanderTicks = drawTicks(20, 45);
+        // Resting, it stays on its shoulder rather than changing sides (it still shows itself now and then).
+        if (wanderTicks == 0 && !drives.resting) {
+            Temperament tm = drives.temperament();
+            double k = tm.decisions() * (1 + 2 * tm.stillness());
+            wanderTicks = k == 1 ? drawTicks(20, 45) : drawTicks(20 * k, 45 * k);
             return home == Slot.RIGHT_SHOULDER ? Slot.LEFT_SHOULDER : home == Slot.LEFT_SHOULDER
                     ? Slot.RIGHT_SHOULDER : (unit() < 0.5 ? Slot.RIGHT_SHOULDER : Slot.LEFT_SHOULDER);
         }
         return null;
+    }
+
+    /** Wariness at which a percher takes cover. */
+    static final float COVER_WARINESS = 0.4f;
+
+    /**
+     * Where to take cover from what it's wary of, or null if nothing is: the head from a cat
+     * (spec §6, "flee onto your head"), otherwise the shoulder on the far side from the threat.
+     */
+    private Slot coverSlot(OwnerState o) {
+        if (drives.wariness < COVER_WARINESS || drives.threatPos == null) return null;
+        if (drives.threat == Drives.Threat.CAT) return Slot.HEAD;
+        boolean threatRight = drives.threatPos.sub(o.chest()).dot(o.flatRight()) > 0;
+        // An aggressive percher squares up on the near shoulder instead.
+        if (drives.temperament().guard() && drives.threat == Drives.Threat.HOSTILE) threatRight = !threatRight;
+        return threatRight ? Slot.LEFT_SHOULDER : Slot.RIGHT_SHOULDER;
     }
 
     private int handStay = -1;

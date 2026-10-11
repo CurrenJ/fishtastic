@@ -18,7 +18,7 @@ class TraceProbe {
         CompanionTunables tun = CompanionTunables.defaults();
         SeedSweepProbe.tweak(System.getProperty("tweakA")).accept(tun);
         var c = grill24.fishsim.core.Locomotion.valueOf(System.getProperty("sweepClass", "FREE_SWIM"));
-        CompanionRun run = new CompanionRun(a[0], Long.parseLong(a[1]), c, tun, true);
+        CompanionRun run = new CompanionRun(a[0], Long.parseLong(a[1]), c, SeedSweepProbe.temperament(), tun, true);
         int from = Integer.parseInt(a[2]), to = Integer.parseInt(a[3]), every = Integer.parseInt(a[4]);
         for (int t = 0; t < to; t++) {
             run.tick();

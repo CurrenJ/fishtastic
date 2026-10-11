@@ -15,7 +15,7 @@ class ImpactProbe {
     void impacts() {
         String[] a = System.getProperty("trace", "stairwell:1").split(":");
         var c = grill24.fishsim.core.Locomotion.valueOf(System.getProperty("sweepClass", "FREE_SWIM"));
-        CompanionRun run = new CompanionRun(a[0], Long.parseLong(a[1]), c, CompanionTunables.defaults(), true);
+        CompanionRun run = new CompanionRun(a[0], Long.parseLong(a[1]), c, SeedSweepProbe.temperament(), CompanionTunables.defaults(), true);
         String[] recent = new String[4];
         for (int t = 0; t < 2400; t++) {
             run.tick();
