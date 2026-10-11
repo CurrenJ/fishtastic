@@ -1,6 +1,6 @@
 # Fish Companions — Simulation Rewrite Plan
 
-**Written:** 2026-10-11 · **Status: Phase S spike built and passed the owner's gate 2026-10-11 (§8.5); Phase 1 next.**
+**Written:** 2026-10-11 · **Status: Phase 1 built 2026-10-11 (§9); awaiting the owner's gate (§9.6). GLIDE parked for a refactor; DRIFT a first cut.**
 
 **Decision (owner, 2026-10-11):** rebuild companion motion the way the tank was rebuilt
 ([fish-sim-engine-plan.md](fish-sim-engine-plan.md)): a Minecraft-free simulation in `:fishsim`,
@@ -386,8 +386,8 @@ first-person GIFs. **Go** = it reads as a creature deciding things, not a staged
 | **1b** Body seam + GLIDE (**parked**, §9.2) | per-class gait, GLIDE from `Tunables.GLIDE` with a high ride height; viewer class picker | FREE_SWIM fingerprints unchanged; GLIDE invariants × all scripts × 3 seeds; 8-seed sweep |
 | **1c** DRIFT (**first cut**, §9.3) | bell-axis body: thrust only along the axis, pulse and coast, passive sink; effort raises pulse rate and strength | thrust never off-axis, tilt rate under cap, invariants, no leash on foot |
 | **1d** Perch + hop (**built**, §9.4) | BENTHIC/ANCHORED attachment (parrot pattern), ballistic hop with crouch, bounded air control and settle; show-off = a hop across the face; in water, hop off into the free-swim body and back on after | hop accel bounded, arcs clear of blocks, no leash on foot, water switch in `pond_dive`/`wading` |
-| **1e** Trios | `CompanionGroup`: leader agent + two boid followers on the heading-first body | per-member invariants, followers never overlap or straggle |
-| **1f** Full table | invariant test over class × script × seed; per-class export | **owner gate**: viewer + per-class GIFs |
+| **1e** Trios (**built**, §9.5) | `CompanionGroup`: leader agent + two boid followers on the heading-first body | per-member invariants, followers never overlap or straggle |
+| **1f** Full table (**built**, §9.6) | invariant test over class × script × seed; per-class export | **owner gate**: viewer + per-class GIFs |
 
 Defaults chosen for the owner's gate: a drifter keeps up by pulsing harder, never by a tether; perchers
 in air hop only between body slots and the hand (no ground walking — that needs a crawl body).
@@ -522,3 +522,62 @@ up to 1.2% of ticks on one seed (the free-swim body under a diving owner; bound 
 **For the owner's look.** ANCHORED is invisible in first person by spec — is that wanted? A hop
 back from the water can pass right in front of the camera (legal, but may read as in-your-face).
 Hops are a crouch-launch-settle; the animator's pose for them is Phase 3.
+
+### 9.5 Step 1e — trios
+
+**As built.** `CompanionGroup.isTrio(locomotion, sizeCm)` is spec §2's rule (FREE_SWIM and under
+20 cm). The leader is a full `CompanionAgent`; the two followers swim the same heading-first
+`Body`, so they turn under the same caps, stop for walls the same way and can't swim backwards.
+Each follower keeps a loose station behind and to one side of the leader in the leader's frame
+(2.2 and 1.8 body lengths, breathing with a slow drift), separation from the other two that grows
+with its own speed, and the owner's soft push. With a wall between it and the leader it follows
+the leader's own trail. Well off station (> 2 blocks) it may sprint to 1.4× the top speed: small
+schooling fish dash to rejoin. Fades travel together; a follower more than 14 blocks off fades and
+rejoins by itself. `TrioInvariantTest` checks the followers; the viewer and exporter have TRIO.
+
+**Measured (8 seeds × 2 min).** Followers: 0 penetrations, never tail-first, turn ≤ 7°/tick,
+jerk ≤ 130. Bodies passing through each other, measured on the drawn bodies (capsules ±0.4 × length
+long, 0.12 × length wide): ≤ 1.3% of ticks on open scripts, 3% in the 1-wide tunnel. (Measured as
+spheres of 0.3 × length it reads up to 6.8%, but the trace showed those were fish flank to flank at
+matching velocity, not through each other.) No follower fades on any open script.
+
+**Decisions, each A/B'd on 8 seeds.**
+- The "lost" line at 8 blocks made followers pop out and back routinely (6–7 per 8 runs on open
+  walks, 30–35 in doorway/forest): a follower facing away when the leader set off after a
+  sprinting owner fell 8 behind before it could turn. At 14, with the sprint, it swims back
+  instead: open-walk fades 0, doorway 30 → 0, forest 35 → 4; the cost is longer trailing in
+  obstacle scenes (doorway straggle 3.9 → 9.1 s, stairwell 7.2 → 11.6 s).
+- Braking for the nearest school-mate (instead of the owner) changed overlap by under half a point
+  — reverted.
+
+**Named gaps.** Followers bump trunks or stairwell steps at up to ~4 b/s while sprinting to rejoin
+(bound 5 there, 3 elsewhere); the 1-wide tunnel is exempt from overlap.
+
+### 9.6 Phase 1 — where it stands, and the owner's gate
+
+| Class | State | In the invariant table |
+|---|---|---|
+| FREE_SWIM | spike body, plus the resting-contact fix (§9.2) | yes |
+| Trio | built (§9.5) | yes (`TrioInvariantTest`) |
+| BENTHIC, ANCHORED | built (§9.4) | yes |
+| GLIDE | **parked** for a tank + companion refactor (§9.2) | yes, with tight-space gaps |
+| DRIFT | **first cut** with open problems (§9.3) | no |
+
+Every FREE_SWIM spike trajectory on open ground is still bitwise identical; only obstacle scenes
+moved, from the contact fix. The new scenes and scripts are in `VoxelScene`/`OwnerScript`; the
+viewer picks class, scene and owner (manual or any script).
+
+**For the owner to look at** (`runCompanionViewer`, or the GIFs from
+`runCompanionHeadless -PsimArgs="--class TRIO|BENTHIC|ANCHORED|DRIFT"`):
+1. Trailing a constantly moving owner (FREE_SWIM `about_face`, `stairwell`): is it fine, as the
+   owner thought?
+2. Trios: does the school read as three fish travelling together, or as one fish with two stuck on?
+3. Crabs: perch, the hop onto the hand, the water switch. A hop back from the water can pass right
+   in front of the camera.
+4. ANCHORED never shows in first person (by spec). Wanted?
+5. DRIFT: stronger pulses as chosen, but it still lags after stops and turns (§9.3) — decide
+   whether to design it further now or park it with GLIDE.
+
+**Found for Phase 2:** the spike's `Mind.perceive` judges "seen" on last tick's position against
+this tick's camera (§9.4); fixing it changes FREE_SWIM's attention timing, so it waits for the
+attention work.

@@ -220,11 +220,32 @@ public final class CompanionRenderer {
             drawJelly(g, cam, a);
             return;
         }
-        double len = a.length() * a.renderAppear();
-        Vec[] fr = frame(a.renderYaw(), a.renderPitch(), a.renderBank());
+        Color body = a.locomotion() == grill24.fishsim.core.Locomotion.BENTHIC ? CRAB
+                : a.locomotion() == grill24.fishsim.core.Locomotion.ANCHORED ? EEL : FISH;
+        drawFishAt(g, cam, a.length() * a.renderAppear(), a.renderPos(), a.renderYaw(), a.renderPitch(),
+                a.renderBank(), a.renderTailPhase(), body);
+    }
+
+    /** A trio's followers, drawn like the leader where the owner can see them. */
+    public static void drawFollowers(BufferedImage img, OwnerState o, LocalVoxels voxels,
+                                     grill24.fishsim.companion.CompanionGroup group, float length) {
+        Graphics2D g = img.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        Cam cam = Cam.of(o, img.getWidth(), img.getHeight());
+        for (int i = 0; i < 2; i++) {
+            var f = group.follower(i);
+            if (f.renderAppear() < 0.01f || !voxels.segmentClear(cam.pos(), f.renderPos(), 0.0)) continue;
+            drawFishAt(g, cam, length * f.renderAppear(), f.renderPos(), f.renderYaw(), f.renderPitch(),
+                    f.renderBank(), f.renderTailPhase(), FISH);
+        }
+        g.dispose();
+    }
+
+    private static void drawFishAt(Graphics2D g, Cam cam, double len, Vec c, float yaw, float pitch, float bankDeg,
+                                   float tailPhase, Color body) {
+        Vec[] fr = frame(yaw, pitch, bankDeg);
         Vec fwd = fr[0], right = fr[1], up = fr[2];
-        Vec c = a.renderPos();
-        double wig = Math.sin(a.renderTailPhase()) * 0.12 * len;
+        double wig = Math.sin(tailPhase) * 0.12 * len;
         java.util.function.Function<double[], Vec> P = v -> c.add(fwd.scale(v[0] * len)).add(up.scale(v[1] * len))
                 .add(right.scale(v[2] * len));
         Vec nose = P.apply(new double[]{0.5, 0, 0});
@@ -246,8 +267,6 @@ public final class CompanionRenderer {
         for (Vec[] t : order) {
             Vec n = t[1].sub(t[0]).cross(t[2].sub(t[0])).normalize();
             double shade = 0.55 + 0.45 * Math.abs(n.dot(LIGHT));
-            Color body = a.locomotion() == grill24.fishsim.core.Locomotion.BENTHIC ? CRAB
-                    : a.locomotion() == grill24.fishsim.core.Locomotion.ANCHORED ? EEL : FISH;
             fill(g, cam, t, shadeColor(t[0] == tail && t[1] == finT ? FISH_FIN : body, shade), false);
         }
         // Eyes: a dark dot on each side near the nose.

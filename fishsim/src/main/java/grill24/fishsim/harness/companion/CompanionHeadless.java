@@ -1,6 +1,7 @@
 package grill24.fishsim.harness.companion;
 
 import grill24.fishsim.companion.CompanionTunables;
+import grill24.fishsim.companion.LocalVoxels;
 import grill24.fishsim.companion.Vec;
 import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.harness.GifSequenceWriter;
@@ -46,6 +47,7 @@ public final class CompanionHeadless {
         String scriptArg = "all";
         long seed = 1;
         Locomotion locomotion = Locomotion.FREE_SWIM;
+        boolean trio = false;
         int ticks = 1200;
         int gifTicks = 1200;
         Path out = Path.of("build", "companion-export");
@@ -56,18 +58,26 @@ public final class CompanionHeadless {
                 case "--ticks" -> ticks = Integer.parseInt(args[++i]);
                 case "--gif-ticks" -> gifTicks = Integer.parseInt(args[++i]);
                 case "--out" -> out = Path.of(args[++i]);
-                case "--class" -> locomotion = Locomotion.valueOf(args[++i].toUpperCase(java.util.Locale.ROOT));
+                case "--class" -> {
+                    String c = args[++i].toUpperCase(java.util.Locale.ROOT);
+                    trio = c.equals("TRIO");
+                    locomotion = trio ? Locomotion.FREE_SWIM : Locomotion.valueOf(c);
+                }
                 default -> throw new IllegalArgumentException("unknown option " + args[i]);
             }
         }
         Files.createDirectories(out);
         List<String> scripts = scriptArg.equals("all") ? OwnerScript.NAMES : List.of(scriptArg.split(","));
-        String prefix = locomotion == Locomotion.FREE_SWIM ? "" : locomotion.name().toLowerCase(java.util.Locale.ROOT) + "_";
+        String prefix = trio ? "trio_"
+                : locomotion == Locomotion.FREE_SWIM ? "" : locomotion.name().toLowerCase(java.util.Locale.ROOT) + "_";
         try (PrintWriter csv = new PrintWriter(Files.newBufferedWriter(out.resolve(prefix + "metrics.csv")))) {
             csv.println("script,seed,ticks,summary");
             for (String script : scripts) {
-                CompanionRun.Metrics m = export(script, seed, locomotion, prefix, ticks, Math.min(gifTicks, ticks), out);
+                CompanionRun run = trio ? CompanionRun.trio(script, seed, CompanionTunables.defaults(), true)
+                        : new CompanionRun(script, seed, locomotion, CompanionTunables.defaults(), true);
+                CompanionRun.Metrics m = export(run, script, prefix, ticks, Math.min(gifTicks, ticks), out);
                 String line = m.summary();
+                if (run.group != null) line += " | " + run.followerMetrics().summary();
                 System.out.printf("%-13s %s%n", script, line);
                 csv.printf("%s,%d,%d,\"%s\"%n", script, seed, ticks, line);
             }
@@ -75,10 +85,9 @@ public final class CompanionHeadless {
         System.out.println("Wrote " + out.toAbsolutePath());
     }
 
-    static CompanionRun.Metrics export(String script, long seed, Locomotion locomotion, String prefix, int ticks,
+    static CompanionRun.Metrics export(CompanionRun run, String script, String prefix, int ticks,
                                        int gifTicks, Path out) throws IOException {
-        CompanionTunables t = CompanionTunables.defaults();
-        CompanionRun run = new CompanionRun(script, seed, locomotion, t, true);
+        CompanionTunables t = run.tunables;
         ArrayDeque<Vec> trail = new ArrayDeque<>();
         List<BufferedImage> sheet = new ArrayList<>();
         Path gifPath = out.resolve(prefix + script + ".gif");
@@ -92,8 +101,13 @@ public final class CompanionHeadless {
                 boolean gifFrame = tick < gifTicks && tick % 2 == 0;
                 boolean sheetFrame = tick % 60 == 0 && sheet.size() < 20;
                 if (!gifFrame && !sheetFrame) continue;
-                run.agent.interpolate(1f);
+                if (run.group != null) run.group.interpolate(1f); else run.agent.interpolate(1f);
                 BufferedImage fp = CompanionRenderer.firstPerson(FP_W, FP_H, run.owner, run.scene, run.agent, true);
+                if (run.group != null) {
+                    LocalVoxels v = new LocalVoxels();
+                    v.update(run.scene, run.owner.eye());
+                    CompanionRenderer.drawFollowers(fp, run.owner, v, run.group, CompanionRun.TRIO_LENGTH);
+                }
                 if (sheetFrame) sheet.add(label(fp, String.format("%s%s t=%.0fs", prefix, script, tick / 20.0)));
                 if (gifFrame) {
                     BufferedImage top = CompanionRenderer.topView(TOP, TOP, run.owner, run.scene, run.agent, t, trail, 22);

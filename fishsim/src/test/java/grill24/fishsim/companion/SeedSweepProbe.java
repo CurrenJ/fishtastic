@@ -27,6 +27,10 @@ class SeedSweepProbe {
     @Test
     void sweep() {
         String only = System.getProperty("sweep");
+        if ("TRIO".equals(System.getProperty("sweepClass"))) {
+            trio(only != null ? only.split(",") : SCRIPTS);
+            return;
+        }
         Locomotion c = Locomotion.valueOf(System.getProperty("sweepClass", "FREE_SWIM"));
         String a = System.getProperty("tweakA"), b = System.getProperty("tweakB");
         if (only == null && a == null && b == null && c == Locomotion.FREE_SWIM) {
@@ -37,6 +41,33 @@ class SeedSweepProbe {
         String[] scripts = only != null ? only.split(",") : SCRIPTS;
         report(c + " A " + (a == null ? "defaults" : a), c, scripts, tweak(a));
         if (b != null) report(c + " B " + b, c, scripts, tweak(b));
+    }
+
+    /** Trio totals: the leader's essentials, and how the followers kept together. */
+    static void trio(String[] scripts) {
+        System.out.println("== TRIO");
+        for (String script : scripts) {
+            long fBackstops = 0, fLeash = 0;
+            double fImpact = 0, minSep = 9, overlap = 0, bodyOverlap = 0, straggle = 0, far = 0;
+            int pen = 0;
+            for (int seed = 1; seed <= SEEDS; seed++) {
+                CompanionRun run = CompanionRun.trio(script, seed, CompanionTunables.defaults(), true);
+                run.run(TICKS);
+                var m = run.metrics();
+                var f = run.followerMetrics();
+                far = Math.max(far, m.longestFarSeconds());
+                pen += m.solidPenetrations() + f.penetrations();
+                fBackstops += f.backstops();
+                fLeash += f.leashEvents();
+                fImpact = Math.max(fImpact, f.maxImpact());
+                if (f.minSeparation() >= 0) minSep = Math.min(minSep, f.minSeparation());
+                overlap = Math.max(overlap, f.overlapFraction());
+                bodyOverlap = Math.max(bodyOverlap, f.bodyOverlapFraction());
+                straggle = Math.max(straggle, f.longestStraggleSeconds());
+            }
+            System.out.printf("  %-15s pen=%d leaderFar=%4.1fs | followers backstops=%4d impact=%.2f leash=%3d minSep=%.3f maxOverlap=%.2f%% maxBodyOverlap=%.2f%% maxStraggle=%4.1fs%n",
+                    script, pen, far, fBackstops, fImpact, fLeash, minSep, overlap * 100, bodyOverlap * 100, straggle);
+        }
     }
 
     /** Sets {@code field=value,...} on the tunables by reflection. */

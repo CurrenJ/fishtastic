@@ -78,6 +78,9 @@ public final class CompanionViewer {
     private OwnerState owner;
     private long seed = 1;
     private Locomotion locomotion = Locomotion.FREE_SWIM;
+    /** A trio of small free swimmers, or null for a solo companion. */
+    private grill24.fishsim.companion.CompanionGroup group;
+    private boolean trio;
     private float lookYaw, lookPitch;
     private boolean paused, stepOnce, teleportNext;
     private long lastNanos = System.nanoTime();
@@ -191,6 +194,11 @@ public final class CompanionViewer {
     }
 
     private CompanionAgent newAgent() {
+        if (trio) {
+            group = new grill24.fishsim.companion.CompanionGroup(tunables, seed, CompanionRun.TRIO_LENGTH, owner, scene);
+            return group.leader();
+        }
+        group = null;
         return new CompanionAgent(tunables, seed, locomotion, CompanionRun.lengthOf(locomotion), owner, scene);
     }
 
@@ -200,7 +208,7 @@ public final class CompanionViewer {
         double elapsed = Math.min(0.25, (now - lastNanos) / 1e9);
         lastNanos = now;
         if (paused && !stepOnce) {
-            agent.interpolate((float) (accumulator / CompanionAgent.DT));
+            interpolate((float) (accumulator / CompanionAgent.DT));
             return;
         }
         accumulator += paused ? CompanionAgent.DT : elapsed;
@@ -209,7 +217,11 @@ public final class CompanionViewer {
             accumulator -= CompanionAgent.DT;
             tick();
         }
-        agent.interpolate((float) (accumulator / CompanionAgent.DT));
+        interpolate((float) (accumulator / CompanionAgent.DT));
+    }
+
+    private void interpolate(float alpha) {
+        if (group != null) group.interpolate(alpha); else agent.interpolate(alpha);
     }
 
     private void tick() {
@@ -235,7 +247,7 @@ public final class CompanionViewer {
             }
             owner = pilot.endTick();
         }
-        agent.step(owner, scene);
+        if (group != null) group.step(owner, scene); else agent.step(owner, scene);
         trail.addLast(agent.position());
         if (trail.size() > TRAIL) trail.removeFirst();
     }
@@ -243,6 +255,7 @@ public final class CompanionViewer {
     private void paintView(Graphics2D g) {
         renderCache.update(scene, owner.eye());
         BufferedImage fp = CompanionRenderer.firstPerson(FP_W, FP_H, owner, renderCache, agent, true);
+        if (group != null) CompanionRenderer.drawFollowers(fp, owner, renderCache, group, CompanionRun.TRIO_LENGTH);
         BufferedImage top = CompanionRenderer.topView(TOP_W, FP_H, owner, renderCache, agent, tunables, trail, 30);
         g.drawImage(fp, 0, 0, null);
         g.drawImage(top, FP_W, 0, null);
@@ -268,9 +281,11 @@ public final class CompanionViewer {
             reset((String) sceneBox.getSelectedItem(), (String) ownerBox.getSelectedItem());
             canvas.requestFocusInWindow();
         };
-        JComboBox<String> classBox = new JComboBox<>(new String[]{"FREE_SWIM", "GLIDE", "DRIFT", "BENTHIC", "ANCHORED"});
+        JComboBox<String> classBox = new JComboBox<>(new String[]{"FREE_SWIM", "TRIO", "GLIDE", "DRIFT", "BENTHIC", "ANCHORED"});
         classBox.addActionListener(e -> {
-            locomotion = Locomotion.valueOf((String) classBox.getSelectedItem());
+            String c = (String) classBox.getSelectedItem();
+            trio = c.equals("TRIO");
+            locomotion = trio ? Locomotion.FREE_SWIM : Locomotion.valueOf(c);
             apply.run();
         });
         sceneBox.addActionListener(e -> apply.run());

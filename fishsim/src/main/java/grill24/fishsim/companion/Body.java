@@ -78,6 +78,8 @@ final class Body extends Motor {
     float wanderH, wanderV;
     /** A glider's tuck: 0 open-air limits, 1 a swimmer's (see {@link Gait#tucked}). */
     double tuck;
+    /** Multiplier on the top speed: a trio follower sprinting to rejoin its school; 1 otherwise. */
+    double speedBoost = 1;
     private long noise;
 
     Body(CompanionTunables t, Locomotion locomotion, Vec pos, float yaw, double radius, long seed) {
@@ -194,7 +196,7 @@ final class Body extends Motor {
             target = Math.min(target, Math.sqrt(2 * g.maxForce() * BRAKE_SHARE * room));
         }
         target = Math.min(target, ownerSpeedLimit(fwd));
-        target = Math.min(target, g.maxSpeed());
+        target = Math.min(target, g.maxSpeed() * speedBoost);
         double cmd = clamp((target - speed) * g.steeringGain(), -g.maxForce(), g.maxForce());
         forwardAccel += clamp(cmd - forwardAccel, -g.maxJerk() * DT, g.maxJerk() * DT);
         speed += forwardAccel * DT;

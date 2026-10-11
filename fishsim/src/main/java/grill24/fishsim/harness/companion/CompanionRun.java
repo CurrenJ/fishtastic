@@ -1,6 +1,7 @@
 package grill24.fishsim.harness.companion;
 
 import grill24.fishsim.companion.CompanionAgent;
+import grill24.fishsim.companion.CompanionGroup;
 import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.companion.CompanionTunables;
 import grill24.fishsim.companion.LocalVoxels;
@@ -56,17 +57,57 @@ public final class CompanionRun {
 
     public CompanionRun(String scriptName, long seed, Locomotion locomotion, float length, CompanionTunables tunables,
                         boolean record) {
+        this(scriptName, seed, locomotion, length, tunables, record, false);
+    }
+
+    /** A trio of small free swimmers (spec §2): the agent is the leader; followers are recorded too. */
+    public static CompanionRun trio(String scriptName, long seed, CompanionTunables tunables, boolean record) {
+        return new CompanionRun(scriptName, seed, Locomotion.FREE_SWIM, TRIO_LENGTH, tunables, record, true);
+    }
+
+    /** A typical rendered length for a trio member, blocks (a fish under 20 cm). */
+    public static final float TRIO_LENGTH = 0.18f;
+
+    private CompanionRun(String scriptName, long seed, Locomotion locomotion, float length, CompanionTunables tunables,
+                         boolean record, boolean trio) {
         this.script = OwnerScript.named(scriptName, seed);
         this.scene = script.scene;
         this.tunables = tunables;
         this.record = record;
         this.owner = script.next();
-        this.agent = new CompanionAgent(tunables, seed, locomotion, length, owner, scene);
+        if (trio) {
+            this.group = new CompanionGroup(tunables, seed, length, owner, scene);
+            this.agent = group.leader();
+        } else {
+            this.group = null;
+            this.agent = new CompanionAgent(tunables, seed, locomotion, length, owner, scene);
+        }
     }
+
+    /** One follower's tick, for the trio's own invariants. */
+    public record FollowerSample(Vec pos, Vec vel, Vec acc, float yaw, float pitch, float turn, boolean backstop,
+                                 double impact, float appear) {}
+
+    /** The trio, or null for a solo companion. */
+    public final CompanionGroup group;
+    public final List<FollowerSample[]> followerSamples = new ArrayList<>();
 
     public void tick() {
         owner = script.next();
-        agent.step(owner, scene);
+        if (group != null) {
+            group.step(owner, scene);
+            if (record) {
+                FollowerSample[] fs = new FollowerSample[2];
+                for (int i = 0; i < 2; i++) {
+                    CompanionGroup.Follower f = group.follower(i);
+                    fs[i] = new FollowerSample(f.position(), f.velocity(), f.acceleration(), f.yaw(), f.pitch(),
+                            f.lastTurnDeg(), f.backstopLastStep(), f.lastImpact(), f.appear());
+                }
+                followerSamples.add(fs);
+            }
+        } else {
+            agent.step(owner, scene);
+        }
         if (record) {
             samples.add(new Sample(owner, agent.position(), agent.velocity(), agent.acceleration(),
                     agent.yaw(), agent.pitch(), agent.bank(), agent.lastTurnDeg(), agent.goal(),
@@ -122,6 +163,124 @@ public final class CompanionRun {
                     .append(Math.round(v * 100)).append("% "));
             return b.toString().trim();
         }
+    }
+
+    /** What the trio's followers did: the same floor as the leader, plus keeping together. */
+    public record FollowerMetrics(int penetrations, long backstops, double maxImpact, double maxAccel, double maxJerk,
+                                  double maxTurnDeg, double tailFirstFraction, double minSeparation,
+                                  double overlapFraction, double bodyOverlapFraction, double longestStraggleSeconds,
+                                  long leashEvents) {
+        public String summary() {
+            return String.format("followers: pen=%d backstop=%d impact=%.2f acc=%.2f jerk=%.1f turn=%.1f° tailFirst=%.1f%% "
+                            + "minSep=%.3f overlap=%.2f%% bodyOverlap=%.2f%% straggle=%.1fs leash=%d",
+                    penetrations, backstops, maxImpact, maxAccel, maxJerk, maxTurnDeg, tailFirstFraction * 100,
+                    minSeparation, overlapFraction * 100, bodyOverlapFraction * 100, longestStraggleSeconds, leashEvents);
+        }
+    }
+
+    /** A fish as the renderer draws it: nose to tail along its heading, about this wide per unit length. */
+    static final double BODY_HALF_LENGTH = 0.4, BODY_HALF_WIDTH = 0.12;
+
+    static Vec[] fishSegment(Vec center, float yaw, float pitch, float length) {
+        Vec half = Vec.fromYawPitch(yaw, pitch).scale(BODY_HALF_LENGTH * length);
+        return new Vec[]{center.sub(half), center.add(half)};
+    }
+
+    /** The shortest distance between segments {@code p} and {@code q}. */
+    static double segmentDistance(Vec[] p, Vec[] q) {
+        Vec d1 = p[1].sub(p[0]), d2 = q[1].sub(q[0]), r = p[0].sub(q[0]);
+        double a = d1.dot(d1), e = d2.dot(d2), f = d2.dot(r);
+        double s, t;
+        if (a < 1e-12 && e < 1e-12) return p[0].distanceTo(q[0]);
+        if (a < 1e-12) {
+            s = 0;
+            t = clamp01(f / e);
+        } else {
+            double c = d1.dot(r);
+            if (e < 1e-12) {
+                t = 0;
+                s = clamp01(-c / a);
+            } else {
+                double b = d1.dot(d2), denom = a * e - b * b;
+                s = denom > 1e-12 ? clamp01((b * f - c * e) / denom) : 0;
+                t = (b * s + f) / e;
+                if (t < 0) {
+                    t = 0;
+                    s = clamp01(-c / a);
+                } else if (t > 1) {
+                    t = 1;
+                    s = clamp01((b - c) / a);
+                }
+            }
+        }
+        return p[0].add(d1.scale(s)).distanceTo(q[0].add(d2.scale(t)));
+    }
+
+    private static double clamp01(double v) {
+        return v < 0 ? 0 : Math.min(1, v);
+    }
+
+    /** Distance from the leader, blocks, beyond which a follower counts as straggling. */
+    public static final double STRAGGLE = 2.5;
+
+    /** The followers' metrics over the recorded run, or null for a solo companion. */
+    public FollowerMetrics followerMetrics() {
+        if (group == null) return null;
+        LocalVoxels truth = new LocalVoxels();
+        double dt = CompanionAgent.DT;
+        int pen = 0, moving = 0, tailFirst = 0, together = 0, overlapping = 0, bodiesOverlapping = 0;
+        double touch = 2 * group.follower(0).radius();
+        double maxImpact = 0, maxAcc = 0, maxJerk = 0, maxTurn = 0, minSep = Double.MAX_VALUE;
+        int[] straggle = new int[2];
+        int longest = 0;
+        Vec[] prevAcc = new Vec[2];
+        boolean[] prevContact = new boolean[2];
+        for (int k = 0; k < followerSamples.size(); k++) {
+            FollowerSample[] fs = followerSamples.get(k);
+            Sample leaderS = samples.get(k);
+            truth.update(scene, leaderS.owner().eye());
+            boolean allIn = leaderS.appear() >= 1f;
+            for (int i = 0; i < 2; i++) {
+                FollowerSample f = fs[i];
+                if (!truth.sphereClear(f.pos(), group.follower(i).radius() * 0.999)) pen++;
+                maxImpact = Math.max(maxImpact, f.impact());
+                boolean settled = f.appear() >= 1f && leaderS.fade() == CompanionAgent.Fade.NONE;
+                allIn &= f.appear() >= 1f;
+                boolean contact = f.backstop() || prevContact[i];
+                prevContact[i] = f.backstop();
+                if (settled && !contact) {
+                    maxAcc = Math.max(maxAcc, f.acc().length());
+                    if (prevAcc[i] != null) maxJerk = Math.max(maxJerk, f.acc().sub(prevAcc[i]).length() / dt);
+                    maxTurn = Math.max(maxTurn, Math.abs(f.turn()));
+                    if (f.vel().length() > 1.0) {
+                        moving++;
+                        if (Vec.fromYawPitch(f.yaw(), f.pitch()).dot(f.vel().normalize()) < -0.17) tailFirst++;
+                    }
+                }
+                prevAcc[i] = settled && !contact ? f.acc() : null;
+                straggle[i] = settled && f.pos().distanceTo(leaderS.pos()) > STRAGGLE ? straggle[i] + 1 : 0;
+                longest = Math.max(longest, straggle[i]);
+            }
+            if (allIn) {
+                // Two bodies closer than their radii combined are drawn through each other.
+                double sep = fs[0].pos().distanceTo(fs[1].pos());
+                for (FollowerSample f : fs) sep = Math.min(sep, f.pos().distanceTo(leaderS.pos()));
+                minSep = Math.min(minSep, sep);
+                together++;
+                if (sep < touch) overlapping++;
+                // As drawn: long thin bodies, which side by side can be far closer than two spheres.
+                Vec[] l = fishSegment(leaderS.pos(), leaderS.yaw(), leaderS.pitch(), group.leader().length());
+                Vec[] a = fishSegment(fs[0].pos(), fs[0].yaw(), fs[0].pitch(), group.leader().length());
+                Vec[] b = fishSegment(fs[1].pos(), fs[1].yaw(), fs[1].pitch(), group.leader().length());
+                double bodyGap = Math.min(segmentDistance(l, a), Math.min(segmentDistance(l, b), segmentDistance(a, b)));
+                if (bodyGap < 2 * BODY_HALF_WIDTH * group.leader().length()) bodiesOverlapping++;
+            }
+        }
+        return new FollowerMetrics(pen, group.follower(0).backstops() + group.follower(1).backstops(), maxImpact,
+                maxAcc, maxJerk, maxTurn, moving == 0 ? 0 : tailFirst / (double) moving,
+                minSep == Double.MAX_VALUE ? -1 : minSep, together == 0 ? 0 : overlapping / (double) together,
+                together == 0 ? 0 : bodiesOverlapping / (double) together, longest * dt,
+                group.follower(0).leashEvents() + group.follower(1).leashEvents());
     }
 
     /** Computes the metrics over the recorded samples (requires {@code record = true}). */
