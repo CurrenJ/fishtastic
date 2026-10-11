@@ -1,5 +1,7 @@
 package grill24.fishsim.companion;
 
+import grill24.fishsim.core.Locomotion;
+
 /**
  * One companion fish: a {@link Mind} that decides, a {@link Body} that swims, and the blocks
  * around its owner (docs/fish-companions-sim-plan.md §3).
@@ -31,6 +33,7 @@ public final class CompanionAgent {
     private final LocalVoxels voxels = new LocalVoxels();
     private final Breadcrumbs crumbs = new Breadcrumbs();
     private final float length;
+    private final Locomotion locomotion;
 
     private float appear = 1f;
     private Fade fade = Fade.NONE;
@@ -50,12 +53,22 @@ public final class CompanionAgent {
      * @param length rendered body length in blocks; sets the collision radius
      */
     public CompanionAgent(CompanionTunables t, long seed, float length, OwnerState owner, BlockQuery blocks) {
+        this(t, seed, Locomotion.FREE_SWIM, length, owner, blocks);
+    }
+
+    /**
+     * @param locomotion the species' class: FREE_SWIM or GLIDE so far
+     * @param length     rendered body length in blocks; sets the collision radius
+     */
+    public CompanionAgent(CompanionTunables t, long seed, Locomotion locomotion, float length, OwnerState owner,
+                          BlockQuery blocks) {
         this.t = t;
         this.length = length;
+        this.locomotion = locomotion;
         double radius = Math.max(0.08, Math.min(0.3, length * 0.3));
         voxels.update(blocks, owner.eye());
         Vec start = besideOwner(owner, radius);
-        this.body = new Body(t, start, owner.yawDeg(), radius, seed ^ 0x5DEECE66DL);
+        this.body = new Body(t, locomotion, start, owner.yawDeg(), radius, seed ^ 0x5DEECE66DL);
         this.mind = new Mind(t, body, seed);
         this.prevPos = start;
         this.renderPos = start;
@@ -170,6 +183,9 @@ public final class CompanionAgent {
     public float burstDrive() { return body.burstDrive; }
     public double radius() { return body.radius; }
     public float length() { return length; }
+    public Locomotion locomotion() { return locomotion; }
+    /** This class's turn-rate cap, degrees per tick (for invariants and overlays). */
+    public float turnRateCap() { return body.g.turnRateDegPerTick(); }
     public float appear() { return appear; }
     public Fade fade() { return fade; }
     public long leashEvents() { return leashEvents; }

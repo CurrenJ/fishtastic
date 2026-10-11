@@ -211,6 +211,10 @@ public final class CompanionRenderer {
     }
 
     private static void drawFish(Graphics2D g, Cam cam, CompanionAgent a) {
+        if (a.locomotion() == grill24.fishsim.core.Locomotion.GLIDE) {
+            drawRay(g, cam, a);
+            return;
+        }
         double len = a.length() * a.renderAppear();
         Vec[] fr = frame(a.renderYaw(), a.renderPitch(), a.renderBank());
         Vec fwd = fr[0], right = fr[1], up = fr[2];
@@ -247,6 +251,40 @@ public final class CompanionRenderer {
             double rpx = Math.max(1.0, 0.025 * len / ec.z() * cam.f());
             g.setColor(new Color(20, 20, 30));
             g.fill(new java.awt.geom.Ellipse2D.Double(cam.sx(ec) - rpx, cam.sy(ec) - rpx, rpx * 2, rpx * 2));
+        }
+    }
+
+    /** A ray: a flat diamond whose wingtips rise and fall with the beat, and a whip of a tail. */
+    private static void drawRay(Graphics2D g, Cam cam, CompanionAgent a) {
+        double len = a.length() * a.renderAppear();
+        Vec[] fr = frame(a.renderYaw(), a.renderPitch(), a.renderBank());
+        Vec fwd = fr[0], right = fr[1], up = fr[2];
+        Vec c = a.renderPos();
+        double flap = Math.sin(a.renderTailPhase()) * 0.14 * len;
+        java.util.function.Function<double[], Vec> P = v -> c.add(fwd.scale(v[0] * len)).add(up.scale(v[1] * len))
+                .add(right.scale(v[2] * len));
+        Vec nose = P.apply(new double[]{0.38, 0, 0});
+        Vec mid = P.apply(new double[]{0.0, 0.05, 0});
+        Vec back = P.apply(new double[]{-0.3, 0, 0});
+        Vec wl = P.apply(new double[]{-0.02, 0, -0.55}).add(up.scale(flap));
+        Vec wr = P.apply(new double[]{-0.02, 0, 0.55}).add(up.scale(flap));
+        Vec tail = P.apply(new double[]{-0.75, 0, 0}).add(right.scale(flap * 0.3));
+        Color body = new Color(0x7A6A58), belly = new Color(0xD8CFC0);
+        Vec[][] tris = {{nose, wl, mid}, {nose, mid, wr}, {back, mid, wl}, {back, wr, mid}};
+        List<Vec[]> order = new ArrayList<>(List.of(tris));
+        order.sort((p, q) -> Double.compare(centroid(q).distanceTo(cam.pos()), centroid(p).distanceTo(cam.pos())));
+        for (Vec[] t : order) {
+            Vec n = t[1].sub(t[0]).cross(t[2].sub(t[0])).normalize();
+            boolean fromBelow = cam.pos().sub(c).dot(up) < 0;
+            double shade = 0.55 + 0.45 * Math.abs(n.dot(LIGHT));
+            fill(g, cam, t, shadeColor(fromBelow ? belly : body, shade), false);
+        }
+        Vec bc = cam.toCam(back), tc = cam.toCam(tail);
+        if (bc.z() > NEAR && tc.z() > NEAR) {
+            g.setColor(new Color(0x4A3F34));
+            g.setStroke(new BasicStroke(1.5f));
+            g.draw(new Line2D.Double(cam.sx(bc), cam.sy(bc), cam.sx(tc), cam.sy(tc)));
+            g.setStroke(new BasicStroke(1f));
         }
     }
 

@@ -383,7 +383,7 @@ first-person GIFs. **Go** = it reads as a creature deciding things, not a staged
 | Step | Builds | Gate |
 |---|---|---|
 | **1a** Harness + perception | water bits (`BlockQuery.water`, `LocalVoxels`), `OwnerState.inWater` (water at the chest), terrain-following pilot (opt-in per script); scenes `stairwell`, `low_ceiling`, `pond`; scripts `stairwell`, `low_ceiling`, `pond_dive`, `wading`, `about_face`, `jumping`, `creative_flight`; water in the renderer | FREE_SWIM fingerprints of the 11 spike scripts bitwise identical (`FingerprintProbe`); FREE_SWIM invariants on the new scripts, or the gap named |
-| **1b** Body seam + GLIDE | per-class gait, GLIDE from `Tunables.GLIDE` with a high ride height; viewer class picker | FREE_SWIM fingerprints unchanged; GLIDE invariants × all scripts × 3 seeds; 8-seed sweep |
+| **1b** Body seam + GLIDE (**parked**, §9.2) | per-class gait, GLIDE from `Tunables.GLIDE` with a high ride height; viewer class picker | FREE_SWIM fingerprints unchanged; GLIDE invariants × all scripts × 3 seeds; 8-seed sweep |
 | **1c** DRIFT | bell-axis body: thrust only along the axis, pulse and coast, passive sink; effort raises pulse rate and strength | thrust never off-axis, tilt rate under cap, invariants, no leash on foot |
 | **1d** Perch + hop | BENTHIC/ANCHORED attachment (parrot pattern), ballistic hop with crouch, bounded air control and settle; show-off = a hop across the face; in water, hop off into the free-swim body and back on after | hop accel bounded, arcs clear of blocks, no leash on foot, water switch in `pond_dive`/`wading` |
 | **1e** Trios | `CompanionGroup`: leader agent + two boid followers on the heading-first body | per-member invariants, followers never overlap or straggle |
@@ -397,7 +397,9 @@ in air hop only between body slots and the hand (no ground walking — that need
 - Every spike trajectory is bitwise unchanged (33 fingerprints, 11 scripts × 3 seeds).
 - FREE_SWIM on the new scripts (8 seeds × 2 min): 0 penetrations, 0 facing error, contacts only
   in the cellar (5, ≤ 0.97 b/s).
-- **Known gaps, carried to Phase 2's attention work** (named in `CompanionInvariantTest`):
+- **Trailing a constantly moving owner** (named in `CompanionInvariantTest`). Owner, 2026-10-11:
+  "it's okay for the fish to trail behind on constant movement. That's kind of what you'd
+  expect" — to be confirmed in person; until then these stay named exceptions, not tuning targets:
   - `about_face` (reversing every 2–3 s): the fish starts every leg behind the owner, spends ~2 s
     catching up, then rides at 65–80° off centre, just outside the ~49° horizontal half-FOV; legs
     end before the attention drive (7–20 s) fires. Longest unseen 38.6 s across 8 seeds, catch-up 51%.
@@ -405,3 +407,34 @@ in air hop only between body slots and the hand (no ground walking — that need
     put it near the camera 0.7% of ticks on average, 1.1% at worst (bound 1%, relaxed to 2% there).
 - Correction to §8.2: re-measured at b3b1b0b6, "whiskers off" gives doorway 102 / forest 108
   contacts (8 seeds × 2 min), not 180 / 281; the whiskers-on numbers (31 / 44) match.
+
+### 9.2 Step 1b — the body seam, a contact deadlock, and GLIDE (parked)
+
+**The seam.** `Gait` holds a class's body limits and riding geometry, rebuilt from
+`CompanionTunables` every tick (sliders stay live). `Body` and `Mind` read it; FREE_SWIM's gait is
+the existing fields, so the seam itself left all 33 fingerprints bitwise identical.
+
+**A contact deadlock in the spike body (fixed).** FREE_SWIM in the cellar, seed 4, sat motionless
+against a pillar for 27 s while its owner walked round. The hard resolve stops a body exactly one
+radius from a block; the braking probes sweep radius + 0.02, so they overlap the block from the
+start. At rest the velocity is pure vertical slip, the velocity probe slides up the face, reads 0
+free, the speed target is 0, and the body never leaves rest. Fix: a body at rest (forward speed
+< 0.1 b/s) brakes on its nose and turn arc only. Equal grounds (FREE_SWIM, 8 seeds × 2 min, off →
+on): cellar farthest 26.8 → 2.0 s, corridor 14.9 → 12.6 s, contacts corridor 90 → 78, doorway
+31 → 47, forest 44 → 54, max impact unchanged (≤ 2.68 b/s). Two broader variants (relax every
+probe; relax the velocity probe) raised contacts further and were dropped. Only obstacle-scene
+fingerprints moved (7 of 33); open ground is bitwise unchanged.
+
+**GLIDE — parked by the owner (2026-10-11):** "glide in both the companion and the fish tank sim
+need a major refactor in the future. They do not work as I'd like at the moment." What exists is a
+first cut, left in place but not tuned further:
+
+- The tank's flat 2.2°/tick cap could not follow an owner: walk catch-up 50%, stairwell farthest
+  23.7 s, cellar 32.8 s (8 seeds). Raising the pitch cap (stairs climb at 45°) and matching the
+  swimmer's size were both tested and refuted.
+- As parked: turning capped by sideways acceleration (2.5 b/s², pivot ≤ 4.5°/tick), and a "tuck"
+  toward the swimmer's limits as blocks close in. In the open it passes every invariant.
+- In corridor, doorway, forest and stairwell it doesn't (named `GLIDE_TIGHT_SPACE_GAPS`): 12–20
+  contacts/min, impacts to 3.3 b/s, farthest 13–18 s, fades in the 1-wide tunnel. The tuck
+  helped 7 of 9 scripts and regressed the stairwell (13.2 → 18.0 s).
+- The refactor should be designed for the tank and the companion together.

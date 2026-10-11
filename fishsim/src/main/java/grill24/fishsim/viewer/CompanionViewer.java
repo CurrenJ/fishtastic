@@ -5,6 +5,7 @@ import grill24.fishsim.companion.CompanionTunables;
 import grill24.fishsim.companion.LocalVoxels;
 import grill24.fishsim.companion.OwnerState;
 import grill24.fishsim.companion.Vec;
+import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.harness.companion.CompanionRun;
 import grill24.fishsim.harness.companion.OwnerScript;
 import grill24.fishsim.harness.companion.VoxelScene;
@@ -76,6 +77,7 @@ public final class CompanionViewer {
     private CompanionAgent agent;
     private OwnerState owner;
     private long seed = 1;
+    private Locomotion locomotion = Locomotion.FREE_SWIM;
     private float lookYaw, lookPitch;
     private boolean paused, stepOnce, teleportNext;
     private long lastNanos = System.nanoTime();
@@ -114,7 +116,7 @@ public final class CompanionViewer {
                     case KeyEvent.VK_T -> teleportNext = true;
                     case KeyEvent.VK_R -> {
                         seed++;
-                        agent = new CompanionAgent(tunables, seed, CompanionRun.LENGTH, owner, scene);
+                        agent = newAgent();
                         trail.clear();
                     }
                     default -> { }
@@ -183,9 +185,13 @@ public final class CompanionViewer {
             scene = script.scene;
             owner = script.next();
         }
-        agent = new CompanionAgent(tunables, seed, CompanionRun.LENGTH, owner, scene);
+        agent = newAgent();
         trail.clear();
         accumulator = 0;
+    }
+
+    private CompanionAgent newAgent() {
+        return new CompanionAgent(tunables, seed, locomotion, CompanionRun.lengthOf(locomotion), owner, scene);
     }
 
     /** Runs whole 20 Hz ticks for the real time that has passed, then interpolates the remainder. */
@@ -262,8 +268,14 @@ public final class CompanionViewer {
             reset((String) sceneBox.getSelectedItem(), (String) ownerBox.getSelectedItem());
             canvas.requestFocusInWindow();
         };
+        JComboBox<String> classBox = new JComboBox<>(new String[]{"FREE_SWIM", "GLIDE"});
+        classBox.addActionListener(e -> {
+            locomotion = Locomotion.valueOf((String) classBox.getSelectedItem());
+            apply.run();
+        });
         sceneBox.addActionListener(e -> apply.run());
         ownerBox.addActionListener(e -> apply.run());
+        panel.add(row(new JLabel("class"), classBox));
         panel.add(row(new JLabel("scene"), sceneBox));
         panel.add(row(new JLabel("owner"), ownerBox));
 

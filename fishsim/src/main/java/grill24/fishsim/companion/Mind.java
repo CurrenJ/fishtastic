@@ -147,7 +147,8 @@ final class Mind {
 
     private void updateDrives() {
         double idleWiden = smoothstep(0, 10 * TPS, stillTicks);
-        bandOuterNow = ownerMoving ? t.bandOuter : t.bandOuter + (t.bandOuterIdle - t.bandOuter) * idleWiden;
+        bandOuterNow = (ownerMoving ? t.bandOuter : t.bandOuter + (t.bandOuterIdle - t.bandOuter) * idleWiden)
+                * body.g.bandScale();
         proximity = (float) smoothstep(bandOuterNow, t.farGap, ownerDist);
         if (!losToOwner && ownerDist > 1.2) proximity = Math.max(proximity, 0.75f);
 
@@ -253,29 +254,32 @@ final class Mind {
                 dwelling = true;
                 dwellTicks = drawTicks(t.dwellMinSeconds, t.dwellMaxSeconds);
             }
-            double speed = Math.min(t.cruiseSpeed * body.burstDrive, 0.1 + d * 1.2);
+            double speed = Math.min(body.g.cruiseSpeed() * body.burstDrive, 0.1 + d * 1.2);
             return aroundOwner(o, v, spot).sub(body.pos).normalize().scale(speed);
         }
         // Lingering: a slow mill held loosely to the spot.
         wanderScale = 1.2;
         if (--dwellTicks <= 0) spot = null;
         Vec heading = Vec.fromYawPitch(body.yaw, 0);
-        return heading.scale(0.25 * t.cruiseSpeed * body.burstDrive).add(to.scale(0.6));
+        return heading.scale(0.25 * body.g.cruiseSpeed() * body.burstDrive).add(to.scale(0.6));
     }
 
     /** A nearby open spot inside the comfort band, a short hop from where the fish is now. */
     private Vec pickSpot(OwnerState o, LocalVoxels v) {
         Vec chest = o.chest();
-        double inner = t.bandInner + 0.2;
+        Gait g = body.g;
+        double inner = t.bandInner * g.bandScale() + 0.2;
         double outer = Math.max(inner + 0.3, bandOuterNow - 0.3);
         for (int attempt = 0; attempt < 24; attempt++) {
             double yaw = o.yawDeg() + (unit() - 0.5) * 300;
             double r = inner + (outer - inner) * unit();
-            double h = -0.6 + 1.2 * unit();
+            double h = g.rideHeight() + (-0.6 + 1.2 * unit()) * g.heightSpread();
+            // A rider that wants height comes down under a ceiling: later attempts try lower.
+            if (g.rideHeight() > 0 && attempt >= 8) h = Math.min(h, g.rideHeight() * (1 - (attempt - 8) / 8.0));
             Vec p = chest.add(Vec.fromYawPitch(yaw, 0).scale(r)).add(0, h, 0);
             double hop = p.distanceTo(body.pos);
             boolean relaxed = attempt >= 16; // late attempts drop the hop-length preference
-            if (!relaxed && (hop < 0.7 || hop > 3.2)) continue;
+            if (!relaxed && (hop < g.hopMin() || hop > g.hopMax())) continue;
             if (!v.sphereClear(p, body.radius + 0.25)) continue;
             if (!v.segmentClear(body.pos, p, body.radius)) continue;
             if (p.distanceTo(o.eye()) < 1.2 && Visibility.angleFromCenterDeg(o, p) < 12) continue;
@@ -320,13 +324,14 @@ final class Mind {
         driftAlong = ou(driftAlong);
         driftHeight = ou(driftHeight);
 
-        double lateral = t.escortLateral + driftLat * 0.3;
+        double lateral = t.escortLateral * body.g.lateralScale() + driftLat * 0.3;
         lateralSigned = approach(lateralSigned, side * lateral, 0.9 * Body.DT);
         // Crossing over goes in front of the owner, never through them.
-        double centre = 1 - Math.min(1, Math.pow(lateralSigned / t.escortLateral, 2));
+        double centre = 1 - Math.min(1, Math.pow(lateralSigned / (t.escortLateral * body.g.lateralScale()), 2));
         double along = alongBase + driftAlong * 0.4 + surge + 1.4 * centre;
         double height = 0.15 + driftHeight * 0.25;
         Vec station = chest.add(r.scale(lateralSigned)).add(f.scale(along)).add(0, height, 0);
+        if (body.g.rideHeight() > 0) station = ridingHigh(v, station, body.g.rideHeight());
         if (!v.sphereClear(station, body.radius + 0.2) || !v.segmentClear(chest, station, 0.1)) {
             // No room beside the owner (a corridor, a doorway): fall in behind, on their trail —
             // unless the fish is already in front and getting behind means squeezing past them,
@@ -342,8 +347,8 @@ final class Mind {
         }
         target = station;
         wanderScale = 0.5;
-        Vec correction = aroundOwner(o, v, station).sub(body.pos).scale(1.2).clampLength(t.catchUpSpeed);
-        Vec surgeSwim = f.scale((body.burstDrive - 1) * 0.4 * t.cruiseSpeed);
+        Vec correction = aroundOwner(o, v, station).sub(body.pos).scale(1.2).clampLength(body.g.catchUpSpeed());
+        Vec surgeSwim = f.scale((body.burstDrive - 1) * 0.4 * body.g.cruiseSpeed());
         return o.velocity().horizontal().add(correction).add(surgeSwim);
     }
 
@@ -362,7 +367,7 @@ final class Mind {
         wanderScale = 0.25;
         double d = dest.distanceTo(body.pos);
         double ownerSpeed = o.velocity().length();
-        double speed = Math.max(t.cruiseSpeed * 1.5, Math.min(t.catchUpSpeed, ownerSpeed + 1.0 + 0.8 * d));
+        double speed = Math.max(body.g.cruiseSpeed() * 1.5, Math.min(body.g.catchUpSpeed(), ownerSpeed + 1.0 + 0.8 * d));
         speed = Math.min(speed, ownerSpeed + d * 1.5);
         return aroundOwner(o, v, dest).sub(body.pos).normalize().scale(speed);
     }
@@ -391,17 +396,29 @@ final class Mind {
         double speed;
         if (showPhase == 0) {
             if (d < 0.45) showPhase = 1;
-            speed = Math.min(t.cruiseSpeed * 1.6, 0.4 + d * 1.5);
+            speed = Math.min(body.g.cruiseSpeed() * 1.6, 0.4 + d * 1.5);
         } else {
             if (d < 0.5) {
                 showPhase = 0;
                 showSide = -showSide;
             }
-            speed = t.cruiseSpeed * 0.9;
+            speed = body.g.cruiseSpeed() * 0.9;
         }
         // Swim relative to the owner, so a show still reaches the front of someone walking.
         Vec relative = aroundOwner(o, v, dest).sub(body.pos).normalize().scale(speed);
         return o.velocity().horizontal().add(relative);
+    }
+
+    /**
+     * {@code station} lifted by {@code height}, or as much of it as the blocks allow: a glider
+     * rides over the owner's head in the open and comes down under a ceiling.
+     */
+    private Vec ridingHigh(LocalVoxels v, Vec station, double height) {
+        for (int k = 4; k >= 1; k--) {
+            Vec lifted = station.add(0, height * k / 4, 0);
+            if (v.sphereClear(lifted, body.radius + 0.2) && v.segmentClear(station, lifted, body.radius)) return lifted;
+        }
+        return station;
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────────────────────

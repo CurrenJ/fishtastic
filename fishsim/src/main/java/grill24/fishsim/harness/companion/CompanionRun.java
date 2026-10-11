@@ -1,6 +1,7 @@
 package grill24.fishsim.harness.companion;
 
 import grill24.fishsim.companion.CompanionAgent;
+import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.companion.CompanionTunables;
 import grill24.fishsim.companion.LocalVoxels;
 import grill24.fishsim.companion.OwnerState;
@@ -21,6 +22,14 @@ public final class CompanionRun {
     /** Default fish length for runs, blocks. */
     public static final float LENGTH = 0.4f;
 
+    /** A typical rendered length for a companion of each class, blocks. */
+    public static float lengthOf(Locomotion c) {
+        return switch (c) {
+            case GLIDE -> 0.7f;
+            default -> LENGTH;
+        };
+    }
+
     public record Sample(OwnerState owner, Vec pos, Vec vel, Vec acc, float yaw, float pitch, float bank,
                          float turn, String goal, boolean seen, double ownerDist, float appear,
                          CompanionAgent.Fade fade, boolean backstop, double impact, int goalTicks) {}
@@ -34,12 +43,21 @@ public final class CompanionRun {
     private final boolean record;
 
     public CompanionRun(String scriptName, long seed, CompanionTunables tunables, boolean record) {
+        this(scriptName, seed, Locomotion.FREE_SWIM, tunables, record);
+    }
+
+    public CompanionRun(String scriptName, long seed, Locomotion locomotion, CompanionTunables tunables, boolean record) {
+        this(scriptName, seed, locomotion, lengthOf(locomotion), tunables, record);
+    }
+
+    public CompanionRun(String scriptName, long seed, Locomotion locomotion, float length, CompanionTunables tunables,
+                        boolean record) {
         this.script = OwnerScript.named(scriptName, seed);
         this.scene = script.scene;
         this.tunables = tunables;
         this.record = record;
         this.owner = script.next();
-        this.agent = new CompanionAgent(tunables, seed, LENGTH, owner, scene);
+        this.agent = new CompanionAgent(tunables, seed, locomotion, length, owner, scene);
     }
 
     public void tick() {

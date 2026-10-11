@@ -1,5 +1,7 @@
 package grill24.fishsim.companion;
 
+import grill24.fishsim.core.Locomotion;
+
 /**
  * A free-swimming companion's body: it takes the velocity the mind wants and turns it into motion
  * a fish could make (docs/fish-companions-sim-plan.md §3.4).
@@ -55,10 +57,17 @@ final class Body {
     private static final double OWNER_GAP = 0.15;
     /** Braking: time for the deceleration to build (the jerk limit), and the share of maxForce planned on. */
     private static final double BRAKE_DELAY = 0.15, BRAKE_SHARE = 0.6;
+    /** How fast a glider tucks in or opens out again, fraction per second. */
+    private static final double TUCK_RATE = 1.5;
+    /** Forward speed below which the body counts as at rest for braking, blocks/s. */
+    private static final double REST_SPEED = 0.1;
     /** Avoidance strength grows with speed: at least this many times the current speed. */
     private static final double AVOID_SPEED_SCALE = 1.2;
 
     private final CompanionTunables t;
+    /** The class this body swims as (FREE_SWIM or GLIDE), and its limits, refreshed every tick. */
+    final Locomotion locomotion;
+    Gait g;
     final double radius;
     /** This step's non-solid obstacle (the owner's body), or null. */
     private Capsule obstacle;
@@ -80,6 +89,8 @@ final class Body {
     float burstPhase, burstDrive = 1f;
     private final float burstStep;
     float wanderH, wanderV;
+    /** A glider's tuck: 0 open-air limits, 1 a swimmer's (see {@link Gait#tucked}). */
+    double tuck;
     private long noise;
     float tailPhase;
     /** Steps on which the hard resolve had to stop the body short of a block. */
@@ -88,14 +99,16 @@ final class Body {
     /** Speed lost to the last backstop, blocks/s — a touch is ~0, a crash is large. */
     double lastImpact;
 
-    Body(CompanionTunables t, Vec pos, float yaw, double radius, long seed) {
+    Body(CompanionTunables t, Locomotion locomotion, Vec pos, float yaw, double radius, long seed) {
         this.t = t;
+        this.locomotion = locomotion;
+        this.g = Gait.of(locomotion, t);
         this.pos = pos;
         this.yaw = yaw;
         this.radius = radius;
         this.noise = seed == 0 ? 0x9E3779B97F4A7C15L : seed;
         float jitter = 1f + 0.25f * nextSigned();
-        this.burstStep = (float) (DT / (t.burstPeriodSeconds * jitter));
+        this.burstStep = (float) (DT / (g.burstPeriodSeconds() * jitter));
         this.burstPhase = (nextSigned() + 1f) * 0.5f;
     }
 
@@ -108,6 +121,14 @@ final class Body {
      */
     void step(Vec desired, double wanderScale, Vec extraAvoid, LocalVoxels voxels, Capsule body) {
         this.obstacle = body;
+        this.g = Gait.of(locomotion, t);
+        if (locomotion == Locomotion.GLIDE && t.glideTuckMargin > 0) {
+            // A glider in tight quarters tucks in: its turning limits move toward a swimmer's as the
+            // blocks close round it, eased so its agility never snaps.
+            double near = voxels.avoidance(pos, t.glideTuckMargin + radius).length();
+            tuck += clamp(near - tuck, -TUCK_RATE * DT, TUCK_RATE * DT);
+            g = g.tucked(Gait.of(Locomotion.FREE_SWIM, t), tuck);
+        }
         advanceWander();
         advanceBurst();
 
@@ -116,8 +137,8 @@ final class Body {
         double dsp = desired.horizontalLength();
         if (wanderScale > 0 && dsp > 1e-4) {
             Vec side = new Vec(-desired.z() / dsp, 0, desired.x() / dsp);
-            desired = desired.add(side.scale(wanderH * t.wanderAuthority * dsp * wanderScale))
-                    .add(0, wanderV * t.wanderVertical * wanderScale, 0);
+            desired = desired.add(side.scale(wanderH * g.wanderAuthority() * dsp * wanderScale))
+                    .add(0, wanderV * g.wanderVertical() * wanderScale, 0);
         }
 
         Vec ahead = pos.add(vel.scale(AVOID_LOOKAHEAD));
@@ -151,20 +172,20 @@ final class Body {
         if (dLen > HOLD_SPEED) {
             if (desired.horizontalLength() > 1e-6) targetYaw = (float) desired.yawDeg();
             targetPitch = clamp((float) -Math.toDegrees(Math.atan2(desired.y(), desired.horizontalLength())),
-                    -t.pitchMaxDeg, t.pitchMaxDeg);
+                    -g.pitchMaxDeg(), g.pitchMaxDeg());
         }
-        double sp = Math.max(speed, PIVOT_SPEED_FRACTION * t.cruiseSpeed);
-        float rateMax = (float) Math.min(t.turnRateDegPerTick, Math.toDegrees(t.maxLateralAccel * DT / sp));
-        float rateAccel = (float) Math.min(MAX_TURN_ACCEL, Math.toDegrees(t.maxJerk * DT * DT / sp));
+        double sp = Math.max(speed, PIVOT_SPEED_FRACTION * g.cruiseSpeed());
+        float rateMax = (float) Math.min(g.turnRateDegPerTick(), Math.toDegrees(g.maxLateralAccel() * DT / sp));
+        float rateAccel = (float) Math.min(MAX_TURN_ACCEL, Math.toDegrees(g.maxJerk() * DT * DT / sp));
 
         float yawCmd = clamp(wrap(targetYaw - yaw) * HEADING_GAIN, -rateMax, rateMax);
         yawRate += clamp(yawCmd - yawRate, -rateAccel, rateAccel);
         yaw = wrap(yaw + yawRate);
 
-        float pitchMax = Math.min(rateMax, t.pitchRateDegPerTick);
+        float pitchMax = Math.min(rateMax, g.pitchRateDegPerTick());
         float pitchCmd = clamp((targetPitch - pitch) * HEADING_GAIN, -pitchMax, pitchMax);
         pitchRate += clamp(pitchCmd - pitchRate, -rateAccel, rateAccel);
-        pitch = clamp(pitch + pitchRate, -t.pitchMaxDeg, t.pitchMaxDeg);
+        pitch = clamp(pitch + pitchRate, -g.pitchMaxDeg(), g.pitchMaxDeg());
     }
 
     private void steerSpeed(Vec desired, LocalVoxels voxels) {
@@ -174,22 +195,29 @@ final class Body {
         if (dLen > HOLD_SPEED) {
             double align = fwd.dot(desired.scale(1 / dLen));
             // Full speed when facing the way it wants to go; slow and turn tight when it doesn't.
-            target = align > 0 ? dLen * (0.3 + 0.7 * align) : Math.min(dLen, 0.3 * t.cruiseSpeed);
+            target = align > 0 ? dLen * (0.3 + 0.7 * align) : Math.min(dLen, 0.3 * g.cruiseSpeed());
         }
         // Never faster than it can stop before whatever is ahead: the body can't sidestep, so
         // braking in time is what keeps it off walls (the hard resolve is only a backstop).
-        double reach = 0.4 + speed * speed / (2 * t.maxForce) + speed * (BRAKE_DELAY + 0.1);
+        double reach = 0.4 + speed * speed / (2 * g.maxForce()) + speed * (BRAKE_DELAY + 0.1);
         double free = freeDistance(voxels, fwd, reach);
-        if (vel.length() > 1e-3) free = Math.min(free, freeDistance(voxels, vel.normalize(), reach));
+        // The velocity probe catches slip carrying the body somewhere its nose isn't pointing — but
+        // a body at rest has nothing but vertical slip, and resting against a block (the hard
+        // resolve stops it exactly one radius away) every probe up that face reads as blocked: the
+        // fish could never get going and sat stuck to a pillar for 27 s. So at rest, only the nose
+        // and the turn arc decide.
+        if (vel.length() > 1e-3 && speed >= REST_SPEED) {
+            free = Math.min(free, freeDistance(voxels, vel.normalize(), reach));
+        }
         free = Math.min(free, arcFreeDistance(voxels, reach));
         if (free < reach) {
             double room = Math.max(0, free - 0.15 - speed * BRAKE_DELAY);
-            target = Math.min(target, Math.sqrt(2 * t.maxForce * BRAKE_SHARE * room));
+            target = Math.min(target, Math.sqrt(2 * g.maxForce() * BRAKE_SHARE * room));
         }
         target = Math.min(target, ownerSpeedLimit(fwd));
-        target = Math.min(target, t.maxSpeed);
-        double cmd = clamp((target - speed) * t.steeringGain, -t.maxForce, t.maxForce);
-        forwardAccel += clamp(cmd - forwardAccel, -t.maxJerk * DT, t.maxJerk * DT);
+        target = Math.min(target, g.maxSpeed());
+        double cmd = clamp((target - speed) * g.steeringGain(), -g.maxForce(), g.maxForce());
+        forwardAccel += clamp(cmd - forwardAccel, -g.maxJerk() * DT, g.maxJerk() * DT);
         speed += forwardAccel * DT;
         if (speed < 0) {
             speed = 0;
@@ -209,7 +237,7 @@ final class Body {
         if (!t.whiskers || dLen < HOLD_SPEED) return desired;
         Vec dir = desired.scale(1 / dLen);
         double sp = Math.max(speed, dLen);
-        double need = Math.min(WHISKER_MAX, 0.5 + sp * sp / (2 * t.maxForce) + sp * (BRAKE_DELAY + 0.1));
+        double need = Math.min(WHISKER_MAX, 0.5 + sp * sp / (2 * g.maxForce()) + sp * (BRAKE_DELAY + 0.1));
         double directFree = freeDistance(voxels, dir, need);
         if (directFree >= need) {
             whiskerSide = 0;
@@ -266,7 +294,7 @@ final class Body {
         for (double d = step; d <= reach; d += step) {
             double ticks = step / perStep;
             y += yawRate * ticks;
-            p = Math.max(-t.pitchMaxDeg, Math.min(t.pitchMaxDeg, p + pitchRate * ticks));
+            p = Math.max(-g.pitchMaxDeg(), Math.min(g.pitchMaxDeg(), p + pitchRate * ticks));
             at = at.add(Vec.fromYawPitch(y, p).scale(step));
             if (!voxels.sphereClear(at, radius + 0.02)) return d - step;
         }
@@ -293,7 +321,7 @@ final class Body {
         double relSp = rel.length();
         if (relSp < 1e-3) return Double.MAX_VALUE;
         Vec dir = rel.scale(1 / relSp);
-        double reach = 0.4 + relSp * relSp / (2 * t.maxForce) + relSp * (BRAKE_DELAY + 0.1);
+        double reach = 0.4 + relSp * relSp / (2 * g.maxForce()) + relSp * (BRAKE_DELAY + 0.1);
         double startGap = obstacle.distance(pos) - radius;
         double step = 0.1;
         double free = reach;
@@ -307,7 +335,7 @@ final class Body {
         }
         if (free >= reach) return Double.MAX_VALUE;
         double room = Math.max(0, free - relSp * BRAKE_DELAY);
-        double allowedClosing = Math.sqrt(2 * t.maxForce * BRAKE_SHARE * room);
+        double allowedClosing = Math.sqrt(2 * g.maxForce() * BRAKE_SHARE * room);
         return Math.max(0, obstacle.velocity().dot(fwd) + allowedClosing);
     }
 
@@ -340,7 +368,7 @@ final class Body {
 
     private void updateBank() {
         if (speed > HOLD_SPEED) {
-            bankCmd = clamp(yawRate / t.turnRateDegPerTick, -1f, 1f) * t.bankMaxDeg;
+            bankCmd = clamp(yawRate / g.turnRateDegPerTick(), -1f, 1f) * g.bankMaxDeg();
         } else {
             bankCmd *= 0.9f;
         }
@@ -350,8 +378,8 @@ final class Body {
     }
 
     private void advanceWander() {
-        float k = t.wanderSigma * (float) Math.sqrt(DT) * SQRT3;
-        float decay = t.wanderTheta * (float) DT;
+        float k = g.wanderSigma() * (float) Math.sqrt(DT) * SQRT3;
+        float decay = g.wanderTheta() * (float) DT;
         wanderH = clamp(wanderH - wanderH * decay + k * nextSigned(), -WANDER_CLAMP, WANDER_CLAMP);
         wanderV = clamp(wanderV - wanderV * decay + k * nextSigned(), -WANDER_CLAMP, WANDER_CLAMP);
     }
@@ -359,15 +387,15 @@ final class Body {
     private void advanceBurst() {
         burstPhase += burstStep;
         if (burstPhase >= 1f) burstPhase -= 1f;
-        boolean thrusting = burstPhase < t.burstDuty;
-        float target = thrusting ? t.burstThrust : t.burstCoast;
+        boolean thrusting = burstPhase < g.burstDuty();
+        float target = thrusting ? g.burstThrust() : g.burstCoast();
         float rate = thrusting ? BURST_ATTACK_RATE : BURST_DECAY_RATE;
         burstDrive += (target - burstDrive) * rate * (float) DT;
     }
 
     /** The animator's tail-beat multiplier: the tank's 0.6 + 0.9·normalized speed. */
     float speedFactor() {
-        double normalized = Math.min(speed / (2 * t.cruiseSpeed), 1.6);
+        double normalized = Math.min(speed / (2 * g.cruiseSpeed()), 1.6);
         return (float) (0.6 + 0.9 * normalized);
     }
 
