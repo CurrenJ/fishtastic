@@ -25,7 +25,7 @@
 | Post-playtest polish: calm idle, view-decoupling, face-velocity, solo commands | ✅ Done, both loaders | `37406056` |
 | **Playtest round 2**: motion jitter, tank-faithful facing (sim-rate cap), slowed pet-to-pet scenes, tab listing filter, picker scroll bug | ✅ Done — Fabric run 5 + NeoForge: 119/119 checks, 0 failures each, on the final tree (see fish-companions.md §20) | `7628b579` |
 | Later: personality (§4), world (§6) and player (§7) reactions; scenes G3–G6; signature companions | Not started | — |
-| **Playtest round 3**: follow-acceleration ramp (arrive steering + braking) and the G2 crossing fix | ✅ Done — Fabric + NeoForge full suites: 129/129 checks, 0 failures each, on the final tree (see fish-companions.md §21) | — |
+| **Playtest round 3**: follow-acceleration ramp (arrive steering + braking) and the G2 crossing fix | ✅ Done — Fabric + NeoForge full suites: 129/129 checks, 0 failures each, on the final tree (see fish-companions.md §21) | `1ae400c8` |
 | Tank interactions (E3, E4) | Deferred by owner — do not build | — |
 
 **v1 = phases 0–5 plus scenes G1/G2** (R8.1). Everything was built fork-per-phase, verified
@@ -38,7 +38,7 @@ game and filing rounds of feedback — see §6 for how rounds are worked.
 
 | File | What it is |
 |---|---|
-| [`fish-companions.md`](fish-companions.md) | **The spec + as-built log.** §1–§12 design; §13 Phase 0 findings/pitfalls; §14–§18 phases 2–6 as built; §19 post-v1 polish; §20 round 2; §21 round 3 (pending). |
+| [`fish-companions.md`](fish-companions.md) | **The spec + as-built log.** §1–§12 design; §13 Phase 0 findings/pitfalls; §14–§18 phases 2–6 as built; §19–§21 post-v1 polish and playtest rounds 2–3. |
 | [`fish-companion-ideas.md`](fish-companion-ideas.md) | Owner's yes/no answers to the original idea list (A1–I4). Rejected items stay rejected. |
 | [`fish-companion-review.md`](fish-companion-review.md) | Owner's yes/no answers to the two-reviewer pass (R1.1–R8.3). |
 | [`encyclopedia-tier-review.md`](encyclopedia-tier-review.md) | Phase 1 tier table per species. |
