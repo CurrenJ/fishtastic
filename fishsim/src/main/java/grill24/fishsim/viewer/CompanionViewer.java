@@ -268,7 +268,7 @@ public final class CompanionViewer {
             reset((String) sceneBox.getSelectedItem(), (String) ownerBox.getSelectedItem());
             canvas.requestFocusInWindow();
         };
-        JComboBox<String> classBox = new JComboBox<>(new String[]{"FREE_SWIM", "GLIDE"});
+        JComboBox<String> classBox = new JComboBox<>(new String[]{"FREE_SWIM", "GLIDE", "DRIFT"});
         classBox.addActionListener(e -> {
             locomotion = Locomotion.valueOf((String) classBox.getSelectedItem());
             apply.run();

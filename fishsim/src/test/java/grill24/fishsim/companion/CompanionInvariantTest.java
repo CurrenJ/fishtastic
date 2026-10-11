@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class CompanionInvariantTest {
 
     private static final long[] SEEDS = {1, 2, 3};
+    /** DRIFT isn't in the table yet: a first cut with open problems (plan §9.3). */
     private static final List<Locomotion> CLASSES = List.of(Locomotion.FREE_SWIM, Locomotion.GLIDE);
     private static final int TICKS = 2400;
 

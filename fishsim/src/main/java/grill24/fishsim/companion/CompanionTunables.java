@@ -91,6 +91,40 @@ public final class CompanionTunables {
     /** Comfort band scale: a glider ranges wider, so its passes are long arcs, not tight circles. */
     public float glideBandScale = 1.4f;
 
+    // ── DRIFT body (§9; DriftBody) ──────────────────────────────────────────────────────────────
+
+    /** Unhurried drifting pace, blocks/s — the plan's "weak drive". */
+    public float driftCruiseSpeed = 0.7f;
+    /**
+     * The fastest it asks to go, blocks/s: above a sprint. Owner, 2026-10-11, choosing between
+     * letting it trail, towing it, and this: "stronger pulses" — it keeps swimming itself, pulsing
+     * faster and harder when it falls behind, while idle stays calm. At 5.5 it fell 10–16 blocks
+     * behind a walk.
+     */
+    public float driftTopSpeed = 7.0f;
+    /** One pulse-and-coast cycle when idle (the tank's 4.5 s, quickened for air), and flat out. */
+    public float driftPulseSeconds = 2.8f;
+    public float driftPulseFastSeconds = 0.8f;
+    /** Share of the cycle spent squeezing: at the fastest, a 6-tick stroke, not a twitch. */
+    public float driftPulseDuty = 0.35f;
+    /**
+     * Thrust at the top of the strongest squeeze, blocks/s². Sized so a cycle's mean thrust,
+     * 32 × 0.35 × ½ = 5.6, holds about 7.6 b/s against the drag below — above the top speed asked for.
+     */
+    public float driftThrust = 32f;
+    /** Drag, 1/s: {@code driftDrag + driftDragPerSpeed · speed} — light idling, heavier fast. */
+    public float driftDrag = 0.35f;
+    public float driftDragPerSpeed = 0.05f;
+    /** Passive sink between pulses, blocks/s². */
+    public float driftSink = 0.6f;
+    /** How hard it corrects toward the velocity it wants, 1/s. */
+    public float driftResponse = 1.5f;
+    /** How far the bell may lean from upright, degrees (short of horizontal), and how fast it leans. */
+    public float driftTiltMaxDeg = 85f;
+    public float driftTiltRateDegPerTick = 3f;
+    /** Ride height above the owner's chest, blocks: shoulder to head height. */
+    public float driftRideHeight = 0.35f;
+
     // ── Mind (§3.3) ────────────────────────────────────────────────────────────────────────────
 
     /** Comfort band around the owner's chest, blocks. */

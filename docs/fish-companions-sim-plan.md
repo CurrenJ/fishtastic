@@ -384,7 +384,7 @@ first-person GIFs. **Go** = it reads as a creature deciding things, not a staged
 |---|---|---|
 | **1a** Harness + perception | water bits (`BlockQuery.water`, `LocalVoxels`), `OwnerState.inWater` (water at the chest), terrain-following pilot (opt-in per script); scenes `stairwell`, `low_ceiling`, `pond`; scripts `stairwell`, `low_ceiling`, `pond_dive`, `wading`, `about_face`, `jumping`, `creative_flight`; water in the renderer | FREE_SWIM fingerprints of the 11 spike scripts bitwise identical (`FingerprintProbe`); FREE_SWIM invariants on the new scripts, or the gap named |
 | **1b** Body seam + GLIDE (**parked**, §9.2) | per-class gait, GLIDE from `Tunables.GLIDE` with a high ride height; viewer class picker | FREE_SWIM fingerprints unchanged; GLIDE invariants × all scripts × 3 seeds; 8-seed sweep |
-| **1c** DRIFT | bell-axis body: thrust only along the axis, pulse and coast, passive sink; effort raises pulse rate and strength | thrust never off-axis, tilt rate under cap, invariants, no leash on foot |
+| **1c** DRIFT (**first cut**, §9.3) | bell-axis body: thrust only along the axis, pulse and coast, passive sink; effort raises pulse rate and strength | thrust never off-axis, tilt rate under cap, invariants, no leash on foot |
 | **1d** Perch + hop | BENTHIC/ANCHORED attachment (parrot pattern), ballistic hop with crouch, bounded air control and settle; show-off = a hop across the face; in water, hop off into the free-swim body and back on after | hop accel bounded, arcs clear of blocks, no leash on foot, water switch in `pond_dive`/`wading` |
 | **1e** Trios | `CompanionGroup`: leader agent + two boid followers on the heading-first body | per-member invariants, followers never overlap or straggle |
 | **1f** Full table | invariant test over class × script × seed; per-class export | **owner gate**: viewer + per-class GIFs |
@@ -438,3 +438,38 @@ first cut, left in place but not tuned further:
   contacts/min, impacts to 3.3 b/s, farthest 13–18 s, fades in the 1-wide tunnel. The tuck
   helped 7 of 9 scripts and regressed the stairwell (13.2 → 18.0 s).
 - The refactor should be designed for the tank and the companion together.
+
+### 9.3 Step 1c — DRIFT, a first cut with open problems
+
+**The body.** `Motor` is now the base every body shares (the mind and agent talk to it); the
+extraction left all FREE_SWIM fingerprints bitwise identical. `DriftBody` is a pulsed controller:
+it computes the acceleration it needs (drag feed-forward, sink compensation, a correction toward
+the desired velocity), tilts its bell toward that at a capped rate (never past 85°), and thrusts
+only along the bell, in `sin²` strokes whose strength is fixed at each stroke's start so the
+cycle's mean matches the need. Idle: slow strokes (2.8 s), mostly upright against the sink. It
+rides behind one shoulder (`Gait.alongOffset` −0.7). The renderer draws a bell with trailing
+tentacles; `CompanionRun.Metrics.tailFirstFraction` counts ticks travelling > 100° from the body's
+front (for a drifter only ticks with real thrust count — sinking between strokes is just sinking).
+
+**Owner decision (2026-10-11):** of trailing far, being towed in the owner's wake, or "stronger
+pulses", the owner chose **stronger pulses** — it keeps swimming itself, pulsing faster and harder
+when behind. Top speed 5.5 → 7 b/s, thrust 32 b/s², fastest cycle 0.8 s.
+
+**What the traces show.** On a straight walk it keeps pace (within a block, alongside). The lag
+comes from stops and turns: each stroke adds ~3 b/s so it overshoots the owner (8.4 b/s against a
+7 b/s ask); a jelly can't brake, only stop pushing; and reversing means swinging the bell ~160°
+through upright, 1.5–2.7 s of nearly useless thrust. Stronger pulses alone barely moved it (walk
+mean 4.51 → 4.64 b/s, farthest still ~10 s).
+
+**Open (not adopted — each measured mixed or worse on 8 seeds):**
+- braking by room (cap the asked-for speed toward a block to what drag can stop): open-ground
+  contacts 0 → 40, a leash on `walk`;
+- never pulsing into its own wake (stop thrust when the bell faces against travel): worse on the
+  same scripts;
+- tilt 3 → 6°/tick: farthest better on 7 of 9 scripts (about_face 43.7 → 21.3 s) but ground
+  contacts 0 → 41 on `sprint_stop` and doorway impacts to 8.1 b/s.
+
+**Where it stands (8 seeds × 2 min, tilt 3°/tick):** 0 penetrations; farthest 10–44 s on walking
+scripts; impacts to 6–7 b/s in the doorway and cellar; tail-first 1–15%. DRIFT stays out of the
+invariant table until stroke sizing (arrive at the asked speed instead of overshooting), altitude
+hold near the ground, and reorientation have a design.

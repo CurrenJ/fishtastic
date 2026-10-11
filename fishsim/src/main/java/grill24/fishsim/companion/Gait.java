@@ -14,6 +14,7 @@ import grill24.fishsim.core.Locomotion;
  * @param hopMin       shortest move between loiter spots, blocks
  * @param hopMax       longest move between loiter spots, blocks
  * @param lateralScale scale on the escort's riding distance beside the owner
+ * @param alongOffset  added to the escort's riding position along the owner's travel (negative rides behind)
  */
 record Gait(float cruiseSpeed, float catchUpSpeed, float maxSpeed, float steeringGain, float maxForce,
             float maxLateralAccel, float maxJerk, float turnRateDegPerTick, float pitchMaxDeg,
@@ -21,7 +22,7 @@ record Gait(float cruiseSpeed, float catchUpSpeed, float maxSpeed, float steerin
             float wanderSigma, float wanderTheta, float wanderAuthority, float wanderVertical,
             float burstPeriodSeconds, float burstDuty, float burstThrust, float burstCoast,
             double rideHeight, double heightSpread, double bandScale, double hopMin, double hopMax,
-            double lateralScale) {
+            double lateralScale, double alongOffset) {
 
     static Gait of(Locomotion c, CompanionTunables t) {
         if (c == Locomotion.GLIDE) {
@@ -30,14 +31,24 @@ record Gait(float cruiseSpeed, float catchUpSpeed, float maxSpeed, float steerin
                     t.glidePitchRateDegPerTick, t.glideBankMaxDeg,
                     t.glideWanderSigma, t.glideWanderTheta, t.wanderAuthority, t.wanderVertical,
                     t.glideBurstPeriodSeconds, t.glideBurstDuty, t.glideBurstThrust, t.glideBurstCoast,
-                    t.glideRideHeight, 0.5, t.glideBandScale, 2.0, 5.0, 1.4);
+                    t.glideRideHeight, 0.5, t.glideBandScale, 2.0, 5.0, 1.4, 0);
+        }
+        if (c == Locomotion.DRIFT) {
+            // DriftBody reads its own drift* tunables; these matter to the mind: its pace, and that
+            // it rides behind one shoulder on a loose spring (spec §3), close and a little high.
+            return new Gait(t.driftCruiseSpeed, t.driftTopSpeed, t.maxSpeed, t.steeringGain, t.maxForce,
+                    t.maxLateralAccel, t.maxJerk, t.turnRateDegPerTick, t.pitchMaxDeg,
+                    t.pitchRateDegPerTick, t.bankMaxDeg,
+                    t.wanderSigma, t.wanderTheta, t.wanderAuthority, t.wanderVertical,
+                    t.burstPeriodSeconds, t.burstDuty, t.burstThrust, t.burstCoast,
+                    t.driftRideHeight, 0.6, 0.9, 0.5, 2.0, 0.55, -0.7);
         }
         return new Gait(t.cruiseSpeed, t.catchUpSpeed, t.maxSpeed, t.steeringGain, t.maxForce,
                 t.maxLateralAccel, t.maxJerk, t.turnRateDegPerTick, t.pitchMaxDeg,
                 t.pitchRateDegPerTick, t.bankMaxDeg,
                 t.wanderSigma, t.wanderTheta, t.wanderAuthority, t.wanderVertical,
                 t.burstPeriodSeconds, t.burstDuty, t.burstThrust, t.burstCoast,
-                0, 1, 1, 0.7, 3.2, 1);
+                0, 1, 1, 0.7, 3.2, 1, 0);
     }
 
     /**
@@ -52,7 +63,7 @@ record Gait(float cruiseSpeed, float catchUpSpeed, float maxSpeed, float steerin
                 lerp(pitchRateDegPerTick, agile.pitchRateDegPerTick, k), bankMaxDeg,
                 wanderSigma, wanderTheta, wanderAuthority, wanderVertical,
                 burstPeriodSeconds, burstDuty, burstThrust, burstCoast,
-                rideHeight, heightSpread, bandScale, hopMin, hopMax, lateralScale);
+                rideHeight, heightSpread, bandScale, hopMin, hopMax, lateralScale, alongOffset);
     }
 
     private static float lerp(float a, float b, double k) {

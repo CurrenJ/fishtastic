@@ -215,6 +215,10 @@ public final class CompanionRenderer {
             drawRay(g, cam, a);
             return;
         }
+        if (a.locomotion() == grill24.fishsim.core.Locomotion.DRIFT) {
+            drawJelly(g, cam, a);
+            return;
+        }
         double len = a.length() * a.renderAppear();
         Vec[] fr = frame(a.renderYaw(), a.renderPitch(), a.renderBank());
         Vec fwd = fr[0], right = fr[1], up = fr[2];
@@ -251,6 +255,48 @@ public final class CompanionRenderer {
             double rpx = Math.max(1.0, 0.025 * len / ec.z() * cam.f());
             g.setColor(new Color(20, 20, 30));
             g.fill(new java.awt.geom.Ellipse2D.Double(cam.sx(ec) - rpx, cam.sy(ec) - rpx, rpx * 2, rpx * 2));
+        }
+    }
+
+    /**
+     * A jellyfish: a bell along its axis that narrows and lengthens as it squeezes, and tentacles
+     * trailing the other way.
+     */
+    private static void drawJelly(Graphics2D g, Cam cam, CompanionAgent a) {
+        double len = a.length() * a.renderAppear();
+        Vec axis = Vec.fromYawPitch(a.renderYaw(), a.renderPitch());
+        Vec side = axis.cross(Vec.UP);
+        if (side.lengthSqr() < 1e-6) side = Vec.fromYawPitch(a.spin(), 0).cross(Vec.UP);
+        side = side.normalize();
+        Vec other = axis.cross(side).normalize();
+        double squeeze = a.pulse();
+        double rim = len * 0.5 * (1 - 0.3 * squeeze);
+        double dome = len * 0.45 * (1 + 0.25 * squeeze);
+        Vec c = a.renderPos();
+        Vec top = c.add(axis.scale(dome));
+        int n = 10;
+        Vec[] ring = new Vec[n];
+        double spinRad = Math.toRadians(a.spin());
+        for (int i = 0; i < n; i++) {
+            double ang = spinRad + i * Math.PI * 2 / n;
+            ring[i] = c.add(side.scale(Math.cos(ang) * rim)).add(other.scale(Math.sin(ang) * rim));
+        }
+        g.setStroke(new BasicStroke(1f));
+        for (int i = 0; i < n; i += 2) {
+            Vec tip = ring[i].add(axis.scale(-len * (0.7 + 0.15 * Math.sin(a.renderTailPhase() + i))));
+            Vec rc = cam.toCam(ring[i]), tc = cam.toCam(tip);
+            if (rc.z() > NEAR && tc.z() > NEAR) {
+                g.setColor(new Color(230, 150, 200, 150));
+                g.draw(new Line2D.Double(cam.sx(rc), cam.sy(rc), cam.sx(tc), cam.sy(tc)));
+            }
+        }
+        List<Vec[]> tris = new ArrayList<>();
+        for (int i = 0; i < n; i++) tris.add(new Vec[]{top, ring[i], ring[(i + 1) % n]});
+        tris.sort((p, q) -> Double.compare(centroid(q).distanceTo(cam.pos()), centroid(p).distanceTo(cam.pos())));
+        for (Vec[] t : tris) {
+            Vec nn = t[1].sub(t[0]).cross(t[2].sub(t[0])).normalize();
+            double shade = 0.6 + 0.4 * Math.abs(nn.dot(LIGHT));
+            fill(g, cam, t, shadeColor(new Color(240, 160, 210, 190), shade), false);
         }
     }
 

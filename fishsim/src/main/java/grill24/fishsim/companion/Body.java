@@ -27,9 +27,8 @@ import grill24.fishsim.core.Locomotion;
  * rate with the tank's smoothing. Blocks: soft avoidance shapes the desired velocity, scaled up with
  * speed, and a hard per-axis resolve makes "never inside a block" structural.
  */
-final class Body {
+final class Body extends Motor {
 
-    static final double DT = 0.05;
     /** The speed the turn caps are computed at when the fish is slower — pivoting is cheap. */
     private static final double PIVOT_SPEED_FRACTION = 0.25;
     /** Desired speed below which the heading holds rather than chasing a noisy direction. */
@@ -65,47 +64,26 @@ final class Body {
     private static final double AVOID_SPEED_SCALE = 1.2;
 
     private final CompanionTunables t;
-    /** The class this body swims as (FREE_SWIM or GLIDE), and its limits, refreshed every tick. */
-    final Locomotion locomotion;
-    Gait g;
-    final double radius;
     /** This step's non-solid obstacle (the owner's body), or null. */
     private Capsule obstacle;
     /** The side whisker steering last swung to (+1 right, −1 left), or 0 when the way was clear. */
     private int whiskerSide;
 
-    Vec pos;
-    Vec vel = Vec.ZERO;
-    /** Measured acceleration over the last tick, blocks/s². */
-    Vec acc = Vec.ZERO;
-    double speed;
     private double forwardAccel;
     private double slipY;
-    float yaw, pitch;
-    /** Current turn rates, degrees per tick; positive yaw rate turns right. */
-    float yawRate, pitchRate;
-    /** Commanded and drawn bank, degrees; positive leans right (into a right turn). */
-    float bankCmd, bank;
-    float burstPhase, burstDrive = 1f;
+    /** Commanded bank, degrees; the drawn bank chases it. */
+    float bankCmd;
+    float burstPhase;
     private final float burstStep;
     float wanderH, wanderV;
     /** A glider's tuck: 0 open-air limits, 1 a swimmer's (see {@link Gait#tucked}). */
     double tuck;
     private long noise;
-    float tailPhase;
-    /** Steps on which the hard resolve had to stop the body short of a block. */
-    long backstops;
-    boolean backstopLastStep;
-    /** Speed lost to the last backstop, blocks/s — a touch is ~0, a crash is large. */
-    double lastImpact;
 
     Body(CompanionTunables t, Locomotion locomotion, Vec pos, float yaw, double radius, long seed) {
+        super(locomotion, Gait.of(locomotion, t), pos, radius);
         this.t = t;
-        this.locomotion = locomotion;
-        this.g = Gait.of(locomotion, t);
-        this.pos = pos;
         this.yaw = yaw;
-        this.radius = radius;
         this.noise = seed == 0 ? 0x9E3779B97F4A7C15L : seed;
         float jitter = 1f + 0.25f * nextSigned();
         this.burstStep = (float) (DT / (g.burstPeriodSeconds() * jitter));
@@ -119,6 +97,7 @@ final class Body {
      * @param extraAvoid  soft pushes from things that aren't blocks (the owner's body), blocks/s
      * @param body        a non-solid obstacle to brake for (the owner), or null
      */
+    @Override
     void step(Vec desired, double wanderScale, Vec extraAvoid, LocalVoxels voxels, Capsule body) {
         this.obstacle = body;
         this.g = Gait.of(locomotion, t);
@@ -339,28 +318,8 @@ final class Body {
         return Math.max(0, obstacle.velocity().dot(fwd) + allowedClosing);
     }
 
-    /** Moves by one tick of velocity, stopping short per axis wherever a block is in the way. */
-    private void move(LocalVoxels voxels, Vec fwd) {
-        backstopLastStep = false;
-        lastImpact = 0;
-        Vec next = pos.add(vel.scale(DT));
-        if (voxels.sphereClear(next, radius) || !voxels.sphereClear(pos, radius)) {
-            // Clear ahead — or already overlapping (a block was placed on the fish), where the
-            // only useful thing is to keep moving and let avoidance carry it out.
-            pos = next;
-            return;
-        }
-        backstops++;
-        backstopLastStep = true;
-        Vec hit = vel;
-        double x = pos.x(), y = pos.y(), z = pos.z();
-        double vx = vel.x(), vy = vel.y(), vz = vel.z();
-        if (voxels.sphereClear(new Vec(next.x(), y, z), radius)) x = next.x(); else vx = 0;
-        if (voxels.sphereClear(new Vec(x, next.y(), z), radius)) y = next.y(); else vy = 0;
-        if (voxels.sphereClear(new Vec(x, y, next.z()), radius)) z = next.z(); else vz = 0;
-        pos = new Vec(x, y, z);
-        vel = new Vec(vx, vy, vz);
-        lastImpact = hit.sub(vel).length();
+    @Override
+    void afterBackstop(Vec fwd, double vy) {
         speed = Math.max(0, vel.dot(fwd));
         forwardAccel = Math.min(0, forwardAccel);
         slipY = clamp(vy - fwd.y() * speed, -SLIP_MAX, SLIP_MAX);
@@ -394,23 +353,18 @@ final class Body {
     }
 
     /** The animator's tail-beat multiplier: the tank's 0.6 + 0.9·normalized speed. */
+    @Override
     float speedFactor() {
         double normalized = Math.min(speed / (2 * g.cruiseSpeed()), 1.6);
         return (float) (0.6 + 0.9 * normalized);
     }
 
-    /** Places the body somewhere new, at rest (the fade-in after a leash). */
+    @Override
     void placeAt(Vec p, float facingYaw) {
-        pos = p;
-        vel = Vec.ZERO;
-        acc = Vec.ZERO;
-        speed = 0;
+        super.placeAt(p, facingYaw);
         forwardAccel = 0;
         slipY = 0;
-        yaw = facingYaw;
-        pitch = 0f;
-        yawRate = pitchRate = 0f;
-        bank = bankCmd = 0f;
+        bankCmd = 0f;
     }
 
     /** One xorshift64 draw from this body's private noise stream, in [−1, 1). */

@@ -41,7 +41,7 @@ final class Mind {
     private static final double ROUTE_MARGIN = 0.15;
 
     private final CompanionTunables t;
-    private final Body body;
+    private final Motor body;
     private long rng;
 
     Goal goal = Goal.LOITER;
@@ -92,7 +92,7 @@ final class Mind {
     private boolean showDone;
     int showOffs;
 
-    Mind(CompanionTunables t, Body body, long seed) {
+    Mind(CompanionTunables t, Motor body, long seed) {
         this.t = t;
         this.body = body;
         this.rng = seed * 0x9E3779B97F4A7C15L + 0x632BE59BD9B4E019L;
@@ -328,7 +328,7 @@ final class Mind {
         lateralSigned = approach(lateralSigned, side * lateral, 0.9 * Body.DT);
         // Crossing over goes in front of the owner, never through them.
         double centre = 1 - Math.min(1, Math.pow(lateralSigned / (t.escortLateral * body.g.lateralScale()), 2));
-        double along = alongBase + driftAlong * 0.4 + surge + 1.4 * centre;
+        double along = alongBase + driftAlong * 0.4 + surge + 1.4 * centre + body.g.alongOffset();
         double height = 0.15 + driftHeight * 0.25;
         Vec station = chest.add(r.scale(lateralSigned)).add(f.scale(along)).add(0, height, 0);
         if (body.g.rideHeight() > 0) station = ridingHigh(v, station, body.g.rideHeight());

@@ -26,13 +26,14 @@ public final class CompanionRun {
     public static float lengthOf(Locomotion c) {
         return switch (c) {
             case GLIDE -> 0.7f;
+            case DRIFT -> 0.35f;
             default -> LENGTH;
         };
     }
 
     public record Sample(OwnerState owner, Vec pos, Vec vel, Vec acc, float yaw, float pitch, float bank,
                          float turn, String goal, boolean seen, double ownerDist, float appear,
-                         CompanionAgent.Fade fade, boolean backstop, double impact, int goalTicks) {}
+                         CompanionAgent.Fade fade, boolean backstop, double impact, int goalTicks, float pulse, double thrust) {}
 
     public final VoxelScene scene;
     public final OwnerScript script;
@@ -66,7 +67,7 @@ public final class CompanionRun {
         if (record) {
             samples.add(new Sample(owner, agent.position(), agent.velocity(), agent.acceleration(),
                     agent.yaw(), agent.pitch(), agent.bank(), agent.lastTurnDeg(), agent.goal(),
-                    agent.seen(), agent.ownerDistance(), agent.appear(), agent.fade(), agent.backstopLastStep(), agent.lastImpact(), agent.goalTicks()));
+                    agent.seen(), agent.ownerDistance(), agent.appear(), agent.fade(), agent.backstopLastStep(), agent.lastImpact(), agent.goalTicks(), agent.pulse(), agent.thrust()));
         }
     }
 
@@ -86,6 +87,7 @@ public final class CompanionRun {
             double maxJerk,
             double maxTurnDeg,
             double maxFacingErrorDeg,
+            double tailFirstFraction,
             double seenFraction,
             double longestUnseenSeconds,
             int insideOwnerTicks,
@@ -101,10 +103,11 @@ public final class CompanionRun {
 
         public String summary() {
             return String.format(
-                    "pen=%d backstop=%d impact=%.2f acc=%.2f jerk=%.1f turn=%.1f° faceErr=%.1f° seen=%.0f%% maxUnseen=%.1fs "
+                    "pen=%d backstop=%d impact=%.2f acc=%.2f jerk=%.1f turn=%.1f° faceErr=%.1f° tailFirst=%.1f%% seen=%.0f%% maxUnseen=%.1fs "
                             + "inOwner=%d nearClip=%d centreDwell=%d leash=%d far=%.1fs speed=%.2f cv=%.2f switches/min=%.1f "
                             + "minGoal=%d goals=%s",
                     solidPenetrations, backstops, maxImpact, maxAccel, maxJerk, maxTurnDeg, maxFacingErrorDeg,
+                    tailFirstFraction * 100,
                     seenFraction * 100, longestUnseenSeconds, insideOwnerTicks, nearClipTicks,
                     longestCentreDwellTicks, leashEvents, longestFarSeconds, meanSpeed, speedCv, goalSwitchesPerMinute,
                     shortestNonEmergencyGoalTicks, goalShareString());
@@ -123,7 +126,7 @@ public final class CompanionRun {
         LocalVoxels truth = new LocalVoxels();
         double r = agent.radius();
         double dt = CompanionAgent.DT;
-        int pen = 0, insideOwner = 0, nearClip = 0, seenTicks = 0;
+        int pen = 0, insideOwner = 0, nearClip = 0, seenTicks = 0, movingTicks = 0, tailFirstTicks = 0;
         int unseenRun = 0, longestUnseen = 0, centreRun = 0, longestCentre = 0, farRun = 0, longestFar = 0;
         double maxImpact = 0;
         double maxAcc = 0, maxJerk = 0, maxTurn = 0, maxFace = 0;
@@ -148,6 +151,14 @@ public final class CompanionRun {
                 // A backstop stop is a collision, counted on its own; it isn't the body's own jerk.
                 if (prevAcc != null && !s.backstop()) maxJerk = Math.max(maxJerk, s.acc().sub(prevAcc).length() / dt);
                 maxTurn = Math.max(maxTurn, Math.abs(s.turn()));
+                // Travelling with its front more than 100° from the way it's going: a swimmer going
+                // backwards, or a bell pulsing tentacles-first. A bell sinking between pulses is
+                // just sinking, so for a drifter only ticks with real thrust count.
+                boolean propelled = agent.locomotion() != Locomotion.DRIFT || s.thrust() > 1.0;
+                if (s.vel().length() > 1.0 && propelled) {
+                    movingTicks++;
+                    if (Vec.fromYawPitch(s.yaw(), s.pitch()).dot(s.vel().normalize()) < -0.17) tailFirstTicks++;
+                }
                 if (s.vel().horizontalLength() > 0.5) {
                     float travel = (float) s.vel().yawDeg();
                     maxFace = Math.max(maxFace, Math.abs(wrap(travel - s.yaw())));
@@ -199,6 +210,7 @@ public final class CompanionRun {
         Map<String, Double> share = new LinkedHashMap<>();
         goalTicks.forEach((k, v) -> share.put(k, v / (double) n));
         return new Metrics(n, pen, agent.backstops(), maxImpact, maxAcc, maxJerk, maxTurn, maxFace,
+                movingTicks == 0 ? 0 : tailFirstTicks / (double) movingTicks,
                 n == 0 ? 0 : seenTicks / (double) n, longestUnseen * dt, insideOwner, nearClip, longestCentre,
                 agent.leashEvents(), longestFar * dt, mean, mean > 0 ? Math.sqrt(var) / mean : 0,
                 n == 0 ? 0 : switches / (n * dt / 60.0),

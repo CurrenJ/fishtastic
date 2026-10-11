@@ -28,7 +28,7 @@ public final class CompanionAgent {
     private static final int REAPPEAR_TICKS = 10;
 
     private final CompanionTunables t;
-    private final Body body;
+    private final Motor body;
     private final Mind mind;
     private final LocalVoxels voxels = new LocalVoxels();
     private final Breadcrumbs crumbs = new Breadcrumbs();
@@ -57,7 +57,7 @@ public final class CompanionAgent {
     }
 
     /**
-     * @param locomotion the species' class: FREE_SWIM or GLIDE so far
+     * @param locomotion the species' class: FREE_SWIM, GLIDE or DRIFT so far
      * @param length     rendered body length in blocks; sets the collision radius
      */
     public CompanionAgent(CompanionTunables t, long seed, Locomotion locomotion, float length, OwnerState owner,
@@ -68,7 +68,9 @@ public final class CompanionAgent {
         double radius = Math.max(0.08, Math.min(0.3, length * 0.3));
         voxels.update(blocks, owner.eye());
         Vec start = besideOwner(owner, radius);
-        this.body = new Body(t, locomotion, start, owner.yawDeg(), radius, seed ^ 0x5DEECE66DL);
+        this.body = locomotion == Locomotion.DRIFT
+                ? new DriftBody(t, start, owner.yawDeg(), radius, seed ^ 0x5DEECE66DL)
+                : new Body(t, locomotion, start, owner.yawDeg(), radius, seed ^ 0x5DEECE66DL);
         this.mind = new Mind(t, body, seed);
         this.prevPos = start;
         this.renderPos = start;
@@ -181,6 +183,11 @@ public final class CompanionAgent {
     public double lastImpact() { return body.lastImpact; }
     public float speedFactor() { return body.speedFactor(); }
     public float burstDrive() { return body.burstDrive; }
+    /** A drifter's bell squeeze, 0..1, and its tumble about the axis, degrees (0 for swimmers). */
+    public float pulse() { return body instanceof DriftBody d ? d.pulse : 0f; }
+    /** A drifter's thrust this tick, blocks/s² (0 for swimmers). */
+    public double thrust() { return body instanceof DriftBody d ? d.lastThrust : 0; }
+    public float spin() { return body instanceof DriftBody d ? d.spin : 0f; }
     public double radius() { return body.radius; }
     public float length() { return length; }
     public Locomotion locomotion() { return locomotion; }
