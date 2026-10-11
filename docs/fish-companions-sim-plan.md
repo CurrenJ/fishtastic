@@ -1,6 +1,6 @@
 # Fish Companions — Simulation Rewrite Plan
 
-**Written:** 2026-10-11 · **Status: Phase 1 passed the owner's gate 2026-10-11 (§9.6). Phase 2 built 2026-10-11 (§10), awaiting the owner's gate (§10.6). GLIDE and DRIFT parked.**
+**Written:** 2026-10-11 · **Status: Phases 1 and 2 passed the owner's gate 2026-10-11 (§9.6, §10.6); Phase 3 (into the game) next. GLIDE and DRIFT parked.**
 
 **Decision (owner, 2026-10-11):** rebuild companion motion the way the tank was rebuilt
 ([fish-sim-engine-plan.md](fish-sim-engine-plan.md)): a Minecraft-free simulation in `:fishsim`,
@@ -873,3 +873,8 @@ GIFs from `runCompanionHeadless -PsimArgs="--temperament <name> --script <script
 5. Temperaments: the aggressive fish bites on every hit (a zombie at arm's reach hits once a
    second) — too much? The sprinter overshoots ahead after a sprint-and-stop — lively or annoying?
    Docile nuzzles about every 2 minutes of standing still. Which read as the species, which don't?
+
+**Owner's answers (2026-10-11): Phase 2 passed the gate.** 1 — "the held item reactions look
+really good and def read." 2 — a left-shoulder crab watching from its own hand: fine as is.
+3 — settling after ~30 s idle: yes. 4 — temperaments (aggressive bites, sprinter overshoot,
+docile nuzzle rate): "already nicely balanced on all these fronts." Phase 3 (into the game) is next.
