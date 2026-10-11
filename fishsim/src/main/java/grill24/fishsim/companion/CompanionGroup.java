@@ -45,10 +45,12 @@ public final class CompanionGroup {
     private final LocalVoxels voxels = new LocalVoxels();
     private final float length;
 
-    public CompanionGroup(CompanionTunables t, long seed, float length, OwnerState owner, BlockQuery blocks) {
+    public CompanionGroup(CompanionTunables t, long seed, float length, CompanionWorld world) {
+        OwnerState owner = world.owner();
+        BlockQuery blocks = world.blocks();
         this.t = t;
         this.length = length;
-        this.leader = new CompanionAgent(t, seed, Locomotion.FREE_SWIM, length, owner, blocks);
+        this.leader = new CompanionAgent(t, seed, Locomotion.FREE_SWIM, length, world);
         voxels.update(blocks, owner.eye());
         double radius = Math.max(0.08, Math.min(0.3, length * 0.3));
         for (int i = 0; i < 2; i++) {
@@ -59,8 +61,10 @@ public final class CompanionGroup {
         }
     }
 
-    public void step(OwnerState owner, BlockQuery blocks) {
-        leader.step(owner, blocks);
+    public void step(CompanionWorld world) {
+        OwnerState owner = world.owner();
+        BlockQuery blocks = world.blocks();
+        leader.step(world);
         voxels.update(blocks, owner.eye());
         if (owner.teleported() || leader.fade() == CompanionAgent.Fade.HIDDEN) leaderTrail.clear();
         leaderTrail.record(leader.position());

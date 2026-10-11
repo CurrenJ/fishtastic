@@ -4,6 +4,7 @@ import grill24.fishsim.companion.CompanionAgent;
 import grill24.fishsim.companion.CompanionGroup;
 import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.companion.CompanionTunables;
+import grill24.fishsim.companion.CompanionWorld;
 import grill24.fishsim.companion.LocalVoxels;
 import grill24.fishsim.companion.OwnerState;
 import grill24.fishsim.companion.Vec;
@@ -44,6 +45,8 @@ public final class CompanionRun {
     public final CompanionAgent agent;
     public final CompanionTunables tunables;
     public OwnerState owner;
+    /** What the companion perceives this tick: the owner, the scene, and the script's points of interest. */
+    public CompanionWorld world;
     public final List<Sample> samples = new ArrayList<>();
     private final boolean record;
 
@@ -74,13 +77,14 @@ public final class CompanionRun {
         this.scene = script.scene;
         this.tunables = tunables;
         this.record = record;
-        this.owner = script.next();
+        this.world = script.nextWorld();
+        this.owner = world.owner();
         if (trio) {
-            this.group = new CompanionGroup(tunables, seed, length, owner, scene);
+            this.group = new CompanionGroup(tunables, seed, length, world);
             this.agent = group.leader();
         } else {
             this.group = null;
-            this.agent = new CompanionAgent(tunables, seed, locomotion, length, owner, scene);
+            this.agent = new CompanionAgent(tunables, seed, locomotion, length, world);
         }
     }
 
@@ -93,9 +97,10 @@ public final class CompanionRun {
     public final List<FollowerSample[]> followerSamples = new ArrayList<>();
 
     public void tick() {
-        owner = script.next();
+        world = script.nextWorld();
+        owner = world.owner();
         if (group != null) {
-            group.step(owner, scene);
+            group.step(world);
             if (record) {
                 FollowerSample[] fs = new FollowerSample[2];
                 for (int i = 0; i < 2; i++) {
@@ -106,7 +111,7 @@ public final class CompanionRun {
                 followerSamples.add(fs);
             }
         } else {
-            agent.step(owner, scene);
+            agent.step(world);
         }
         if (record) {
             samples.add(new Sample(owner, agent.position(), agent.velocity(), agent.acceleration(),

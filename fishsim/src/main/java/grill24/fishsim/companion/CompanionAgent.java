@@ -55,16 +55,17 @@ public final class CompanionAgent {
     /**
      * @param length rendered body length in blocks; sets the collision radius
      */
-    public CompanionAgent(CompanionTunables t, long seed, float length, OwnerState owner, BlockQuery blocks) {
-        this(t, seed, Locomotion.FREE_SWIM, length, owner, blocks);
+    public CompanionAgent(CompanionTunables t, long seed, float length, CompanionWorld world) {
+        this(t, seed, Locomotion.FREE_SWIM, length, world);
     }
 
     /**
      * @param locomotion the species' class
      * @param length     rendered body length in blocks; sets the collision radius
      */
-    public CompanionAgent(CompanionTunables t, long seed, Locomotion locomotion, float length, OwnerState owner,
-                          BlockQuery blocks) {
+    public CompanionAgent(CompanionTunables t, long seed, Locomotion locomotion, float length, CompanionWorld world) {
+        OwnerState owner = world.owner();
+        BlockQuery blocks = world.blocks();
         this.t = t;
         this.length = length;
         this.locomotion = locomotion;
@@ -89,7 +90,9 @@ public final class CompanionAgent {
         this.prevYaw = renderYaw = owner.yawDeg();
     }
 
-    public void step(OwnerState owner, BlockQuery blocks) {
+    public void step(CompanionWorld world) {
+        OwnerState owner = world.owner();
+        BlockQuery blocks = world.blocks();
         prevPos = body.pos;
         prevYaw = body.yaw;
         prevPitch = body.pitch;

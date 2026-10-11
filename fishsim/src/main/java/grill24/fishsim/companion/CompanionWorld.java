@@ -1,0 +1,45 @@
+package grill24.fishsim.companion;
+
+import java.util.List;
+
+/**
+ * Everything a companion can perceive on one tick (docs/fish-companions-sim-plan.md §3.2): built
+ * once per 20 Hz tick and handed to every agent. In game the adapter fills it from Minecraft;
+ * headless, a scripted owner, a voxel scene and scripted points of interest do. The agent can't
+ * tell the difference.
+ *
+ * @param owner  the owner's body, view and flags
+ * @param blocks the blocks around the owner
+ * @param points things nearby worth reacting to (hostiles, cats, dropped items, other companions)
+ * @param held   what the owner holds in their main hand, as the companion understands it (spec §3.1)
+ * @param hurt   the owner took damage this tick
+ */
+public record CompanionWorld(OwnerState owner, BlockQuery blocks, List<PointOfInterest> points, Held held,
+                             boolean hurt) {
+
+    /** A held item's reaction category (spec §3.1). The adapter maps item stacks to these. */
+    public enum Held {
+        NONE,
+        /** A fishing rod: excited, watches the rod tip. */
+        ROD,
+        /** Bait: begs. */
+        BAIT,
+        /** A fish of the companion's own species: nose to the item. */
+        SAME_SPECIES,
+        /** A fish from {@code #predator_fish}: hides behind the owner's head. */
+        PREDATOR,
+        /** A name tag: tilts its head. */
+        NAME_TAG,
+        /** Food: mild interest. */
+        FOOD
+    }
+
+    public CompanionWorld {
+        points = List.copyOf(points);
+    }
+
+    /** An owner and their blocks, with nothing else going on. */
+    public static CompanionWorld of(OwnerState owner, BlockQuery blocks) {
+        return new CompanionWorld(owner, blocks, List.of(), Held.NONE, false);
+    }
+}

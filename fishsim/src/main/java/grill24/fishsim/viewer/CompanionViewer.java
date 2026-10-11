@@ -183,10 +183,12 @@ public final class CompanionViewer {
             lookPitch = 0f;
             pilot.beginTick();
             owner = pilot.endTick();
+            scriptWorld = null;
         } else {
             script = OwnerScript.named(ownerMode, seed);
             scene = script.scene;
-            owner = script.next();
+            scriptWorld = script.nextWorld();
+            owner = scriptWorld.owner();
         }
         agent = newAgent();
         trail.clear();
@@ -195,12 +197,19 @@ public final class CompanionViewer {
 
     private CompanionAgent newAgent() {
         if (trio) {
-            group = new grill24.fishsim.companion.CompanionGroup(tunables, seed, CompanionRun.TRIO_LENGTH, owner, scene);
+            group = new grill24.fishsim.companion.CompanionGroup(tunables, seed, CompanionRun.TRIO_LENGTH, world());
             return group.leader();
         }
         group = null;
-        return new CompanionAgent(tunables, seed, locomotion, CompanionRun.lengthOf(locomotion), owner, scene);
+        return new CompanionAgent(tunables, seed, locomotion, CompanionRun.lengthOf(locomotion), world());
     }
+
+    /** What the companion perceives: the owner and the scene, plus the script's points of interest when one plays. */
+    private grill24.fishsim.companion.CompanionWorld world() {
+        return scriptWorld != null ? scriptWorld : grill24.fishsim.companion.CompanionWorld.of(owner, scene);
+    }
+
+    private grill24.fishsim.companion.CompanionWorld scriptWorld;
 
     /** Runs whole 20 Hz ticks for the real time that has passed, then interpolates the remainder. */
     private void advance() {
@@ -225,8 +234,10 @@ public final class CompanionViewer {
     }
 
     private void tick() {
+        scriptWorld = null;
         if (script != null) {
-            owner = script.next();
+            scriptWorld = script.nextWorld();
+            owner = scriptWorld.owner();
         } else {
             float yawStep = (keys.contains(KeyEvent.VK_LEFT) ? -5f : 0f) + (keys.contains(KeyEvent.VK_RIGHT) ? 5f : 0f);
             float pitchStep = (keys.contains(KeyEvent.VK_UP) ? -4f : 0f) + (keys.contains(KeyEvent.VK_DOWN) ? 4f : 0f);
@@ -247,7 +258,7 @@ public final class CompanionViewer {
             }
             owner = pilot.endTick();
         }
-        if (group != null) group.step(owner, scene); else agent.step(owner, scene);
+        if (group != null) group.step(world()); else agent.step(world());
         trail.addLast(agent.position());
         if (trail.size() > TRAIL) trail.removeFirst();
     }

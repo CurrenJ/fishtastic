@@ -1,6 +1,8 @@
 package grill24.fishsim.companion;
 
+import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.harness.companion.CompanionRun;
+import grill24.fishsim.harness.companion.OwnerScript;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
@@ -9,7 +11,8 @@ import java.util.List;
 /**
  * Diagnostic: one hash per script × seed over every tick's position and heading, for proving a
  * refactor left a body's trajectories bitwise unchanged. Diff the output before and after.
- * Run with -PsimStdout.
+ * Run with -PsimStdout. By default it hashes the spike's FREE_SWIM baseline (11 scripts × 3
+ * seeds); {@code -PfpAll=1} adds every class in the table and the trio over all scripts.
  */
 @EnabledIfSystemProperty(named = "simStdout", matches = "true")
 class FingerprintProbe {
@@ -24,16 +27,45 @@ class FingerprintProbe {
             for (long seed = 1; seed <= 3; seed++) {
                 CompanionRun run = new CompanionRun(script, seed, CompanionTunables.defaults(), true);
                 run.run(2400);
-                long h = 1125899906842597L;
-                for (CompanionRun.Sample s : run.samples) {
-                    h = 31 * h + Double.doubleToLongBits(s.pos().x());
-                    h = 31 * h + Double.doubleToLongBits(s.pos().y());
-                    h = 31 * h + Double.doubleToLongBits(s.pos().z());
-                    h = 31 * h + Float.floatToIntBits(s.yaw());
-                    h = 31 * h + Float.floatToIntBits(s.pitch());
-                }
-                System.out.printf("FP %-13s #%d %016x%n", script, seed, h);
+                System.out.printf("FP %-13s #%d %016x%n", script, seed, hash(run));
             }
         }
+        if (System.getProperty("fpAll") == null) return;
+        for (Locomotion c : List.of(Locomotion.FREE_SWIM, Locomotion.GLIDE, Locomotion.BENTHIC, Locomotion.ANCHORED)) {
+            for (String script : OwnerScript.NAMES) {
+                for (long seed = 1; seed <= 3; seed++) {
+                    CompanionRun run = new CompanionRun(script, seed, c, CompanionTunables.defaults(), true);
+                    run.run(2400);
+                    System.out.printf("FPA %-9s %-15s #%d %016x%n", c, script, seed, hash(run));
+                }
+            }
+        }
+        for (String script : OwnerScript.NAMES) {
+            for (long seed = 1; seed <= 3; seed++) {
+                CompanionRun run = CompanionRun.trio(script, seed, CompanionTunables.defaults(), true);
+                run.run(2400);
+                long h = hash(run);
+                for (CompanionRun.FollowerSample[] fs : run.followerSamples) {
+                    for (CompanionRun.FollowerSample f : fs) {
+                        h = 31 * h + Double.doubleToLongBits(f.pos().x());
+                        h = 31 * h + Double.doubleToLongBits(f.pos().y());
+                        h = 31 * h + Double.doubleToLongBits(f.pos().z());
+                    }
+                }
+                System.out.printf("FPA %-9s %-15s #%d %016x%n", "TRIO", script, seed, h);
+            }
+        }
+    }
+
+    private static long hash(CompanionRun run) {
+        long h = 1125899906842597L;
+        for (CompanionRun.Sample s : run.samples) {
+            h = 31 * h + Double.doubleToLongBits(s.pos().x());
+            h = 31 * h + Double.doubleToLongBits(s.pos().y());
+            h = 31 * h + Double.doubleToLongBits(s.pos().z());
+            h = 31 * h + Float.floatToIntBits(s.yaw());
+            h = 31 * h + Float.floatToIntBits(s.pitch());
+        }
+        return h;
     }
 }

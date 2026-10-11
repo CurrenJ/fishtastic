@@ -1,6 +1,7 @@
 package grill24.fishsim.harness.companion;
 
 import grill24.fishsim.companion.BlockQuery;
+import grill24.fishsim.companion.CompanionWorld;
 import grill24.fishsim.companion.OwnerState;
 import grill24.fishsim.companion.Vec;
 
@@ -54,6 +55,11 @@ public final class OwnerScript {
         pilot.beginTick();
         if (segments.get(index).tick(pilot)) index = (index + 1) % segments.size();
         return pilot.endTick();
+    }
+
+    /** Advances one tick and returns everything the companion perceives. */
+    public CompanionWorld nextWorld() {
+        return CompanionWorld.of(next(), scene);
     }
 
     public Pilot pilot() {
