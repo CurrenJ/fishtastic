@@ -1,7 +1,8 @@
 # Fish Companions — Implementation Handoff
 
 > **Read this first to resume.** Current as of 2026-10-11: **v1 complete** (phases 0–6), all
-> playtest rounds through round 3 fixed and verified on both loaders (§19–§21). Branch: `26.1.2`.
+> playtest rounds through round 3 fixed and verified on both loaders (§19–§21), plus the
+> round-3 wobble regression (`94bc6612`, in-game look pending). Branch: `26.1.2`.
 > Nothing is pushed.
 
 **To resume in a new session, say:**
@@ -26,7 +27,7 @@
 | **Playtest round 2**: motion jitter, tank-faithful facing (sim-rate cap), slowed pet-to-pet scenes, tab listing filter, picker scroll bug | ✅ Done — Fabric run 5 + NeoForge: 119/119 checks, 0 failures each, on the final tree (see fish-companions.md §20) | `7628b579` |
 | Later: personality (§4), world (§6) and player (§7) reactions; scenes G3–G6; signature companions | Not started | — |
 | **Playtest round 3**: follow-acceleration ramp (arrive steering + braking) and the G2 crossing fix | ✅ Done — Fabric + NeoForge full suites: 129/129 checks, 0 failures each, on the final tree (see fish-companions.md §21) | `1ae400c8` |
-| **Round-3 regression**: steady-state wobble (1+ block, >1 Hz in G1/G2 and idle-with-companions) | ⚠ **UNRESOLVED — handed off.** A candidate fix in the working tree was invalidated by equal-grounds A/B (no measurable effect in any clean window; the checks under-report the defect's frequency band ~3×). Reproduces deterministically (see §21's superseded note) | see `docs/fish-companion-wobble-bug-handoff.md` |
+| **Round-3 regression**: steady-state wobble (1+ block, >1 Hz in G1/G2 and idle-with-companions) | ✅ Fixed — moment-profile limit cycle; jerk-aware lookahead. Fabric equal-grounds A/B: suite 13/17 → 17/17 (see fish-companions.md §21; diagnosis record in `docs/fish-companion-wobble-bug-handoff.md`). In-game look pending | `94bc6612` |
 | Tank interactions (E3, E4) | Deferred by owner — do not build | — |
 
 **v1 = phases 0–5 plus scenes G1/G2** (R8.1). Everything was built fork-per-phase, verified
