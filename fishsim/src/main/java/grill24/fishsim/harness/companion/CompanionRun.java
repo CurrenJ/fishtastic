@@ -27,13 +27,16 @@ public final class CompanionRun {
         return switch (c) {
             case GLIDE -> 0.7f;
             case DRIFT -> 0.35f;
+            case BENTHIC -> 0.3f;
+            case ANCHORED -> 0.45f;
             default -> LENGTH;
         };
     }
 
     public record Sample(OwnerState owner, Vec pos, Vec vel, Vec acc, float yaw, float pitch, float bank,
                          float turn, String goal, boolean seen, double ownerDist, float appear,
-                         CompanionAgent.Fade fade, boolean backstop, double impact, int goalTicks, float pulse, double thrust) {}
+                         CompanionAgent.Fade fade, boolean backstop, double impact, int goalTicks, float pulse, double thrust,
+                         boolean riding) {}
 
     public final VoxelScene scene;
     public final OwnerScript script;
@@ -67,7 +70,7 @@ public final class CompanionRun {
         if (record) {
             samples.add(new Sample(owner, agent.position(), agent.velocity(), agent.acceleration(),
                     agent.yaw(), agent.pitch(), agent.bank(), agent.lastTurnDeg(), agent.goal(),
-                    agent.seen(), agent.ownerDistance(), agent.appear(), agent.fade(), agent.backstopLastStep(), agent.lastImpact(), agent.goalTicks(), agent.pulse(), agent.thrust()));
+                    agent.seen(), agent.ownerDistance(), agent.appear(), agent.fade(), agent.backstopLastStep(), agent.lastImpact(), agent.goalTicks(), agent.pulse(), agent.thrust(), agent.onOwner()));
         }
     }
 
@@ -139,9 +142,13 @@ public final class CompanionRun {
         boolean prevContact = false;
         for (Sample s : samples) {
             truth.update(scene, s.owner().eye());
-            if (!truth.sphereClear(s.pos(), r * 0.999)) pen++;
+            // On its owner (riding, or pushing off and touching down), a percher is part of their
+            // silhouette, as a parrot is: where it is, how it moves and how close it is to the
+            // camera are the owner's, not its own.
+            boolean riding = s.riding();
+            if (!riding && !truth.sphereClear(s.pos(), r * 0.999)) pen++;
             maxImpact = Math.max(maxImpact, s.impact());
-            boolean settled = s.fade() == CompanionAgent.Fade.NONE;
+            boolean settled = s.fade() == CompanionAgent.Fade.NONE && !riding;
             // A backstop tick is a collision (its velocity change is the impact, counted above), and
             // the tick after it re-adds the blocked component; neither is the body's own motion.
             boolean contact = s.backstop() || prevContact;
@@ -196,7 +203,9 @@ public final class CompanionRun {
                 // a decision has already counted 1) re-places the fish rather than deciding.
                 boolean baseSwap = isBase(prevGoal) && isBase(s.goal());
                 boolean reset = s.goalTicks() == 0;
-                if (!s.goal().equals("CATCH_UP") && !prevGoal.equals("SHOW_OFF") && !baseSwap && !reset
+                // A percher going into or out of the water swaps bodies; that isn't the mind deciding.
+                boolean perchSwap = prevGoal.equals("PERCH") || s.goal().equals("PERCH");
+                if (!s.goal().equals("CATCH_UP") && !prevGoal.equals("SHOW_OFF") && !baseSwap && !reset && !perchSwap
                         && prevGoalTicks >= 0) {
                     shortest = Math.min(shortest, prevGoalTicks);
                 }

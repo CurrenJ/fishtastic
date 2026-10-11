@@ -385,7 +385,7 @@ first-person GIFs. **Go** = it reads as a creature deciding things, not a staged
 | **1a** Harness + perception | water bits (`BlockQuery.water`, `LocalVoxels`), `OwnerState.inWater` (water at the chest), terrain-following pilot (opt-in per script); scenes `stairwell`, `low_ceiling`, `pond`; scripts `stairwell`, `low_ceiling`, `pond_dive`, `wading`, `about_face`, `jumping`, `creative_flight`; water in the renderer | FREE_SWIM fingerprints of the 11 spike scripts bitwise identical (`FingerprintProbe`); FREE_SWIM invariants on the new scripts, or the gap named |
 | **1b** Body seam + GLIDE (**parked**, §9.2) | per-class gait, GLIDE from `Tunables.GLIDE` with a high ride height; viewer class picker | FREE_SWIM fingerprints unchanged; GLIDE invariants × all scripts × 3 seeds; 8-seed sweep |
 | **1c** DRIFT (**first cut**, §9.3) | bell-axis body: thrust only along the axis, pulse and coast, passive sink; effort raises pulse rate and strength | thrust never off-axis, tilt rate under cap, invariants, no leash on foot |
-| **1d** Perch + hop | BENTHIC/ANCHORED attachment (parrot pattern), ballistic hop with crouch, bounded air control and settle; show-off = a hop across the face; in water, hop off into the free-swim body and back on after | hop accel bounded, arcs clear of blocks, no leash on foot, water switch in `pond_dive`/`wading` |
+| **1d** Perch + hop (**built**, §9.4) | BENTHIC/ANCHORED attachment (parrot pattern), ballistic hop with crouch, bounded air control and settle; show-off = a hop across the face; in water, hop off into the free-swim body and back on after | hop accel bounded, arcs clear of blocks, no leash on foot, water switch in `pond_dive`/`wading` |
 | **1e** Trios | `CompanionGroup`: leader agent + two boid followers on the heading-first body | per-member invariants, followers never overlap or straggle |
 | **1f** Full table | invariant test over class × script × seed; per-class export | **owner gate**: viewer + per-class GIFs |
 
@@ -473,3 +473,52 @@ mean 4.51 → 4.64 b/s, farthest still ~10 s).
 scripts; impacts to 6–7 b/s in the doorway and cellar; tail-first 1–15%. DRIFT stays out of the
 invariant table until stroke sizing (arrive at the asked speed instead of overshooting), altitude
 hold near the ground, and reorientation have a design.
+
+### 9.4 Step 1d — perchers (BENTHIC, ANCHORED)
+
+**As built.** `PerchBody` (a `Motor`) holds a free-swim `Body` the `Mind` steers in water.
+- **Perched** is a real attachment, the parrot pattern: right shoulder, left shoulder or head by
+  seed (the back for ANCHORED). It moves with the owner, teleports included, so a riding percher
+  never needs the fade.
+- **Hops** are ballistic (gravity 22 b/s²): a size-paced crouch, a launch aimed at where the target
+  slot will be at landing, bounded air control (10 b/s²), and a 4-tick settle. An arc is launched
+  only if it's clear of blocks and, once off the owner's body, never passes back through it or
+  within 0.1 of the camera lens past its radius; failing that the hop is higher and slower, or
+  waits. It also waits until the owner's height and velocity have held steady for 0.5 s.
+- **Show-off = a hop onto the hand** on its own side, in the view's frame, low and to the side,
+  where a held item sits in first person. Also when the owner looks down (pitch > 50° for 0.75 s).
+  It sits 2–4 s, then hops home; now and then it changes shoulders. ANCHORED never hops in air.
+- **Water** (spec E1): chest in water for 10 ticks → it hops off into the water and swims under
+  the mind; dry for 20 ticks, steady, and within 3.5 blocks → it hops back on. A bump mid-hop
+  hands it to the swim body, with a 1 s wait before remounting.
+- Invariants count a percher on its owner (riding, or the first/last 0.12 s of a hop) as part of
+  their silhouette, as with vanilla parrots: no block, owner, near-clip or acceleration checks
+  there. Its own bounds: accel ≤ gravity + air control + 2; jerk ≤ 800 (hop/swim hand-offs —
+  hitting water — measured to ~670).
+
+**Results (8 seeds × 2 min).** BENTHIC: 0 penetrations; no leash on foot; longest unseen ~20 s
+almost everywhere, seen 16–30%; inside-owner and near-clip ≤ 0.5% of ticks. It even passes
+`about_face`, a FREE_SWIM gap. ANCHORED: never seen in first person in air (spec: "pokes out of
+the back", "planted never leaves its perch"); in water it swims like the rest.
+
+**Bugs found and fixed along the way (each confirmed by a trace, A/B'd on 8 seeds):**
+- Hand slots were always on the right: a left-shoulder crab's hop crossed the owner's face, and
+  under the cellar ceiling it could never hop. Hands are now per side.
+- Owner clearance on an arc was a fixed window (samples 30–70%), which on a 0.6-block hop is still
+  touching the shoulder: every low arc failed. Now topological (leave the body, don't re-enter).
+- Visibility was judged on last tick's position against this tick's camera; a crab on a walking
+  owner's hand read as out of view (walk: seen 2% → 11%). **The spike's `Mind.perceive` judges a
+  swimmer the same way** — left as is (it would change approved FREE_SWIM behaviour); for Phase 2.
+- Hops met stair steps: the owner stepped a block in 1/8 s mid-hop. The steadiness gate took
+  stairwell contacts 39 → 20 (height) → 3 (velocity too).
+
+**Tried and reverted (mixed or worse on 8 seeds):** extra block margin for hops while the owner
+moves (unseen time doubled); retargeting a hop whose target swung into a wall (stairwell contacts
+39 → 83); water-entry spots beside/behind the owner (pond contacts 0 → 8).
+
+**Named gaps.** Corridor and stairwell contacts (up to 5.6–7.4 b/s, rare); `pond_dive` inside-owner
+up to 1.2% of ticks on one seed (the free-swim body under a diving owner; bound 1.5% there).
+
+**For the owner's look.** ANCHORED is invisible in first person by spec — is that wanted? A hop
+back from the water can pass right in front of the camera (legal, but may read as in-your-face).
+Hops are a crouch-launch-settle; the animator's pose for them is Phase 3.

@@ -40,6 +40,7 @@ public final class CompanionRenderer {
     private static final Color GRASS = new Color(0x6FA34C), GRASS_ALT = new Color(0x689B47);
     private static final Color STONE = new Color(0x8C8C8C);
     private static final Color FISH = new Color(0xF28C28), FISH_FIN = new Color(0xE0602A);
+    private static final Color CRAB = new Color(0xD0442C), EEL = new Color(0xE8DCA0);
     private static final Color WATER = new Color(40, 110, 200, 110);
     private static final Color UNDERWATER = new Color(20, 70, 160, 90);
 
@@ -245,7 +246,9 @@ public final class CompanionRenderer {
         for (Vec[] t : order) {
             Vec n = t[1].sub(t[0]).cross(t[2].sub(t[0])).normalize();
             double shade = 0.55 + 0.45 * Math.abs(n.dot(LIGHT));
-            fill(g, cam, t, shadeColor(t[0] == tail && t[1] == finT ? FISH_FIN : FISH, shade), false);
+            Color body = a.locomotion() == grill24.fishsim.core.Locomotion.BENTHIC ? CRAB
+                    : a.locomotion() == grill24.fishsim.core.Locomotion.ANCHORED ? EEL : FISH;
+            fill(g, cam, t, shadeColor(t[0] == tail && t[1] == finT ? FISH_FIN : body, shade), false);
         }
         // Eyes: a dark dot on each side near the nose.
         for (int s = -1; s <= 1; s += 2) {
@@ -360,7 +363,8 @@ public final class CompanionRenderer {
         g.setColor(new Color(0, 0, 0, 120));
         g.fillRect(4, 4, 196, 92);
         g.setColor(Color.WHITE);
-        g.drawString(a.goal() + "  " + (a.seen() ? "seen" : occluded ? "hidden" : "unseen"), x, y);
+        String state = a.perchState() != null && a.goal().equals("PERCH") ? a.perchState() : a.goal();
+        g.drawString(state + "  " + (a.seen() ? "seen" : occluded ? "hidden" : "unseen"), x, y);
         y += 16;
         y = bar(g, x, y, "proximity", a.proximity(), new Color(0xE06666));
         y = bar(g, x, y, "attention", a.attention(), new Color(0xF6B26B));

@@ -50,6 +50,11 @@ abstract class Motor {
      */
     abstract void step(Vec desired, double wanderScale, Vec extraAvoid, LocalVoxels voxels, Capsule body);
 
+    /** Every contact this body (and any body it hands off to) has had with blocks. */
+    long backstopCount() {
+        return backstops;
+    }
+
     /** The animator's tail-beat (or pulse) multiplier. */
     abstract float speedFactor();
 

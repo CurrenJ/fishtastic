@@ -359,6 +359,18 @@ final class Body extends Motor {
         return (float) (0.6 + 0.9 * normalized);
     }
 
+    /**
+     * Takes over a body already moving (a percher dropping into the water off a hop): it keeps its
+     * horizontal speed and heads the way it was going; the fall is left to the slip and the swim.
+     */
+    void placeMoving(Vec p, Vec v, float facingYaw) {
+        placeAt(p, facingYaw);
+        double h = v.horizontalLength();
+        if (h > 1e-3) yaw = (float) v.yawDeg();
+        speed = Math.min(h, g.maxSpeed());
+        vel = Vec.fromYawPitch(yaw, 0).scale(speed);
+    }
+
     @Override
     void placeAt(Vec p, float facingYaw) {
         super.placeAt(p, facingYaw);

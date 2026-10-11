@@ -30,6 +30,9 @@ public final class CompanionAgent {
     private final CompanionTunables t;
     private final Motor body;
     private final Mind mind;
+    /** A percher's body (BENTHIC, ANCHORED), else null; its swim body is the one the mind steers. */
+    private final PerchBody perch;
+    private boolean perchSeen;
     private final LocalVoxels voxels = new LocalVoxels();
     private final Breadcrumbs crumbs = new Breadcrumbs();
     private final float length;
@@ -57,7 +60,7 @@ public final class CompanionAgent {
     }
 
     /**
-     * @param locomotion the species' class: FREE_SWIM, GLIDE or DRIFT so far
+     * @param locomotion the species' class
      * @param length     rendered body length in blocks; sets the collision radius
      */
     public CompanionAgent(CompanionTunables t, long seed, Locomotion locomotion, float length, OwnerState owner,
@@ -68,10 +71,19 @@ public final class CompanionAgent {
         double radius = Math.max(0.08, Math.min(0.3, length * 0.3));
         voxels.update(blocks, owner.eye());
         Vec start = besideOwner(owner, radius);
-        this.body = locomotion == Locomotion.DRIFT
-                ? new DriftBody(t, start, owner.yawDeg(), radius, seed ^ 0x5DEECE66DL)
-                : new Body(t, locomotion, start, owner.yawDeg(), radius, seed ^ 0x5DEECE66DL);
-        this.mind = new Mind(t, body, seed);
+        if (locomotion == Locomotion.BENTHIC || locomotion == Locomotion.ANCHORED) {
+            Body swim = new Body(t, Locomotion.FREE_SWIM, start, owner.yawDeg(), radius, seed ^ 0x5DEECE66DL);
+            this.perch = new PerchBody(t, locomotion, swim, owner, radius, length, seed);
+            this.body = perch;
+            this.mind = new Mind(t, swim, seed);
+            start = perch.pos;
+        } else {
+            this.perch = null;
+            this.body = locomotion == Locomotion.DRIFT
+                    ? new DriftBody(t, start, owner.yawDeg(), radius, seed ^ 0x5DEECE66DL)
+                    : new Body(t, locomotion, start, owner.yawDeg(), radius, seed ^ 0x5DEECE66DL);
+            this.mind = new Mind(t, body, seed);
+        }
         this.prevPos = start;
         this.renderPos = start;
         this.prevYaw = renderYaw = owner.yawDeg();
@@ -90,12 +102,25 @@ public final class CompanionAgent {
         if (owner.teleported()) crumbs.clear();
         crumbs.record(owner.chest());
 
-        if (fade == Fade.NONE && (owner.teleported() || body.pos.distanceTo(owner.chest()) > t.leashGap)) {
+        boolean riding = perch != null && perch.attached();
+        if (fade == Fade.NONE && !riding
+                && (owner.teleported() || body.pos.distanceTo(owner.chest()) > t.leashGap)) {
             fade = Fade.OUT;
         }
 
-        Vec desired = mind.decide(owner, voxels, crumbs);
-        body.step(desired, mind.wanderScale, mind.ownerAvoidance(owner), voxels, Capsule.ownerBody(owner));
+        if (perch != null) {
+            // The drives react to whether it was seen last tick; seen is then judged where the
+            // body is now, against this tick's camera (judging last tick's spot against this tick's
+            // camera put a crab riding a walking owner's hand out of view).
+            perch.step(owner, voxels, perchSeen, () -> mind.decide(owner, voxels, crumbs),
+                    () -> mind.ownerAvoidance(owner), () -> mind.reset(owner));
+            perchSeen = Visibility.visible(owner, perch.pos, voxels);
+            // Riding the owner through a teleport: it went with them, so don't draw it streaking.
+            if (perch.attached() && owner.teleported()) prevPos = perch.pos;
+        } else {
+            Vec desired = mind.decide(owner, voxels, crumbs);
+            body.step(desired, mind.wanderScale, mind.ownerAvoidance(owner), voxels, Capsule.ownerBody(owner));
+        }
 
         switch (fade) {
             case OUT -> {
@@ -135,6 +160,11 @@ public final class CompanionAgent {
         Vec p = besideOwner(owner, body.radius);
         body.placeAt(p, owner.yawDeg());
         mind.reset(owner);
+        if (perch != null) {
+            // A percher comes back where it lives: on its owner.
+            perch.reperch(owner);
+            p = perch.pos;
+        }
         prevPos = p;
         prevYaw = body.yaw;
         prevPitch = body.pitch;
@@ -196,12 +226,20 @@ public final class CompanionAgent {
     public float appear() { return appear; }
     public Fade fade() { return fade; }
     public long leashEvents() { return leashEvents; }
-    public long backstops() { return body.backstops; }
+    public long backstops() { return body.backstopCount(); }
     public long ticks() { return ticks; }
 
     // ── Mind, for overlays, tests and the adapter's debug display ──────────────────────────────
 
-    public String goal() { return mind.goal.name(); }
+    /** The mind's goal — or PERCH while a percher is riding or hopping (its hops aren't mind goals). */
+    public String goal() { return perch != null && perch.mode != PerchBody.Mode.SWIM ? "PERCH" : mind.goal.name(); }
+    /** A percher's mode and slot, for overlays (null for other classes). */
+    public String perchState() { return perch == null ? null : perch.mode + " " + perch.slot; }
+    /** Whether a percher is riding its owner this tick (perched, crouching or settling). */
+    public boolean riding() { return perch != null && perch.attached(); }
+    /** Whether a percher is on its owner: riding, or pushing off or touching down in a hop. */
+    public boolean onOwner() { return perch != null && perch.onOwner(); }
+    public int hops() { return perch == null ? 0 : perch.hops; }
     public int goalTicks() { return mind.goalTicks; }
     public int goalSwitches() { return mind.goalSwitches; }
     public int showOffs() { return mind.showOffs; }
@@ -210,7 +248,7 @@ public final class CompanionAgent {
     public float utilityBase() { return mind.uBase; }
     public float utilityCatchUp() { return mind.uCatch; }
     public float utilityShowOff() { return mind.uShow; }
-    public boolean seen() { return mind.seen; }
+    public boolean seen() { return perch != null && perch.mode != PerchBody.Mode.SWIM ? perchSeen : mind.seen; }
     public int unseenTicks() { return mind.unseenTicks; }
     public double ownerDistance() { return mind.ownerDist; }
     public boolean ownerMoving() { return mind.ownerMoving; }

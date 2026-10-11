@@ -26,7 +26,8 @@ class CompanionInvariantTest {
 
     private static final long[] SEEDS = {1, 2, 3};
     /** DRIFT isn't in the table yet: a first cut with open problems (plan §9.3). */
-    private static final List<Locomotion> CLASSES = List.of(Locomotion.FREE_SWIM, Locomotion.GLIDE);
+    private static final List<Locomotion> CLASSES = List.of(
+            Locomotion.FREE_SWIM, Locomotion.GLIDE, Locomotion.BENTHIC, Locomotion.ANCHORED);
     private static final int TICKS = 2400;
 
     /** Scenes with blocks in the way; contact with them is allowed, gently. */
@@ -57,6 +58,24 @@ class CompanionInvariantTest {
      * commitment still apply; contact, owner, visibility and keep-up bounds don't, yet.
      */
     private static final Set<String> GLIDE_TIGHT_SPACE_GAPS = Set.of("corridor", "doorway", "forest", "stairwell");
+
+    /**
+     * Perchers (plan §9.4) hopping in a 1-wide tunnel or a 3-wide stairwell graze or bump the walls
+     * now and then — the owner moves on after the hop was planned. Contact bounds don't apply there.
+     */
+    private static final Set<String> PERCHER_TIGHT_SPACE_GAPS = Set.of("corridor", "stairwell");
+
+    /**
+     * A percher that has just dropped into the water swims with the free-swim body right beside an
+     * owner who is diving, and the owner swims over it: up to 1.2% of ticks inside their body on
+     * one seed in 8 (the free swimmer itself does the same, less often). The bound there is 1.5%.
+     */
+    private static final Set<String> PERCHER_WATER_ENTRY_GAPS = Set.of("pond_dive");
+
+    private static boolean percher(String key) {
+        Locomotion c = locomotion(key);
+        return c == Locomotion.BENTHIC || c == Locomotion.ANCHORED;
+    }
 
     private static boolean tightGlide(String key) {
         return locomotion(key) == Locomotion.GLIDE && GLIDE_TIGHT_SPACE_GAPS.contains(script(key));
@@ -108,7 +127,7 @@ class CompanionInvariantTest {
                 assertEquals(0, m.backstops(), key + ": no blocks to touch in the open " + m.summary());
                 return;
             }
-            if (tightGlide(key)) return;
+            if (tightGlide(key) || (percher(key) && PERCHER_TIGHT_SPACE_GAPS.contains(script(key)))) return;
             double perMinute = m.backstops() / (m.ticks() / 20.0 / 60.0);
             assertTrue(perMinute <= 8, key + ": " + perMinute + " contacts/min " + m.summary());
             assertTrue(m.maxImpact() <= 3.0, key + ": impact " + m.maxImpact() + " b/s " + m.summary());
@@ -120,13 +139,23 @@ class CompanionInvariantTest {
     @Test
     void bodyStaysInsideItsLimits() {
         CompanionTunables t = CompanionTunables.defaults();
-        double maxAccel = Math.hypot(t.maxLateralAccel, t.maxForce) + 1.5; // + vertical slip
+        double swimAccel = Math.hypot(t.maxLateralAccel, t.maxForce) + 1.5; // + vertical slip
+        // A hop is gravity plus bounded air control; on the owner it is the owner's motion.
+        double hopAccel = PerchBody.GRAVITY + PerchBody.AIR_CONTROL + 2;
         all((key, m) -> {
             assertTrue(m.maxTurnDeg() <= t.turnRateDegPerTick + 1e-3, key + " turn " + m.summary());
-            assertTrue(m.maxAccel() <= maxAccel, key + " accel " + m.summary());
-            // A floor guard against snapping, not a feel target: measured ~120 at the spike.
-            assertTrue(m.maxJerk() <= 160, key + " jerk " + m.summary());
+            assertTrue(m.maxAccel() <= (percher(key) ? Math.max(swimAccel, hopAccel) : swimAccel),
+                    key + " accel " + m.summary());
+            // A floor guard against snapping, not a feel target: measured ~120 at the spike. A
+            // percher's hand-offs between hop and swim (dropping into water, a bump mid-air) are
+            // the one place its motion changes abruptly; measured up to ~670.
+            assertTrue(m.maxJerk() <= (percher(key) ? 800 : 160), key + " jerk " + m.summary());
         });
+    }
+
+    @Test
+    void neverTravelsTailFirst() {
+        all((key, m) -> assertTrue(m.tailFirstFraction() <= 0.005, key + " " + m.summary()));
     }
 
     @Test
@@ -144,7 +173,8 @@ class CompanionInvariantTest {
             if (TUNNEL_SCRIPTS.contains(script(key)) || tightGlide(key)) return;
             double inside = m.insideOwnerTicks() / (double) m.ticks();
             double clip = m.nearClipTicks() / (double) m.ticks();
-            assertTrue(inside <= 0.01, key + " inside owner " + inside + " " + m.summary());
+            double insideBound = percher(key) && PERCHER_WATER_ENTRY_GAPS.contains(script(key)) ? 0.015 : 0.01;
+            assertTrue(inside <= insideBound, key + " inside owner " + inside + " " + m.summary());
             assertTrue(clip <= (NEAR_CLIP_GAPS.contains(script(key)) ? 0.02 : 0.01),
                     key + " near clip " + clip + " " + m.summary());
             assertTrue(m.longestCentreDwellTicks() <= 40, key + " parked on screen centre " + m.summary());
@@ -155,6 +185,9 @@ class CompanionInvariantTest {
     void ownerSeesItRegularly() {
         all((key, m) -> {
             if (TUNNEL_SCRIPTS.contains(script(key)) || VISIBILITY_GAPS.contains(script(key)) || tightGlide(key)) return;
+            // Spec §3: an anchored companion pokes out of its owner's back and never leaves it in
+            // air, so first person never shows it (plan §9.4, for the owner's look).
+            if (locomotion(key) == Locomotion.ANCHORED) return;
             assertTrue(m.longestUnseenSeconds() <= 30, key + " unseen too long " + m.summary());
             assertTrue(m.seenFraction() >= 0.05, key + " barely seen " + m.summary());
         });
@@ -164,6 +197,8 @@ class CompanionInvariantTest {
     void keepsUpWithoutTheLeash() {
         all((key, m) -> {
             if (LEASH_SCRIPTS.contains(script(key))) {
+                // A percher riding its owner goes with them, as a parrot does: no fade needed.
+                if (percher(key)) return;
                 assertTrue(m.leashEvents() >= 1, key + " should have faded at least once " + m.summary());
                 return;
             }
