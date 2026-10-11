@@ -1,6 +1,6 @@
 # Fish Companions — Simulation Rewrite Plan
 
-**Written:** 2026-10-11 · **Status: Phase 1 built 2026-10-11 (§9); awaiting the owner's gate (§9.6). GLIDE parked for a refactor; DRIFT a first cut.**
+**Written:** 2026-10-11 · **Status: Phase 1 built and passed the owner's gate 2026-10-11 (§9.6); Phase 2 next. GLIDE and DRIFT parked.**
 
 **Decision (owner, 2026-10-11):** rebuild companion motion the way the tank was rebuilt
 ([fish-sim-engine-plan.md](fish-sim-engine-plan.md)): a Minecraft-free simulation in `:fishsim`,
@@ -561,7 +561,7 @@ matching velocity, not through each other.) No follower fades on any open script
 | Trio | built (§9.5) | yes (`TrioInvariantTest`) |
 | BENTHIC, ANCHORED | built (§9.4) | yes |
 | GLIDE | **parked** for a tank + companion refactor (§9.2) | yes, with tight-space gaps |
-| DRIFT | **first cut** with open problems (§9.3) | no |
+| DRIFT | **parked** (owner, 2026-10-11): first cut with open problems (§9.3) | no |
 
 Every FREE_SWIM spike trajectory on open ground is still bitwise identical; only obstacle scenes
 moved, from the contact fix. The new scenes and scripts are in `VoxelScene`/`OwnerScript`; the
@@ -577,6 +577,17 @@ viewer picks class, scene and owner (manual or any script).
 4. ANCHORED never shows in first person (by spec). Wanted?
 5. DRIFT: stronger pulses as chosen, but it still lags after stops and turns (§9.3) — decide
    whether to design it further now or park it with GLIDE.
+
+**Owner's answers (2026-10-11):** 1 — "Trailing looks fine." 2 — "Trio definitely reads."
+3 — "Crab looks good!" 4 — ANCHORED invisible in first person: yes, as specced. 5 — open: the
+owner asked which species drift. Only three are `upright_float` (so DRIFT): glass squid (jet
+propulsion — the pulse body fits, as a strong, quick-turning jetter), flapjack octopus (pulses its
+bell — fits), Portuguese man o' war (no propulsion of its own; sail-carried — the pulse body is
+the wrong model for it). Owner: "Let's leave drifters for now" — **DRIFT is parked** as the
+first cut in §9.3; when it returns, the squid and octopus likely want a jetter (quick to
+reorient, strokes sized to land at the asked speed) and the man o' war a passive floater. The
+`VISIBILITY_GAPS` for trailing (§9.1) are now accepted behaviour,
+not gaps.
 
 **Found for Phase 2:** the spike's `Mind.perceive` judges "seen" on last tick's position against
 this tick's camera (§9.4); fixing it changes FREE_SWIM's attention timing, so it waits for the
