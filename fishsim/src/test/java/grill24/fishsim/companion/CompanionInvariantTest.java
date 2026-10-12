@@ -410,6 +410,12 @@ class CompanionInvariantTest {
     //    over 40 s) — the scripted sprints are catch-up parked behind the owner (§13.5 item 1), and a
     //    second of calm in the 0.7–2 s pauses moves which catch-ups it starts from. Waiting before
     //    calming was measured worse everywhere else.
+    /**
+     * camera_sweep: the owner turns the view away and back, and one seed in 16 leaves the bell out
+     * of view for a sweep and a half: 34.1 s before §13.11 (seed 14), 34.6 s after (seed 3); median
+     * 20 s in both (docs/fish-companions-drift.md §13.12). Bound 36 s there.
+     */
+    private static final double DRIFT_CAMERA_SWEEP_UNSEEN = 36;
     /** The 1-wide tunnel: one seed in 8 grazes 50 times in 2 min (25/min; the rest 9–18). Bound 30/min. */
     private static final double DRIFT_TUNNEL_CONTACT_BOUND = 30;
     /** forest: one fade in 2 min on 2 of 8 seeds (none before §13.7). Bound 1 there. */
@@ -512,11 +518,64 @@ class CompanionInvariantTest {
                 })));
     }
 
+    /**
+     * The art never flips (docs/fish-companions-drift.md §13.9). Swinging back through upright, the
+     * bell's lean swaps sides in a tick; drawn as the facing, that was a 180° flip of the flapjack
+     * and the man o' war about once every six seconds. The facing now turns at a capped rate.
+     */
+    @Test
+    void driftFacingNeverSnaps() {
+        float cap = CompanionTunables.defaults().driftFaceRateDegPerTick + 1e-3f;
+        assertAll(java.util.stream.Stream.of("idle_fixed", "walk_turns", "about_face", "stop_and_go").flatMap(script ->
+                java.util.Arrays.stream(SEEDS).mapToObj(seed -> (Executable) () -> {
+                    CompanionRun run = CompanionRun.drifter(script, seed, DriftStyle.BELL, Temperament.BASELINE,
+                            CompanionTunables.defaults(), false);
+                    float last = run.agent.face();
+                    for (int k = 0; k < TICKS; k++) {
+                        run.tick();
+                        float step = Math.abs(Body.wrap(run.agent.face() - last));
+                        // A leash fade re-places the body beside the owner; that jump isn't drawn.
+                        if (run.agent.appear() >= 1f) {
+                            assertTrue(step <= cap, "DRIFT_BELL/" + script + "#" + seed + " tick " + k + " face step " + step);
+                        }
+                        last = run.agent.face();
+                    }
+                })));
+    }
+
+    /**
+     * By a still owner it leans only somewhat (docs/fish-companions-drift.md §13.11). Showing off and
+     * leaving the centre of view were not idling, so the bell lay over past 60° on 17–19% of those
+     * ticks (8 seeds). With the lean scaled by the asked speed, and no lean toward a level or
+     * downward need, that is 0.
+     */
+    @Test
+    void driftLeansOnlySomewhatByAStillOwner() {
+        assertAll(java.util.stream.Stream.of("idle_fixed", "idle_looking", "camera_sweep").flatMap(script ->
+                java.util.Arrays.stream(SEEDS).mapToObj(seed -> (Executable) () -> {
+                    CompanionRun run = CompanionRun.drifter(script, seed, DriftStyle.BELL, Temperament.BASELINE,
+                            CompanionTunables.defaults(), false);
+                    int n = 0, over = 0;
+                    float max = 0;
+                    for (int k = 0; k < TICKS; k++) {
+                        run.tick();
+                        if (k < 40 || run.agent.appear() < 1f) continue;
+                        float tilt = run.agent.driftTilt();
+                        n++;
+                        if (tilt > 60f) over++;
+                        max = Math.max(max, tilt);
+                    }
+                    assertTrue(over <= n * 0.005, "DRIFT_BELL/" + script + "#" + seed + " over 60° on " + over + " of " + n
+                            + " ticks, max " + max + "°");
+                })));
+    }
+
     @Test
     void driftOwnerSeesItRegularly() {
         allDrift((key, r) -> {
             if (TUNNEL_SCRIPTS.contains(script(key)) || DRIFT_VISIBILITY_GAPS.contains(script(key))) return;
-            assertTrue(r.m().longestUnseenSeconds() <= 30, key + " unseen too long " + driftSummary(r));
+            double unseenBound = script(key).equals("camera_sweep") ? DRIFT_CAMERA_SWEEP_UNSEEN : 30;
+            assertTrue(r.m().longestUnseenSeconds() <= unseenBound, key + " unseen too long " + driftSummary(r));
             assertTrue(r.m().seenFraction() >= 0.05, key + " barely seen " + driftSummary(r));
         });
     }

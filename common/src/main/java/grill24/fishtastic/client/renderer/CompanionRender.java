@@ -44,6 +44,14 @@ public final class CompanionRender {
      */
     public static final float DEFAULT_UPRIGHT_SWELL = 2.5f;
     public static float uprightSwell = DEFAULT_UPRIGHT_SWELL;
+    /**
+     * Gain on a drifter's squeeze for a companion (docs/fish-companions-drift.md §13.10): the tank's
+     * {@code pulse_stretch} alone (10%) over an idle stroke's second-long squeeze reads as nothing,
+     * though the push it gives plainly shows. The squeeze is already scaled by the stroke's strength.
+     * Set live with {@code /fishtastic companion squeeze}.
+     */
+    public static final float DEFAULT_DRIFT_SQUEEZE = 3f;
+    public static float driftSqueeze = DEFAULT_DRIFT_SQUEEZE;
     /** The sim's tail phase advances 2π·1.6 rad per second at speed factor 1; the animator wants ticks. */
     private static final float PHASE_PER_TICK = (float) (2 * Math.PI * 1.6 / 20);
     /** The glider's bank at full lock, degrees (CompanionTunables.glideBankMaxDeg), for the animator's fraction. */
@@ -108,15 +116,18 @@ public final class CompanionRender {
      * stack is camera-relative. Returns false when it is faded out entirely.
      *
      * @param yawDeg   Minecraft yaw of the heading
+     * @param faceDeg  the way the art faces, degrees: a drifter's heading is its lean, which can swap
+     *                 sides in a tick, so its art turns separately and slower; others pass {@code yawDeg}
      * @param pitchDeg Minecraft pitch of the heading (positive is nose down)
      * @param riding   a percher on its owner (the hand): poses as perched, not swimming
      * @param onFloor  {@code pos} is the floor under a benthic walking on the ground: the pose is
      *                 lifted by its own floor offset (docs/fish-companions-benthic-follow.md §21)
+     * @param pulse    a drifter's squeeze, 0..1 (its stroke envelope scaled by the stroke's strength)
      * @param ripple   a flatfish gliding on the ground: its ripple runs on the gait's phase
      *                 ({@code tailPhase}), quickening as it glides faster and slowing when it stops
      */
     public boolean submit(PoseStack poseStack, SubmitNodeCollector nodes, Vec3 cam, int index, Vec pos,
-                          float yawDeg, float pitchDeg, float bankDeg, float appear, float tailPhase,
+                          float yawDeg, float faceDeg, float pitchDeg, float bankDeg, float appear, float tailPhase,
                           float speedFactor, float pulse, float squash, boolean riding,
                           float gameTime, int light, boolean onFloor, boolean ripple) {
         float clock = advanceTail(index, tailPhase);
@@ -135,6 +146,8 @@ public final class CompanionRender {
         poseStack.mulPose(Axis.XP.rotationDegrees(tiltDeg + hintPitch(partial)));
         float roll = hintTilt(partial);
         if (roll != 0f) poseStack.mulPose(Axis.ZP.rotationDegrees(roll));
+        // Lean toward the heading, but face the art its own way: upright, this is just the facing.
+        if (locomotion == Locomotion.DRIFT) poseStack.mulPose(Axis.YP.rotationDegrees(Mth.wrapDegrees(yawDeg - faceDeg)));
         random.setSeed(seed * 31 + index);
         if (!riding && anim instanceof FishAnimationConfig.HorizontalSwim swim) {
             FishAnimator.applySwimming(poseStack, swim, random, clock * SWIM_CLOCK_RATE, NOSE_FORWARD, false,
@@ -143,7 +156,7 @@ public final class CompanionRender {
             FishAnimator.applyGliding(poseStack, anim, random, t, NOSE_FORWARD,
                     Mth.clamp(bankDeg / GLIDE_BANK_MAX, -1f, 1f), NOSE_FORWARD, scale, false);
         } else if (locomotion == Locomotion.DRIFT) {
-            FishAnimator.applyDrifting(poseStack, anim, random, t, NOSE_FORWARD, scale, false, pulse);
+            FishAnimator.applyDrifting(poseStack, anim, random, t, NOSE_FORWARD, scale, false, pulse * driftSqueeze);
         } else if (locomotion == Locomotion.BENTHIC) {
             // Standing up, the push-off is seen from the side at 5% and reads as nothing; the flat
             // pose's in-plane swell (a starfish's) already reads, so only the upright one is raised.

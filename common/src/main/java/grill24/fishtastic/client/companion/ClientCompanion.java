@@ -258,6 +258,7 @@ public final class ClientCompanion {
             if (drawsOnPerch(i)) continue;
             Vec pos = a.renderPos();
             float yaw = a.renderYaw();
+            float face = a.renderFace();
             float pitch = a.renderPitch();
             boolean onFloor = false;
             if (handAttached(a)) {
@@ -265,7 +266,7 @@ public final class ClientCompanion {
                 // pattern), so a mouse flick doesn't leave it a tick behind the camera.
                 OwnerState o = frameOwner(partialTick);
                 pos = PerchBody.slotPoint(o, a.perchSlot());
-                yaw = o.yawDeg();
+                yaw = face = o.yawDeg();
                 pitch = 0f;
             } else if (walksOnGround(a)) {
                 // Its feet, not its centre: the pose stands on the floor by its own lift.
@@ -274,8 +275,8 @@ public final class ClientCompanion {
             }
             // The walk's push-off and the crouch/landing squash drive the same silhouette envelope.
             float shape = gait != null ? Math.max(a.perchSquash(), a.groundShape()) : a.perchSquash();
-            drew |= render.submit(poseStack, nodes, cam, i, pos, yaw, pitch, a.renderBank(),
-                    a.renderAppear(), a.renderTailPhase(), a.speedFactor(), a.pulse(),
+            drew |= render.submit(poseStack, nodes, cam, i, pos, yaw, face, pitch, a.renderBank(),
+                    a.renderAppear(), a.renderTailPhase(), a.speedFactor(), a.renderSqueeze(),
                     shape, a.riding(), gameTime, light(pos, glow), onFloor,
                     onFloor && gait == GroundGait.RIPPLE);
         }
@@ -283,7 +284,7 @@ public final class ClientCompanion {
             for (int i = 0; i < 2; i++) {
                 CompanionGroup.Follower f = group.follower(i);
                 Vec pos = f.renderPos();
-                drew |= render.submit(poseStack, nodes, cam, i + 1, pos, f.renderYaw(), f.renderPitch(),
+                drew |= render.submit(poseStack, nodes, cam, i + 1, pos, f.renderYaw(), f.renderYaw(), f.renderPitch(),
                         f.renderBank(), f.renderAppear(), f.renderTailPhase(), f.speedFactor(), 0f, 0f, false,
                         gameTime, light(pos, glow), false, false);
             }

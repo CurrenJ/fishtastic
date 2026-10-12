@@ -122,6 +122,12 @@ public final class CompanionTunables {
     /** How far the bell may lean from upright, degrees (short of horizontal), and how fast it leans. */
     public float driftTiltMaxDeg = 85f;
     public float driftTiltRateDegPerTick = 3f;
+    /**
+     * How fast a drifter's drawn facing may turn, degrees per tick. The bell is round, so its lean can
+     * swap sides in a tick when it swings through upright; the art isn't, so the facing follows the
+     * lean at this capped rate instead of flipping 180° (docs/fish-companions-drift.md §13.9).
+     */
+    public float driftFaceRateDegPerTick = 4f;
     /** Ride height above the owner's chest, blocks: shoulder to head height. */
     public float driftRideHeight = 0.35f;
 
@@ -149,6 +155,12 @@ public final class CompanionTunables {
      * and it flares when it is already going faster than that. Needs {@link #driftFlare}.
      */
     public boolean driftRoomBrake = true;
+    /**
+     * Braking by room ignores a block it already touches unless it comes closer (§13.12). Off, a bell
+     * pressed to a tunnel wall or sitting on the floor reads no room anywhere and can't stroke off it.
+     * False is the body before, bitwise.
+     */
+    public boolean driftRoomPastContact = true;
     /** Extra tilt rate at rest, as a multiple of the base rate, fading out by {@link #driftSlowPivotSpeed}; 0 off. */
     public float driftSlowPivot = 0f;
     public float driftSlowPivotSpeed = 2.0f;
@@ -194,6 +206,26 @@ public final class CompanionTunables {
      * waiting out its long idle cycle — measured: out of a low swoop it fell 1.6 blocks onto the floor.
      */
     public boolean driftCalmCatch = true;
+
+    // Owner feedback (docs/fish-companions-drift.md §13.11): "the flapjack can end up rotating a full
+    // 90° ... tilt somewhat over in the horizontal direction to propel but not that far". Each its own
+    // switch; ask tilt 85 and lean-into-brake true together are the body before, bitwise.
+    /**
+     * The lean of any bell asked to go slowly, calm or not: at most this, degrees, at no asked speed,
+     * rising to the full {@link #driftTiltMaxDeg} by {@link #driftAskTiltSpeed} blocks/s. The calm
+     * lean (§13.7) covered only idling, so showing off by a still owner laid it flat. At or above the
+     * tilt limit it is off.
+     */
+    public float driftAskTiltDeg = 30f;
+    public float driftAskTiltSpeed = 3.0f;
+    /**
+     * With this off, a bell whose need points level or down (it is braking, or correcting a fall)
+     * leans no further than holding its asked velocity takes, plus {@link #driftBrakeTiltMarginDeg}: it
+     * can't push down or back, so lying over toward that need moves it nowhere useful. True is the
+     * body before.
+     */
+    public boolean driftLeanIntoBrake = false;
+    public float driftBrakeTiltMarginDeg = 10f;
 
     // Owner feedback after Phase 1 (docs/fish-companions-drift.md §13.8): "it ends up inside me often
     // when I walk or sprint ahead and stop, the drifter's momentum carries it through into my body".

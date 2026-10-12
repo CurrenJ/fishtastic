@@ -390,7 +390,7 @@ public final class CompanionRenderer {
         if (side.lengthSqr() < 1e-6) side = Vec.fromYawPitch(a.spin(), 0).cross(Vec.UP);
         side = side.normalize();
         Vec other = axis.cross(side).normalize();
-        double squeeze = a.pulse();
+        double squeeze = a.renderSqueeze();
         double flare = a.flare();
         double rim = len * 0.5 * (1 - 0.3 * squeeze) * (1 + 0.45 * flare);
         double dome = len * 0.45 * (1 + 0.25 * squeeze) * (1 - 0.35 * flare);
