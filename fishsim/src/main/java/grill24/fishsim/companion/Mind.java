@@ -153,6 +153,9 @@ final class Mind {
         updateDrives();
         choose();
         goalTicks++;
+        // A drifter calms while it idles — but not while it, or where it is going, is in the middle of
+        // the owner's view: from there it leaves at its travelling self (§13.7).
+        body.idling = (goal == Goal.LOITER || goal == Goal.SETTLE) && centreTicks == 0;
         return switch (goal) {
             case LOITER -> loiter(o, v);
             case SETTLE -> settle(o, v);
@@ -455,16 +458,49 @@ final class Mind {
             wanderScale = 0.8;
             if (d < 0.35 && !centred) {
                 dwelling = true;
-                dwellTicks = drawTicks(t.dwellMinSeconds * temperament.dwell(), t.dwellMaxSeconds * temperament.dwell());
+                dwellTicks = drawTicks(t.dwellMinSeconds * temperament.dwell() * idleDwell(),
+                        t.dwellMaxSeconds * temperament.dwell() * idleDwell());
             }
-            double speed = Math.min(body.g.cruiseSpeed() * body.burstDrive, 0.1 + d * 1.2);
+            // Out of the middle of the view it goes at its own pace, never the calm one (§13.7).
+            double pace = centreTicks > 0 ? 1 : idlePace();
+            double speed = Math.min(body.g.cruiseSpeed() * idleSurge() * pace, 0.1 + d * 1.2);
             return aroundOwner(o, v, spot).sub(body.pos).normalize().scale(speed);
         }
         // Lingering: a slow mill held loosely to the spot (a still temperament hangs almost motionless).
         wanderScale = 1.2 * (1 - 0.7 * temperament.stillness());
         if (--dwellTicks <= 0) spot = null;
         Vec heading = Vec.fromYawPitch(body.yaw, 0);
-        return heading.scale(0.25 * body.g.cruiseSpeed() * body.burstDrive * (1 - temperament.stillness())).add(to.scale(0.6));
+        return heading.scale(0.25 * body.g.cruiseSpeed() * idleSurge() * idlePace() * (1 - temperament.stillness())).add(to.scale(0.6));
+    }
+
+    // A drifter's calm idle (docs/fish-companions-drift.md §13.7). For every other body these are the
+    // identity, so a swimmer's idle is untouched to the bit.
+
+    private boolean drifter() {
+        return body.locomotion == grill24.fishsim.core.Locomotion.DRIFT;
+    }
+
+    /**
+     * How far a drifter's idle has calmed, 0..1: eased in over a second of its owner standing still.
+     * (Waiting a moment longer before calming was measured worse on equal seeds — §13.7.)
+     */
+    private double calmK() {
+        return drifter() ? Math.min(1, stillTicks / (double) TPS) : 0;
+    }
+
+    /** Pace of an idle move, as a multiple of the cruise. */
+    private double idlePace() {
+        return drifter() ? 1 + (t.driftIdlePace - 1) * calmK() : 1;
+    }
+
+    /** Scale on how long it lingers at an idle spot. */
+    private double idleDwell() {
+        return drifter() ? 1 + (t.driftIdleDwell - 1) * calmK() : 1;
+    }
+
+    /** The burst surge on an idle ask: a swimmer's tail beat, a steady drifter's none. */
+    private float idleSurge() {
+        return t.driftIdleSteady && calmK() > 0 ? 1f : body.burstDrive;
     }
 
     // ── SETTLE ──
@@ -500,9 +536,10 @@ final class Mind {
             wanderScale = 0.6;
             if (d < 0.3 && !centred) {
                 dwelling = true;
-                dwellTicks = drawTicks(t.dwellMinSeconds * 3 * temperament.dwell(), t.dwellMaxSeconds * 3 * temperament.dwell());
+                dwellTicks = drawTicks(t.dwellMinSeconds * 3 * temperament.dwell() * idleDwell(),
+                        t.dwellMaxSeconds * 3 * temperament.dwell() * idleDwell());
             }
-            double speed = Math.min(0.6 * body.g.cruiseSpeed() * body.burstDrive, 0.1 + d * 1.0);
+            double speed = Math.min(0.6 * body.g.cruiseSpeed() * idleSurge() * idlePace(), 0.1 + d * 1.0);
             if (centred) speed = Math.max(speed, body.g.cruiseSpeed());
             return aroundOwner(o, v, spot).sub(body.pos).normalize().scale(speed);
         }
@@ -656,6 +693,10 @@ final class Mind {
         Vec beside = body.pos.sub(chest).horizontal().normalize();
         if (beside.lengthSqr() < 1e-9) beside = o.flatRight();
         Vec dest = chest.add(beside.scale(1.0));
+        // A drifter comes up alongside them, not up their trail and into their back (§13.8).
+        if (body.locomotion == grill24.fishsim.core.Locomotion.DRIFT && t.driftOwnerAside > 0) {
+            dest = driftAside(o, v, chest, dest);
+        }
         // Routes keep a margin beyond the body's radius: a fish turns in an arc, not on the line.
         if (!v.segmentClear(body.pos, dest, body.radius + ROUTE_MARGIN)) {
             Vec crumb = crumbs.newestReachable(body.pos, v, body.radius + ROUTE_MARGIN);
@@ -669,6 +710,52 @@ final class Mind {
         double speed = Math.max(body.g.cruiseSpeed() * 1.5, Math.min(body.g.catchUpSpeed(), ownerSpeed + 1.0 + 0.8 * d));
         speed = Math.min(speed, ownerSpeed + d * 1.5);
         return aroundOwner(o, v, dest).sub(body.pos).normalize().scale(speed);
+    }
+
+    // ── A drifter's catch-up comes alongside (docs/fish-companions-drift.md §13.8) ───────────────
+
+    /**
+     * Where a drifter catching up heads instead of a block behind its owner: abreast of them, on its
+     * own side. Coming up their trail, the plain destination sits on the line through them, and a bell
+     * can't sidestep (it pushes only along its axis, and swinging that round takes a second or two),
+     * so when they stopped, its catch-up momentum carried it straight into their back (traced:
+     * sprint_stop seed 1, 2.5 b/s through the head). Aimed abreast, the approach already angles out,
+     * and whatever it carries past them it carries past their side, where they can see it.
+     *
+     * <p>Only with room beside them, now and a second ahead, and a clear way there: in a doorway or on
+     * a stair the space abreast is the wall, and a bell pulled off the trail there swerves into the
+     * frame. Otherwise {@code plain}.
+     */
+    /** How long the room abreast has held, ticks (0 when it last didn't). */
+    private int asideOpenTicks;
+
+    private Vec driftAside(OwnerState o, LocalVoxels v, Vec chest, Vec plain) {
+        Vec f = o.horizontalSpeed() > 0.5 ? o.velocity().horizontal().normalize() : o.flatForward();
+        Vec r = f.cross(Vec.UP);
+        double s = body.pos.sub(chest).dot(r);
+        int side = Math.abs(s) > 0.05 ? (s > 0 ? 1 : -1) : sideOf(o);
+        Vec aside = chest.add(r.scale(side * t.driftOwnerAside));
+        boolean open = asideRoom(o, v, chest, aside, body.radius + t.driftOwnerAsideRoom);
+        asideOpenTicks = open ? asideOpenTicks + 1 : 0;
+        // Only once the room has held a while: between trunks it opens and closes every few blocks, and
+        // a bell swung out and back each time grazed them (forest contacts 111 → 136 over 32 seeds).
+        return open && asideOpenTicks >= t.driftOwnerAsideSettle * 20 ? aside : plain;
+    }
+
+    private boolean asideRoom(OwnerState o, LocalVoxels v, Vec chest, Vec aside, double room) {
+        if (!v.sphereClear(aside, room) || !v.segmentClear(chest, aside, room) || !v.segmentClear(body.pos, aside, room)) {
+            return false;
+        }
+        // Room abreast of where they'll be shortly too: a door they're walking to closes the space beside
+        // them before they reach it, and a bell needs that time to fall back in line. The whole lane from
+        // now to then, not just its end: a second ahead lands past a one-block wall.
+        if (t.driftOwnerAsideAhead > 0 && o.horizontalSpeed() > 0.5) {
+            Vec shift = o.velocity().horizontal().scale(t.driftOwnerAsideAhead);
+            Vec asideAhead = aside.add(shift);
+            return v.sphereClear(asideAhead, room) && v.segmentClear(chest.add(shift), asideAhead, room)
+                    && v.segmentClear(aside, asideAhead, room);
+        }
+        return true;
     }
 
     private Vec showOff(OwnerState o, LocalVoxels v) {
