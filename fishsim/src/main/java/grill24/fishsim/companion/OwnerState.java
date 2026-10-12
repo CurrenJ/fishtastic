@@ -17,10 +17,21 @@ package grill24.fishsim.companion;
  * @param riding      the owner rides something (a horse, a boat, a minecart): nothing on the ground
  *                    keeps up, so a ground companion climbs on or fades onto its perch
  * @param gliding     the owner flies with elytra (the same for a ground companion)
+ * @param landedFall  the height the owner fell from, blocks, on the tick they land; 0 on every
+ *                    other tick. A fall, not a climb down a ladder or a creative descent: in game,
+ *                    the player's fall distance as they touch down. A hard landing (3+ blocks)
+ *                    knocks a ground companion off its perch (docs/fish-companions-benthic-follow.md §3)
  */
 public record OwnerState(Vec eye, Vec velocity, float yawDeg, float pitchDeg,
                          boolean sprinting, boolean teleported, boolean firstPerson, float fovDeg,
-                         boolean inWater, boolean riding, boolean gliding) {
+                         boolean inWater, boolean riding, boolean gliding, double landedFall) {
+
+    /** An owner who isn't landing from a fall this tick. */
+    public OwnerState(Vec eye, Vec velocity, float yawDeg, float pitchDeg,
+                      boolean sprinting, boolean teleported, boolean firstPerson, float fovDeg,
+                      boolean inWater, boolean riding, boolean gliding) {
+        this(eye, velocity, yawDeg, pitchDeg, sprinting, teleported, firstPerson, fovDeg, inWater, riding, gliding, 0);
+    }
 
     /** An owner on foot (or swimming, or in creative flight): neither riding nor gliding. */
     public OwnerState(Vec eye, Vec velocity, float yawDeg, float pitchDeg,

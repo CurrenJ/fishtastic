@@ -30,7 +30,9 @@ public final class OwnerScript {
      */
     public static final List<String> GROUND_NAMES = List.of(
             "walk_flat", "walk_meander", "stairs_up_down", "slab_path", "step_gaps", "parkour_gap",
-            "ladder", "closed_door", "sprint_away", "ride_off", "elytra_glide", "plaice_walk_flat");
+            "ladder", "closed_door", "sprint_away", "ride_off", "elytra_glide", "plaice_walk_flat",
+            // Phase 2: on and off the perch (spec section 3, 6).
+            "mine_in_place", "pace_chest", "long_idle_then_walk", "hurt_while_perched", "fall_landing");
 
     public static final double WALK = 4.317, SPRINT = 5.612;
 
@@ -75,9 +77,10 @@ public final class OwnerScript {
     /** Advances one tick and returns everything the companion perceives. */
     public CompanionWorld nextWorld() {
         OwnerState o = next();
-        if (tracks.isEmpty() && held == null) return CompanionWorld.of(o, scene);
+        boolean scriptedHurt = pilot.takeHurt();
+        if (tracks.isEmpty() && held == null && !scriptedHurt) return CompanionWorld.of(o, scene);
         List<PointOfInterest> points = new ArrayList<>();
-        boolean hurt = false;
+        boolean hurt = scriptedHurt;
         for (ScriptedPoints.Track track : tracks) {
             PointOfInterest p = track.at(clock, pilot);
             if (p == null) continue;
@@ -137,6 +140,11 @@ public final class OwnerScript {
         public boolean gliding;
         private Vec desiredVel = Vec.ZERO;
         private boolean lookOverride, teleported, flying, swimming, jump;
+        /** The owner takes a hit this tick (a scripted hurt, as from a fall or a mob). */
+        private boolean hurt;
+        /** Off the ground under gravity since the last tick on it, from feet height {@link #fallTop} at most. */
+        private boolean airborne;
+        private double fallTop, landed;
         private Vec prevFeet;
 
         public Pilot(Vec feet, float yaw) {
@@ -152,6 +160,18 @@ public final class OwnerScript {
             flying = false;
             swimming = false;
             jump = false;
+            landed = 0;
+        }
+
+        /** The owner takes a hit this tick. */
+        void hurt() {
+            hurt = true;
+        }
+
+        boolean takeHurt() {
+            boolean h = hurt;
+            hurt = false;
+            return h;
         }
 
         /** Swims at {@code velocity}: free in 3D, looking where it goes. */
@@ -216,7 +236,7 @@ public final class OwnerScript {
                     (int) Math.floor(chest.x()), (int) Math.floor(chest.y()), (int) Math.floor(chest.z()));
             return new OwnerState(eye, realVel, yaw, pitch,
                     vel.horizontalLength() > (WALK + SPRINT) / 2, teleported, firstPerson, fov, inWater,
-                    riding, gliding);
+                    riding, gliding, landed);
         }
 
         /**
@@ -239,9 +259,17 @@ public final class OwnerScript {
                 // A step up: climb onto it rather than fall through it.
                 y = Math.min(ground, prevY + STEP_RATE * dt);
                 vy = 0;
+                airborne = false;
             } else if (y <= ground) {
+                // On the ground: a landing if it was in the air, from as high as it got.
+                if (airborne) landed = Math.max(fallTop, prevY) - ground;
+                airborne = false;
                 y = ground;
                 vy = 0;
+            } else {
+                if (!airborne) fallTop = prevY;
+                airborne = true;
+                fallTop = Math.max(fallTop, y);
             }
             feet = new Vec(feet.x(), y, feet.z());
             vel = new Vec(vel.x(), vy, vel.z());
@@ -435,6 +463,15 @@ public final class OwnerScript {
             boolean done = then.tick(p);
             if (done) asked[0] = false;
             return done;
+        };
+    }
+
+    /** The owner takes a hit, standing where they are. */
+    static Segment hurtOnce() {
+        return p -> {
+            p.move(Vec.ZERO);
+            p.hurt();
+            return true;
         };
     }
 
@@ -877,6 +914,65 @@ public final class OwnerScript {
                 s.add(walkTo(0.5, 0.5, WALK));
                 s.add(waitTicks(60));
                 return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s).withTerrain();
+            }
+            // -- On and off the perch (Phase 2) --
+            case "mine_in_place" -> {
+                // Digging out a patch: little steps about one spot, looking down and round, never
+                // still long, never going anywhere. It climbs on in the first long stand; the digging
+                // mustn't knock it off and on.
+                s.add(hold(900));
+                for (int i = 0; i < 40; i++) {
+                    double a = r.nextDouble() * Math.PI * 2, d = 0.4 + r.nextDouble() * 1.6;
+                    s.add(walkTo(0.5 + Math.cos(a) * d, 0.5 + Math.sin(a) * d, WALK * 0.6));
+                    s.add(lookBy((float) (r.nextDouble() * 120 - 60), 35f + (float) r.nextDouble() * 20f, 10));
+                    s.add(waitTicks(20 + r.nextInt(60)));
+                    s.add(lookBy(0f, -40f, 8));
+                }
+                return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s).withTerrain();
+            }
+            case "pace_chest" -> {
+                // Sorting a chest: a long stand at it, then three blocks to another and back, over and
+                // over. It climbs on in the first long stand; the pacing mustn't knock it off and on.
+                s.add(hold(900));
+                for (int i = 0; i < 10; i++) {
+                    s.add(hold(160 + r.nextInt(400)));
+                    s.add(walkTo(3.5, 0.5, WALK));
+                    s.add(hold(40 + r.nextInt(60)));
+                    s.add(walkTo(0.5, 0.5, WALK));
+                }
+                return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 90f, s).withTerrain();
+            }
+            case "long_idle_then_walk" -> {
+                // A long stand (it settles and climbs on), then a walk (it hops down and follows).
+                s.add(hold(1200));
+                s.add(walkTo(0.5, 30.5, WALK));
+                s.add(waitTicks(60));
+                s.add(walkTo(0.5, 0.5, WALK));
+                s.add(waitTicks(60));
+                return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s).withTerrain();
+            }
+            case "hurt_while_perched" -> {
+                // A long stand (it climbs on), a hit (it tumbles off), a stand, a walk.
+                s.add(hold(1000));
+                s.add(hurtOnce());
+                s.add(hold(200));
+                s.add(walkTo(0.5, 20.5, WALK));
+                s.add(waitTicks(60));
+                s.add(walkTo(0.5, 0.5, WALK));
+                s.add(waitTicks(60));
+                return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s).withTerrain();
+            }
+            case "fall_landing" -> {
+                // A long stand on the cliff top (it climbs on), a short walk off the edge, a five-block
+                // fall (it tumbles off at the landing), a stand, and a walk on.
+                s.add(hold(1000));
+                s.add(walkTo(0.5, 3.5, WALK));
+                s.add(hold(160));
+                s.add(walkTo(0.5, -16.5, WALK));
+                s.add(waitTicks(100));
+                s.add(teleportTo(0.5, y + 5, 8.5));
+                s.add(waitTicks(20));
+                return new OwnerScript(name, "cliff", new Vec(0.5, y + 5, 8.5), 180f, s).withTerrain();
             }
             default -> throw new IllegalArgumentException("unknown script " + name + " (have " + NAMES + " " + GROUND_NAMES + ")");
         }

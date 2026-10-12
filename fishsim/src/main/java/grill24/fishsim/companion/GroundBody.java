@@ -179,6 +179,8 @@ final class GroundBody extends Motor {
 
     /** Somewhere not to come down on (the owner's feet), or null. */
     Vec keepClear;
+    /** Escape from approaching feet skips the idle rhythm's delay; acceleration stays bounded. */
+    boolean urgent;
 
     private void stride(Vec target, double wantSpeed, Rhythm rhythm, Vec push, float faceYaw, LocalVoxels v) {
         // Down off an edge only when where it's going is down there: wandering along a raised
@@ -249,7 +251,10 @@ final class GroundBody extends Motor {
             // On the move, it bounds up the step without stopping if an arc from where it would
             // leave is clear and lands on the step; otherwise it stops short and crouches.
             // Cooling down after a step it couldn't take, it still brakes for one; it just doesn't hop.
-            boolean bound = speed > 0.8 && stepCooldown == 0;
+            // Finish steering toward the route before committing to a ballistic heading.
+            // A hop launched while still turning can carry it off a terrace's side.
+            boolean linedUp = Math.abs(Body.wrap(targetYaw - yaw)) < 20;
+            boolean bound = speed > 0.8 && stepCooldown == 0 && linedUp;
             if (bound) {
                 double launchGap = movingLaunchGap(rise);
                 double toLaunch = riser - launchGap;
@@ -263,10 +268,13 @@ final class GroundBody extends Motor {
             if (!bound) {
                 // Stop short of it, then crouch and hop.
                 target2 = Math.min(target2, stopSpeed(gap));
-                if (gap < 0.04 && speed < 0.3 && stepCooldown == 0) {
+                if (gap < 0.04 && speed < 0.3 && stepCooldown == 0 && linedUp) {
                     Vec landing = pos.add(fwd.scale(riser + 2 * radius + 0.06));
                     double lf = footprintFloor(v, landing.x(), landing.z());
-                    if (!Double.isNaN(lf) && Math.abs(lf - riserFloor) < 0.02 && noOverhang(v, landing.x(), landing.z(), lf)) {
+                    // Like walking, a step landing rests on the highest footprint surface.
+                    // Requiring every column to support it strands diagonal approaches at corners;
+                    // launch() still checks the entire flight and landing for block clearance.
+                    if (!Double.isNaN(lf) && Math.abs(lf - riserFloor) < 0.02) {
                         hopLanding = new Vec(landing.x(), lf + radius + LocalVoxels.GROUND_LIFT, landing.z());
                         hopRise = rise;
                         enter(Phase.CROUCH);
@@ -492,7 +500,7 @@ final class GroundBody extends Motor {
             double reach = reaches[k];
             Vec land = from.add(fwd.scale(reach));
             double lf = footprintFloorFrom(v, land.x(), land.z(), floorY);
-            if (Double.isNaN(lf) || Math.abs(lf - riserFloor) > 0.02 || !noOverhang(v, land.x(), land.z(), lf)) continue;
+            if (Double.isNaN(lf) || Math.abs(lf - riserFloor) > 0.02) continue;
             if (k == 0) {
                 // Landing on the run wants room to run on: not right under the next step.
                 Vec on = from.add(fwd.scale(reach + standoff(STEP_HOP) + 0.1));
@@ -694,7 +702,7 @@ final class GroundBody extends Motor {
         Vec next = pos.add(step.scale(DT));
         if (vel.y() <= 0) {
             // Touchdown first: coming down onto the floor this tick is a landing, not a collision.
-            double f = footprintFloorFrom(v, next.x(), next.z(), pos.y() - radius);
+            double f = landingFloor(v, next.x(), next.z(), pos.y() - radius);
             if (!Double.isNaN(f) && next.y() - radius - LocalVoxels.GROUND_LIFT <= f + 1e-9) {
                 Vec at = new Vec(next.x(), f + radius + LocalVoxels.GROUND_LIFT, next.z());
                 if (v.sphereClear(at, radius)) {
@@ -722,7 +730,7 @@ final class GroundBody extends Motor {
             }
             if (vy < 0 && y == pos.y()) {
                 // Resting on something mid-fall (an edge): a landing, on the floor under it.
-                double f = footprintFloorFrom(v, x, z, y - radius);
+                double f = landingFloor(v, x, z, y - radius);
                 if (!Double.isNaN(f) && y - radius - LocalVoxels.GROUND_LIFT - f < 0.2
                         && v.sphereClear(new Vec(x, f + radius + LocalVoxels.GROUND_LIFT, z), radius)) {
                     land(new Vec(x, f + radius + LocalVoxels.GROUND_LIFT, z), v);
@@ -743,7 +751,7 @@ final class GroundBody extends Motor {
             }
         }
         if (vel.y() <= 0) {
-            double f = footprintFloorFrom(v, next.x(), next.z(), pos.y() - radius);
+            double f = landingFloor(v, next.x(), next.z(), pos.y() - radius);
             if (!Double.isNaN(f) && next.y() - radius - LocalVoxels.GROUND_LIFT <= f + 1e-9) {
                 land(new Vec(next.x(), f + radius + LocalVoxels.GROUND_LIFT, next.z()), v);
                 return;
@@ -773,6 +781,29 @@ final class GroundBody extends Motor {
     }
 
     // ── The floor ──────────────────────────────────────────────────────────────────────────────
+
+    /** A perch hop coming down crosses support here, even if it aimed at a lower tread. */
+    boolean crossesFloor(Vec from, Vec next, LocalVoxels v) {
+        double f = landingFloor(v, next.x(), next.z(), from.y() - radius);
+        return !Double.isNaN(f) && next.y() - radius - LocalVoxels.GROUND_LIFT <= f
+                && v.sphereClear(new Vec(next.x(), f + radius + LocalVoxels.GROUND_LIFT, next.z()), radius);
+    }
+
+    /**
+     * Support during a fall, independent of the limits on a deliberate walking drop. A body
+     * can land on a terrace edge even when another column of its footprint is over a deep drop.
+     * Only surfaces below its previous underside count: a riser ahead is not a touchdown.
+     */
+    private double landingFloor(LocalVoxels v, double x, double z, double bottom) {
+        double best = Double.NEGATIVE_INFINITY;
+        for (int bx = LocalVoxels.floor(x - radius); bx <= LocalVoxels.floor(x + radius); bx++) {
+            for (int bz = LocalVoxels.floor(z - radius); bz <= LocalVoxels.floor(z + radius); bz++) {
+                double f = v.columnFloor(bx, bz, bottom + 0.02, 24);
+                if (!Double.isNaN(f)) best = Math.max(best, f);
+            }
+        }
+        return best == Double.NEGATIVE_INFINITY ? Double.NaN : best;
+    }
 
     /** The floor under a body here, standing at about its current floor: see {@link #footprintFloorFrom}. */
     double footprintFloor(LocalVoxels v, double x, double z) {
@@ -858,6 +889,18 @@ final class GroundBody extends Motor {
         enter(Phase.AIR);
     }
 
+    /**
+     * Takes over a body knocked off its owner (a tumble): it falls from there with velocity
+     * {@code v}, still facing the way it faced on the perch (it doesn't flip or turn to the fall),
+     * lands with a squash, and turns to walk on from there.
+     */
+    void placeTumbling(Vec p, Vec v, float facingYaw) {
+        placeAt(p, facingYaw);
+        vel = v;
+        speed = v.horizontalLength();
+        enter(Phase.AIR);
+    }
+
     @Override
     void placeAt(Vec p, float facingYaw) {
         super.placeAt(p, facingYaw);
@@ -873,7 +916,7 @@ final class GroundBody extends Motor {
     private float drive = 0f;
 
     private double envelope(Rhythm r) {
-        return drive;
+        return urgent && r == Rhythm.SCURRY ? Math.max(drive, 1.4) : drive;
     }
 
     private void advanceRhythm(Rhythm r) {

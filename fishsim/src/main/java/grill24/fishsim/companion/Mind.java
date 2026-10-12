@@ -182,6 +182,66 @@ final class Mind {
         return desired;
     }
 
+    record GroundIntent(Vec target, float face, boolean hurry) {}
+
+    /** The same goal selection and habituation, expressed as a floor destination for a walker. */
+    GroundIntent thinkGround(OwnerState o, LocalVoxels v, GroundBody ground) {
+        o0 = o;
+        perceive(o, v, ground.pos);
+        updateDrives();
+        // Ground idle spots are deliberately farther out than the swimmer's comfort band.
+        // Their leash is horizontal trail lag, so height below the chest must not win over
+        // curiosity or an ankle nuzzle as a spurious swimming catch-up urgency.
+        proximity = (float) smoothstep(GroundMind.CATCH_UP_LAG, GroundMind.FADE_LAG,
+                ground.pos.sub(o.feet()).horizontalLength());
+        if (goal == Goal.SHOW_OFF && (seenStreak >= SEEN_STREAK || goalTicks >= SHOW_MAX_TICKS)) showDone = true;
+        choose();
+        goalTicks++;
+        pose = PoseHint.NONE;
+        Vec feet = GroundMind.ownerFloor(o, v);
+        Vec destination = null;
+        float face = Float.NaN;
+        boolean hurry = false;
+        switch (goal) {
+            case INSPECT -> {
+                Drives.Interest it = inspecting;
+                // Held things retain their hand-hop presentation; world things draw a detour.
+                if (it == null || it.isHeld()) break;
+                double hold = (0.35 + 1.2 * bodyLength() + it.radius) * temperament.inspectSpacing();
+                Vec away = ground.pos.sub(it.pos).horizontal().normalize();
+                if (away.lengthSqr() < 1e-6) away = o.flatRight();
+                destination = it.pos.add(away.scale(hold));
+                drives.engage(it, ground.pos.sub(it.pos).horizontalLength(), hold);
+                face = (float) it.pos.sub(ground.pos).horizontal().yawDeg();
+                pose = poseFor(it);
+            }
+            case HIDE, GUARD -> {
+                if (drives.threatPos == null || drives.threat != Drives.Threat.HOSTILE) break;
+                Vec away = feet.sub(drives.threatPos).horizontal().normalize();
+                if (away.lengthSqr() < 1e-6) away = o.flatForward().scale(-1);
+                boolean guard = goal == Goal.GUARD;
+                destination = feet.add(away.scale((guard ? -1 : 1) * (0.8 + ground.radius)));
+                face = (float) drives.threatPos.sub(ground.pos).horizontal().yawDeg();
+                pose = guard ? (drives.sinceHurt < BITE_TICKS ? PoseHint.BITE : PoseHint.PUFF) : PoseHint.HIDE;
+                hurry = true;
+            }
+            case NUZZLE -> {
+                if (goalTicks == 1) nuzzleSide = ground.pos.sub(feet).dot(o.flatRight()) < 0 ? -1 : 1;
+                // Brush along one ankle, then past it; retain the existing dwell and cooldown.
+                double along = goalTicks < 50 ? -0.55 : 0.55;
+                destination = feet.add(o.flatRight().scale(nuzzleSide * (0.5 + ground.radius)))
+                        .add(o.flatForward().scale(along));
+                face = (float) feet.sub(ground.pos).horizontal().yawDeg();
+                pose = PoseHint.NUZZLE;
+                if (goalTicks > 120) nuzzleDone = true;
+            }
+            default -> { }
+        }
+        if (destination == null) return null;
+        target = destination;
+        return new GroundIntent(destination, face, hurry);
+    }
+
     /** Forget goal state after the body was placed somewhere new. */
     void reset(OwnerState o) {
         goal = ownerMoving ? Goal.ESCORT : drives.resting ? Goal.SETTLE : Goal.LOITER;
@@ -196,10 +256,14 @@ final class Mind {
     // ── Perception and drives ──────────────────────────────────────────────────────────────────
 
     private void perceive(OwnerState o, LocalVoxels v) {
+        perceive(o, v, body.pos);
+    }
+
+    private void perceive(OwnerState o, LocalVoxels v, Vec position) {
         Vec chest = o.chest();
-        ownerDist = body.pos.distanceTo(chest);
-        losToOwner = v.segmentClear(body.pos, chest, 0.1);
-        seen = Visibility.visible(o, body.pos, v);
+        ownerDist = position.distanceTo(chest);
+        losToOwner = v.segmentClear(position, chest, 0.1);
+        seen = Visibility.visible(o, position, v);
         double hs = o.horizontalSpeed();
         if (hs > MOVING_ENTER) {
             ownerMoving = true;

@@ -66,6 +66,10 @@ final class GroundMind {
      */
     boolean wantClose;
     double closeSide = 1;
+    /** Coming up alongside unhurried (to climb on to rest), not scurrying (to be seen). */
+    boolean closeCalm;
+    /** Ticks it stays where it landed after a tumble, gathering itself, before it walks on. */
+    int daze;
     /** Where the owner stands, on the floor (their feet projected down when they're off it). */
     Vec ownerFloor;
     private int ownerStill;
@@ -75,6 +79,49 @@ final class GroundMind {
     private Vec viaPoint;
     private int hopRetry;
     int gapHops;
+    /** A follower's station, supplied by its group rather than a separate desire/mind. */
+    Vec formationTarget, formationPush;
+    double formationSpeed;
+    float formationFace = Float.NaN;
+    boolean formationMember;
+    java.util.List<PointOfInterest> playerPoints = java.util.List.of();
+    Mind.GroundIntent intent;
+
+    // In-view beats (spec §5): a scurry to a fixed spot beside the owner's path ahead, where it
+    // waits for them to walk past. The spot is chosen once, never chased: a target moving with
+    // the owner ran it into terrain and its followers off the trail.
+    // The spec's third beat, the turn reveal, is the walk itself: within DIRECT_RANGE it walks
+    // straight at its owner, cutting the corner of a turn rather than following the trail. A
+    // separate turn dash measured no gain in seen and met pillars in the cellar; it was removed.
+    enum Beat { OVERTAKE, ROADSIDE }
+    /** Ticks a straight walk must hold before an overtake or roadside stop is tried. */
+    private static final int BEAT_STRAIGHT = 12;
+    /** Ticks over which the owner's way must hold straight, compared end to end. */
+    private static final int STRAIGHT_WINDOW = 12;
+    /** Diagnostics switch: off, nothing here runs and the ground behaves as before the beats. */
+    static boolean beatsEnabled = true;
+    Beat beat;
+    private Vec beatSpot, beatDir;
+    /** An overtake's lead: on from its spot to here at the owner's pace, out ahead in view. */
+    private Vec beatEnd;
+    private double beatAhead;
+    private int beatTicks, beatLimit;
+    private boolean beatArrived, beatLed;
+    private float beatFace = Float.NaN;
+    int beatCooldown;
+    int overtakes, roadsides;
+    /** Ticks since its last beat ended. */
+    int sinceBeat = Integer.MAX_VALUE / 2;
+    /** Ticks after a beat in which its owner's glimpses of it still belong to the beat. */
+    static final int BEAT_AFTERMATH = 60;
+    /** Set by the percher: ticks since its owner last saw it, and after how many it tries a beat. */
+    int unseen, beatAfter = Integer.MAX_VALUE;
+    /** Races ahead of its owner often (the sprinter), rather than rarely. */
+    boolean raceAhead;
+    private final Vec[] travelDirs = new Vec[STRAIGHT_WINDOW];
+    /** The beats' own draws, apart from the pottering's: a run with no beat is the run without them. */
+    private long beatRng;
+    private int travelAt, straightTicks;
 
     // Idle pottering.
     private Vec spot;
@@ -88,6 +135,8 @@ final class GroundMind {
         this.g = g;
         this.rng = seed * 0xD1B54A32D192ED03L + 0x632BE59BD9B4E019L;
         if (rng == 0) rng = 1;
+        this.beatRng = rng ^ 0x9E3779B97F4A7C15L;
+        if (beatRng == 0) beatRng = 1;
     }
 
     /** The follow distance behind the owner: a little more for a bigger body. */
@@ -120,7 +169,9 @@ final class GroundMind {
         Land next = land;
         if (land == Land.CATCH_UP) {
             if (lag < CAUGHT_UP_LAG && landTicks >= MIN_CATCH_UP) next = ownerStill >= IDLE_AFTER ? Land.GROUND_IDLE : Land.GROUND_FOLLOW;
-        } else if (lag > CATCH_UP_LAG) {
+        } else if (lag > (beat != null ? CATCH_UP_LAG + 1.5 : CATCH_UP_LAG)) {
+            // Out ahead or beside the path on a beat its straight-line distance can pass the
+            // catch-up mark without it being behind: the beat ends itself once they pass.
             next = Land.CATCH_UP;
         } else if (ownerStill >= IDLE_AFTER) {
             next = Land.GROUND_IDLE;
@@ -133,6 +184,7 @@ final class GroundMind {
             spot = null;
         }
         landTicks++;
+        updateBeat(o, v, down);
 
         // Where to go, how fast, in what rhythm.
         Vec push = ownerPush(o);
@@ -140,7 +192,23 @@ final class GroundMind {
         double want;
         GroundBody.Rhythm rhythm;
         float face = Float.NaN;
-        if (!reachable) {
+        Vec desire = null;
+        if (intent != null && land != Land.CATCH_UP) {
+            Vec candidate = intent.target();
+            double floor = g.footprintFloorFrom(v, candidate.x(), candidate.z(), g.floorY);
+            if (!Double.isNaN(floor)) {
+                candidate = new Vec(candidate.x(), floor, candidate.z());
+                if (walkable(v, g.pos, candidate)) desire = candidate;
+            }
+        }
+        if (daze > 0) {
+            // Knocked off its perch: it lands, squashes, and stays a moment before it turns and goes.
+            if (down) daze--;
+            target = g.standing();
+            want = 0;
+            rhythm = GroundBody.Rhythm.AMBLE;
+            push = null;
+        } else if (!reachable) {
             // Somewhere it can't walk: try a hop across, else wait at the edge.
             target = g.standing();
             want = 0;
@@ -152,10 +220,49 @@ final class GroundMind {
         } else if (wantClose && via < 0) {
             // Up alongside the owner on its side, a little ahead of where they'll be: in reach of
             // the hand (and, ahead of their feet, nearer the bottom of their view).
-            rhythm = GroundBody.Rhythm.SCURRY;
+            rhythm = closeCalm ? GroundBody.Rhythm.AMBLE : GroundBody.Rhythm.SCURRY;
             Vec lead = o.velocity().horizontal().scale(0.3);
             target = ownerFloor.add(o.flatRight().scale(0.75 * closeSide)).add(o.flatForward().scale(0.3)).add(lead);
-            want = Math.max(g.cruise(), ownerSpeed + 1.5 * horizontal(g.pos, target));
+            want = closeCalm ? g.cruise() * 0.8 : Math.max(g.cruise(), ownerSpeed + 1.5 * horizontal(g.pos, target));
+        } else if (desire != null) {
+            target = desire;
+            rhythm = intent.hurry() ? GroundBody.Rhythm.SCURRY : GroundBody.Rhythm.TROT;
+            want = intent.hurry() ? g.rhythmBase(rhythm) * 1.4 : g.cruise();
+            face = intent.face();
+        } else if (beat != null) {
+            rhythm = GroundBody.Rhythm.SCURRY;
+            if (beatArrived && beatEnd != null && !beatLed) {
+                // Leading: keep its place out ahead of them, along the line checked when it set off.
+                double ahead = g.pos.sub(ownerFloor).horizontal().dot(beatDir);
+                target = beatEnd;
+                want = Body.clamp(ownerSpeed + 1.5 * (beatAhead - ahead), 0, g.rhythmBase(GroundBody.Rhythm.SCURRY) * 1.6);
+                rhythm = GroundBody.Rhythm.TROT;
+            } else if (beatArrived) {
+                target = g.standing();
+                want = 0;
+                face = beatFace;
+            } else {
+                target = beatSpot;
+                want = g.rhythmBase(GroundBody.Rhythm.SCURRY) * 1.6;
+            }
+        } else if (formationTarget != null) {
+            target = formationTarget;
+            // A station can be beyond the owner's ankles after a turn. Route beside them
+            // before returning to the formation instead of trying to turn inside their feet.
+            Vec leg = target.sub(g.pos).horizontal();
+            double along = leg.lengthSqr() > 1e-9
+                    ? Body.clamp(ownerFloor.sub(g.pos).horizontal().dot(leg) / leg.lengthSqr(), 0, 1) : 0;
+            Vec nearest = g.pos.add(leg.scale(along));
+            if (horizontal(nearest, ownerFloor) < g.radius + 0.6) {
+                Vec side = o.flatRight();
+                if (g.pos.sub(ownerFloor).horizontal().dot(side) < 0) side = side.scale(-1);
+                target = ownerFloor.add(side.scale(g.radius + 0.95));
+            }
+            double floor = g.footprintFloorFrom(v, target.x(), target.z(), g.floorY);
+            if (!Double.isNaN(floor)) target = new Vec(target.x(), floor, target.z());
+            want = formationSpeed;
+            rhythm = land == Land.CATCH_UP || horizontal(g.pos, target) > 2
+                    ? GroundBody.Rhythm.SCURRY : GroundBody.Rhythm.TROT;
         } else if (land == Land.GROUND_IDLE) {
             rhythm = GroundBody.Rhythm.AMBLE;
             potter(o, v, drives);
@@ -183,7 +290,214 @@ final class GroundMind {
             }
         }
         g.keepClear = ownerFloor;
+        Vec ownerTravel = o.velocity().horizontal();
+        double passTime = ownerTravel.lengthSqr() > 0.01
+                ? Body.clamp(g.pos.sub(ownerFloor).horizontal().dot(ownerTravel) / ownerTravel.lengthSqr(), 0, 1.2) : 0;
+        double scatterRoom = g.pace < 0.8 ? 1.6 : 1.2;
+        boolean feetApproaching = formationMember && ownerTravel.length() > 0.6
+                && horizontal(g.pos, ownerFloor.add(ownerTravel.scale(passTime))) < g.radius + scatterRoom;
+        Vec passingFeet = ownerFloor;
+        // Pick the soonest nearby crossing at this body's height. The owner keeps its existing
+        // solo avoidance; bystanders use the same lateral escape motor for solos and groups.
+        double crossing = feetApproaching ? passTime : Double.POSITIVE_INFINITY;
+        for (PointOfInterest player : playerPoints) {
+            if (player.kind() != PointOfInterest.Kind.PLAYER || Math.abs(player.pos().y() - g.floorY) > 0.8) continue;
+            Vec travel = player.vel().horizontal();
+            if (travel.length() <= 0.6) continue;
+            double time = Body.clamp(g.pos.sub(player.pos()).horizontal().dot(travel) / travel.lengthSqr(), 0, 1.2);
+            if (time >= crossing || horizontal(g.pos, player.pos().add(travel.scale(time))) >= g.radius + scatterRoom) continue;
+            crossing = passTime = time;
+            passingFeet = player.pos();
+            ownerTravel = travel;
+            feetApproaching = true;
+        }
+        g.urgent = feetApproaching;
+        if (feetApproaching && ownerTravel.length() > 0.6 && daze == 0 && reachable) {
+            Vec side = new Vec(-ownerTravel.z(), 0, ownerTravel.x()).normalize();
+            double offset = g.pos.sub(passingFeet).horizontal().dot(side);
+            // Near the centre of the path, escape toward the side it already faces. Choosing
+            // purely by a tiny position offset can demand a 180-degree pivot before scattering.
+            double choice = Math.abs(offset) < 0.6 ? Vec.fromYawPitch(g.yaw, 0).dot(side) : offset;
+            if (choice < 0) side = side.scale(-1);
+            Vec passing = passingFeet.add(ownerTravel.scale(passTime));
+            target = passing.add(side.scale(g.radius + scatterRoom + 0.2));
+            want = g.rhythmBase(GroundBody.Rhythm.SCURRY) * 1.6;
+            rhythm = GroundBody.Rhythm.SCURRY;
+            if (g.pace < 0.8) push = null; // slow crawlers follow the lateral escape waypoint directly
+        }
+        if (!Float.isNaN(formationFace) && !wantClose && !feetApproaching && daze == 0 && g.grounded()) {
+            target = g.standing();
+            want = 0;
+            face = formationFace;
+            push = null;
+        }
+        if (formationMember && !feetApproaching && daze == 0 && reachable) {
+            Vec leg = target.sub(g.pos).horizontal();
+            double along = leg.lengthSqr() > 1e-9
+                    ? Body.clamp(ownerFloor.sub(g.pos).horizontal().dot(leg) / leg.lengthSqr(), 0, 1) : 0;
+            if (horizontal(g.pos.add(leg.scale(along)), ownerFloor) < g.radius + 0.6) {
+                Vec side = o.flatRight();
+                if (g.pos.sub(ownerFloor).horizontal().dot(side) < 0) side = side.scale(-1);
+                target = ownerFloor.add(side.scale(g.radius + 0.95));
+            }
+        }
+        if (!feetApproaching && formationPush != null && push != null) push = push.add(formationPush);
         g.walk(target, want, rhythm, push, face, v);
+    }
+
+    // ── In-view beats ──────────────────────────────────────────────────────────────────────────
+
+    // Off to the side of their path, but inside the view: the floor near their feet is below it
+    // (a level 70-degree view meets the floor about 2.4 blocks out) and too far aside is past its edge.
+    private static final double[] OVERTAKE_SIDES = {1.5, 1.9, 2.3};
+    private static final double[] ROADSIDE_SIDES = {1.6, 2.0, 2.4};
+
+    /** Starts, keeps or ends a beat. */
+    private void updateBeat(OwnerState o, LocalVoxels v, boolean down) {
+        if (!beatsEnabled) return;
+        if (beatCooldown > 0) beatCooldown--;
+        if (beat == null && sinceBeat < Integer.MAX_VALUE / 2) sinceBeat++;
+        Vec travel = o.velocity().horizontal();
+        double speed = travel.length();
+        Vec dir = speed > 1.5 ? travel.scale(1 / speed) : null;
+        Vec old = travelDirs[travelAt];
+        travelDirs[travelAt] = dir;
+        travelAt = (travelAt + 1) % STRAIGHT_WINDOW;
+        boolean straight = dir != null && old != null && dir.dot(old) > Math.cos(Math.toRadians(10));
+        straightTicks = straight ? straightTicks + 1 : 0;
+
+        boolean blocked = land != Land.GROUND_FOLLOW || !reachable || via >= 0 || intent != null || wantClose
+                || daze > 0 || g.urgent || formationTarget != null || !Float.isNaN(formationFace);
+        if (beat != null) {
+            beatTicks++;
+            if (!beatArrived && horizontal(g.pos, beatSpot) < 0.25) beatArrived = true;
+            // The lead ends at its end point, or after its time: then it drops back, waiting there.
+            if (beatArrived && beatEnd != null && !beatLed
+                    && (horizontal(g.pos, beatEnd) < 0.25 || beatTicks > beatLimit - 40)) beatLed = true;
+            boolean passed = ownerFloor.sub(beatArrived ? g.pos : beatSpot).horizontal().dot(beatDir) > 0.6;
+            boolean ahead = g.pos.sub(ownerFloor).horizontal().dot(beatDir) > 1.0;
+            if (dir == null && ahead && !blocked) {
+                // They stopped with it out ahead: stop where it is, in view, rather than turn back.
+                beatArrived = beatLed = true;
+                return;
+            }
+            boolean veered = dir != null && dir.dot(beatDir) < Math.cos(Math.toRadians(40));
+            if (blocked || passed || veered || beatTicks > beatLimit) {
+                boolean stay = land == Land.GROUND_IDLE && ahead;
+                endBeat();
+                // Settled out ahead of them: that is its first idle spot, dwelt at facing them.
+                if (stay) {
+                    spot = g.standing();
+                    spotOwner = ownerFloor;
+                    spotDwell = (int) Math.round((1.5 + beatUnit() * 2.0) * TPS);
+                    nextInView = false;
+                    Vec toOwner = ownerFloor.sub(spot).horizontal();
+                    spotFace = toOwner.lengthSqr() > 1e-6 ? (float) toOwner.yawDeg() : Float.NaN;
+                }
+            }
+            return;
+        }
+        if (!down || blocked || beatCooldown > 0 || dir == null || o.sprinting()) return;
+        if (straightTicks >= BEAT_STRAIGHT && unseen >= beatAfter && landTicks % 10 == 0
+                && o.flatForward().dot(dir) > 0.85) {
+            Beat kind = beatUnit() < (raceAhead ? 0.75 : 0.3) ? Beat.OVERTAKE : Beat.ROADSIDE;
+            double lead = (1.5 + beatUnit() * 1.5) * (raceAhead ? 1.5 : 1);
+            boolean planned = kind == Beat.OVERTAKE ? planBeat(kind, o, v, dir, 3.3, OVERTAKE_SIDES, lead)
+                    : planBeat(kind, o, v, dir, 4.8, ROADSIDE_SIDES, 0);
+            if (!planned) beatCooldown = 10;
+            else if (kind == Beat.OVERTAKE) overtakes++;
+            else roadsides++;
+        }
+    }
+
+    void endBeat() {
+        if (beat == null) return;
+        beatCooldown = raceAhead ? 100 : 240;
+        sinceBeat = 0;
+        beat = null;
+        beatArrived = false;
+    }
+
+    /**
+     * Picks the beat's spot: {@code ahead} blocks along the owner's way past where they will be
+     * when it gets there, off to the side it is already on, at the first offset whose route is
+     * level, walkable and clear of their feet. An overtake then leads for {@code lead} seconds at
+     * their pace, its whole way checked now. False if there is none it can reach in time.
+     */
+    private boolean planBeat(Beat kind, OwnerState o, LocalVoxels v, Vec dir, double ahead, double[] sides, double lead) {
+        Vec vel = o.velocity().horizontal();
+        Vec perp = new Vec(-dir.z(), 0, dir.x());
+        double lateral = g.pos.sub(ownerFloor).horizontal().dot(perp);
+        double sign = Math.abs(lateral) > 0.2 ? Math.signum(lateral)
+                : Vec.fromYawPitch(g.yaw, 0).dot(perp) < 0 ? -1 : 1;
+        // Below its top scurry: it has to get up to speed, and the rhythm surges and eases.
+        double speed = 0.85 * g.rhythmBase(GroundBody.Rhythm.SCURRY) * 1.6;
+        for (double side : sides) {
+            Vec offset = dir.scale(ahead).add(perp.scale(sign * side));
+            double time = -1;
+            for (double t = 0.5; t <= 5.0; t += 0.25) {
+                if (horizontal(g.pos, ownerFloor.add(vel.scale(t)).add(offset)) <= speed * t) {
+                    time = t;
+                    break;
+                }
+            }
+            if (time < 0) continue;
+            Vec s = ownerFloor.add(vel.scale(time)).add(offset);
+            double floor = g.footprintFloorFrom(v, s.x(), s.z(), g.floorY);
+            if (Double.isNaN(floor) || Math.abs(floor - g.floorY) > GroundBody.STEP_SMOOTH) continue;
+            s = new Vec(s.x(), floor, s.z());
+            // Only where their own way ahead is open and level for the whole beat: the feet check
+            // assumes they walk on straight, and in a pillared cellar or up a stair they soon turn
+            // or climb — into the spot it has just taken.
+            if (!levelWalk(v, ownerFloor, ownerFloor.add(vel.scale(time + lead + 2.0)))) return false;
+            if (!levelWalk(v, g.standing(), s) || !clearOfFeet(s, time, vel, lead)) continue;
+            Vec end = null;
+            if (lead > 0) {
+                end = s.add(vel.scale(lead));
+                if (!levelWalk(v, s, end)) continue;
+            }
+            beat = kind;
+            beatSpot = s;
+            beatEnd = end;
+            beatAhead = ahead;
+            beatLed = false;
+            beatDir = dir;
+            beatTicks = 0;
+            beatArrived = false;
+            beatLimit = (int) Math.ceil((time * 1.5 + lead) * TPS) + 40;
+            beatFace = (float) (kind == Beat.ROADSIDE ? perp.scale(-sign) : dir).yawDeg();
+            return true;
+        }
+        return false;
+    }
+
+    /** A straight walk with no step up or down at all on the way (a beat is a dash, not a climb). */
+    private boolean levelWalk(LocalVoxels v, Vec a, Vec b) {
+        Vec d = b.sub(a).horizontal();
+        int steps = Math.max(1, (int) Math.ceil(d.length() / 0.1));
+        for (int i = 1; i <= steps; i++) {
+            double s = i / (double) steps;
+            double f = g.footprintFloorFrom(v, a.x() + d.x() * s, a.z() + d.z() * s, g.floorY);
+            if (Double.isNaN(f) || Math.abs(f - g.floorY) > GroundBody.STEP_SMOOTH) return false;
+        }
+        return true;
+    }
+
+    /**
+     * Whether the dash to {@code s} (arriving in {@code time} s), the lead from there and the wait while the
+     * owner walks past keep outside the reach of {@link #ownerPush}: it goes round their feet,
+     * never through them.
+     */
+    private boolean clearOfFeet(Vec s, double time, Vec vel, double lead) {
+        Vec from = g.standing();
+        Vec leg = s.sub(from).horizontal();
+        for (double t = 0; t <= time + lead + 2.0; t += 0.05) {
+            Vec at = t < time ? from.add(leg.scale(t / time)) : s.add(vel.scale(Math.min(t - time, lead)));
+            Vec feet = ownerFloor.add(vel.scale(t));
+            if (horizontal(at, feet) < 0.95 || horizontal(at, feet.add(vel.scale(0.35))) < 1.05
+                    || horizontal(at, feet.add(vel.scale(0.8))) < 1.35) return false;
+        }
+        return true;
     }
 
     // ── The way to the owner ───────────────────────────────────────────────────────────────────
@@ -352,6 +666,15 @@ final class GroundMind {
     private static double horizontal(Vec a, Vec b) {
         double dx = a.x() - b.x(), dz = a.z() - b.z();
         return Math.sqrt(dx * dx + dz * dz);
+    }
+
+    private double beatUnit() {
+        long x = beatRng;
+        x ^= x << 13;
+        x ^= x >>> 7;
+        x ^= x << 17;
+        beatRng = x;
+        return (x >>> 11) * 0x1.0p-53;
     }
 
     private double unit() {

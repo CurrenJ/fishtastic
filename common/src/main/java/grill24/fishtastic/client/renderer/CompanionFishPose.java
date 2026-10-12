@@ -47,11 +47,8 @@ public final class CompanionFishPose {
         this.seed = fish.hashCode();
     }
 
-    /**
-     * Whether this species' idle pose lies flat (a floor sit) — the perch layer stands those up on
-     * a shoulder so the sprite reads from the front, like a fish pinned to the outside of the arm.
-     */
-    public boolean flatPose() { return anim instanceof FishAnimationConfig.FloorSit; }
+    /** Centre height above its supporting surface, including the species' measured foot pivot. */
+    public float floorLift() { return FishAnimator.floorPoseLift(anim, length); }
 
     /** The length it is drawn at, blocks. */
     public float length() { return length; }

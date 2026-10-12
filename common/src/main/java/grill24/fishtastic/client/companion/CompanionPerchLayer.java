@@ -1,7 +1,6 @@
 package grill24.fishtastic.client.companion;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Axis;
 import grill24.fishsim.companion.PerchBody;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.player.PlayerModel;
@@ -53,28 +52,23 @@ public final class CompanionPerchLayer extends RenderLayer<AvatarRenderState, Pl
             case BACK -> 0.05f;
             default -> 0f;       // crown of the head
         };
-        float height = switch (slot) {
-            case HEAD -> -0.5f;  // head top
-            case BACK -> -0.12f; // out of the upper back
-            default -> 0f;       // shoulder line
-        };
-        float z = slot == PerchBody.Slot.BACK ? 0.26f : 0f; // the model's back face is +z
-        float crouchDrop = state.isCrouching ? 0.2f : 0f;
-
         poseStack.pushPose();
-        poseStack.translate(side, height + crouchDrop, z);
         if (slot == PerchBody.Slot.HEAD) {
-            poseStack.mulPose(Axis.YP.rotationDegrees(yRot));
+            // Anchor before applying the offset: the crown rotates about the head's actual
+            // pivot, including pitch, yaw and the crouching/swimming model pose.
+            getParentModel().head.translateAndRotate(poseStack);
+            poseStack.translate(0f, -0.5f - 0.5f / 16f, 0f); // top of the hat layer
+        } else if (slot == PerchBody.Slot.BACK) {
+            poseStack.translate(side, -0.12f + (state.isCrouching ? 0.2f : 0f), 0.26f);
+        } else {
+            getParentModel().body.translateAndRotate(poseStack);
+            poseStack.translate(side, -0.25f / 16f, 0f); // shoulder surface, including sleeve
         }
-        // A flat pose (a starfish's floor sit) is stood up so the sprite reads from the front, like
-        // a fish pinned to the outside of the arm — on the crown too, where lying flat it would be a
-        // sliver from every angle but straight above (the sim can choose the head; the old
-        // controller simply never did).
-        if (slot != PerchBody.Slot.BACK && companion.perchStandsUp()) {
-            // Stood up on the crown, lift it by half its length so it sits on the head, not in it
-            // (the layer frame is flipped: up is −y).
-            if (slot == PerchBody.Slot.HEAD) poseStack.translate(0f, -companion.perchLength() / 2f, 0f);
-            poseStack.mulPose(Axis.XP.rotationDegrees(90f));
+        if (slot != PerchBody.Slot.BACK) {
+            // Player models use down-positive Y and mirrored X. FishAnimator expects up-positive
+            // Y: undo that frame flip so crabs stand upright and floor-sitters stay face-up/flat.
+            poseStack.scale(-1f, -1f, 1f);
+            poseStack.translate(0f, companion.perchFloorLift(), 0f);
         }
         ClientCompanions.perchSubmits++;
         companion.submitPerched(poseStack, collector, lightCoords,

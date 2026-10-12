@@ -42,7 +42,7 @@ class BenthicGroundProbe {
                 boolean skip = a.onOwner() || a.impulse() || prevImpulse || a.backstopLastStep();
                 prevImpulse = a.impulse();
                 prevAcc = acc;
-                if (spikes ? skip || (acc.length() < 34 && jerk < 700) : i < from || i > from + 400) continue;
+                if (spikes ? skip || (acc.length() < 34 && jerk < 700) : i < from) continue;
                 Vec p = a.position(), f = run.owner.feet();
                 String line = String.format("T %4d %-13s %-14s %-5s pos %6.2f %6.2f %6.2f v %5.2f vy %5.2f acc %5.1f lag %5.2f %s own %6.2f %6.2f %6.2f yaw %6.1f%s%s%n",
                         i, a.goal(), a.perchState(), a.groundPhase(), p.x(), p.y(), p.z(), a.velocity().horizontalLength(),
@@ -50,7 +50,7 @@ class BenthicGroundProbe {
                         f.x(), f.y(), f.z(), a.yaw(), a.impulse() ? " IMP" : "", a.backstopLastStep() ? " BS" : "")
                         ;
                 System.out.print(line);
-                System.out.printf("   u=%d close=%s seen=%s%n", a.perchUnseenTicks(), a.comingClose(), a.seen());
+                System.out.printf("   u=%d close=%s seen=%s target=%s%n", a.perchUnseenTicks(), a.comingClose(), a.seen(), a.target());
             }
             return;
         }

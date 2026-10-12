@@ -10,12 +10,16 @@ final class Breadcrumbs {
     private static final int CAPACITY = 64;
     /** Spacing between crumbs, blocks. */
     private static final double SPACING = 0.6;
+    private final double spacing;
+
+    Breadcrumbs() { this(SPACING); }
+    Breadcrumbs(double spacing) { this.spacing = spacing; }
 
     private final Vec[] ring = new Vec[CAPACITY];
     private int head = -1, size;
 
     void record(Vec chest) {
-        if (size > 0 && ring[head].distanceTo(chest) < SPACING) return;
+        if (size > 0 && ring[head].distanceTo(chest) < spacing) return;
         head = (head + 1) % CAPACITY;
         ring[head] = chest;
         if (size < CAPACITY) size++;

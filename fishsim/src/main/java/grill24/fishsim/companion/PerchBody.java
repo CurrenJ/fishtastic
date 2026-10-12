@@ -24,7 +24,7 @@ import java.util.function.Supplier;
  *       lives on the ground, walking with a {@link GroundBody} that a {@link GroundMind} steers,
  *       and hops up to the owner only to show itself on the hand, to take cover, or when the
  *       owner rides or glides off. Past what it can follow on foot it asks the agent for the fade
- *       onto its perch, and (until Phase 2's dismount) stays there.</li>
+ *       onto its perch. Sustained rest calls it up; walking travel brings it down again.</li>
  * </ul>
  */
 public final class PerchBody extends Motor {
@@ -108,6 +108,15 @@ public final class PerchBody extends Motor {
     /** This tick's velocity jumped by design: a launch off the ground or out of the water. */
     boolean impulse;
     double lastImpulse;
+    boolean climbing, dismounting, tumbling;
+    int climbs, dismounts, tumbles;
+    private int perchedTicks, sinceSprint, sinceMounted, tumbleCooldown, tumbleTicks;
+    private boolean devClimb, devTumble;
+    boolean groupMember, groupFollower;
+    boolean allowGroupClimb = true;
+    private final Vec[] travel = new Vec[80];
+    private int travelIndex, travelCount;
+    private double netTravel;
 
     PerchBody(CompanionTunables t, Locomotion locomotion, Body swim, OwnerState owner, double radius, float length,
               long seed, Drives drives) {
@@ -157,6 +166,7 @@ public final class PerchBody extends Motor {
      * between slots, where it is still pushing off or touching down.
      */
     boolean onOwner() {
+        if (tumbling && tumbleTicks <= 3) return true;
         if (attached()) return true;
         if (mode != Mode.HOP) return false;
         boolean fromOwner = launchedFromOwner && hopElapsed < ON_OWNER_SECONDS;
@@ -181,6 +191,40 @@ public final class PerchBody extends Motor {
         impulse = false;
         lastImpulse = 0;
         updateDrives(o, seen);
+        if (ground != null) {
+            if (tumbleCooldown > 0) tumbleCooldown--;
+            if (tumbling) {
+                tumbleTicks++;
+                if (ground.onFloor()) tumbling = false;
+            }
+            if (attached() && tumbleCooldown == 0 && !o.riding() && !o.gliding() && !o.inWater()
+                    && (drives.sinceHurt == 0 || o.landedFall() >= 3 || devTumble)) {
+                attach(o);
+                Vec outward = switch (slot) {
+                    case LEFT_SHOULDER, LEFT_HAND -> o.flatRight().scale(-1);
+                    case RIGHT_SHOULDER, RIGHT_HAND -> o.flatRight();
+                    default -> o.flatForward().scale(-1);
+                };
+                Vec launch = o.velocity().horizontal().add(outward.scale(2)).add(0, 2, 0);
+                ground.placeTumbling(pos, launch, yaw);
+                gmind.daze = 10;
+                groundHopCooldown = 40;
+                homeGround = true;
+                climbing = dismounting = devTumble = false;
+                groundTarget = null;
+                hopTarget = null;
+                tumbling = true;
+                tumbleTicks = 1;
+                tumbleCooldown = 200;
+                tumbles++;
+                enter(Mode.GROUND);
+                copyFromGround();
+                impulse = true;
+                lastImpulse = launch.sub(o.velocity().horizontal()).length();
+                acc = Vec.ZERO;
+                return;
+            }
+        }
         switch (mode) {
             case GROUND -> groundStep(o, v, onSwimStart);
             case GROUND_CROUCH -> groundCrouch(o, v);
@@ -241,7 +285,21 @@ public final class PerchBody extends Motor {
     // ── Deciding where to be ───────────────────────────────────────────────────────────────────
 
     private void updateDrives(OwnerState o, boolean seen) {
-        unseenTicks = seen ? 0 : unseenTicks + 1;
+        if (ground != null) {
+            sinceSprint = o.sprinting() ? 0 : sinceSprint + 1;
+            sinceMounted = o.riding() || o.gliding() ? 0 : sinceMounted + 1;
+            if (attached() && !homeGround) perchedTicks++;
+            Vec old = travel[travelIndex];
+            netTravel = travelCount == travel.length ? o.feet().sub(old).horizontalLength() : 0;
+            travel[travelIndex] = o.feet();
+            travelIndex = (travelIndex + 1) % travel.length;
+            travelCount = Math.min(travel.length, travelCount + 1);
+        }
+        // A glimpse during a ground beat, or while it is still out ahead after one, isn't showing
+        // itself: the hand ride still comes when due. Reset by them, the beats (due sooner) took
+        // its place and cost seen while walking in 9 of 12 seeds; the ride is most of that seen.
+        boolean beating = gmind != null && (gmind.beat != null || gmind.sinceBeat < GroundMind.BEAT_AFTERMATH);
+        unseenTicks = seen && !beating ? 0 : unseenTicks + 1;
         lookDownTicks = o.pitchDeg() > LOOK_DOWN_PITCH ? lookDownTicks + 1 : 0;
         // Steady: not climbing or falling, and not speeding up, slowing or turning. A hop is aimed
         // at where the owner will be, assuming they keep going as they are.
@@ -270,9 +328,15 @@ public final class PerchBody extends Motor {
         Drives.Interest it = drives.target;
         boolean heldInterest = it != null && it.isHeld() && drives.curiosity >= HAND_CURIOSITY;
         if (homeGround && (o.riding() || o.gliding())) {
-            // Riding or gliding off with it aboard: it stays on (Phase 2 brings it down).
+            // Riding or gliding off with it aboard: stay on until walking resumes.
             homeGround = false;
+            perchedTicks = 0;
             return null;
+        }
+        if (ground != null && !homeGround && perchedTicks >= 200 && netTravel >= 6
+                && sinceSprint >= 20 && sinceMounted >= 80 && !o.inWater()) {
+            homeGround = true;
+            dismounting = true;
         }
         if (slot.hand()) {
             // Back home once it has been seen a while and the owner isn't looking down at it.
@@ -293,7 +357,7 @@ public final class PerchBody extends Motor {
         if (lookingDown || heldInterest) return hand();
         if (unseenTicks >= attentionThreshold) return hand();
         // Resting, it stays on its shoulder rather than changing sides (it still shows itself now and then).
-        if (wanderTicks == 0 && !drives.resting) {
+        if (wanderTicks == 0 && !drives.resting && !groupMember) {
             Temperament tm = drives.temperament();
             double k = tm.decisions() * (1 + 2 * tm.stillness());
             wanderTicks = k == 1 ? drawTicks(20, 45) : drawTicks(20 * k, 45 * k);
@@ -435,6 +499,14 @@ public final class PerchBody extends Motor {
         if (h.length() > 0.3) yaw = (float) h.yawDeg();
         crouch = Math.max(0f, crouch - 0.2f);
         if (ground != null) {
+            // A hop down can cross a higher tread before reaching its chosen landing. Let the
+            // ground motor take that touchdown instead of treating the tread as an air collision.
+            Vec midpoint = vel.add(dv.scale(0.5));
+            if (groundTarget != null && after.y() < 0
+                    && ground.crossesFloor(pos, pos.add(midpoint.scale(DT)), v)) {
+                enterGroundFalling();
+                return;
+            }
             // A benthic's hops step at the midpoint velocity: exact under constant acceleration,
             // so it flies the arc that was checked clear (the Euler step runs low and clips the
             // edge of a terrace it was meant to clear).
@@ -459,6 +531,12 @@ public final class PerchBody extends Motor {
                 startSwim();
             } else {
                 slot = hopTarget;
+                if (climbing) {
+                    homeGround = false;
+                    climbing = devClimb = false;
+                    climbs++;
+                    perchedTicks = 0;
+                }
                 handTicks = 0;
                 handStay = -1;
                 if (slot.hand()) unseenTicks = 0;
@@ -494,6 +572,7 @@ public final class PerchBody extends Motor {
     }
 
     private void startSwim() {
+        climbing = dismounting = tumbling = false;
         swim.placeMoving(pos, vel, yaw);
         hopTarget = null;
         groundTarget = null;
@@ -506,7 +585,7 @@ public final class PerchBody extends Motor {
     private void groundStep(OwnerState o, LocalVoxels v, Runnable onSwimStart) {
         ground.tempo = drives.temperament().pace();
         if (groundHopCooldown > 0) groundHopCooldown--;
-        boolean ready = ground.onFloor() && groundHopCooldown == 0;
+        boolean ready = ground.onFloor() && groundHopCooldown == 0 && gmind.daze == 0;
         if (wetTicks >= WATER_TICKS && ready) {
             // The owner is swimming: in already, swim; otherwise hop in beside them.
             if (v.water(pos)) {
@@ -534,27 +613,37 @@ public final class PerchBody extends Motor {
             riderWait = 0;
         }
         if (ready && o.velocity().y() > -0.5) {
-            Slot cover = coverSlot(o);
+            Slot cover = drives.threat == Drives.Threat.HOSTILE ? null : coverSlot(o);
             boolean lookingDown = lookDownTicks >= LOOK_DOWN_TICKS;
             Drives.Interest it = drives.target;
             boolean heldInterest = it != null && it.isHeld() && drives.curiosity >= HAND_CURIOSITY;
+            boolean climbWant = (drives.resting || devClimb) && allowGroupClimb && o.horizontalSpeed() < 0.3
+                    && !o.riding() && !o.gliding();
             Slot up = cover != null ? cover
-                    : lookingDown || heldInterest || unseenTicks >= groundAttention() ? hand() : null;
+                    : !groupFollower && drives.wariness < COVER_WARINESS
+                            && (lookingDown || heldInterest || unseenTicks >= groundAttention()) ? hand()
+                    : climbWant ? home : null;
             // Only from somewhere a hop up is clear (not from behind them, through their body).
             arcMargin = GROUND_LEAP_MARGIN;
             boolean clear = up != null && slotPoint(o, up).distanceTo(pos) <= CLOSE_RANGE
                     && clearHopTime(v, pos, slotPoint(o, up), o) > 0;
             arcMargin = 0;
             if (clear) {
+                climbing = climbWant && up == home && cover == null;
                 beginGroundHop(up, null);
                 return;
             }
             // Out of reach of the hand it wants to show itself on: come up alongside first.
-            gmind.wantClose = up != null && up.hand();
+            gmind.wantClose = up != null && (up.hand() || climbWant);
+            gmind.closeCalm = climbWant && up == home;
             gmind.closeSide = home == Slot.LEFT_SHOULDER ? -1 : 1;
         } else {
             gmind.wantClose = gmind.wantClose && unseenTicks >= groundAttention();
         }
+        // The in-view beats go first: well before it would come up to the hand, and sooner for a racer.
+        gmind.unseen = unseenTicks;
+        gmind.raceAhead = drives.temperament().raceAhead();
+        gmind.beatAfter = groundAttention() / (gmind.raceAhead ? 4 : 2);
         gmind.step(o, v, drives, length);
         if (gmind.wantsFade) wantsFade = true;
         copyFromGround();
@@ -625,6 +714,7 @@ public final class PerchBody extends Motor {
     }
 
     private void abortGroundHop() {
+        climbing = false;
         crouchSlot = null;
         waterTarget = null;
         groundHopCooldown = 20;
@@ -674,6 +764,11 @@ public final class PerchBody extends Motor {
                 feet.add(r.scale(-0.9 * side)).add(f.scale(0.3)),
                 feet.add(f.scale(-1.1)),
                 feet.add(f.scale(1.3))};
+        if (dismounting) {
+            Vec first = options[0];
+            options[0] = options[1];
+            options[1] = first;
+        }
         for (Vec c : options) {
             double fl = ground.footprintFloorFrom(v, c.x(), c.z(), feet.y());
             if (Double.isNaN(fl) || Math.abs(fl - feet.y()) > 1.0 || !ground.flatAt(v, c.x(), c.z(), fl)) continue;
@@ -684,13 +779,18 @@ public final class PerchBody extends Motor {
     }
 
     private void enterGroundFalling() {
+        climbing = false;
+        if (dismounting) {
+            dismounts++;
+            dismounting = false;
+        }
         ground.placeFalling(pos, vel, yaw);
         groundTarget = null;
         hopTarget = null;
         enter(Mode.GROUND);
     }
 
-    private void copyFromGround() {
+    void copyFromGround() {
         pos = ground.pos;
         vel = ground.vel;
         acc = ground.acc;
@@ -715,14 +815,18 @@ public final class PerchBody extends Motor {
         return mode == Mode.GROUND || mode == Mode.GROUND_CROUCH;
     }
 
-    /** Dev trigger: back down to the ground from wherever it is (Phase 2's dismount, by hand). */
+    /** Dev trigger: return to the ground. */
     void devGround() {
         if (ground == null) return;
         homeGround = true;
+        climbing = devClimb = devTumble = false;
         wantsFade = false;
         gmind.wantsFade = false;
         gmind.strandedTicks = 0;
     }
+
+    void devPerch() { if (ground != null) devClimb = true; }
+    void devTumble() { if (ground != null) devTumble = true; }
 
     private double hopTimeFor(double dist) {
         return Math.max(0.28, Math.min(0.65, 0.22 + 0.1 * dist)) * pace;
@@ -835,11 +939,16 @@ public final class PerchBody extends Motor {
         enter(Mode.PERCHED);
         attach(o);
         if (ground != null) {
-            // On its perch now; it stays there until Phase 2's dismount (or the dev trigger).
+            perchedTicks = 0;
+            climbing = dismounting = tumbling = false;
+            devClimb = devTumble = false;
+            travelCount = 0;
+            // On its perch now; sustained walking can bring it down again.
             homeGround = false;
             wantsFade = false;
             gmind.wantsFade = false;
             gmind.strandedTicks = 0;
+            gmind.endBeat();
             groundTarget = null;
         }
     }

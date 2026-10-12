@@ -42,7 +42,7 @@ public final class CompanionRun {
                          CompanionAgent.Fade fade, boolean backstop, double impact, int goalTicks, float pulse, double thrust,
                          boolean riding, String pose, float curiosity,
                          boolean impulse, double impulseSize, boolean onGround, boolean feetDown, double lag,
-                         boolean reachable, boolean doorClosed) {}
+                         boolean reachable, boolean doorClosed, boolean tumbling, String land) {}
 
     public final VoxelScene scene;
     public final OwnerScript script;
@@ -163,7 +163,8 @@ public final class CompanionRun {
                     agent.yaw(), agent.pitch(), agent.bank(), agent.lastTurnDeg(), agent.goal(),
                     seenNow(), agent.ownerDistance(), agent.appear(), agent.fade(), agent.backstopLastStep(), agent.lastImpact(), agent.goalTicks(), agent.pulse(), agent.thrust(), agent.onOwner(),
                     agent.poseHint().name(), agent.curiosity(), agent.impulse(), agent.lastImpulse(),
-                    agent.onGround(), agent.feetDown(), agent.groundLag(), agent.groundReachable(), scene.doorClosed()));
+                    agent.onGround(), agent.feetDown(), agent.groundLag(), agent.groundReachable(), scene.doorClosed(),
+                    agent.tumbling(), agent.landMode()));
         }
     }
 
@@ -402,11 +403,11 @@ public final class CompanionRun {
                 // backwards, or a bell pulsing tentacles-first. A bell sinking between pulses is
                 // just sinking, so for a drifter only ticks with real thrust count.
                 boolean propelled = agent.locomotion() != Locomotion.DRIFT || s.thrust() > 1.0;
-                if (s.vel().length() > 1.0 && propelled) {
+                if (s.vel().length() > 1.0 && propelled && !s.tumbling()) {
                     movingTicks++;
                     if (Vec.fromYawPitch(s.yaw(), s.pitch()).dot(s.vel().normalize()) < -0.17) tailFirstTicks++;
                 }
-                if (s.vel().horizontalLength() > 0.5) {
+                if (s.vel().horizontalLength() > 0.5 && !s.tumbling()) {
                     float travel = (float) s.vel().yawDeg();
                     maxFace = Math.max(maxFace, Math.abs(wrap(travel - s.yaw())));
                 }
@@ -497,12 +498,12 @@ public final class CompanionRun {
      */
     public record GroundMetrics(double groundShare, double maxFloorError, int floorErrorTicks, double longestStuckSeconds,
                                 long fades, double maxImpulse, double meanLag, double maxLag, double catchUpShare,
-                                int hops, int gapHops) {
+                                int hops, int gapHops, int climbs, int dismounts, int tumbles, int firstClimbTick) {
         public String summary() {
             return String.format("ground=%.0f%% floorErr=%.3f (%d) stuck=%.1fs fades=%d impulse=%.1f lag=%.1f/%.1f "
-                            + "catchUp=%.0f%% hops=%d gapHops=%d",
+                            + "catchUp=%.0f%% hops=%d gapHops=%d climbs=%d dismounts=%d tumbles=%d firstClimb=%d",
                     groundShare * 100, maxFloorError, floorErrorTicks, longestStuckSeconds, fades, maxImpulse,
-                    meanLag, maxLag, catchUpShare * 100, hops, gapHops);
+                    meanLag, maxLag, catchUpShare * 100, hops, gapHops, climbs, dismounts, tumbles, firstClimbTick);
         }
     }
 
@@ -543,8 +544,8 @@ public final class CompanionRun {
             boolean far = s.owner().feet().sub(s.pos()).horizontalLength() > 4.5;
             stuck = far && s.vel().horizontalLength() < 0.2 ? stuck + 1 : 0;
             longestStuck = Math.max(longestStuck, stuck);
-            if (s.goal().equals("CATCH_UP")) catching++;
-            if (s.goal().equals("GROUND_FOLLOW") || s.goal().equals("CATCH_UP")) {
+            if ("CATCH_UP".equals(s.land())) catching++;
+            if ("GROUND_FOLLOW".equals(s.land()) || "CATCH_UP".equals(s.land())) {
                 sumLag += s.lag();
                 lagN++;
             }
@@ -554,7 +555,15 @@ public final class CompanionRun {
         int n = samples.size();
         return new GroundMetrics(n == 0 ? 0 : ground / (double) n, maxErr, floorErrTicks, longestStuck * dt,
                 agent.groundFades(), maxImpulse, lagN == 0 ? 0 : sumLag / lagN, maxLag,
-                ground == 0 ? 0 : catching / (double) ground, agent.hops(), agent.gapHops());
+                ground == 0 ? 0 : catching / (double) ground, agent.hops(), agent.gapHops(),
+                agent.climbs(), agent.dismounts(), agent.tumbles(), firstClimbTick());
+    }
+
+    private int firstClimbTick() {
+        for (int i = 0; i < samples.size(); i++) {
+            if ("CLIMB".equals(samples.get(i).land())) return i;
+        }
+        return -1;
     }
 
     private void restoreDoor(boolean closed) {
@@ -573,7 +582,7 @@ public final class CompanionRun {
     }
 
     /** Whether {@code p} is inside the owner's body capsule. */
-    static boolean insideBody(OwnerState o, Vec p) {
+    public static boolean insideBody(OwnerState o, Vec p) {
         Vec a = o.feet().add(0, OwnerState.BODY_RADIUS, 0);
         Vec b = o.eye().add(0, 0.1, 0);
         Vec ab = b.sub(a);

@@ -37,7 +37,8 @@ public record FishProfile(
         Optional<ResourceKey<Temperament>> temperament,
         Optional<FishAnimationConfig> animation,
         SwarmConfig swarm,
-        float renderCalibration
+        float renderCalibration,
+        Optional<CompanionGroupConfig> companionGroup
 ) {
     public static final int DEFAULT_BASE_WEIGHT = 10;
     public static final float DEFAULT_MEAN_SIZE = 50.0f;
@@ -70,8 +71,23 @@ public record FishProfile(
             // is sqrt(2) for the diagonal-rotated modes (the 45° roll that lays a diagonally-painted
             // fish flat also widens its square texture quad's on-screen span by sqrt(2)) or 1.0
             // otherwise. See tools/fish-render-calibration.
-            Codec.FLOAT.optionalFieldOf("render_calibration", DEFAULT_RENDER_CALIBRATION).forGetter(FishProfile::renderCalibration)
+            Codec.FLOAT.optionalFieldOf("render_calibration", DEFAULT_RENDER_CALIBRATION).forGetter(FishProfile::renderCalibration),
+            CompanionGroupConfig.CODEC.optionalFieldOf("companion_group").forGetter(FishProfile::companionGroup)
     ).apply(i, FishProfile::new));
+
+    /** Companion groups have at most three members, one for each benthic perch slot. */
+    public record CompanionGroupConfig(int count, Formation formation) {
+        public static final Codec<CompanionGroupConfig> CODEC = RecordCodecBuilder.create(i -> i.group(
+                Codec.intRange(1, 3).fieldOf("count").forGetter(CompanionGroupConfig::count),
+                Formation.CODEC.fieldOf("formation").forGetter(CompanionGroupConfig::formation)
+        ).apply(i, CompanionGroupConfig::new));
+
+        public enum Formation implements StringRepresentable {
+            LINE, CROWD;
+            public static final Codec<Formation> CODEC = StringRepresentable.fromEnum(Formation::values);
+            @Override public String getSerializedName() { return name().toLowerCase(Locale.ROOT); }
+        }
+    }
 
     public record SizeParams(float mean, float stdDev) {
         public static final SizeParams DEFAULT = new SizeParams(DEFAULT_MEAN_SIZE, DEFAULT_STDDEV_SIZE);

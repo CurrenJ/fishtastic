@@ -59,6 +59,9 @@ public final class CompanionWorldAdapter {
     public static final class LevelBlocks implements BlockQuery {
         private final ClientLevel level;
         private final BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+        private int shapeX, shapeY, shapeZ;
+        private float shapeTop;
+        private boolean shapeKnown;
         long samples;
         long nanos;
 
@@ -70,10 +73,23 @@ public final class CompanionWorldAdapter {
         public boolean solid(int x, int y, int z) {
             long start = System.nanoTime();
             cursor.set(x, y, z);
-            boolean solid = !level.getBlockState(cursor).getCollisionShape(level, cursor).isEmpty();
+            var shape = level.getBlockState(cursor).getCollisionShape(level, cursor);
+            boolean solid = !shape.isEmpty();
+            shapeX = x;
+            shapeY = y;
+            shapeZ = z;
+            shapeTop = solid ? (float) Math.min(1, shape.max(net.minecraft.core.Direction.Axis.Y)) : 0;
+            shapeKnown = true;
             nanos += System.nanoTime() - start;
             samples++;
             return solid;
+        }
+
+        @Override
+        public float top(int x, int y, int z) {
+            // LocalVoxels asks solid then top for each cell. Reuse that collision query.
+            if (!shapeKnown || x != shapeX || y != shapeY || z != shapeZ) solid(x, y, z);
+            return shapeTop;
         }
 
         @Override
@@ -89,6 +105,7 @@ public final class CompanionWorldAdapter {
     public static final class OwnerTracker {
         private Vec3 lastEye;
         private int lastHurtTime;
+        private final OwnerFallTracker fall = new OwnerFallTracker();
 
         /** This tick's owner state. Call once per tick, before {@link #hurt}. */
         public OwnerState owner(Player player, boolean local) {
@@ -102,8 +119,12 @@ public final class CompanionWorldAdapter {
             float fov = local ? mc.options.fov().get().floatValue() : DEFAULT_FOV;
             Vec3 chest = eye.subtract(0, OwnerState.CHEST_DROP, 0);
             boolean inWater = player.level().getFluidState(BlockPos.containing(chest)).is(FluidTags.WATER);
+            boolean riding = player.isPassenger(), gliding = player.isFallFlying();
+            double landedFall = fall.update(player.getY(), player.onGround(), player.fallDistance,
+                    !inWater && !player.isInWater() && !riding && !gliding
+                            && !player.getAbilities().flying && !player.onClimbable(), teleported);
             return new OwnerState(vec(eye), vec(delta.scale(20)), player.getYRot(), player.getXRot(),
-                    player.isSprinting(), teleported, firstPerson, fov, inWater);
+                    player.isSprinting(), teleported, firstPerson, fov, inWater, riding, gliding, landedFall);
         }
 
         /**
@@ -145,6 +166,12 @@ public final class CompanionWorldAdapter {
             points.add(point(kind, e.getId(), e));
         }
         points.addAll(companions);
+        for (Player player : level.players()) {
+            if (player == owner || !player.isAlive() || player.distanceToSqr(owner) > 16) continue;
+            PointOfInterest body = point(PointOfInterest.Kind.PLAYER, player.getId(), player);
+            points.add(new PointOfInterest(body.kind(), body.id(),
+                    new Vec(player.getX(), player.getY(), player.getZ()), body.vel(), body.radius()));
+        }
         return points;
     }
 
