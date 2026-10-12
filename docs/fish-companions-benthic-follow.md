@@ -1016,3 +1016,204 @@ Turn on the overlay first: `/fishtastic companion debug true`. Equip with
    ground.
 9. **Mount and elytra:** ride a horse or glide; members climb on or fade onto the perch.
 10. **Another player (if available):** their benthic group walks and perches on their body for you.
+
+
+## 22. Alongside stall and under-feet experiments (2026-10-12)
+
+No production change accepted. Fork D's original walkability, tangent, braking and turning
+experiments were resumed on aee461ea and rejected after equal-ground A/B. The owner playtest
+and the §19 under-feet gap remain open.
+
+### 22.1 Original candidates: equal-seed rejection
+
+`ComeAlongsideProbe.ab`, 20 identical seeds per configuration, 2,400 ticks, five scripts
+(low_ceiling, jumping, walk_flat, walk_meander, stairs_up_down), lengths 0.30 and 0.60:
+
+- Wall-only alongside walkability (old mode 16) reduced pooled low_ceiling inside ticks
+  202→127 at 0.30 and 410→250 at 0.60, but walkSeen fell 3965→3889 (8 seeds up / 8 down)
+  and 3587→3399 (10 up / 8 down). At 0.60 it introduced one fade and one leash run.
+- Concrete reversals: low_ceiling 0.30 seed 12 unseen 17.8→46.5 seconds,
+  walkSeen 279→150; 0.60 seed 3 unseen 17.4→40.2 seconds and seed 12 13.4→29.9 seconds.
+- Tangent-only movement caused jumping 0.30 unseen 27.5→36.1 seconds and one seed lost
+  visibility. Braking-only increased low_ceiling 0.60 fades 0→2, unseen>30s runs 6→9
+  and walkSeen 3587→3294 (5 seeds up / 10 down).
+- Turning-only introduced a stair fade at 0.30. Combined tangent/braking/turning reached
+  84.5 seconds unseen and four fades/leash runs in low_ceiling 0.60.
+
+These are trajectory changes, not solutions justified by lower pooled overlap alone.
+The final production files were restored to the committed versions.
+
+### 22.2 Narrow stalled-approach retry also rejected
+
+A second experiment measured an alongside approach that made no movement for three seconds,
+released it to ordinary ground behaviour for five seconds, then retried. The broad A/B looked
+nearly neutral (only low_ceiling 0.30 improved by one visible walking tick), but a deterministic
+pillar exposed that the body dithers: consecutive stationary ticks never reached the threshold.
+
+Measuring lack of distance progress instead detected the stall and released/retried in all
+20 pillar seeds. It still did not recover: the final positions were identical for 17/20 seeds
+and barely changed for the other three. Approaching the blocked station can also obscure the
+straight route to the owner; clearing `wantClose` leaves `reachable` false, so normal routing
+cannot move it away. Merely asserting that a cooldown fired would give a misleading passing test.
+A recovery assertion must measure actual movement out of the blocked approach and a viable
+route, rather than just the desire flag.
+
+The progress version also failed the broad guardrails: low_ceiling 0.30 produced a new run
+above 1% inside-owner ticks and unseen>30s runs 2→3; 0.60 walkSeen fell 3587→3497
+(1 seed up / 4 down). It was rejected too. Future work needs to address recovery from this
+blocked position, separately from under-feet steering, with a real recovery test and per-seed A/B.
+
+### 22.3 Retained evidence
+
+The fork's untracked `build/` retains `d-ab-perseed.txt`, `d-ab-candidates.txt`,
+`d-ab-stall-retry.txt`, `d-ab-progress-retry.txt`, `d-ab-progress-retry2.txt`,
+`d-rejected-experiments.patch`, `d-rejected-retry.patch`, and the archived probe/test sources.
+No runtime diagnostic flags or rejected steering changes are included in the deliverable.
+
+Reproduce the pillar fixture without Minecraft: owner feet `(0.5, 0, 0.5)`, yaw 0;
+solid floor `y < 0`; pillar `x == -1 && z == 0 && y < 3`; crawler length 0.30,
+radius 0.15, initial body centre `(0.5, 0.15, -1.5)`; seeds 1–20, 1,200 ticks;
+set `wantClose = true` every tick before `GroundMind.step`. The owner's alongside station
+lies inside the pillar. Assert actual recovery distance and route viability.
+
+## 23. Stair formation edge drops (2026-10-12)
+
+The first baseline fade in seed 1 begins with member 1 beside the stairs at
+(2.28, 64.12, 6.42), its predecessor at (1.89, 66.75, 8.08), and owner at
+(0.5, 68, 14.4). The staircase occupies x [-1, 2). Once on the side floor,
+the next rise is too high to hop; planning reports unreachable and strand ticks
+increase continuously until fade at tick 985. Member 2 follows onto that floor
+and fades at tick 993. This is a failed reachable route after leaving the stairs.
+
+The motor normally refuses drops unless its target is lower. Its emergency
+edge override nevertheless permits an unrequested drop when moving too fast to
+stop. Formation members now retain the drop guard: a successor relies on the
+same stair path. Requested descents still pass the existing lower-target guard;
+solo motors retain their existing behavior. A package diagnostic switch supports
+equal-ground A/B, defaults on, and is restored after tests.
+
+Twenty seeds, 2400 ticks each, stairs_up_down: LINE fades 103 -> 93 (7 seeds
+better, 0 worse); CROWD 35 -> 27 (6 better, 0 worse). LINE per seed:
+5/5, 6/6, 8/6, 6/6, 5/5, 2/1, 3/3, 2/0, 8/8, 0/0,
+6/5, 3/2, 5/3, 6/6, 6/6, 7/6, 8/8, 6/6, 8/8, 3/3.
+CROWD: 1/0, 5/4, 2/1, 0/0, 2/2, 2/2, 1/1, 1/1, 3/3, 0/0,
+3/2, 0/0, 1/1, 1/1, 3/1, 0/0, 4/4, 2/0, 2/2, 2/2.
+Deep pair overlap ticks increase 161 -> 189 (LINE), 184 -> 203 (CROWD),
+across 48,000 simulation ticks per formation. This is a measured small tradeoff,
+not noise: maxima 33 and 21 per run remain below the existing 72-tick bound.
+General overlap ticks 729 -> 794 and 788 -> 835; underfoot 134 -> 122 and
+79 -> 73. Twelve-seed flat/meander/passers/backward/climb comparisons preserve
+all measured metrics identically. Remaining stair fades are not solved.
+
+Rejected experiments: crossing-only ankle detours gave LINE 54 -> 17 fades but
+regressed seeds 6 and 7 and flat formation metrics; same-owner-floor detours
+54 -> 39 regressed seeds 7 and 8; also requiring the member floor to match
+54 -> 24 regressed seeds 6, 8 and 10. Respecting owner breadcrumb viaPoint
+in formation targeting alone gave 54 -> 51 with four regressing seeds; expanding
+the crumb search cap to 64 gave 54 -> 79 with ten regressing seeds. None ships.
+
+BenthicStairsDropTest locks the 20-seed per-seed fades comparison and overlap
+bound. The experimental worktree retains GroupAnkleProbe for A/B metrics and
+StairsFadeProbe for onset traces; these probes are not required in the production patch.
+
+
+Validation: full :fishsim:test passed, 357 tests / 329 passed / 28 diagnostic skips, zero failures. Protected fingerprints and platform checks are validated by the integrating main worktree.
+
+## 24. Beat planner scan work (2026-10-12)
+
+The remaining long look-ahead checks are real route validation. Caps of 12, 16, 20,
+24 and 32 blocks were tested against the exact original planner with beats enabled
+in both arms, over 20 seeds each. Shortening only the lead and retaining the complete
+`time + lead + 2` owner-route check still reduced walking visibility: at 16 blocks,
+the sprinter on flat ground worsened in 19/20 seeds (2,854 fewer visible walking ticks)
+and the 0.6-block baseline worsened in 19/20 (2,523 fewer ticks). At 32 blocks the
+sprinter still worsened in 5 seeds and improved in 3; owner overlap increased in 2.
+Stairs and low ceilings were unchanged. No cap was adopted. The earlier sweep that
+compared beats off versus on did not isolate the cap's effect.
+
+Instead, `levelWalk` keeps its original 0.1-block positions and complete route, but
+reuses a successful floor answer while the four integer bounds of the footprint's
+columns remain identical. `footprintFloorFrom` depends only on those columns and the
+fixed floor height during this scan; the first footprint is always checked, and an
+obstacle or edge still ends the scan immediately. Reuse lasts only within one scan.
+
+`BenthicFootprintScanTest` compares both arms per seed across flat ground, meanders,
+stairs, low ceilings, step gaps and slabs, sizes 0.3 and 0.6, and 12 seeds with the
+sprinter temperament: all 144 pairs have identical complete sample lists, general
+metrics and ground metrics. Footprint evaluations fall from 523,751 to 117,270
+(77.6%). This reduces planner CPU work; underlying block query counts and their rare
+peaks stay unchanged because `LocalVoxels` already caches queried cells.
+
+All 516 fingerprints are identical to the resumed baseline, including all 447
+protected non-BENTHIC lines. Full fishsim validation is recorded with the integrated
+change. No owner-world or wall-clock performance claim is made here.
+
+### 24.1 Integrated validation
+
+Main worktree, both accepted changes together: `:fishsim:test` passes (357 total,
+330 passed, 27 diagnostic skips); `:common:test` passes (766 tests, zero failures);
+`:fabric:build` and `:neoforge:build` pass. All 447 protected fingerprints match
+`build/fp-base-p2.txt`. Final Fabric game tests pass all 317 required tests. The
+stair regression additionally asserts a strict total fade reduction for each
+formation and no seed gaining fades; its strengthened test passes.
+
+Logs: `build/benthic-resume-final-tests.txt`, `build/benthic-resume-fp-final.txt`,
+`build/benthic-resume-stair-test.txt`, `build/benthic-resume-final-gametest.txt`.
+In-game visual approval, real sampling cost and NeoForge game tests remain open.
+
+## 25. Recovery from a blocked alongside station (2026-10-12)
+
+The alongside station can lie inside a pillar even when the route to the owner is
+reachable. The body then refuses forward motion, but ordinary stranded detection
+never fires. Recovery now requires a stationary owner, a station inside a solid
+taller than a one-block hop, and 40 ticks without moving more than 0.2 blocks.
+
+It checks a rear station on the same side, then uses the existing ground hop with
+its collision check. The straight leg must also stay outside the owner's body.
+Changing only the walk target failed in some seeds: the motor remained facing the
+wall. Motor physics and ordinary one-block stair approaches are unchanged.
+
+On grounded arrival within 0.4 blocks, the recovery target is released and another
+alongside request is suppressed for 100 ticks. This matters: retaining the rear
+target created a second permanent stall in the first full-agent test. The cached
+station resets when the owner moves or turns, and its floor and route are checked
+again. If the rear floor, owner clearance or checked hop remains unavailable for
+60 stalled ticks, the companion uses the existing fade to its perch. A successful
+recovery attempt takes precedence over that fallback.
+
+`BenthicAlongsideStallTest` compares 20 deterministic pillar seeds with recovery
+off and on: all enabled cases reach the rear station before tick 150, without
+fading before escape or penetrating blocks. Full-agent fixtures exercise recovery,
+then verify perching or return to ordinary ground behavior and following when the
+owner walks 30 blocks away. Other tests cover active owner movement/turn reset,
+valid one-block steps, unavailable retreat and 120 equal-seed ordinary runs whose
+metrics and sampled positions remain identical.
+
+`AlongsideRecoveryProbe` ran five scripts, two sizes and 60 equal seeds per arm,
+2,400 ticks each. Nine configurations are unchanged. Only `low_ceiling`, size
+0.60, seed 15 changes: it adds one fade because an actual blocked approach cannot
+recover. **Walking-visible ticks fall from 277 to 168 (109 fewer)**; inside-owner
+ticks fall from 50 to 45, and longest unseen time falls from 33.8 to 29.1 seconds.
+Across that configuration, fades rise from 3 to 4 and runs with a leash event from
+2 to 3. This is an explicit visibility tradeoff for a bounded stalled approach.
+
+The trace shows the baseline stationary at `(3.8196, 64.1820, 3.8546)`, with a
+reachable owner and target `(5.4691, 64, 3.1579)`, through ticks 900–970. Recovery
+has counted 45 stalled ticks by tick 920 and 55 by tick 930; the failed escape
+requests a fade after 60, and the companion is on its perch by tick 950. The rear
+floor is valid but its hop or owner clearance is unavailable. The historical
+seed-17 permanent stall did not reproduce on this revision; the new fixtures and
+this seed-15 trace are the evidence for the correction.
+
+Experimental evidence remains in fork D's `build/`: `d-final60-all.txt`,
+`d-final-release2.txt`, `d-trace15-final.txt`. General under-feet steering and the
+remaining stair fades are still open. This change has not been viewed in game.
+
+Integrated validation: `:fishsim:test` passes (364 total, 336 passed, 28 diagnostic
+skips), `:common:test` passes, and both loader builds pass. After strengthening
+the active-reset and full-agent coverage assertions, all six recovery tests and
+`FingerprintProbe` pass; all 447 protected fingerprints match the baseline.
+Fabric game tests pass all 317 required tests. Logs are
+`build/benthic-pillar-validation.txt`, `build/benthic-pillar-fingerprints.txt`,
+and `build/benthic-pillar-gametest.txt`. NeoForge game tests and in-game verification
+remain unperformed. No commits were made.
