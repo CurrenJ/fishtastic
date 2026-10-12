@@ -51,9 +51,19 @@ public final class FishAnimator {
     public static void applyBenthic(PoseStack poseStack, FishAnimationConfig config, Random random,
                                     float t, float yawDeg, float baseRotation, float scale,
                                     boolean mirrored, float shapeDrive) {
+        applyBenthic(poseStack, config, random, t, yawDeg, baseRotation, scale, mirrored, shapeDrive, Float.NaN);
+    }
+
+    /**
+     * As above, for a walker with a ripple clock: {@code ripplePhase} is the engine's gait phase in
+     * radians (a flatfish's {@link FishAnimationConfig.FloorSit#ripple()} glide runs on it), or NaN.
+     */
+    public static void applyBenthic(PoseStack poseStack, FishAnimationConfig config, Random random,
+                                    float t, float yawDeg, float baseRotation, float scale,
+                                    boolean mirrored, float shapeDrive, float ripplePhase) {
         switch (config) {
             case FishAnimationConfig.FloorSit cfg ->
-                    applyFloorSit(poseStack, cfg, random, t, mirrored, yawDeg, shapeDrive);
+                    applyFloorSit(poseStack, cfg, random, t, mirrored, yawDeg, shapeDrive, ripplePhase);
             case FishAnimationConfig.UprightSit cfg ->
                     applyUprightSit(poseStack, cfg, random, t, baseRotation, mirrored, yawDeg,
                             scale, shapeDrive);
@@ -239,7 +249,7 @@ public final class FishAnimator {
 
     private static void applyFloorSit(PoseStack poseStack, FishAnimationConfig.FloorSit cfg,
                                        Random random, float t, boolean mirrored) {
-        applyFloorSit(poseStack, cfg, random, t, mirrored, null, 0f);
+        applyFloorSit(poseStack, cfg, random, t, mirrored, null, 0f, Float.NaN);
     }
 
     /**
@@ -249,7 +259,7 @@ public final class FishAnimator {
      */
     private static void applyFloorSit(PoseStack poseStack, FishAnimationConfig.FloorSit cfg,
                                        Random random, float t, boolean mirrored, Float crawlYaw,
-                                       float shapeDrive) {
+                                       float shapeDrive, float ripplePhase) {
         float randomPhaseRad = random.nextFloat() * (float) (2 * Math.PI);
         float yRot = (float) (Math.sin(t * cfg.rotationHertz() * 2 * Math.PI + randomPhaseRad)
                 * cfg.rotationAmplitude());
@@ -263,7 +273,21 @@ public final class FishAnimator {
         // squash, for the same reason: each wants the frame the creature actually lives in.
         float along = 1f - cfg.scuttleSquash() * shapeDrive;
         if (along != 1f && along > 0f) poseStack.scale(along, 1f / along, 1f);
+        if (cfg.ripple() != 0f && !Float.isNaN(ripplePhase)) {
+            // A flatfish's glide on a sprite that can't bend: the body wags in the floor plane and
+            // its fin margins swell a quarter-cycle behind, so the wave reads as running down it.
+            poseStack.mulPose(Axis.ZP.rotationDegrees((float) Math.sin(ripplePhase) * cfg.ripple()));
+            float width = 1f + RIPPLE_WIDTH_PER_DEGREE * cfg.ripple() * (float) Math.cos(ripplePhase);
+            poseStack.scale(1f, width, 1f);
+        }
+        // Written last, so the stack turns the sprite first: everything above (the squash and the
+        // ripple) then acts along the body, not across the texture's diagonal. +45 is the same
+        // correction the swimmers use: it maps the head-top-right corner onto the heading.
+        if (cfg.diagonalTexture()) poseStack.mulPose(Axis.ZP.rotationDegrees(45f));
     }
+
+    /** A ripple's fin-margin swell, as a fraction of the width per degree of body wag. */
+    static final float RIPPLE_WIDTH_PER_DEGREE = 0.012f;
 
     /**
      * @param retract the engine's startle envelope in [0, 1] — 0 fully out, 1 withdrawn — or 0 for
