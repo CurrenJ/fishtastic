@@ -354,8 +354,10 @@ public final class PerchBody extends Motor {
             hopDown(o, v);
             return null;
         }
-        if (lookingDown || heldInterest) return hand();
-        if (unseenTicks >= attentionThreshold) return hand();
+        // In a group only the leader shows itself on the hand, as from the ground: a follower's
+        // hand is another member's (the right shoulder's and the head's are both the right hand).
+        if (!groupFollower && (lookingDown || heldInterest)) return hand();
+        if (!groupFollower && unseenTicks >= attentionThreshold) return hand();
         // Resting, it stays on its shoulder rather than changing sides (it still shows itself now and then).
         if (wanderTicks == 0 && !drives.resting && !groupMember) {
             Temperament tm = drives.temperament();
@@ -376,6 +378,9 @@ public final class PerchBody extends Motor {
      */
     private Slot coverSlot(OwnerState o) {
         if (drives.wariness < COVER_WARINESS || drives.threatPos == null) return null;
+        // A group shares one set of slots: each member's cover is its own (up on the owner),
+        // never the one slot all three would otherwise pile onto.
+        if (groupMember) return home;
         if (drives.threat == Drives.Threat.CAT) return Slot.HEAD;
         boolean threatRight = drives.threatPos.sub(o.chest()).dot(o.flatRight()) > 0;
         // An aggressive percher squares up on the near shoulder instead.

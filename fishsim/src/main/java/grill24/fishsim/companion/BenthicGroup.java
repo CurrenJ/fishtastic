@@ -96,8 +96,10 @@ public final class BenthicGroup {
             }
             if (requestedClimb && climbClock == i * 16) a.devPerch();
             boolean predecessorClimbing = ahead.climbs() > 0;
-            a.formation(target, formation == Formation.CROWD ? separation(i) : null, speed,
-                    climbClock >= i * 16 && predecessorClimbing);
+            // Followers in a line keep out of each other too: steering at the newest trail point,
+            // which lies under a slowing or pivoting predecessor, walked them into it. A line's
+            // push acts only at contact (its gap is kept by speed); a crowd's keeps them spread.
+            a.formation(target, separation(i), speed, climbClock >= i * 16 && predecessorClimbing);
             // A sharp travel turn reaches the whole line together, avoiding a serial 180-degree
             // pivot delay at each member. Once turned, each resumes its predecessor's trail.
             Vec heading = Vec.fromYawPitch(cornerYaw, 0);
@@ -121,7 +123,8 @@ public final class BenthicGroup {
     private Vec separation(int index) {
         CompanionAgent a = members[index];
         Vec push = Vec.ZERO;
-        double range = Math.max(length * 1.2, 2 * a.radius() + 0.04);
+        double range = formation == Formation.LINE ? 2 * a.radius() + 0.04
+                : Math.max(length * 1.2, 2 * a.radius() + 0.04);
         for (int i = 0; i < members.length; i++) {
             if (i == index || !members[i].onGround() || !a.onGround()) continue;
             Vec away = a.position().sub(members[i].position()).horizontal();

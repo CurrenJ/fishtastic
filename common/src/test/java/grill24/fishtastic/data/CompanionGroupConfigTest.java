@@ -27,4 +27,13 @@ class CompanionGroupConfigTest {
         assertTrue(FishProfile.CompanionGroupConfig.CODEC.parse(JavaOps.INSTANCE,
                 Map.of("count", 3, "formation", "school")).error().isPresent());
     }
+
+    @Test
+    void parsesGroundGaitsAndRejectsUnknownOnes() {
+        assertEquals(FishProfile.CompanionGait.CRAWL,
+                FishProfile.CompanionGait.CODEC.parse(JavaOps.INSTANCE, "crawl").getOrThrow(IllegalStateException::new));
+        assertEquals(FishProfile.CompanionGait.RIPPLE,
+                FishProfile.CompanionGait.CODEC.parse(JavaOps.INSTANCE, "ripple").getOrThrow(IllegalStateException::new));
+        assertTrue(FishProfile.CompanionGait.CODEC.parse(JavaOps.INSTANCE, "hop").error().isPresent());
+    }
 }

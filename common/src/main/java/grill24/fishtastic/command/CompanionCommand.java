@@ -40,6 +40,9 @@ import java.util.Optional;
  *   /fishtastic companion fake hostile|cat|item|companion — a scripted thing for it to react to (clear removes them)
  *   /fishtastic companion hurt                            — it sees you hurt (an aggressive fish bites)
  *   /fishtastic companion drowsy                          — as if you'd idled long enough for it to settle
+ *   /fishtastic companion ground                          — a ground benthic (and its group) comes back down off the perch
+ *   /fishtastic companion climb                           — a ground benthic climbs onto its perch (group: one after another)
+ *   /fishtastic companion tumble                          — a perched ground benthic is knocked off (waits until perched)
  *   /fishtastic companion catchdemo                       — open a demo bar with a fish of your companion's species
  *   /fishtastic companion catch                           — land the demo bar's first active target (celebration + greet)
  *   /fishtastic companion phantom &lt;species&gt; [size]      — another companion, swimming round an imaginary owner ahead
@@ -117,6 +120,12 @@ public class CompanionCommand {
                         grill24.fishtastic.client.companion.ClientCompanions::devHurt)))
                 .then(Commands.literal("drowsy").executes(ctx -> client(ctx,
                         grill24.fishtastic.client.companion.ClientCompanions::devDrowsy)))
+                .then(Commands.literal("ground").executes(ctx -> client(ctx,
+                        grill24.fishtastic.client.companion.ClientCompanions::devGround)))
+                .then(Commands.literal("climb").executes(ctx -> client(ctx,
+                        grill24.fishtastic.client.companion.ClientCompanions::devClimb)))
+                .then(Commands.literal("tumble").executes(ctx -> client(ctx,
+                        grill24.fishtastic.client.companion.ClientCompanions::devTumble)))
                 .then(Commands.literal("catchdemo").executes(ctx -> client(ctx,
                         grill24.fishtastic.client.companion.ClientCompanions::devOpenCatchDemo)))
                 .then(Commands.literal("catch").executes(ctx -> client(ctx,

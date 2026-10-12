@@ -518,6 +518,12 @@ public class NeoForgeGameTestRegistration {
         register(event, env, "full_entry_round_trips_through_json", 200,
             FishEncyclopediaEntryGameTests::fullEntryRoundTripsThroughJson);
 
+        // ----- Companion profile data (ground benthics) -----
+        register(event, env, "benthic_companion_data_loads", 200,
+            grill24.fishtastic.gametest.CompanionProfileGameTests::benthicCompanionDataLoads);
+        register(event, env, "only_benthics_declare_ground_companion_data", 200,
+            grill24.fishtastic.gametest.CompanionProfileGameTests::onlyBenthicsDeclareGroundCompanionData);
+
         // ----- FishEncyclopediaClientCache / FishEncyclopediaClientHelper tests -----
         register(event, env, "cache_starts_empty", 200,
             FishEncyclopediaClientGameTests::cacheStartsEmpty);

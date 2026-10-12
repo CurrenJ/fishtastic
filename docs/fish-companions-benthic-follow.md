@@ -767,3 +767,252 @@ integration (gait/group constructors, rendering every member, commands, the floo
 budget in game). The game still constructs the no-gait percher. Owner viewer look for the
 beats: `./gradlew :fishsim:runCompanionViewer`, BENTHIC (sprinter for frequent overtakes),
 `benthic_park` or walk_flat, watching the overlay's beat field.
+
+## 19. Come-alongside round the feet (2026-10-12, uncommitted)
+
+**Outcome: no fix shipped.** Every variant shortened one tail and lengthened another on equal
+seeds, so production code is unchanged from 07920354. The experiment, with its switch and probe,
+is saved as `docs/benthic-come-alongside-experiment.patch` (`git apply` it to resume).
+
+### 19.1 Mechanisms (traced; mode-0 inside-owner ticks classified over 60 seeds)
+
+Spider crab (0.6) in the cellar, 859 inside ticks: **crouch** after coming close 322 (still 208,
+moving 114); **walking under the feet while coming close** 197; hops passing through the body
+~143; the rest owner-walks-into-it and after-close idle. About two-thirds come from the
+come-alongside. Three separate causes:
+
+1. **Crossing.** The alongside spot is on the home side; from behind or the far side the straight
+   walk crosses the feet (§18.3, crab seed 1).
+2. **Crouch slide.** The crouch starts where the hop first clears, at the rim (0.46 from the feet),
+   but the crab is still walking at the feet at ~3.6 b/s. Braking at 11 b/s² takes ~0.6 blocks,
+   so it slides into the body during the crouch. This is why the §18.3 underfoot guard failed: it
+   checked the current position, which was outside.
+3. **Swing-in (big bodies).** At cruise (~5 b/s) and a 6.5°/tick turn limit, a spider's turning
+   radius is ~2.2 blocks. It can't make the bend onto a spot 0.8 away and swings through the feet
+   even when the straight leg doesn't cross them (spider seed 15).
+
+Also found: **a permanent stall.** The come-alongside walks straight at its spot with no obstacle
+awareness. Behind a cellar pillar the spot is unwalkable, the body refuses every tick and the
+crab parks for the rest of the run (spider seed 17: unseen 80 s). It exists in mode 0 too, as
+part of the cellar's pre-existing unseen > 30 s runs.
+
+The §18.3 round-the-feet waypoint failed for a moving owner: its fixed front point stays ahead
+of a walking owner, so the crab never gets alongside (spider walk_flat: 19 of 20 seeds lost seen).
+
+### 19.2 Variants (flags in the patch: T tangent while still, S stop-point guard, C heading-gated turn cap, W walkable come-alongside)
+
+60 seeds, baseline temperament, mode 0 → variant. Inside = inside-owner ticks (runs > 1%);
+unseen = runs over 30 s (max).
+
+| Variant | Crab cellar | Spider cellar | Costs elsewhere |
+|---|---|---|---|
+| T (tangent, owner still) | inside 414→235 (3→1) | inside 761→899 (7→12) | crab cellar walking-seen −4.6% |
+| T+S | 414→208 (3→1) | 761→804 (7→7), unseen max 63.6 s | crab cellar unseen 3→5 |
+| T+S+C (unconditional cap) | 414→155 (3→0) | 761→343 (7→0) | unseen 3→11 and 7→12 (max 80.8 s) |
+| T+S+C+W | 414→169 (3→1), unseen 3→6 | **761→359 (7→1)**, unseen 7→6, backstops 34→17 | spider jumping unseen 12→15; spider stairs seen −12%; crab stairs fade 0→1 |
+| W only | 414→337, fades 6→1 | 761→571 (7→5), fades 3→1 | spider stairs seen −11% (no hop up from a lower step) |
+| S+C / S+C+W | 249 / 247 | 599 / 461 | spider cellar unseen 7→11 / 7→13 (max ~72 s) |
+
+The tangent alone is not unconditional: applied with the owner moving too, crab jumping unseen
+went 27.5 → 37.6 s and stairs lost seen. Restricted to a still owner, the jumping difference was a
+knife-edge hop window (seed 18; 60 seeds: 2 → 3 runs, within noise).
+
+### 19.3 For the next attempt
+
+- The crouch slide (S, the stop point against the moving feet) and the swing-in (C) are the
+  spider's real mechanisms. Both cut inside time sharply, but slowing or delaying the approach
+  misses hop windows with a still owner who then sets off. An approach that keeps speed (e.g. an
+  alongside spot further out for big bodies, so the bend fits) is untested.
+- W's stall fix is real, but it must not disable hops from a lower stair: judge walkability to
+  the spot's level within a hop, not exactly level.
+- Tools in the patch: `ComeAlongsideProbe.ab` (per-mode tails and per-seed walking-seen vs mode 0),
+  `classify` (inside ticks by agent state), `lockstep` (first divergence plus tick-by-tick trace).
+
+## 20. Formations completed (2026-10-12, uncommitted)
+
+Headless in `fishsim`; the owner's authorization in §15 holds and visual approval is still pending.
+The game still constructs the no-gait percher (Phase 5 is separate work).
+
+### 20.1 Fixes (each traced, then validated on equal seeds)
+
+- **Perched members shared a slot.** Two followers sat on RIGHT_HAND together (`hand()` maps both
+  the right shoulder's and the head's member there). And `coverSlot` sent all three to the head
+  from a cat, or to one shoulder from a hostile. Now only the leader goes to the hand (as from the
+  ground), and a group member's cover is its own home slot. A/B with the cover rule off:
+  cat_lounging had 287–579 shared-slot ticks, members coincident, in 5 of 6 runs; with it, 0, and
+  the same time up on the owner (e.g. 2266 vs 2271 member-ticks). Hostile runs are identical.
+- **Line members walked into each other.** Followers steer at their predecessor's newest trail
+  point, which lies under a slowing or pivoting predecessor, and line followers had no separation.
+  They now get the separation push at contact range (2 × radius + 0.04; the gap is still kept by
+  speed). The stand-still corner turn keeps that push while two members actually interpenetrate.
+  A/B: fewer line overlap ticks in 11 of 12 runs (walk_flat 129/54/89 → 66/50/42), no fade added.
+- **Rejected after A/B (not shipped):** a "yield" speed cap behind the member in front (line
+  fades 4–12 a run, overlaps often worse); separation for the line's leader (mixed per seed;
+  stairs seed 1 went 5 → 10 fades); crowd separation starting a body-width out (overlaps better
+  in 10/15 runs but worse in 4, underfoot up: walk_flat 6→13, 2→7, 2→13). A first, wider line
+  separation (the full 0.48 spacing) fought the spacing and added sprint fades; it was replaced
+  by the contact range.
+
+### 20.2 Measurements (`BenthicGroupProbe`, three seeds, line 0.4, crowd 0.12)
+
+- **Line order**, measured *along the leader's way* (each follower stands where the leader was
+  earlier than the follower before it). Measured against the owner's travel direction, a
+  follower still walking to a hairpin's bend looked "ahead", which is a metric artefact. Out of
+  order: walk_flat 3–4.5%, meander 0.2–1.2%, sprint 0–1.2%, passers 0–7.3%, backing up 6–13%,
+  stairs 4–12%.
+- **Line wave** (follower distance from its predecessor's last-2 s path while following):
+  mean 0.20–0.27 (max 2.1–2.6) on walk_flat, 0.32–0.37 on meander, 0.16 on a sprint. **Gap**:
+  1.6 blocks (CV 0.4) on walk_flat, 1.05–1.15 (CV 0.8–1.0) on meander.
+- **Crowd spread** (mean distance from the centroid): owner still 0.34–1.09, moving 0.59–1.49.
+  Note for the owner: tighter when stopped than when moving, the reverse of §4's "spread out
+  when stopped". Left as is pending a look.
+- **Overlap:** deep (centres within half the contact distance) worst 51 of 2400 ticks (crowd,
+  owner backing into it), mostly ≤ 30. Touching (> 15%) 11–177 ticks.
+- **Passers and backing up:** no fades; underfoot of any player ≤ 13 member-ticks of 7200.
+- **Climb cycles:** every member climbs and dismounts twice per two minutes; never a shared slot.
+
+### 20.3 New scripts, tests, probes
+
+- `OwnerScript.GROUND_NAMES` += `group_passers` (12 scripted players cross the group's area,
+  across the owner's feet when idle, behind them on slow and brisk walks, walking or
+  sprinting), `walk_backward` (backs up into the formation, then an about-face straight back
+  through it), and `climb_cycles` (stand 40 s, walk off and back, repeat). `OwnerScript.walkBackTo`
+  (walk with the view held) and `ScriptedPoints.crosser` support them. The solo crab matrix runs
+  them too (it covers all `GROUND_NAMES`) and passes.
+- `BenthicGroupTest`: `formationsKeepOrderRoomAndTheirFeetClear` (line + crowd × walk_flat,
+  meander, sprint, passers, backing up × 3 seeds: no shared slot, deep overlap ≤ 72 ticks,
+  underfoot ≤ 36 member-ticks, line order ≤ 8%, or ≤ 18% when jostled, no fade except slugs on
+  a sprint), `climbCyclesHandOutUniqueSlotsEachTime` (3 min, ≥ 2 climbs and dismounts each),
+  `coverFromCatsAndHostilesKeepsSlotsUnique`. Shared measures in `GroupRun`. Probes:
+  `BenthicGroupProbe` (table) and `GroupTraceProbe` (per-tick, `-Psweep=order` for order).
+
+### 20.4 Not done / open
+
+- **Crowd overlaps are bounded, not solved.** Heading-first bodies can't sidestep: slugs that
+  turn toward nearly the same point converge faster than a sideways push turns them. Neither
+  validated approach (yield, earlier separation) was a clean win.
+- Line order is weakest on stairs and when backing up. Stairs line runs still fade: 5/6/7 a
+  run (seeds 1–3) at 07920354, 5/6/8 now. That's a pre-existing gap, not asserted.
+- Pace-dependent leader meander (§4 "sometimes wavy") is still not enabled (§15.2). The line's
+  wave comes only from the leader's own path.
+- Crowd spread at rest vs moving (§20.2) is for the owner's eye.
+
+Validation: `:fishsim:test` 352 tests, 328 passed, 24 diagnostic probes skipped, 0 failed
+(`build/fork-b-validation.txt`). `FingerprintProbe -PsimStdout -PfpAll=1`: all 447 protected
+fingerprints identical to `build/fp-base-p2.txt`. `:common:compileJava` passes. `git diff --check` passes.
+
+## 21. Game integration (2026-10-12, uncommitted)
+
+Phase 5 wiring in `common/` (fork C, worktree branch `worktree-agent-a08898232d0db3098` from
+07920354). Built and tested headless and in game tests only: **nothing here has been seen in game.**
+The in-game look and feel is the owner's playtest (§21.4).
+
+### 21.1 What's wired
+
+- **Gait and group from the profile.** `FishProfile` gains `companion_gait` (`crawl` default,
+  `ripple`); `plaice.json` declares `ripple`. `ClientCompanion` reads the profile once. A BENTHIC
+  species now gets the ground constructor (`CompanionAgent(..., GroundGait, world)`), and a
+  `companion_group` with a count over 1 builds a `BenthicGroup` (starfish: a line of 3;
+  trapania_scurra and willans_chromodoris: crowds of 3). Every other class passes a null gait,
+  which is the old constructor's path: FREE_SWIM, GLIDE, DRIFT, ANCHORED and trios are unchanged.
+  **This retires the no-gait percher in game:** all six benthic species (common_octopus,
+  japanese_spider_crab, plaice, starfish and the two sea slugs) walk on land.
+- **Drawing every member.** The world pass loops over the members. A member on the ground (walking,
+  crouching, or in a hop or fall from the ground) is drawn at its feet: body centre − radius −
+  `GROUND_LIFT`, then the pose's own `FishAnimator.floorPoseLift` (the same lift the tank and the
+  perch layer use). In water a member swims, drawn about its centre as before. The silhouette
+  envelope is the larger of the gait's push-off `shape` and the crouch/landing squash. The plaice's
+  floor-sit sway runs on its gait tail clock, not game time, so the ripple quickens with its glide
+  and stills when it stops. Members use render slots 0–2, so their idle draws differ.
+- **Up to three riders.** `CompanionPerchLayer` draws each riding member at its own slot (a group
+  allocates left shoulder, right shoulder, head). Perched members idle on clocks 23 ticks apart, so
+  three riders don't breathe in unison. The first-person hand ride stays the lead's (followers never
+  take the hand).
+- **Debug commands** (single player, dev only, next to `hurt`/`drowsy`):
+  `/fishtastic companion ground` (the viewer's G), `/fishtastic companion climb` (P; a group climbs
+  one after another), `/fishtastic companion tumble` (B; waits until perched and out of cooldown),
+  and the existing `/fishtastic companion hurt` (K). `/fishtastic companion debug true` adds two
+  lines for a ground benthic: gait, group count and formation, current beat with overtake and
+  roadside counts, climbs, dismounts and tumbles; then per member the land mode, lag and slot.
+  The existing line already shows land mode, lag, trail size and reachable/stranded.
+- **Unchanged and already in place (§16):** PLAYER points, riding/elytra flags and landed falls
+  from the adapter. Block invalidation now reaches every group member.
+
+### 21.2 Floor-sampling cost (measured headless)
+
+`BenthicSamplingProbe` (-PsimStdout) counts what the game's overlay counts: one sample per
+`solid` query; `top` reuses it. It covers 6 ground scripts × 3 seeds × 2,400 ticks, against the
+plan's 25 samples per tick per companion.
+
+| Config | Mean / tick | p99 | p99.9 | Worst tick | Ticks over budget |
+|---|---|---|---|---|---|
+| swimmer 0.30 (reference) | 1.60 | 25 | 38 | 51 | 0.94% (> 25) |
+| no-gait percher 0.30 (old game path) | 0.04 | 1 | 3 | 35 | 0.01% |
+| crawl solo 0.30 | 0.91 | 15 | 34 | 177 | 0.22% |
+| crawl solo 0.60 (spider crab) | 1.24 | 18 | 88 | 267 | 0.56% |
+| ripple solo 0.35 (plaice) | 0.93 | 17 | 38 | 135 | 0.38% |
+| line of 3, 0.25 (starfish) | 3.45 | 48 | 102 | 160 | 0.31% (> 75) |
+| crowd of 3, 0.25 (sea slugs) | 3.65 | 51 | 103 | 147 | 0.33% (> 75) |
+
+Means sit well inside the budget. A ground walker samples less on average than a swimmer, but its
+rare worst ticks are higher.
+
+**Spike found and fixed (behaviour-neutral).** Before the fix the spider crab's worst tick was
+3,411 samples (crab 1,248, starfish line 1,531). Attributed by caller
+(`BenthicSamplingSpikeProbe`), ~5,900 samples over two spike ticks came from the §18 beat planner's
+two `levelWalk` checks: along the owner's way ahead (`(time + lead + 2) × speed`, up to ~50 blocks)
+and along the route to the station. Both step every 0.1 blocks, mostly outside the 32-block voxel
+window, where cells weren't cached, so each column was asked ~10 times. `LocalVoxels` now keeps
+out-of-window cells in an overflow map, cleared with the window and capped at 65,536 cells. Answers
+are identical (an out-of-window `top` is now quantized to sixteenths like in-window cells). **All
+516 fingerprints, BENTHIC included, are bitwise identical** to the 07920354 run
+(`build/beats-fingerprints.txt`).
+
+Open question for whoever owns the beats (not changed here): a 50-block look ahead is still the
+largest single scan. Shortening it is a behaviour change.
+
+Group members each keep their own `LocalVoxels`, so a group samples about 3× a solo (3.5/tick).
+Sharing one window across members would be behaviour-neutral but lives in `BenthicGroup`; it was
+left alone. In-game time per sample is not measured here. The overlay's cost line
+(`blocks …/tick … us/tick`, peaks) shows it live.
+
+### 21.3 Verification
+
+- `:fishsim:test` 349 tests, 0 failed (24 diagnostic probes skipped); `:common:test` 763 tests,
+  0 failed (new: `companion_gait` codec parse/reject); `:fabric:build` and `:neoforge:build` pass,
+  including the id-construction backport guard.
+- `:fabric:runGametest`: all 317 required tests pass, 2 of them new
+  (`CompanionProfileGameTests`, registered on both loaders): the loaded registry has plaice ripple,
+  starfish a line of 3, both sea slugs crowds of 3, the spider crab a solo crawler, and no
+  non-benthic species declares a group or a gait. NeoForge game tests were not run (known hang).
+- `FingerprintProbe -PsimStdout -PfpAll=1`: 516/516 identical to 07920354; 447 protected identical
+  to `build/fp-base-p2.txt`.
+- **Not run:** `runClient`, the RenderSelfTest companion scene (its "tracked and stepping" check
+  should still hold: starfish is now a line), anything in the owner's world.
+
+### 21.4 Owner playtest checklist (solo world, dev build)
+
+Turn on the overlay first: `/fishtastic companion debug true`. Equip with
+`/fishtastic companion give @p fishtastic:<species> [size]`.
+
+1. **Crab-like solo:** `japanese_spider_crab 55`. Walk on flat ground, then stairs. It walks
+   behind you, feet on the floor (not floating, not sunk to the waist), scuttles with the push-off
+   squash, and hops up steps. Watch the overlay's `blocks …/tick` and its peak while walking.
+2. **Hand hop and beats:** keep walking unseen; it comes alongside and leaps onto your hand now and
+   then. `/fishtastic companion temperament sprinter` makes overtakes frequent (the overlay's beat
+   field reads `overtake`/`roadside`).
+3. **Climb and dismount:** stand still, `/fishtastic companion climb` (or just wait). It climbs onto
+   its shoulder, drawn on the shoulder in third person (F5). Walk ~6 blocks: it hops down.
+   `/fishtastic companion ground` sends it down at once.
+4. **Tumble:** while it's perched, `/fishtastic companion tumble` (or `/fishtastic companion hurt`,
+   or a ≥ 3-block drop). It falls off sideways, squashes on landing and pauses. No flip.
+5. **Starfish line:** `starfish 20`. Three walk in a line behind you. `climb`: left shoulder, right
+   shoulder and head fill one after another. Check that all three ride, breathing out of step.
+6. **Sea slug crowd:** `trapania_scurra 3` (or `willans_chromodoris`). Three mill as a crowd and
+   scatter from your feet when you walk back into them.
+7. **Plaice:** `plaice 35`. Lies flat and ripple-glides; the sway quickens as it speeds up and
+   settles when it stops.
+8. **Water:** walk into water; members swim, drawn about their centres, and come back out onto the
+   ground.
+9. **Mount and elytra:** ride a horse or glide; members climb on or fade onto the perch.
+10. **Another player (if available):** their benthic group walks and perches on their body for you.
