@@ -1,6 +1,6 @@
 # Fish companions: drifters rework (design spec)
 
-Status: spec written 2026-10-12, owner answers in §11. Phases 0–1 built and merged (§12–§13, uncommitted); Phase 1 plus the owner-feedback fixes (§13.7 calmer idle, §13.8 no coasting into the owner) merged; Phase 1 accepted by the owner in the viewer (§11); paused by the owner before Phase 2 (jet). Builds on the companion sim
+Status: spec written 2026-10-12, owner answers in §11. Phases 0–1 built and merged (§12–§13); Phase 1 accepted by the owner in the viewer (§11). Phase 2 (jet) resumed at the owner's request; isolated candidate and regression fixes are in §14, owner viewer gate pending. Builds on the companion sim
 (docs/fish-companions-sim-plan.md; DRIFT first cut and its open problems in §9.3, parked in §9.6).
 Quality bar: the same as FREE_SWIM and the benthic ground follow (docs/fish-companions-benthic-follow.md).
 
@@ -666,4 +666,12 @@ had the same pit (seed 8: 38 contacts).
 
 ## 14. Phase 2 as built
 
-(reserved)
+Phase 2 squid candidate implemented on 2026-10-12 in the managed worktree
+`C:/Users/curre/.codex/worktrees/companion-squid/fishtastic`; not merged or owner accepted.
+See that worktree's `docs/fish-companions-squid-handoff.md` for implementation, verification,
+equal-seed measurements and the viewer gate. Fins / mantle jets, bounded full-sphere turns,
+arrival trimming and a squid viewer silhouette are built. The reported turn-visibility,
+doorway-contact and stopping-owner regressions now have fixes and enforced tests: 16-seed
+baseline about_face seen 32% (minimum 27%), doorway at most 3 light contacts (0.32 b/s), and
+zero owner overlap on sprint stops. Stair visibility also recovers. The handoff names the
+remaining style differences (doorway view time and pulse jerk); Phase 2 is not owner accepted.
