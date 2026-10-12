@@ -83,6 +83,30 @@ final class ScriptedPoints {
     }
 
     /**
+     * Another player walking across the owner's way {@code behind} blocks back from where the owner
+     * is when it sets off (through a formation trailing them, or among one milling round them),
+     * from {@code half} blocks to one side to as far the other ({@code side} +1 starts on their left).
+     * Its feet are the point: on the owner's floor.
+     */
+    static Track crosser(int id, int period, int from, double behind, double half, double speed, int side) {
+        int ticks = (int) Math.ceil(2 * half / speed * 20);
+        Vec[] start = {null}, vel = {null};
+        return (tick, p) -> {
+            int t = Math.floorMod(tick, period) - from;
+            if (t < 0 || t >= ticks) {
+                start[0] = null;
+                return null;
+            }
+            if (start[0] == null) {
+                Vec f = Vec.fromYawPitch(p.yaw, 0), r = f.cross(Vec.UP);
+                start[0] = p.feet.sub(f.scale(behind)).sub(r.scale(side * half));
+                vel[0] = r.scale(side * speed);
+            }
+            return new PointOfInterest(PointOfInterest.Kind.PLAYER, id, start[0].add(vel[0].scale(t * 0.05)), vel[0], 0.3);
+        };
+    }
+
+    /**
      * Something keeping pace beside the owner at a fixed offset in their frame (another
      * player's companion walking with them), between two ticks of the loop.
      */

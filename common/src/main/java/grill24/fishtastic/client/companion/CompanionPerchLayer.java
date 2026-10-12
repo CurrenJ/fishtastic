@@ -44,8 +44,17 @@ public final class CompanionPerchLayer extends RenderLayer<AvatarRenderState, Pl
         // 0.9375 model scale, translate(0,-1.501,0)) puts y=0 at ~1.41 blocks — the shoulder
         // line. x is mirrored by the flip, z is not, and the model faces -z. (Vanilla's parrot
         // layer passes -1.5 here only because its own model pose hoists it back down again.)
-        // The slot is the sim's: where the companion decided to ride (plan §3.4).
-        PerchBody.Slot slot = companion.perchSlot();
+        // The slot is the sim's: where the companion decided to ride (plan §3.4). A benthic group
+        // rides up to three at once, one per slot (left shoulder, right shoulder, head).
+        float partialTick = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
+        for (int i = 0; i < companion.memberCount(); i++) {
+            if (companion.drawsOnPerch(i)) submitMember(poseStack, collector, lightCoords, state, companion, i, partialTick);
+        }
+    }
+
+    private void submitMember(PoseStack poseStack, SubmitNodeCollector collector, int lightCoords,
+                              AvatarRenderState state, ClientCompanion companion, int i, float partialTick) {
+        PerchBody.Slot slot = companion.perchSlot(i);
         float side = switch (slot) {
             case RIGHT_SHOULDER -> 0.42f;
             case LEFT_SHOULDER -> -0.42f;
@@ -71,8 +80,7 @@ public final class CompanionPerchLayer extends RenderLayer<AvatarRenderState, Pl
             poseStack.translate(0f, companion.perchFloorLift(), 0f);
         }
         ClientCompanions.perchSubmits++;
-        companion.submitPerched(poseStack, collector, lightCoords,
-                mc.getDeltaTracker().getGameTimeDeltaPartialTick(false), 180f);
+        companion.submitPerched(i, poseStack, collector, lightCoords, partialTick, 180f);
         poseStack.popPose();
     }
 }

@@ -38,7 +38,8 @@ public record FishProfile(
         Optional<FishAnimationConfig> animation,
         SwarmConfig swarm,
         float renderCalibration,
-        Optional<CompanionGroupConfig> companionGroup
+        Optional<CompanionGroupConfig> companionGroup,
+        CompanionGait companionGait
 ) {
     public static final int DEFAULT_BASE_WEIGHT = 10;
     public static final float DEFAULT_MEAN_SIZE = 50.0f;
@@ -72,8 +73,19 @@ public record FishProfile(
             // fish flat also widens its square texture quad's on-screen span by sqrt(2)) or 1.0
             // otherwise. See tools/fish-render-calibration.
             Codec.FLOAT.optionalFieldOf("render_calibration", DEFAULT_RENDER_CALIBRATION).forGetter(FishProfile::renderCalibration),
-            CompanionGroupConfig.CODEC.optionalFieldOf("companion_group").forGetter(FishProfile::companionGroup)
+            CompanionGroupConfig.CODEC.optionalFieldOf("companion_group").forGetter(FishProfile::companionGroup),
+            CompanionGait.CODEC.optionalFieldOf("companion_gait", CompanionGait.CRAWL).forGetter(FishProfile::companionGait)
     ).apply(i, FishProfile::new));
+
+    /**
+     * How a benthic companion gets about on land (docs/fish-companions-benthic-follow.md §4): the
+     * scuttle-and-pause crawl, or a flatfish's smooth ripple-glide. Ignored for other classes.
+     */
+    public enum CompanionGait implements StringRepresentable {
+        CRAWL, RIPPLE;
+        public static final Codec<CompanionGait> CODEC = StringRepresentable.fromEnum(CompanionGait::values);
+        @Override public String getSerializedName() { return name().toLowerCase(Locale.ROOT); }
+    }
 
     /** Companion groups have at most three members, one for each benthic perch slot. */
     public record CompanionGroupConfig(int count, Formation formation) {

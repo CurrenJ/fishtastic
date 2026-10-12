@@ -1066,6 +1066,20 @@ public class FishtasticFabricGameTests {
     }
 
     // -------------------------------------------------------------------------
+    // Companion profile data (ground benthics, docs/fish-companions-benthic-follow.md §21)
+    // -------------------------------------------------------------------------
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void benthicCompanionDataLoads(GameTestHelper helper) {
+        CompanionProfileGameTests.benthicCompanionDataLoads(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void onlyBenthicsDeclareGroundCompanionData(GameTestHelper helper) {
+        CompanionProfileGameTests.onlyBenthicsDeclareGroundCompanionData(helper);
+    }
+
+    // -------------------------------------------------------------------------
     // FishEncyclopediaClientCache / FishEncyclopediaClientHelper tests
     // -------------------------------------------------------------------------
 

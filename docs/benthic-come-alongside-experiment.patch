@@ -1,0 +1,320 @@
+diff --git a/fishsim/src/main/java/grill24/fishsim/companion/GroundBody.java b/fishsim/src/main/java/grill24/fishsim/companion/GroundBody.java
+index 2abb2de7..9c3daf76 100644
+--- a/fishsim/src/main/java/grill24/fishsim/companion/GroundBody.java
++++ b/fishsim/src/main/java/grill24/fishsim/companion/GroundBody.java
+@@ -47,9 +47,9 @@ final class GroundBody extends Motor {
+     /** The deepest drop walked off; deeper is an edge. */
+     static final double MAX_DROP = 3.0;
+     /** Forward acceleration and braking caps, blocks/s², and the jerk cap, blocks/s³. */
+-    private static final double ACCEL = 9, DECEL = 11, JERK = 90;
++    static final double ACCEL = 9, DECEL = 11, JERK = 90;
+     /** Turn-rate cap, degrees/tick (under the swimmers' 7), its rate of change, and the sideways-acceleration cap. */
+-    private static final float TURN_RATE = 6.5f, TURN_ACCEL = 1.2f;
++    static final float TURN_RATE = 6.5f, TURN_ACCEL = 1.2f;
+     private static final double LATERAL_ACCEL = 9;
+     /** Speed below which turning is costed as if at this speed: a crab pivots cheaply. */
+     private static final double PIVOT_SPEED = 0.6;
+diff --git a/fishsim/src/main/java/grill24/fishsim/companion/GroundMind.java b/fishsim/src/main/java/grill24/fishsim/companion/GroundMind.java
+index 20a5cd19..0abf5b8f 100644
+--- a/fishsim/src/main/java/grill24/fishsim/companion/GroundMind.java
++++ b/fishsim/src/main/java/grill24/fishsim/companion/GroundMind.java
+@@ -217,13 +217,24 @@ final class GroundMind {
+                 hopRetry = 10;
+                 tryGapHop(v);
+             }
+-        } else if (wantClose && via < 0) {
++        } else if (wantClose && via < 0 && closeWalkable(o, v)) {
+             // Up alongside the owner on its side, a little ahead of where they'll be: in reach of
+             // the hand (and, ahead of their feet, nearer the bottom of their view).
+             rhythm = closeCalm ? GroundBody.Rhythm.AMBLE : GroundBody.Rhythm.SCURRY;
+             Vec lead = o.velocity().horizontal().scale(0.3);
+-            target = ownerFloor.add(o.flatRight().scale(0.75 * closeSide)).add(o.flatForward().scale(0.3)).add(lead);
++            target = closeSpot(o);
++            if ((feetMode & TANGENT) != 0 && ownerSpeed <= OWNER_MOVING) target = roundFeet(target, v);
+             want = closeCalm ? g.cruise() * 0.8 : Math.max(g.cruise(), ownerSpeed + 1.5 * horizontal(g.pos, target));
++            Vec toSpot = target.sub(g.pos).horizontal();
++            double off = toSpot.lengthSqr() > 1e-9
++                    ? Math.abs(Body.wrap((float) (toSpot.yawDeg() - g.yaw))) : 0;
++            if ((feetMode & TURN_CAP) != 0 && ownerSpeed <= OWNER_MOVING && off > 30) {
++                // Beside a still owner it slows to what it can turn in before their feet: at
++                // cruise a big crab's turning circle is wider than the room it has, and it
++                // swings in under them on the bend.
++                double room = Math.max(0.25, horizontal(g.pos, ownerFloor) - g.radius - FEET_CLEAR);
++                want = Math.min(want, Math.toRadians(GroundBody.TURN_RATE) * TPS * room);
++            }
+         } else if (desire != null) {
+             target = desire;
+             rhythm = intent.hurry() ? GroundBody.Rhythm.SCURRY : GroundBody.Rhythm.TROT;
+@@ -345,6 +356,75 @@ final class GroundMind {
+         g.walk(target, want, rhythm, push, face, v);
+     }
+ 
++    /** The spot alongside the owner it comes up to, on its side, a little ahead of where they'll be. */
++    private Vec closeSpot(OwnerState o) {
++        Vec lead = o.velocity().horizontal().scale(0.3);
++        return ownerFloor.add(o.flatRight().scale(0.75 * closeSide)).add(o.flatForward().scale(0.3)).add(lead);
++    }
++
++    /**
++     * Whether it can walk straight up alongside. Behind a pillar it can't, and walking at the spot
++     * held it against the pillar for good; then it follows the way to its owner as usual instead.
++     */
++    private boolean closeWalkable(OwnerState o, LocalVoxels v) {
++        if ((feetMode & WALKABLE) == 0) return true;
++        Vec spot = closeSpot(o);
++        double floor = g.footprintFloorFrom(v, spot.x(), spot.z(), g.floorY);
++        return !Double.isNaN(floor) && walkable(v, g.pos, new Vec(spot.x(), floor, spot.z()));
++    }
++
++    /** Diagnostics: which parts of coming alongside round the feet are on (§19), as flags. */
++    static final int TANGENT = 1, STOP_GUARD = 2, TURN_CAP = 4, WALKABLE = 8;
++    static int feetMode = Integer.parseInt(System.getProperty("tweakA", "0"));
++
++    /** Clearance kept from the owner's feet on the way alongside, beyond its own radius, blocks. */
++    static final double FEET_CLEAR = 0.35;
++
++    /**
++     * The way to {@code target} round the owner's feet: where the straight walk would cross them,
++     * along the tangent to a circle round their feet, on the side nearer the target. Re-taken every
++     * tick, so it slides round the rim and never parks at a fixed detour point.
++     */
++    private Vec roundFeet(Vec target, LocalVoxels v) {
++        Vec c = ownerFloor, p = g.pos;
++        double r = g.radius + FEET_CLEAR;
++        Vec leg = target.sub(p).horizontal();
++        double l2 = leg.lengthSqr();
++        if (l2 < 1e-9) return target;
++        Vec pc = c.sub(p).horizontal();
++        double along = pc.dot(leg) / l2;
++        if (along <= 0 || along >= 1 || horizontal(p.add(leg.scale(along)), c) >= r) return target;
++        double d = pc.length();
++        Vec legDir = leg.scale(1 / Math.sqrt(l2));
++        if (d <= r + 0.05) {
++            // On the rim or inside it: out and round, toward the target's side.
++            Vec out = d > 1e-6 ? pc.scale(-1 / d) : new Vec(-legDir.z(), 0, legDir.x());
++            Vec tan = new Vec(-out.z(), 0, out.x());
++            if (tan.dot(legDir) < 0) tan = tan.scale(-1);
++            Vec dir = out.add(tan).normalize();
++            Vec rim = new Vec(c.x() + dir.x() * (r + 0.15), target.y(), c.z() + dir.z() * (r + 0.15));
++            return (feetMode & WALKABLE) != 0 && !walkable(v, g.pos, rim) ? target : rim;
++        }
++        double a = Math.asin(r / d), len = Math.sqrt(d * d - r * r) + 0.3;
++        Vec u = pc.scale(1 / d);
++        Vec best = null;
++        double bestScore = 0;
++        for (double sgn : new double[] {1, -1}) {
++            double cs = Math.cos(sgn * a), sn = Math.sin(sgn * a);
++            Vec dir = new Vec(u.x() * cs - u.z() * sn, 0, u.x() * sn + u.z() * cs);
++            // Round the side the target lies on: its direction is the nearer to the target's.
++            Vec tip = p.add(dir.scale(len));
++            double score = -horizontal(tip, target);
++            if (best == null || score > bestScore) {
++                bestScore = score;
++                best = tip;
++            }
++        }
++        Vec tip = new Vec(best.x(), target.y(), best.z());
++        // Never round into a pillar: a tip it can't walk to would hold it there for good.
++        return (feetMode & WALKABLE) != 0 && !walkable(v, g.pos, tip) ? target : tip;
++    }
++
+     // ── In-view beats ──────────────────────────────────────────────────────────────────────────
+ 
+     // Off to the side of their path, but inside the view: the floor near their feet is below it
+diff --git a/fishsim/src/main/java/grill24/fishsim/companion/PerchBody.java b/fishsim/src/main/java/grill24/fishsim/companion/PerchBody.java
+index 4a05150c..bfacc54f 100644
+--- a/fishsim/src/main/java/grill24/fishsim/companion/PerchBody.java
++++ b/fishsim/src/main/java/grill24/fishsim/companion/PerchBody.java
+@@ -626,6 +626,7 @@ public final class PerchBody extends Motor {
+             // Only from somewhere a hop up is clear (not from behind them, through their body).
+             arcMargin = GROUND_LEAP_MARGIN;
+             boolean clear = up != null && slotPoint(o, up).distanceTo(pos) <= CLOSE_RANGE
++                    && ((GroundMind.feetMode & GroundMind.STOP_GUARD) == 0 || stopsClearOfFeet(o))
+                     && clearHopTime(v, pos, slotPoint(o, up), o) > 0;
+             arcMargin = 0;
+             if (clear) {
+@@ -649,6 +650,18 @@ public final class PerchBody extends Motor {
+         copyFromGround();
+     }
+ 
++    /**
++     * Whether, braking from here for the crouch, it comes to rest clear of the owner's body: the
++     * crouch is where it stops, not where it starts to stop. Judged against their feet as they move.
++     */
++    private boolean stopsClearOfFeet(OwnerState o) {
++        Vec rel = pos.sub(o.feet()).horizontal();
++        Vec relVel = vel.sub(o.velocity()).horizontal();
++        double v = relVel.length();
++        Vec stop = v > 1e-6 ? rel.add(relVel.scale(v / (2 * GroundBody.DECEL) / v)) : rel;
++        return stop.length() > radius + GroundMind.FEET_CLEAR;
++    }
++
+     /** How close to a slot it starts a hop up to it from the ground: within a hop, with room to spare for a moving owner. */
+     private static final double CLOSE_RANGE = 2.6;
+ 
+diff --git a/fishsim/src/test/java/grill24/fishsim/companion/ComeAlongsideProbe.java b/fishsim/src/test/java/grill24/fishsim/companion/ComeAlongsideProbe.java
+new file mode 100644
+index 00000000..68f7b720
+--- /dev/null
++++ b/fishsim/src/test/java/grill24/fishsim/companion/ComeAlongsideProbe.java
+@@ -0,0 +1,160 @@
++package grill24.fishsim.companion;
++
++import grill24.fishsim.harness.companion.CompanionRun;
++import org.junit.jupiter.api.Test;
++import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
++
++import java.util.List;
++
++/**
++ * Diagnostic for coming alongside round the owner's feet (docs/fish-companions-benthic-follow.md
++ * §19): {@link GroundMind#feetMode} variants against mode 0 on equal seeds. Run with -PsimStdout;
++ * {@code -PsweepSeeds=20}, {@code -Psweep=0,3} (modes), {@code -Ptrace=script} to run one script.
++ */
++@EnabledIfSystemProperty(named = "simStdout", matches = "true")
++class ComeAlongsideProbe {
++
++    record Cfg(String script, float length) {}
++
++    /** -Ptrace=script -PtracePos=seed -PsweepLength -Psweep=0,4: first divergence, then the longest unseen stretch of the second mode. */
++    @Test
++    void lockstep() {
++        String script = System.getProperty("trace");
++        if (script == null || System.getProperty("tracePos") == null) return;
++        long seed = Long.parseLong(System.getProperty("tracePos"));
++        float length = Float.parseFloat(System.getProperty("sweepLength", "0.3"));
++        String[] modes = System.getProperty("sweep", "0,4").split(",");
++        int saved = GroundMind.feetMode;
++        CompanionRun[] runs = new CompanionRun[2];
++        for (int k = 0; k < 2; k++) {
++            GroundMind.feetMode = Integer.parseInt(modes[k].trim());
++            runs[k] = CompanionRun.benthic(script, seed, length, Temperament.BASELINE, GroundGait.CRAWL,
++                    CompanionTunables.defaults(), true);
++            runs[k].run(2400);
++        }
++        GroundMind.feetMode = saved;
++        int div = -1;
++        for (int i = 0; i < 2400 && div < 0; i++) {
++            if (runs[0].samples.get(i).pos().distanceTo(runs[1].samples.get(i).pos()) > 1e-9) div = i;
++        }
++        System.out.printf("LOCK %s#%d diverge at %d%n", script, seed, div);
++        for (int k = 0; k < 2; k++) {
++            int best = 0, start = 0, cur = 0, bestStart = 0;
++            for (int i = 0; i < 2400; i++) {
++                if (runs[k].samples.get(i).seen()) cur = 0;
++                else if (++cur > best) { best = cur; bestStart = i - cur + 1; }
++            }
++            System.out.printf("LOCK m=%s longest unseen %d..%d%n", modes[k], bestStart, bestStart + best);
++        }
++        int from = Integer.parseInt(System.getProperty("sweepTicks", "-1"));
++        if (from >= 0) {
++            // Tick by tick through the second mode's window, with the agent's own state.
++            GroundMind.feetMode = Integer.parseInt(modes[1].trim());
++            CompanionRun run = CompanionRun.benthic(script, seed, length, Temperament.BASELINE, GroundGait.CRAWL,
++                    CompanionTunables.defaults(), true);
++            for (int i = 0; i < from + 50; i++) {
++                run.tick();
++                if (i < from) continue;
++                CompanionAgent a = run.agent;
++                Vec p = a.position(), f = run.owner.feet();
++                Vec rel = p.sub(f).horizontal();
++                System.out.printf("  T %4d %-12s %-16s close=%-5s in=%-5s fwd %5.2f right %5.2f d %4.2f oyaw %6.1f osp %4.2f target=%s%n",
++                        i, a.landMode(), a.perchState(), a.comingClose(), CompanionRun.insideBody(run.owner, p),
++                        rel.dot(run.owner.flatForward()), rel.dot(run.owner.flatRight()), rel.length(), run.owner.yawDeg(),
++                        run.owner.horizontalSpeed(), a.target());
++            }
++            GroundMind.feetMode = saved;
++            return;
++        }
++        for (int i = Math.max(0, div - 5); i < Math.min(2400, div + 600); i += 10) {
++            for (int k = 0; k < 2; k++) {
++                CompanionRun.Sample s = runs[k].samples.get(i);
++                Vec f = s.owner().feet();
++                System.out.printf("  t=%4d m=%s %-14s %-12s seen=%-5s pos %6.2f %6.2f %6.2f own %6.2f %6.2f %6.2f osp %4.2f d %4.2f%n",
++                        i, modes[k], s.goal(), s.land(), s.seen(), s.pos().x(), s.pos().y(), s.pos().z(), f.x(), f.y(), f.z(),
++                        s.owner().horizontalSpeed(), s.pos().sub(f).horizontalLength());
++            }
++        }
++    }
++
++    /** Every inside-owner tick, by what the agent was doing: -Ptrace=script -PsweepLength -PsweepSeeds -PtweakA=mode. */
++    @Test
++    void classify() {
++        String script = System.getProperty("trace");
++        if (script == null || System.getProperty("tracePos") != null) return;
++        float length = Float.parseFloat(System.getProperty("sweepLength", "0.3"));
++        int seeds = Integer.parseInt(System.getProperty("sweepSeeds", "60"));
++        java.util.Map<String, Integer> counts = new java.util.TreeMap<>();
++        int total = 0;
++        for (int seed = 1; seed <= seeds; seed++) {
++            CompanionRun run = CompanionRun.benthic(script, seed, length, Temperament.BASELINE, GroundGait.CRAWL,
++                    CompanionTunables.defaults(), true);
++            boolean wasClose = false;
++            for (int i = 0; i < 2400; i++) {
++                run.tick();
++                CompanionAgent a = run.agent;
++                boolean close = a.comingClose();
++                if (CompanionRun.insideBody(run.owner, a.position())) {
++                    String state = a.perchState().split(" ")[0];
++                    String key = String.format("%-14s %s owner=%s", state,
++                            close ? "close" : wasClose ? "after-close" : "-", run.owner.horizontalSpeed() > 0.6 ? "moving" : "still");
++                    counts.merge(key, 1, Integer::sum);
++                    total++;
++                }
++                if (close) wasClose = true;
++                if (!a.perchState().startsWith("GROUND")) wasClose = false;
++            }
++        }
++        System.out.printf("CLASS %s len=%.2f mode=%d total=%d%n", script, length, GroundMind.feetMode, total);
++        for (var e : counts.entrySet()) System.out.printf("CLASS   %5d  %s%n", e.getValue(), e.getKey());
++    }
++
++    @Test
++    void ab() {
++        int seeds = Integer.parseInt(System.getProperty("sweepSeeds", "20"));
++        String[] modes = System.getProperty("sweep", "0,3").split(",");
++        String only = System.getProperty("trace");
++        int saved = GroundMind.feetMode;
++        for (Cfg c : List.of(new Cfg("low_ceiling", 0.3f), new Cfg("jumping", 0.3f), new Cfg("walk_flat", 0.3f),
++                new Cfg("walk_meander", 0.3f), new Cfg("stairs_up_down", 0.3f), new Cfg("low_ceiling", 0.6f),
++                new Cfg("jumping", 0.6f), new Cfg("walk_flat", 0.6f), new Cfg("walk_meander", 0.6f),
++                new Cfg("stairs_up_down", 0.6f))) {
++            if (only != null && !only.equals(c.script())) continue;
++            int[] baseSeen = new int[seeds + 1];
++            for (String mode : modes) {
++                GroundMind.feetMode = Integer.parseInt(mode.trim());
++                int fades = 0, leash = 0, insideOver = 0, unseenOver = 0, up = 0, down = 0;
++                long backstops = 0, seenWalk = 0, insideTicks = 0;
++                double inside = 0, unseen = 0;
++                for (int seed = 1; seed <= seeds; seed++) {
++                    CompanionRun run = CompanionRun.benthic(c.script(), seed, c.length(), Temperament.BASELINE,
++                            GroundGait.CRAWL, CompanionTunables.defaults(), true);
++                    run.run(2400);
++                    CompanionRun.Metrics m = run.metrics();
++                    double share = m.insideOwnerTicks() / (double) m.ticks();
++                    fades += (int) run.groundMetrics().fades();
++                    leash += m.leashEvents() > 0 ? 1 : 0;
++                    backstops += m.backstops();
++                    insideTicks += m.insideOwnerTicks();
++                    inside = Math.max(inside, share);
++                    insideOver += share > 0.01 ? 1 : 0;
++                    unseen = Math.max(unseen, m.longestUnseenSeconds());
++                    unseenOver += m.longestUnseenSeconds() > 30 ? 1 : 0;
++                    int sw = 0;
++                    for (CompanionRun.Sample s : run.samples) if (s.owner().horizontalSpeed() > 1 && s.seen()) sw++;
++                    seenWalk += sw;
++                    if (only != null) System.out.printf("  SEED m=%s %-12s #%d unseen %.1fs inside %d walkSeen %d%n",
++                            mode, c.script(), seed, m.longestUnseenSeconds(), m.insideOwnerTicks(), sw);
++                    if (mode.equals(modes[0])) baseSeen[seed] = sw;
++                    else if (sw > baseSeen[seed]) up++;
++                    else if (sw < baseSeen[seed]) down++;
++                }
++                System.out.printf("AB m=%s %-15s len=%.2f inside ticks=%4d max=%.3f runs>1%%=%d | unseen max=%5.1fs runs>30s=%d"
++                                + " | fades=%d leashRuns=%d backstops=%3d | walkSeen=%d (seeds up %d down %d)%n",
++                        mode, c.script(), c.length(), insideTicks, inside, insideOver, unseen, unseenOver,
++                        fades, leash, backstops, seenWalk, up, down);
++            }
++        }
++        GroundMind.feetMode = saved;
++    }
++}

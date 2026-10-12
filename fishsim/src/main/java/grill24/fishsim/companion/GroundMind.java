@@ -329,7 +329,8 @@ final class GroundMind {
             target = g.standing();
             want = 0;
             face = formationFace;
-            push = null;
+            // Turning on the spot, except out of a member it stands inside of.
+            push = formationPush != null && formationPush.length() > 1.0 ? formationPush : null;
         }
         if (formationMember && !feetApproaching && daze == 0 && reachable) {
             Vec leg = target.sub(g.pos).horizontal();

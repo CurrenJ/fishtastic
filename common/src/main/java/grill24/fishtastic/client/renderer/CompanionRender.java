@@ -104,19 +104,24 @@ public final class CompanionRender {
      * @param yawDeg   Minecraft yaw of the heading
      * @param pitchDeg Minecraft pitch of the heading (positive is nose down)
      * @param riding   a percher on its owner (the hand): poses as perched, not swimming
+     * @param onFloor  {@code pos} is the floor under a benthic walking on the ground: the pose is
+     *                 lifted by its own floor offset (docs/fish-companions-benthic-follow.md §21)
+     * @param idleFromTail the idle sway runs on the gait's tail clock, not game time: a flatfish's
+     *                 ripple quickens as it glides faster and stills when it stops
      */
     public boolean submit(PoseStack poseStack, SubmitNodeCollector nodes, Vec3 cam, int index, Vec pos,
                           float yawDeg, float pitchDeg, float bankDeg, float appear, float tailPhase,
                           float speedFactor, float pulse, float squash, boolean riding,
-                          float gameTime, int light) {
+                          float gameTime, int light, boolean onFloor, boolean idleFromTail) {
         float clock = advanceTail(index, tailPhase);
         if (appear <= 0f) return false;
         float scale = Math.max(length, 1e-3f) * appear;
-        float t = gameTime * IDLE_CLOCK_RATE;
+        float t = idleFromTail ? clock * SWIM_CLOCK_RATE : gameTime * IDLE_CLOCK_RATE;
         float partial = gameTime - (float) Math.floor(gameTime); // the frame's partial tick
+        double lift = onFloor ? FishAnimator.floorPoseLift(anim, scale) : 0;
 
         poseStack.pushPose();
-        poseStack.translate(pos.x() - cam.x, pos.y() - cam.y, pos.z() - cam.z);
+        poseStack.translate(pos.x() - cam.x, pos.y() + lift - cam.y, pos.z() - cam.z);
         // Local +z is the heading: turn to the yaw, then pitch the nose.
         poseStack.mulPose(Axis.YP.rotationDegrees(-yawDeg));
         // A drifter's pitch is its bell axis (upright is −90); the pose is drawn upright, so tilt by the difference.
