@@ -144,7 +144,7 @@ public final class RenderSelfTest {
     /** Scenes that run only when the marker names them (they need something the default run lacks). */
     private static final List<String> OPT_IN_SCENES = List.of("matte", "matteclip", "fourwaters", "cathedral",
             "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench",
-            "companionbond", "companionsim");
+            "companionbond", "companionsim", "ambientparity");
 
     private static Boolean armed;
     /** Dev probe (§21): runs every client tick while non-null — tick-true sampling. */
@@ -250,7 +250,12 @@ public final class RenderSelfTest {
     // ── Setup and teardown ───────────────────────────────────────────────────
 
     private static void createWorld(Minecraft mc) {
-        Path save = mc.gameDirectory.toPath().resolve("saves").resolve(WORLD_NAME);
+        Path runRoot = mc.gameDirectory.toPath().toAbsolutePath().normalize();
+        Path save = runRoot.resolve("saves").resolve(WORLD_NAME).normalize();
+        if (!save.startsWith(runRoot) || !save.getParent().equals(runRoot.resolve("saves"))
+                || !save.getFileName().toString().equals(WORLD_NAME)) {
+            throw new IllegalStateException("Unsafe self-test world path: " + save);
+        }
         if (Files.exists(save)) {
             try (Stream<Path> walk = Files.walk(save)) {
                 walk.sorted(Comparator.reverseOrder()).forEach(p -> p.toFile().delete());
@@ -337,8 +342,128 @@ public final class RenderSelfTest {
             case "cosmeticpreview" -> queueCosmeticPreviewScene();
             case "companionbond" -> queueCompanionBondScene();
             case "companionsim" -> queueCompanionSimScene();
+            case "ambientparity" -> queueAmbientParityScene();
             default -> throw new IllegalArgumentException(scene);
         }
+    }
+
+    /** Matched 4x2x3 tank/water volumes and recorded sizes; compare normal shore and submerged views. */
+    private static void queueAmbientParityScene() {
+        BlockPos[] water = new BlockPos[1], tanks = new BlockPos[1];
+        long[] frozenSteps = new long[1], beforeAway = new long[1];
+        queue(1, mc -> {
+            tanks[0] = origin.offset(-5, 0, -7);
+            water[0] = origin.offset(1, 0, -7);
+            server(mc, server -> {
+                BlockPos min = tanks[0];
+                run(server, "fill " + (min.getX()-1) + " " + min.getY() + " " + (min.getZ()-1) + " "
+                        + (water[0].getX()+4) + " " + (min.getY()+4) + " " + (min.getZ()+4) + " minecraft:air");
+                placeSpanBox(server, min, new grill24.fishtastic.fishtank.CosmeticStructure.Span(4,2,3));
+                BlockPos w = water[0];
+                run(server, "fill " + (w.getX()-1) + " " + (w.getY()-1) + " " + (w.getZ()-1) + " "
+                        + (w.getX()+4) + " " + (w.getY()+1) + " " + (w.getZ()+3) + " minecraft:glass");
+                run(server, "fill " + w.getX() + " " + (w.getY()-1) + " " + w.getZ() + " "
+                        + (w.getX()+3) + " " + (w.getY()-1) + " " + (w.getZ()+2) + " minecraft:sand");
+                run(server, "fill " + w.getX() + " " + w.getY() + " " + w.getZ() + " "
+                        + (w.getX()+3) + " " + (w.getY()+1) + " " + (w.getZ()+2) + " minecraft:water");
+                for (int i=0;i<4;i++) {
+                    FishTankBlockEntity tank = tank(server.overworld(), min.offset(i,0,0));
+                    check("ambientparity.tank.add."+i, tank != null && tank.addItem(fish(
+                            grill24.fishtastic.client.ambient.ClientAmbientFish.SPECIES[i],
+                            grill24.fishtastic.client.ambient.ClientAmbientFish.SIZE_CM[i])), "");
+                }
+            });
+        });
+        queue(40, mc -> {
+            mc.options.hideGui = true;
+            check("ambientparity.fixture.started", grill24.fishtastic.client.ambient.ClientAmbientFish.startFixture(water[0]),
+                    "origin="+water[0]);
+            camera(mc, origin.getX(), origin.getY()+3.4, origin.getZ()+1.5, 180f, 16f);
+        });
+        queue(100, mc -> {
+            check("ambientparity.fixture.count", grill24.fishtastic.client.ambient.ClientAmbientFish.count()==4, "four fixed individuals");
+            check("ambientparity.fixture.submits", grill24.fishtastic.client.ambient.ClientAmbientFish.worldSubmitsThisFrame==4,
+                    "submits="+grill24.fishtastic.client.ambient.ClientAmbientFish.worldSubmitsThisFrame);
+            screenshot(mc, "ambientparity", "shore_pair");
+        });
+        queue(1, mc -> camera(mc, water[0].getX()+2, water[0].getY()+0.9, water[0].getZ()+2.65, 180f, 5f));
+        queue(40, mc -> screenshot(mc, "ambientparity", "world_submerged"));
+        queue(1, mc -> camera(mc, tanks[0].getX()+2, tanks[0].getY()+0.9, tanks[0].getZ()+2.65, 180f, 5f));
+        queue(40, mc -> screenshot(mc, "ambientparity", "tank_inside"));
+        queue(1, mc -> {
+            camera(mc, water[0].getX()+2, water[0].getY()+0.9, water[0].getZ()+2.65, 0f, 0f);
+            beforeAway[0] = grill24.fishtastic.client.ambient.ClientAmbientFish.steps();
+        });
+        queue(40, mc -> {
+            check("ambientparity.fixture.offcamera", grill24.fishtastic.client.ambient.ClientAmbientFish.steps()>beforeAway[0]
+                            && water[0].equals(grill24.fishtastic.client.ambient.ClientAmbientFish.origin())
+                            && grill24.fishtastic.client.ambient.ClientAmbientFish.identity(0)==1L,
+                    "off-camera simulation retains fixed origin and identity");
+            server(mc, server -> run(server, "tick freeze"));
+        });
+        queue(10, mc -> frozenSteps[0] = grill24.fishtastic.client.ambient.ClientAmbientFish.steps());
+        queue(20, mc -> {
+            check("ambientparity.fixture.freeze", frozenSteps[0]==grill24.fishtastic.client.ambient.ClientAmbientFish.steps(),
+                    "steps="+frozenSteps[0]);
+        });
+        // World time and both simulations are frozen: photograph every species closely enough
+        // to assess its sprite/scale/pose, without requiring lucky positions in a wide camera.
+        for (int index = 0; index < 4; index++) {
+            final int i = index;
+            queue(1, mc -> {
+                var pose = grill24.fishtastic.client.ambient.ClientAmbientFish.fixturePose(i, 0f);
+                if (pose != null) parityCloseCamera(mc, pose.position(), pose.yaw(), water[0]);
+            });
+            queue(20, mc -> screenshot(mc, "ambientparity", "world_" + grill24.fishtastic.client.ambient.ClientAmbientFish.SPECIES[i]));
+            queue(1, mc -> {
+                if (!(mc.level.getBlockEntity(tanks[0]) instanceof FishTankBlockEntity tank)) return;
+                TankGroupFlock group = ClientTankFlocks.getOrCreate(tank, tanks[0].hashCode()).groupFlock();
+                if (group == null) return;
+                ItemStack fish = fish(grill24.fishtastic.client.ambient.ClientAmbientFish.SPECIES[i],
+                        grill24.fishtastic.client.ambient.ClientAmbientFish.SIZE_CM[i]);
+                int species = BuiltInRegistries.ITEM.getId(fish.getItem());
+                for (int j = 0; j < group.count(); j++) {
+                    if (group.fishSpecies(j) != species) continue;
+                    var anim = grill24.fishtastic.client.renderer.FishVisuals.resolve(fish, mc.level).animation();
+                    var pose = group.fishPose(j, mc.level.getGameTime());
+                    parityCloseCamera(mc, pose.position(), pose.yaw(), tanks[0]);
+                    check("ambientparity.tank.motion." + i,
+                            pose.locomotion() == grill24.fishtastic.client.renderer.FishVisuals.locomotionOf(anim),
+                            "mode=" + pose.locomotion() + " length=" + pose.length());
+                    return;
+                }
+                check("ambientparity.tank.motion." + i, false, "species missing from group engine");
+            });
+            queue(20, mc -> screenshot(mc, "ambientparity", "tank_" + grill24.fishtastic.client.ambient.ClientAmbientFish.SPECIES[i]));
+        }
+        queue(1, mc -> {
+            server(mc, server -> run(server, "tick unfreeze"));
+            grill24.fishtastic.client.ambient.ClientAmbientFish.clear();
+            check("ambientparity.fixture.cleanup", grill24.fishtastic.client.ambient.ClientAmbientFish.count()==0, "");
+        });
+    }
+
+    private static void parityCloseCamera(Minecraft mc, Vec3 target, float yaw, BlockPos min) {
+        double radians = Math.toRadians(yaw), nx = Math.sin(radians), nz = Math.cos(radians);
+        double plus = parityCameraRoom(target, nx, nz, min), minus = parityCameraRoom(target, -nx, -nz, min);
+        if (minus > plus) { nx = -nx; nz = -nz; plus = minus; }
+        double distance = Math.min(1.2, Math.max(0.3, plus - 0.05));
+        double x = Math.max(min.getX()+0.25, Math.min(min.getX()+3.75, target.x + nx * distance));
+        double z = Math.max(min.getZ()+0.25, Math.min(min.getZ()+2.75, target.z + nz * distance));
+        double eyeY = Math.min(min.getY()+1.75, target.y+0.65);
+        distance = Math.hypot(x-target.x, z-target.z);
+        float cameraYaw = (float)Math.toDegrees(Math.atan2(x-target.x, target.z-z));
+        float pitch = (float)Math.toDegrees(Math.atan2(eyeY-target.y, distance));
+        camera(mc, x, eyeY, z, cameraYaw, pitch);
+    }
+
+    /** Pick the inward broadside view so corner posts cannot obscure the specimen. */
+    private static double parityCameraRoom(Vec3 target, double nx, double nz, BlockPos min) {
+        double x = Math.abs(nx) < 1e-5 ? Double.POSITIVE_INFINITY
+                : ((nx > 0 ? min.getX()+3.75 : min.getX()+0.25)-target.x)/nx;
+        double z = Math.abs(nz) < 1e-5 ? Double.POSITIVE_INFINITY
+                : ((nz > 0 ? min.getZ()+2.75 : min.getZ()+0.25)-target.z)/nz;
+        return Math.min(x,z);
     }
 
     /**

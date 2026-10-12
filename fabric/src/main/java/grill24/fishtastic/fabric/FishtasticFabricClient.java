@@ -74,6 +74,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.PictureInPictureRendererRegis
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 import grill24.fishtastic.client.companion.CompanionPipRenderer;
 import grill24.fishtastic.client.companion.ClientCompanions;
+import grill24.fishtastic.client.ambient.ClientAmbientFish;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 
@@ -104,6 +105,9 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         // Load cosmetic transforms from assets/<namespace>/cosmetic_transforms/*.json
         ResourceLoader.get(PackType.CLIENT_RESOURCES)
             .registerReloadListener(CosmeticTransformLoader.ID, CosmeticTransformLoader.INSTANCE);
+        ResourceLoader.get(PackType.CLIENT_RESOURCES).registerReloadListener(Ids.of("fishtastic", "ambient_fish"),
+                (net.minecraft.server.packs.resources.ResourceManagerReloadListener) manager ->
+                        Minecraft.getInstance().execute(ClientAmbientFish::invalidate));
 
         // Build blockstate → model path redirect map before baking starts
         PreparableModelLoadingPlugin.register(BlockstateModelRedirectPlugin.LOADER, BlockstateModelRedirectPlugin.PLUGIN);
@@ -233,6 +237,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             ItemEffectManager.clearCache();
             ClientTankFlocks.clear();
+            ClientAmbientFish.clear();
         });
         // Reset quest client cache and tutorial overlay on disconnect so stale data/UI doesn't persist across worlds
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
@@ -244,11 +249,13 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             FishEncyclopediaClientCache.reset();
             CosmeticCaptureClientState.reset();
             ClientTankFlocks.clear();
+            ClientAmbientFish.clear();
         });
         CommonLifecycleEvents.TAGS_LOADED.register((registries, isClient) -> {
             if (isClient) {
                 ItemEffectManager.clearCache();
                 CosmeticObstacles.clearCache();
+                ClientAmbientFish.invalidate();
             }
         });
 
@@ -267,6 +274,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
                 McpOrbitPreviewOverlay.tick();
             }
 
+            ClientAmbientFish.tick();
             if (client.level != null && !client.isPaused()) {
                 ClientTickHandler.tick(1.0f);
                 ClientTankFlocks.tickAll();
@@ -302,6 +310,9 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         // Fish companion Phase 0 spike: free-flying fish from the level submit hook, docked fish
         // through a perspective picture-in-picture renderer (docs/fish-companions.md §5.1).
         LevelRenderEvents.COLLECT_SUBMITS.register(context -> ClientCompanions.submitWorld(
+                context.poseStack(), context.submitNodeCollector(),
+                Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false)));
+        LevelRenderEvents.COLLECT_SUBMITS.register(context -> ClientAmbientFish.submitWorld(
                 context.poseStack(), context.submitNodeCollector(),
                 Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false)));
         PictureInPictureRendererRegistry.register(ctx -> new CompanionPipRenderer(ctx.bufferSource()));

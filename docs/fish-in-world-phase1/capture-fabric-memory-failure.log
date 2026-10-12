@@ -1,0 +1,48 @@
+[22:29:10] [Thread-16/INFO] (Minecraft) OpenGL debug message: id=0, source=API, type=ERROR, severity=HIGH, message='Unknown internal debug message. The NVIDIA OpenGL driver has encountered
+an out of memory error. This application might
+behave inconsistently and fail.
+(pid=65032 java.exe 64bit)'
+[22:29:10] [Thread-16/INFO] (Minecraft) OpenGL debug message: id=1285, source=API, type=ERROR, severity=HIGH, message='GL_OUT_OF_MEMORY error generated. Failed to allocate CPU address space mapping for texture.'
+#
+# There is insufficient memory for the Java Runtime Environment to continue.
+# Native memory allocation (malloc) failed to allocate 1157336 bytes. Error detail: Chunk::new
+# An error report file with more information is saved as:
+# D:\GitHub\fishtastic\docs\fish-in-world-phase1\run-fabric\hs_err_pid65032.log
+[22:29:10] [Render thread/INFO] (Minecraft) Resizing Dynamic Transforms UBO, capacity limit of 4 reached during a single frame. New capacity will be 8.
+[22:29:10] [Render thread/INFO] (Minecraft) Resizing Chunk Sections UBO, capacity limit of 2 reached during a single frame. New capacity will be 8.
+[22:29:10] [Thread-16/INFO] (Minecraft) OpenGL debug message: id=0, source=API, type=ERROR, severity=HIGH, message='Unknown internal debug message. The NVIDIA OpenGL driver has encountered
+an out of memory error. This application might
+behave inconsistently and fail.
+(pid=65032 java.exe 64bit)'
+[22:29:10] [Thread-16/INFO] (Minecraft) OpenGL debug message: id=1285, source=API, type=ERROR, severity=HIGH, message='GL_OUT_OF_MEMORY error generated. Failed to allocate CPU address space mapping for texture.'
+[22:29:10] [Render thread/INFO] (Minecraft) Resizing Chunk Sections UBO, capacity limit of 8 reached during a single frame. New capacity will be 16.
+[22:29:10] [Render thread/INFO] (Minecraft) Resizing Chunk Sections UBO, capacity limit of 16 reached during a single frame. New capacity will be 32.
+[22:29:11] [Render thread/INFO] (Minecraft) Resizing Chunk Sections UBO, capacity limit of 32 reached during a single frame. New capacity will be 64.
+#
+# Compiler replay data is saved as:
+# D:\GitHub\fishtastic\docs\fish-in-world-phase1\run-fabric\replay_pid65032.log
+
+> Task :fabric:runClient FAILED
+
+[Incubating] Problems report is available at: file:///D:/GitHub/fishtastic/build/reports/problems/problems-report.html
+
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.2.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':fabric:runClient'.
+> Process 'command 'C:\Users\curre\.gradle\jdks\eclipse_adoptium-25-amd64-windows.2\bin\java.exe'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+15 actionable tasks: 2 executed, 13 up-to-date
+
+BUILD FAILED in 36s

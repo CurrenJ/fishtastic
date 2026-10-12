@@ -77,6 +77,7 @@ import net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent;
 import grill24.fishtastic.client.companion.CompanionPipRenderState;
 import grill24.fishtastic.client.companion.CompanionPipRenderer;
 import grill24.fishtastic.client.companion.ClientCompanions;
+import grill24.fishtastic.client.ambient.ClientAmbientFish;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.common.NeoForge;
 
@@ -190,6 +191,9 @@ public final class FishtasticNeoForgeClient {
         event.addDependency(key, VanillaClientListeners.MODELS);
 
         event.addListener(ft("cosmetic_transforms"), CosmeticTransformLoader.INSTANCE);
+        event.addListener(ft("ambient_fish"),
+                (net.minecraft.server.packs.resources.ResourceManagerReloadListener) manager ->
+                        Minecraft.getInstance().execute(ClientAmbientFish::invalidate));
     }
 
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
@@ -257,6 +261,7 @@ public final class FishtasticNeoForgeClient {
     public static void onPlayerJoin(ClientPlayerNetworkEvent.LoggingIn event) {
         ItemEffectManager.clearCache();
         ClientTankFlocks.clear();
+        ClientAmbientFish.clear();
     }
 
     public static void onPlayerLeave(ClientPlayerNetworkEvent.LoggingOut event) {
@@ -268,12 +273,14 @@ public final class FishtasticNeoForgeClient {
         FishEncyclopediaClientCache.reset();
         CosmeticCaptureClientState.reset();
         ClientTankFlocks.clear();
+        ClientAmbientFish.clear();
     }
 
     public static void onTagsUpdated(TagsUpdatedEvent event) {
         if (event.getUpdateCause() == TagsUpdatedEvent.UpdateCause.CLIENT_PACKET_RECEIVED) {
             ItemEffectManager.clearCache();
             CosmeticObstacles.clearCache();
+            ClientAmbientFish.invalidate();
         }
     }
 
@@ -295,6 +302,7 @@ public final class FishtasticNeoForgeClient {
             McpOrbitPreviewOverlay.tick();
         }
 
+        ClientAmbientFish.tick();
         if (mc.level != null && !mc.isPaused()) {
             ClientTickHandler.tick(1.0f);
             ClientTankFlocks.tickAll();
@@ -313,6 +321,8 @@ public final class FishtasticNeoForgeClient {
 
 
     public static void onSubmitCustomGeometry(SubmitCustomGeometryEvent event) {
+        ClientAmbientFish.submitWorld(event.getPoseStack(), event.getSubmitNodeCollector(),
+                Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false));
         ClientCompanions.submitWorld(event.getPoseStack(), event.getSubmitNodeCollector(),
                 Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false));
     }

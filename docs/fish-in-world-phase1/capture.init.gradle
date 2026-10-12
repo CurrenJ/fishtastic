@@ -1,0 +1,22 @@
+// Isolated Phase 1 capture; does not change the normal dev client's run directory.
+gradle.projectsEvaluated {
+    def loader = gradle.startParameter.projectProperties.get('ambientLoader')
+    if (!(loader in ['fabric', 'neoforge'])) throw new GradleException('Set -PambientLoader=fabric or neoforge')
+    def target = rootProject.file("docs/fish-in-world-phase1/run-${loader}").canonicalFile
+    def parent = rootProject.file('docs/fish-in-world-phase1').canonicalFile
+    if (target.parentFile != parent) throw new GradleException('Unexpected capture directory')
+    target.mkdirs()
+    new File(target, 'fishtastic_render_selftest').text = 'ambientparity\n'
+    def options = new File(target, 'options.txt')
+    def lines = options.exists() ? options.readLines() : []
+    def captureOptions = ['onboardAccessibility':'false', 'overrideWidth':'960', 'overrideHeight':'540',
+                          'renderDistance':'6', 'simulationDistance':'5', 'maxFps':'30', 'enableVsync':'false']
+    lines.removeAll { line -> captureOptions.keySet().any { key -> line.startsWith(key + ':') } }
+    options.text = (lines + captureOptions.collect { key, value -> key + ':' + value }).join('\n') + '\n'
+    def platform = rootProject.project(":${loader}")
+    // Loom's legacy asset calculation concatenates projectDir + runDir even on Windows.
+    platform.loom.runs.client.runDir(platform.projectDir.toPath().relativize(target.toPath()).toString())
+    platform.loom.runs.client.vmArg('-Xms256m')
+    platform.loom.runs.client.vmArg('-Xmx1536m')
+    platform.loom.runs.client.vmArg('-XX:ActiveProcessorCount=4')
+}

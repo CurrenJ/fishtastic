@@ -317,6 +317,14 @@ public final class TankGroupFlock {
                 anchorPos.getZ() + offsetZ + engine.renderZ[i]);
     }
 
+    /** Read-only draw pose for development camera captures; does not expose mutable engine state. */
+    public record FishPose(Vec3 position, float yaw, Locomotion locomotion, float length) {}
+    public FishPose fishPose(int i, float gameTimeTicks) {
+        return new FishPose(fishWorldPosition(i, gameTimeTicks).add(0,
+                FishAnimator.floorPoseLift(anims[i], engine.lengths[i]), 0),
+                engine.renderYaw[i], engine.locomotion[i], engine.lengths[i]);
+    }
+
     /** Opaque per-species id of group fish #{@code i}, or {@code -1} if there is no such fish. */
     public int fishSpecies(int i) {
         return engine.species[i];
@@ -413,8 +421,8 @@ public final class TankGroupFlock {
                 if (s.isEmpty()) continue;
                 ItemStack stack = s.copy();
                 allContents.add(stack);
-                FishTankBlockEntityRenderer.ResolvedFishRender render =
-                        FishTankBlockEntityRenderer.resolveFishRender(stack, level);
+                FishVisuals.ResolvedFishRender render =
+                        FishVisuals.resolve(stack, level);
                 float length = TankFlockAdapter.renderedLength(stack, render.renderCalibration());
                 Locomotion locomotion = TankFlockAdapter.locomotionOf(render.animation());
                 if (!memberSplit.joins(locomotion, length)) continue; // stays on its own tank's engine
