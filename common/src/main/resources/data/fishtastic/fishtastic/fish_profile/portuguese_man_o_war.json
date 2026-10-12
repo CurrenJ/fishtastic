@@ -1,5 +1,6 @@
 {
   "render_calibration": 0.89,
+  "companion_drift": "bob",
   "base_weight": 3,
   "size": { "mean": 40.0, "std_dev": 10.0 },
   "zones": [

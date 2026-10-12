@@ -39,7 +39,8 @@ public record FishProfile(
         SwarmConfig swarm,
         float renderCalibration,
         Optional<CompanionGroupConfig> companionGroup,
-        CompanionGait companionGait
+        CompanionGait companionGait,
+        CompanionDrift companionDrift
 ) {
     public static final int DEFAULT_BASE_WEIGHT = 10;
     public static final float DEFAULT_MEAN_SIZE = 50.0f;
@@ -74,7 +75,8 @@ public record FishProfile(
             // otherwise. See tools/fish-render-calibration.
             Codec.FLOAT.optionalFieldOf("render_calibration", DEFAULT_RENDER_CALIBRATION).forGetter(FishProfile::renderCalibration),
             CompanionGroupConfig.CODEC.optionalFieldOf("companion_group").forGetter(FishProfile::companionGroup),
-            CompanionGait.CODEC.optionalFieldOf("companion_gait", CompanionGait.CRAWL).forGetter(FishProfile::companionGait)
+            CompanionGait.CODEC.optionalFieldOf("companion_gait", CompanionGait.CRAWL).forGetter(FishProfile::companionGait),
+            CompanionDrift.CODEC.optionalFieldOf("companion_drift", CompanionDrift.BELL).forGetter(FishProfile::companionDrift)
     ).apply(i, FishProfile::new));
 
     /**
@@ -84,6 +86,16 @@ public record FishProfile(
     public enum CompanionGait implements StringRepresentable {
         CRAWL, RIPPLE;
         public static final Codec<CompanionGait> CODEC = StringRepresentable.fromEnum(CompanionGait::values);
+        @Override public String getSerializedName() { return name().toLowerCase(Locale.ROOT); }
+    }
+
+    /**
+     * How a drifter companion propels itself (docs/fish-companions-drift.md §2): a pulsed bell, a
+     * squid's fins and mantle jets, or a man o' war's bobbing float. Ignored for other classes.
+     */
+    public enum CompanionDrift implements StringRepresentable {
+        BELL, JET, BOB;
+        public static final Codec<CompanionDrift> CODEC = StringRepresentable.fromEnum(CompanionDrift::values);
         @Override public String getSerializedName() { return name().toLowerCase(Locale.ROOT); }
     }
 

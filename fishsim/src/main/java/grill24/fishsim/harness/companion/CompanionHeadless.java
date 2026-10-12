@@ -35,6 +35,7 @@ import java.util.List;
  *   ./gradlew :fishsim:runCompanionHeadless -PsimArgs="--script walk --seed 3 --ticks 2400"
  *   ./gradlew :fishsim:runCompanionHeadless -PsimArgs="--class GLIDE"   (files prefixed glide_)
  *   ./gradlew :fishsim:runCompanionHeadless -PsimArgs="--temperament docile --script idle_fixed"   (prefixed docile_)
+ *   ./gradlew :fishsim:runCompanionHeadless -PsimArgs="--class DRIFT --drift-style jet"   (prefixed drift_jet_)
  * </pre>
  */
 public final class CompanionHeadless {
@@ -49,6 +50,7 @@ public final class CompanionHeadless {
         long seed = 1;
         Locomotion locomotion = Locomotion.FREE_SWIM;
         boolean trio = false;
+        grill24.fishsim.companion.DriftStyle driftStyle = null;
         grill24.fishsim.companion.Temperament temperament = grill24.fishsim.companion.Temperament.BASELINE;
         int ticks = 1200;
         int gifTicks = 1200;
@@ -60,6 +62,7 @@ public final class CompanionHeadless {
                 case "--ticks" -> ticks = Integer.parseInt(args[++i]);
                 case "--gif-ticks" -> gifTicks = Integer.parseInt(args[++i]);
                 case "--out" -> out = Path.of(args[++i]);
+                case "--drift-style" -> driftStyle = grill24.fishsim.companion.DriftStyle.named(args[++i]);
                 case "--temperament" -> temperament = grill24.fishsim.companion.Temperament.named(args[++i]);
                 case "--class" -> {
                     String c = args[++i].toUpperCase(java.util.Locale.ROOT);
@@ -70,20 +73,27 @@ public final class CompanionHeadless {
             }
         }
         Files.createDirectories(out);
+        // A drift style implies DRIFT; without one a drifter is the default bell (docs/fish-companions-drift.md §2).
+        if (driftStyle != null) locomotion = Locomotion.DRIFT;
+        grill24.fishsim.companion.DriftStyle style = driftStyle == null ? grill24.fishsim.companion.DriftStyle.BELL : driftStyle;
         List<String> scripts = scriptArg.equals("all") ? OwnerScript.NAMES
                 : scriptArg.equals("ground") ? OwnerScript.GROUND_NAMES : List.of(scriptArg.split(","));
         String prefix = (trio ? "trio_"
                 : locomotion == Locomotion.FREE_SWIM ? "" : locomotion.name().toLowerCase(java.util.Locale.ROOT) + "_")
+                + (driftStyle == null ? "" : driftStyle.name().toLowerCase(java.util.Locale.ROOT) + "_")
                 + (temperament == grill24.fishsim.companion.Temperament.BASELINE ? "" : temperament.name() + "_");
         try (PrintWriter csv = new PrintWriter(Files.newBufferedWriter(out.resolve(prefix + "metrics.csv")))) {
             csv.println("script,seed,ticks,summary");
             for (String script : scripts) {
                 CompanionRun run = trio ? CompanionRun.trio(script, seed, temperament, CompanionTunables.defaults(), true)
+                        : locomotion == Locomotion.DRIFT
+                        ? CompanionRun.drifter(script, seed, style, temperament, CompanionTunables.defaults(), true)
                         : new CompanionRun(script, seed, locomotion, temperament, CompanionTunables.defaults(), true);
                 CompanionRun.Metrics m = export(run, script, prefix, ticks, Math.min(gifTicks, ticks), out);
                 String line = m.summary();
                 if (run.group != null) line += " | " + run.followerMetrics().summary();
                 if (run.agent.locomotion() == grill24.fishsim.core.Locomotion.BENTHIC) line += " | " + run.groundMetrics().summary();
+                if (run.agent.locomotion() == Locomotion.DRIFT) line += " | " + run.driftMetrics().summary();
                 System.out.printf("%-13s %s%n", script, line);
                 csv.printf("%s,%d,%d,\"%s\"%n", script, seed, ticks, line);
             }

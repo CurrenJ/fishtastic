@@ -27,6 +27,8 @@ abstract class Motor {
     /** Drawn bank, degrees; positive leans right (into a right turn). */
     float bank;
     float burstDrive = 1f;
+    /** Set by the mind each tick: idling by a still owner (LOITER, SETTLE). Only a drifter reads it (§13.7). */
+    boolean idling;
     float tailPhase;
     /** Steps on which the hard resolve had to stop the body short of a block. */
     long backstops;

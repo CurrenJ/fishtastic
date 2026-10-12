@@ -379,8 +379,9 @@ public final class CompanionRenderer {
     }
 
     /**
-     * A jellyfish: a bell along its axis that narrows and lengthens as it squeezes, and tentacles
-     * trailing the other way.
+     * A jellyfish: a bell along its axis that narrows and lengthens as it squeezes, spreads wide and
+     * flat as it flares its web to brake (docs/fish-companions-drift.md §4), and tentacles trailing
+     * the other way, splayed by the flare.
      */
     private static void drawJelly(Graphics2D g, Cam cam, CompanionAgent a) {
         double len = a.length() * a.renderAppear();
@@ -390,8 +391,9 @@ public final class CompanionRenderer {
         side = side.normalize();
         Vec other = axis.cross(side).normalize();
         double squeeze = a.pulse();
-        double rim = len * 0.5 * (1 - 0.3 * squeeze);
-        double dome = len * 0.45 * (1 + 0.25 * squeeze);
+        double flare = a.flare();
+        double rim = len * 0.5 * (1 - 0.3 * squeeze) * (1 + 0.45 * flare);
+        double dome = len * 0.45 * (1 + 0.25 * squeeze) * (1 - 0.35 * flare);
         Vec c = a.renderPos();
         Vec top = c.add(axis.scale(dome));
         int n = 10;
@@ -403,7 +405,8 @@ public final class CompanionRenderer {
         }
         g.setStroke(new BasicStroke(1f));
         for (int i = 0; i < n; i += 2) {
-            Vec tip = ring[i].add(axis.scale(-len * (0.7 + 0.15 * Math.sin(a.renderTailPhase() + i))));
+            Vec tip = ring[i].add(axis.scale(-len * (0.7 + 0.15 * Math.sin(a.renderTailPhase() + i))))
+                    .add(ring[i].sub(c).scale(0.8 * flare));
             Vec rc = cam.toCam(ring[i]), tc = cam.toCam(tip);
             if (rc.z() > NEAR && tc.z() > NEAR) {
                 g.setColor(new Color(230, 150, 200, 150));

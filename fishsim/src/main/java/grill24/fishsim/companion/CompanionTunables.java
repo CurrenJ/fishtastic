@@ -125,6 +125,95 @@ public final class CompanionTunables {
     /** Ride height above the owner's chest, blocks: shoulder to head height. */
     public float driftRideHeight = 0.35f;
 
+    // Phase 1 of the drifter rework (docs/fish-companions-drift.md §3, §4, §13): each its own switch,
+    // for equal-ground A/B. All on is the adopted body; all off is the first cut, bitwise.
+    /** Pulse again as soon as it needs to, instead of waiting out a slow idle cycle. */
+    public boolean driftRetime = true;
+    /** Size each stroke to land at the asked velocity, and weaken one fired off the line of need. */
+    public boolean driftArrive = true;
+    /** How much of the velocity gap one cycle closes when strokes are sized to arrive. */
+    public float driftArriveGain = 0.9f;
+    /** The web-flare brake: extra drag, 1/s, extra sink, blocks/s², and the excess speed that flares it fully, blocks/s. */
+    public boolean driftFlare = true;
+    public float driftFlareDrag = 2.5f;
+    public float driftFlareSink = 0.8f;
+    public float driftFlareFull = 2.0f;
+    /**
+     * No climbing it didn't ask for: a stroke is cut so it leaves the bell rising no faster than it
+     * wants to (plus half a cycle's sink and a small margin). A bell can't push down, so lift it
+     * didn't want — a stroke fired while still leaning round — takes seconds of sinking to undo.
+     */
+    public boolean driftNoClimb = true;
+    /**
+     * Braking by room: no stroke carries it faster than its flare can stop in the open space ahead,
+     * and it flares when it is already going faster than that. Needs {@link #driftFlare}.
+     */
+    public boolean driftRoomBrake = true;
+    /** Extra tilt rate at rest, as a multiple of the base rate, fading out by {@link #driftSlowPivotSpeed}; 0 off. */
+    public float driftSlowPivot = 0f;
+    public float driftSlowPivotSpeed = 2.0f;
+    /** The slow-speed pivot only while it reverses: righting through upright and leaning out the other way. */
+    public boolean driftPivotSwingOnly = false;
+    /**
+     * Holds its height while it swings round: near upright a stroke may always be as big as holding
+     * height against the sink takes, even when where it wants to go is off to the side (and so out of
+     * the arrive gate). Without it a reversing bell sinks to the ground on its way through upright.
+     */
+    public boolean driftHoldHeight = true;
+
+    // The calm idle (docs/fish-companions-drift.md §13.7), from the owner's look at Phase 1: "too
+    // hyperactive when the player is idling". Each its own switch for equal-ground A/B; the defaults
+    // are the adopted calm idle, and pace/dwell/sink 1, steady false, calm tilt 85 and idle pulse 0
+    // together are the Phase 1 idle, bitwise. They act only on a drifter, and only while it
+    // idles by a still owner (LOITER, SETTLE) — or, for the lean, while it is asked to go slowly.
+    /** Pace of a drifter's idle moves between spots, as a multiple of its cruise speed. */
+    public float driftIdlePace = 0.5f;
+    /** How long a drifter lingers at each idle spot, as a multiple of the swimmers' dwell. */
+    public float driftIdleDwell = 2f;
+    /** Its idle ask doesn't rise and fall with its own pulse (the swimmer's burst surge, fed back). */
+    public boolean driftIdleSteady = true;
+    /**
+     * The lean of an idling bell asked to go slowly: at most this, degrees, at no asked speed, rising to the
+     * full {@link #driftTiltMaxDeg} by {@link #driftCalmTiltSpeed} blocks/s. A jelly drifting a little
+     * way hangs nearly upright and lets its strokes carry it; only hurrying lays it over. At or above
+     * the tilt limit it is off.
+     */
+    public float driftCalmTiltDeg = 15f;
+    public float driftCalmTiltSpeed = 1.5f;
+    /**
+     * At rest by a still owner a bell is near neutrally buoyant: its sink is this share of
+     * {@link #driftSink}, so it needs only small strokes, seldom, to hang where it is (1 off). Eased
+     * in over {@link #driftIdleCalmSeconds} once it idles, and out four times faster when it doesn't.
+     */
+    public float driftIdleSink = 0.2f;
+    /** Its slowest pulse cycle at rest, seconds (0: the travelling {@link #driftPulseSeconds}). */
+    public float driftIdlePulseSeconds = 4.5f;
+    public float driftIdleCalmSeconds = 2f;
+    /**
+     * A calm bell strokes again at once when it is falling well faster than it wants, instead of
+     * waiting out its long idle cycle — measured: out of a low swoop it fell 1.6 blocks onto the floor.
+     */
+    public boolean driftCalmCatch = true;
+
+    // Owner feedback after Phase 1 (docs/fish-companions-drift.md §13.8): "it ends up inside me often
+    // when I walk or sprint ahead and stop, the drifter's momentum carries it through into my body".
+    /**
+     * A drifter catching up heads abreast of its owner, this far to its own side, blocks, instead of a
+     * block behind them on their trail: a bell can't sidestep, so whatever it carries past them when
+     * they stop then goes past their side, not into their back. 0 off (the Phase 1 body, bitwise).
+     */
+    public float driftOwnerAside = 1.2f;
+    /** The clearance beyond its radius the spot abreast and the ways to it need, blocks. */
+    public float driftOwnerAsideRoom = 0.4f;
+    /** How far ahead, seconds of the owner's travel, the lane abreast must stay open; 0 off. */
+    public float driftOwnerAsideAhead = 1.0f;
+    /**
+     * How long the room abreast must have held before it heads there, seconds; 0 at once. Between trunks
+     * or at a door the room flickers, and swinging out and back each time grazed them; 1 s keeps the open
+     * ground fix whole and leaves tight scenes as they were.
+     */
+    public float driftOwnerAsideSettle = 1.0f;
+
     // ── Mind (§3.3) ────────────────────────────────────────────────────────────────────────────
 
     /** Comfort band around the owner's chest, blocks. */
