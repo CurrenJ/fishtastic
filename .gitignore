@@ -125,5 +125,10 @@ CLAUDE.md
 .claude/
 /wiki/
 
+# Codex agent tooling (local, like CLAUDE.md/.claude/)
+AGENTS.md
+.agents/
+.codex/
+
 ## Vanilla block textures for tools/sticker_sheet.html (Mojang assets, never commit)
 /tools/block_textures/
