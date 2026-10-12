@@ -24,11 +24,14 @@ public class FishtasticKeyBinds {
     public static KeyMapping openQuestLog;
     public static KeyMapping openFishEncyclopedia;
     public static KeyMapping openLeaderboards;
+    public static KeyMapping bondCompanion;
 
     /**
      * Initialize key mappings. Called during client initialization.
      */
     public static void init() {
+        grill24.fishtastic.menu.CompanionMenu.clientEligibility = CompanionBondInput::eligible;
+        bondCompanion = new KeyMapping("key.fishtastic.bond_companion", InputConstants.Type.KEYSYM, InputConstants.KEY_B, CATEGORY);
         fishingMinigameImpulse = new KeyMapping(
             "key.fishtastic.fishing_minigame_impulse",
             InputConstants.Type.KEYSYM,
@@ -59,6 +62,9 @@ public class FishtasticKeyBinds {
      * Handle key presses. Should be called during client tick.
      */
     public static void handleKeyPress(Minecraft minecraft) {
+        if (bondCompanion != null && bondCompanion.consumeClick() && minecraft.player != null && minecraft.screen == null) {
+            CompanionScreen.open(net.minecraft.world.item.ItemStack.EMPTY);
+        }
         if (fishingMinigameImpulse.consumeClick()) {
             // Drain the click queue unconditionally so stale clicks don't fire after the
             // minigame ends.  When a FishingMinigameAnimation is active its render() method

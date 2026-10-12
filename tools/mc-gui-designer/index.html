@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+ <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <title>GUI Workbench · Minecraft texture designer</title>
+ <link rel="stylesheet" href="style.css">
+</head>
+<body>
+ <header><div class="brand"><span class="brand-icon" aria-hidden="true">▦</span><div><h1>GUI Workbench</h1><p>Minecraft panels, one pixel at a time.</p></div></div><div class="header-actions"><span id="save-state">Saved locally</span><button id="load">Open design</button><button id="save">Save JSON</button><button id="export-png" class="primary">Export PNG ↗</button></div></header>
+ <main>
+  <aside class="library">
+   <section><h2>Start from a layout</h2><div id="presets" class="preset-list"></div></section>
+   <section><h2>Add an element</h2><div id="elements" class="element-list"></div><button id="import-sprite" class="wide">＋ Import PNG sprite</button><p class="hint">Sprites support nearest-neighbor resizing and nine-slice borders.</p></section>
+   <section><h2>Layers <span id="layer-count"></span></h2><p class="hint">Top of the list draws on top.</p><div id="layers" class="layers"></div></section>
+  </aside>
+  <div class="workspace">
+   <div class="toolbar"><div><button id="undo" title="Undo (Ctrl+Z)">↶</button><button id="redo" title="Redo (Ctrl+Shift+Z)">↷</button><span class="divider"></span><label>Zoom <select id="zoom"><option value="1">1×</option><option value="2">2×</option><option value="3" selected>3×</option><option value="4">4×</option><option value="6">6×</option><option value="8">8×</option></select></label></div><div><label><input type="checkbox" id="guides" checked> Labels</label><label><input type="checkbox" id="grid"> Pixel grid</label><label>Snap <select id="snap"><option value="1">1 px</option><option value="2">2 px</option><option value="4">4 px</option><option value="9">9 px</option><option value="18">18 px</option></select></label></div></div>
+   <div class="stage" id="stage"><div class="canvas-wrap"><canvas id="canvas" width="256" height="256" aria-label="GUI design canvas"></canvas><canvas id="overlay" width="768" height="768" tabindex="0" aria-label="Select, move and resize GUI elements"></canvas></div></div>
+   <div class="status"><span id="coordinates">Drag elements · drag the corner to resize</span><span id="dimensions">256 × 256 atlas</span></div>
+   <div class="output"><div class="output-header"><h2>Game integration</h2><div><select id="output-kind" aria-label="Integration output"><option value="java">Java slot positions</option><option value="layout">Layout metadata</option><option value="design">Design JSON</option></select><button id="copy">Copy</button><button id="download-layout">Export layout</button></div></div><pre id="code"></pre><p class="hint">Labels are placement guides unless “Bake into texture” is enabled. In-game text and buttons should usually be drawn by the screen. PNG export includes only baked elements.</p></div>
+  </div>
+  <aside class="inspector">
+   <section><h2>Design</h2><label class="field">Name<input id="project-name" autocomplete="off"></label><div class="field-pair"><label class="field">Atlas width<input id="atlas-w" type="number" min="16" max="2048" step="1"></label><label class="field">Atlas height<input id="atlas-h" type="number" min="16" max="2048" step="1"></label></div></section>
+   <section><div class="section-title"><h2 id="selection-title">Select an element</h2><span id="selection-type"></span></div><div id="properties"><p class="hint">Click the canvas or a layer to edit its dimensions, style, and position.</p></div><div id="selection-actions" hidden><div class="action-grid"><button id="duplicate">Duplicate</button><button id="delete">Delete</button><button id="raise">Bring forward</button><button id="lower">Send backward</button></div><h3>Align to panel</h3><div class="action-grid"><button data-align="left">Left</button><button data-align="center">Center X</button><button data-align="right">Right</button><button data-align="top">Top</button><button data-align="middle">Center Y</button><button data-align="bottom">Bottom</button></div></div></section>
+   <section><h2>Palette</h2><div id="palette"></div><button id="reset-palette" class="wide">Restore vanilla greys</button></section>
+   <section><h2>Checks</h2><ul id="warnings" class="warnings"></ul><p class="hint">Arrow keys nudge 1 px. Shift nudges 10 px. Ctrl+D duplicates. Delete removes. JSON saves include sprite pixels.</p></section>
+  </aside>
+ </main>
+ <div id="toast" role="status" aria-live="polite"></div>
+ <dialog id="preset-dialog"><h2>Replace this design?</h2><p>Your current design has edits. Save its JSON first if you want to keep it.</p><div><button id="preset-cancel">Keep editing</button><button id="preset-confirm" class="primary">Load preset</button></div></dialog>
+ <input type="file" id="json-file" accept="application/json,.json" hidden><input type="file" id="sprite-file" accept="image/png" hidden>
+ <script type="module" src="app.mjs"></script>
+</body>
+</html>
