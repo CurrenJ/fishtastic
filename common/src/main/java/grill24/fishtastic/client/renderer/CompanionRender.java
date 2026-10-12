@@ -38,6 +38,12 @@ public final class CompanionRender {
      * idle clock scales game time for the classes that pose on it.
      */
     public static final float SWIM_CLOCK_RATE = 0.55f, IDLE_CLOCK_RATE = 0.6f;
+    /**
+     * Gain on an upright benthic's push-off swell for a companion (slugs, the spider crab, the
+     * octopus); the flat pose is left as is. Set live with {@code /fishtastic companion swell}.
+     */
+    public static final float DEFAULT_UPRIGHT_SWELL = 2.5f;
+    public static float uprightSwell = DEFAULT_UPRIGHT_SWELL;
     /** The sim's tail phase advances 2π·1.6 rad per second at speed factor 1; the animator wants ticks. */
     private static final float PHASE_PER_TICK = (float) (2 * Math.PI * 1.6 / 20);
     /** The glider's bank at full lock, degrees (CompanionTunables.glideBankMaxDeg), for the animator's fraction. */
@@ -106,17 +112,17 @@ public final class CompanionRender {
      * @param riding   a percher on its owner (the hand): poses as perched, not swimming
      * @param onFloor  {@code pos} is the floor under a benthic walking on the ground: the pose is
      *                 lifted by its own floor offset (docs/fish-companions-benthic-follow.md §21)
-     * @param idleFromTail the idle sway runs on the gait's tail clock, not game time: a flatfish's
-     *                 ripple quickens as it glides faster and stills when it stops
+     * @param ripple   a flatfish gliding on the ground: its ripple runs on the gait's phase
+     *                 ({@code tailPhase}), quickening as it glides faster and slowing when it stops
      */
     public boolean submit(PoseStack poseStack, SubmitNodeCollector nodes, Vec3 cam, int index, Vec pos,
                           float yawDeg, float pitchDeg, float bankDeg, float appear, float tailPhase,
                           float speedFactor, float pulse, float squash, boolean riding,
-                          float gameTime, int light, boolean onFloor, boolean idleFromTail) {
+                          float gameTime, int light, boolean onFloor, boolean ripple) {
         float clock = advanceTail(index, tailPhase);
         if (appear <= 0f) return false;
         float scale = Math.max(length, 1e-3f) * appear;
-        float t = idleFromTail ? clock * SWIM_CLOCK_RATE : gameTime * IDLE_CLOCK_RATE;
+        float t = gameTime * IDLE_CLOCK_RATE;
         float partial = gameTime - (float) Math.floor(gameTime); // the frame's partial tick
         double lift = onFloor ? FishAnimator.floorPoseLift(anim, scale) : 0;
 
@@ -139,7 +145,11 @@ public final class CompanionRender {
         } else if (locomotion == Locomotion.DRIFT) {
             FishAnimator.applyDrifting(poseStack, anim, random, t, NOSE_FORWARD, scale, false, pulse);
         } else if (locomotion == Locomotion.BENTHIC) {
-            FishAnimator.applyBenthic(poseStack, anim, random, t, NOSE_FORWARD, NOSE_FORWARD, scale, false, squash);
+            // Standing up, the push-off is seen from the side at 5% and reads as nothing; the flat
+            // pose's in-plane swell (a starfish's) already reads, so only the upright one is raised.
+            float swell = anim instanceof FishAnimationConfig.UprightSit ? squash * uprightSwell : squash;
+            FishAnimator.applyBenthic(poseStack, anim, random, t, NOSE_FORWARD, NOSE_FORWARD, scale, false, swell,
+                    ripple ? tailPhase : Float.NaN);
         } else if (locomotion == Locomotion.ANCHORED) {
             FishAnimator.applyAnchored(poseStack, anim, random, t, NOSE_FORWARD, scale, false, retract(partial));
         } else {

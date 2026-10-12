@@ -43,6 +43,7 @@ import java.util.Optional;
  *   /fishtastic companion ground                          — a ground benthic (and its group) comes back down off the perch
  *   /fishtastic companion climb                           — a ground benthic climbs onto its perch (group: one after another)
  *   /fishtastic companion tumble                          — a perched ground benthic is knocked off (waits until perched)
+ *   /fishtastic companion swell [gain]                    — show or set the upright benthics' push-off swell (default 2.5; 1 = tank's)
  *   /fishtastic companion catchdemo                       — open a demo bar with a fish of your companion's species
  *   /fishtastic companion catch                           — land the demo bar's first active target (celebration + greet)
  *   /fishtastic companion phantom &lt;species&gt; [size]      — another companion, swimming round an imaginary owner ahead
@@ -126,6 +127,17 @@ public class CompanionCommand {
                         grill24.fishtastic.client.companion.ClientCompanions::devClimb)))
                 .then(Commands.literal("tumble").executes(ctx -> client(ctx,
                         grill24.fishtastic.client.companion.ClientCompanions::devTumble)))
+                .then(Commands.literal("swell")
+                        .executes(ctx -> client(ctx, () -> "Upright benthic swell gain: "
+                                + grill24.fishtastic.client.renderer.CompanionRender.uprightSwell
+                                + " (default " + grill24.fishtastic.client.renderer.CompanionRender.DEFAULT_UPRIGHT_SWELL + ")"))
+                        .then(Commands.argument("gain", FloatArgumentType.floatArg(0f, 8f)).executes(ctx -> {
+                            float gain = FloatArgumentType.getFloat(ctx, "gain");
+                            return client(ctx, () -> {
+                                grill24.fishtastic.client.renderer.CompanionRender.uprightSwell = gain;
+                                return "Upright benthic swell gain set to " + gain;
+                            });
+                        })))
                 .then(Commands.literal("catchdemo").executes(ctx -> client(ctx,
                         grill24.fishtastic.client.companion.ClientCompanions::devOpenCatchDemo)))
                 .then(Commands.literal("catch").executes(ctx -> client(ctx,

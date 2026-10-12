@@ -9,6 +9,8 @@
   "temperament": "fishtastic:wily",
   "companion_gait": "ripple",
   "animation": {
-    "mode": "floor_sit"
+    "mode": "floor_sit",
+    "diagonal_texture": true,
+    "ripple": 6.0
   }
 }
