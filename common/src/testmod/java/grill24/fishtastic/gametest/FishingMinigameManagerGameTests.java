@@ -339,6 +339,11 @@ public final class FishingMinigameManagerGameTests {
      */
     public static void trashChanceOneAlwaysAwardsTrashItems(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
         ServerPlayer player = mockPlayer.get();
+        FishCatchSavedData live = FishCatchSavedData.getOrCreate(helper.getLevel().getServer());
+        // Land on a fresh cycle first: this world persists across runs and this test credits
+        // real trash to the shared counter every time, so the incoming total can sit close to
+        // the 200 threshold, where the catch below could complete the goal exactly and zero it.
+        live.recordTrashContribution(player, live.getCleanupGoalThreshold() - live.getCleanupGoalTotal());
         player.setItemInHand(InteractionHand.MAIN_HAND, rodWithBaitEffect(
             new BaitEffect(0f, 1.0f, 1.0f, 0, 1.0f, 0f, Optional.empty(), List.of())));
         castLine(helper, player);
@@ -360,7 +365,7 @@ public final class FishingMinigameManagerGameTests {
         // Regression check: handleMinigameComplete used to read a reward stack's count *after*
         // Inventory.add() had already mutated it down to its leftover (usually 0), so trash caught
         // with room in the inventory silently never reached the shared cleanup goal counter.
-        int cleanupGoalTotal = FishCatchSavedData.getOrCreate(helper.getLevel().getServer()).getCleanupGoalTotal();
+        int cleanupGoalTotal = live.getCleanupGoalTotal();
         helper.assertTrue(cleanupGoalTotal > 0,
                 "trash caught with room in the inventory must still count toward the cleanup goal, got total=" + cleanupGoalTotal);
         helper.succeed();

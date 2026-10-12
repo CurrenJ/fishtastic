@@ -309,6 +309,10 @@ public final class FishCatchBackupsGameTests {
         FishCatchSavedData live = live(helper);
         ServerPlayer player = playerFactory.get();
         UUID key = live.resolvePlayerKey(player);
+        // Land on a known cycle first: this world persists across runs and other tests credit
+        // real trash to the shared counter, so the incoming total can sit within 7 of the 200
+        // threshold, where the +3/+7 arithmetic below would roll the cycle over mid-test.
+        live.recordTrashContribution(player, live.getCleanupGoalThreshold() - live.getCleanupGoalTotal());
         int baseTotal = live.getCleanupGoalTotal();
 
         live.recordTrashContribution(player, 3);
@@ -316,7 +320,8 @@ public final class FishCatchBackupsGameTests {
         List<Entry> before = FishCatchBackups.list(server);
         try {
             live.recordTrashContribution(player, 4);
-            helper.assertTrue(live.getCleanupGoalTotal() == baseTotal + 7, "contribution accumulated");
+            helper.assertTrue(live.getCleanupGoalTotal() == baseTotal + 7,
+                    "contribution accumulated: base=" + baseTotal + ", now=" + live.getCleanupGoalTotal());
 
             FishCatchBackups.restorePlayer(server, snapshot, key);
 
