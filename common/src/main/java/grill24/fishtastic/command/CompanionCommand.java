@@ -138,6 +138,17 @@ public class CompanionCommand {
                                 return "Upright benthic swell gain set to " + gain;
                             });
                         })))
+                .then(Commands.literal("squeeze")
+                        .executes(ctx -> client(ctx, () -> "Drifter squeeze gain: "
+                                + grill24.fishtastic.client.renderer.CompanionRender.driftSqueeze
+                                + " (default " + grill24.fishtastic.client.renderer.CompanionRender.DEFAULT_DRIFT_SQUEEZE + ")"))
+                        .then(Commands.argument("gain", FloatArgumentType.floatArg(0f, 8f)).executes(ctx -> {
+                            float gain = FloatArgumentType.getFloat(ctx, "gain");
+                            return client(ctx, () -> {
+                                grill24.fishtastic.client.renderer.CompanionRender.driftSqueeze = gain;
+                                return "Drifter squeeze gain set to " + gain;
+                            });
+                        })))
                 .then(Commands.literal("catchdemo").executes(ctx -> client(ctx,
                         grill24.fishtastic.client.companion.ClientCompanions::devOpenCatchDemo)))
                 .then(Commands.literal("catch").executes(ctx -> client(ctx,

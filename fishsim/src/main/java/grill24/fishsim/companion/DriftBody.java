@@ -38,6 +38,15 @@ final class DriftBody extends Motor {
     private static final double CALM_CATCH_DV = 0.5;
     /** Braking by room: how far ahead it looks and in what steps, blocks, and the margin past its radius. */
     private static final double ROOM_LOOK = 3.0, ROOM_STEP = 0.25, ROOM_MARGIN = 0.05;
+    /** Touching a block already, the sweep's radius is found by this many halvings. */
+    private static final int ROOM_BISECTIONS = 9;
+    /** Drawn facing: the tilt at which it fully follows the lean, degrees, and its turn ease and spin-up per tick. */
+    private static final float FACE_FULL_TILT = 15f, FACE_GAIN = 0.08f, FACE_ACCEL = 0.4f;
+    /** Drawn squeeze: the stroke, blocks/s, that shows at full strength, and the least a stroke shows. */
+    private static final double SQUEEZE_FULL_DV = 0.5;
+    /** A need rising less steeply than this (15°) counts as level: braking, or correcting a fall. */
+    private static final double TAN_LEVEL = Math.tan(Math.toRadians(15));
+    private static final float SQUEEZE_FLOOR = 0.2f;
 
     private final CompanionTunables t;
     /** How it propels itself (docs/fish-companions-drift.md §2). Not read yet: every style is the first-cut bell. */
@@ -51,18 +60,33 @@ final class DriftBody extends Motor {
     private double period;
     /** The bell axis as tilt from vertical and the horizontal direction of that tilt, degrees. */
     float tilt, tiltYaw;
+    /**
+     * The way the art faces, degrees, and how fast that is turning, degrees per tick. Drawn only: the
+     * physics and the mind read {@link #yaw} (the lean), which may swap sides in a tick.
+     */
+    float face, faceRate;
     /** Tilt rate, degrees per tick, and the effort that sets the pulse rate (0 idle, 1 flat out). */
     float tiltRate;
     float effort;
     float spin, spinState;
-    /** The squeeze, 0..1 — what the animator shows as the bell contracting. */
+    /** The pulse envelope, 0..1: the shape of each stroke's thrust. */
     float pulse;
+    /**
+     * The squeeze the animator draws, 0..1 (§13.10): the envelope scaled by how hard this stroke
+     * pushes, so a stroke that throws it across the room shows and one that only holds its height
+     * barely breathes. Drawn only.
+     */
+    float squeeze;
+    /** This stroke's drawn strength, 0..1, fixed when it starts. */
+    private float strokeShow;
     /** Thrust actually applied this tick, blocks/s². */
     double lastThrust;
     /** The velocity change the last stroke was sized to give, blocks/s. */
     private double lastStrokeDv;
     /** What the mind asked for this tick, before wall avoidance, blocks/s (for the harness's metrics). */
     Vec asked = Vec.ZERO;
+    /** What the bell steered toward this tick, blocks/s² (for the harness's metrics). */
+    Vec need = Vec.ZERO;
     /** Whether a new pulse cycle started this tick (for the harness's metrics). */
     boolean strokeStart;
     /** The web flare, 0..1: the brake (§4), which the animator shows as the bell spreading wide. */
@@ -85,6 +109,7 @@ final class DriftBody extends Motor {
         this.noise = seed == 0 ? 0x9E3779B97F4A7C15L : seed;
         this.tiltYaw = yaw;
         this.yaw = yaw;
+        this.face = yaw;
         this.pitch = -90f;
         this.phase = (nextSigned() + 1) * 0.5;
         this.period = t.driftPulseSeconds;
@@ -112,8 +137,9 @@ final class DriftBody extends Motor {
         double dsp = desired.length();
         Vec hold = desired.scale(drag(dsp)).add(0, sink, 0);
         Vec need = hold.add(desired.sub(vel).scale(t.driftResponse));
+        this.need = need;
         Vec axisBefore = axis();
-        steerAxis(need, sp);
+        steerAxis(need, hold, sp);
         Vec axis = axis();
         tiltStep = (float) Math.toDegrees(Math.acos(Math.max(-1, Math.min(1, axisBefore.dot(axis)))));
         double along = Math.max(0, need.dot(axis));
@@ -147,6 +173,7 @@ final class DriftBody extends Motor {
         advanceSpin();
         yaw = tiltYaw;
         pitch = tilt - 90f;
+        turnFace();
         burstDrive = 1f + pulse;
         tailPhase = (float) (phase * Math.PI * 2);
     }
@@ -180,7 +207,7 @@ final class DriftBody extends Motor {
      * {@code driftSlowPivot} the cap rises as it slows: a hanging bell rights and leans quickly, a
      * fast one is carried on its line (and a flare, by slowing it, frees it to turn).
      */
-    private void steerAxis(Vec need, double sp) {
+    private void steerAxis(Vec need, Vec hold, double sp) {
         double h = need.horizontalLength();
         float wantTilt = (float) Math.toDegrees(Math.atan2(h, Math.max(1e-6, need.y())));
         // Never past the leaning limit: a bell doesn't swim upside down. A hovering jelly stays
@@ -193,6 +220,18 @@ final class DriftBody extends Motor {
             double k = Math.min(1, asked.length() / t.driftCalmTiltSpeed);
             double slow = t.driftCalmTiltDeg + (t.driftTiltMaxDeg - t.driftCalmTiltDeg) * k;
             wantTilt = Math.min(wantTilt, (float) (t.driftTiltMaxDeg + (slow - t.driftTiltMaxDeg) * calm));
+        }
+        // Asked to go slowly it leans only somewhat, calm or not (§13.11): showing off by a still owner
+        // asks for about 1 b/s, which a lean of ~35° holds. Only hurrying lays it right over.
+        if (t.driftAskTiltDeg < t.driftTiltMaxDeg) {
+            double k = Math.min(1, asked.length() / t.driftAskTiltSpeed);
+            wantTilt = Math.min(wantTilt, (float) (t.driftAskTiltDeg + (t.driftTiltMaxDeg - t.driftAskTiltDeg) * k));
+        }
+        // Braking or out of a fall, what it needs points level or down, where a bell can't push. It
+        // leans only as far as holding its asked velocity takes and lets the flare and sink do the rest.
+        if (!t.driftLeanIntoBrake && need.y() <= need.horizontalLength() * TAN_LEVEL) {
+            float holdTilt = (float) Math.toDegrees(Math.atan2(hold.horizontalLength(), Math.max(1e-6, hold.y())));
+            wantTilt = Math.min(wantTilt, holdTilt + t.driftBrakeTiltMarginDeg);
         }
         float wantYaw = h > 1e-4 ? (float) need.yawDeg() : tiltYaw;
         float yawErr = Body.wrap(wantYaw - tiltYaw);
@@ -214,6 +253,19 @@ final class DriftBody extends Motor {
         tiltRate += clamp(cmd - tiltRate, -0.4f * boost, 0.4f * boost);
         tilt = clamp(tilt + tiltRate, 0f, 90f);
         yawRate = 0f;
+    }
+
+    /**
+     * Turns the drawn facing toward the lean, eased and capped, and only as far as it leans: hanging
+     * upright it holds its facing, so a swing back through upright to lean the other way is a slow
+     * turn of the body rather than a 180° flip.
+     */
+    private void turnFace() {
+        float lean = Math.min(1f, tilt / FACE_FULL_TILT);
+        float cap = t.driftFaceRateDegPerTick * lean;
+        float cmd = clamp(Body.wrap(tiltYaw - face) * FACE_GAIN * lean, -cap, cap);
+        faceRate += clamp(cmd - faceRate, -FACE_ACCEL, FACE_ACCEL);
+        face = Body.wrap(face + faceRate);
     }
 
     private Vec axis() {
@@ -259,10 +311,12 @@ final class DriftBody extends Motor {
             double mean = t.driftArrive ? strokeDv(hold, desired, axis, period) / period : along;
             peak = Math.min(t.driftThrust, mean / (t.driftPulseDuty * ENVELOPE_MEAN));
             lastStrokeDv = peak * t.driftPulseDuty * ENVELOPE_MEAN * period;
+            strokeShow = (float) Math.max(SQUEEZE_FLOOR, Math.min(1, lastStrokeDv / SQUEEZE_FULL_DV));
         }
         double u = phase / t.driftPulseDuty;
         double s = u < 1 ? Math.sin(Math.PI * u) : 0;
         pulse = (float) (s * s);
+        squeeze = pulse * strokeShow;
     }
 
     /**
@@ -301,10 +355,24 @@ final class DriftBody extends Motor {
      * under linear drag {@code k} a body at {@code v} stops within {@code v / k}, so this is
      * {@code k} times the free distance ahead (beyond its radius and a small margin). Open beyond
      * {@link #ROOM_LOOK} blocks counts as unlimited.
+     *
+     * <p>With {@code driftRoomPastContact}, a block it already touches is not in the way unless it
+     * comes closer along {@code dir}: it sweeps the largest sphere that is clear where it is (§13.12).
+     * Pressed to a tunnel wall or sitting on the floor, the full sphere read no room in any direction,
+     * so every stroke was cut to nothing and it could neither stop a fall nor push off the floor.
      */
     private double roomSpeed(Vec dir, LocalVoxels voxels) {
         double k = t.driftDrag + t.driftFlareDrag;
         double r = radius + ROOM_MARGIN;
+        if (t.driftRoomPastContact && !voxels.sphereClear(pos, r)) {
+            // The clearance where it is, to within a millimetre: only what it is already touching is let off.
+            double lo = 0, hi = r;
+            for (int i = 0; i < ROOM_BISECTIONS; i++) {
+                double mid = 0.5 * (lo + hi);
+                if (voxels.sphereClear(pos, mid)) lo = mid; else hi = mid;
+            }
+            r = lo;
+        }
         for (double d = ROOM_STEP; d <= ROOM_LOOK + 1e-9; d += ROOM_STEP) {
             if (!voxels.sphereClear(pos.add(dir.scale(d)), r)) return k * Math.max(0, d - ROOM_STEP);
         }
@@ -328,6 +396,8 @@ final class DriftBody extends Motor {
         tilt = 0f;
         tiltRate = 0f;
         tiltYaw = facingYaw;
+        face = facingYaw;
+        faceRate = 0f;
         pitch = -90f;
         effort = 0f;
         flare = 0f;

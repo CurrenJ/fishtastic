@@ -563,6 +563,107 @@ overlap but stopped the bell behind the owner, out of view: seen 41/95 level, 45
 **For Phase 2:** the jet's fins can sidestep, so test `driftOwnerAside=0` for JET in tight scenes;
 re-measure room and settle once the jet and bob bodies exist.
 
+### 13.9 Owner feedback: the art flips 180° (2026-10-12, uncommitted)
+
+The flapjack and the man o' war flipped about their vertical axis in one tick. Cause, measured
+(`DriftYawSnapProbe`, 23 scripts × 4 seeds × 1200 ticks): `steerAxis` reverses by swinging the
+bell back through upright, then at `tilt < 1°` sets `tiltYaw = wantYaw` at once. `yaw = tiltYaw`
+was also the drawn facing, so the art snapped. That was 824 single-tick steps over 20°, nearly all
+of them about 180°, roughly one every six seconds even when idle. A round bell doesn't care; flat
+art does.
+
+- Fix: drawn facing is split from the lean. `DriftBody.face` turns toward `tiltYaw`, eased and
+  capped at `driftFaceRateDegPerTick` (4°/tick = 80°/s, so a full about-turn takes about 2.3 s or
+  more). The cap is scaled by `min(1, tilt/15°)`, so a bell hanging upright holds its facing.
+  `CompanionRender` tilts toward the lean and then faces the art its own way
+  (`Y(-lean)·X(tilt)·Y(lean-face)`). Upright, that is just the facing, so the lean's swap at 1°
+  tilt can't be seen.
+- Physics and mind still read `yaw` (the lean). Every fingerprint, DRIFT included, is bitwise
+  unchanged. The viewer draws the round bell from the axis and is unchanged too.
+- After: largest facing step 4.0°/tick, 0 steps over 20°. New test `driftFacingNeverSnaps`.
+
+### 13.10 Owner feedback: idle pushes with no visible squeeze (2026-10-12, uncommitted)
+
+When idling beside a still owner, the flapjack was plainly pushed with no squeeze to be seen.
+Measured (`DriftStrokeVisibilityProbe`, idle_fixed and idle_looking, 8 seeds): the squeeze does
+play on every stroke, but it can't be seen:
+- An idle stroke squeezes over about 24 ticks (duty 0.35 of a cycle up to 4.5 s), and the game
+  drew it at the tank's `pulse_stretch`, 10%. The viewer's jelly draws a 30% rim squeeze, which is
+  why it read in the viewer and not in game.
+- A stroke that threw it from 0.16 to 0.66 b/s drew the same 10% as one that gave nothing. Speed
+  peaks as the squeeze ends, then coasts for seconds.
+
+Fix (drawn only, so every fingerprint is bitwise unchanged):
+- `DriftBody.squeeze` = pulse × the stroke's strength. Strength is its planned Δv over 0.5 b/s,
+  clamped to [0.2, 1] and fixed when the stroke starts. `CompanionAgent.renderSqueeze()`
+  interpolates it per frame.
+- `CompanionRender.driftSqueeze` (default 3) multiplies it in game, so a full stroke stretches
+  30%. Set it live with `/fishtastic companion squeeze <gain>`. The viewer's jelly now draws the
+  same squeeze.
+- After: idle pushes ≥ 0.25 b/s with a drawn stretch ≥ 15% went 0/82 → 80/82 (idle_fixed) and
+  0/79 → 77/79 (idle_looking), mean 29%. Strokes that gain under 0.05 b/s still show about 23%.
+  Most of those are pushing against the sink to hold height.
+- Not changed: the squeeze's length. An idle stroke is still a ~1.2 s swell. If it should read as
+  a snappier push, the next lever is a shorter idle duty, which is a physics change behind a switch.
+
+### 13.11 Owner feedback: it lays over to horizontal by a still owner (2026-10-12, uncommitted)
+
+"Tilt somewhat over in the horizontal direction to propel but not that far." Measured with
+`DriftTiltProbe` (8 seeds × 2400 ticks):
+- True idle (LOITER/SETTLE) was already upright-ish: the calm lean (§13.7) kept it past 45° on
+  only 1% of ticks.
+- By a still owner, the moves that aren't idle (mostly SHOW_OFF, asking about 0.9 b/s) drop
+  calm, so the cap went back to 85°. That was 41% of those ticks past 45° and 17–19% past 60°.
+  In 30–40% of the ticks past 45°, the need pointed level or down: it was braking or correcting a
+  fall, where a bell can't push.
+- Travel really does need the lean. Steady tilt is about `atan(drag·v / sink)`: 34° at 1 b/s and
+  79° at a walking owner's 5 b/s. A global cap of 55° was measured and rejected: forest far-time
+  went 7.6 → 43 s, walk seen 10 → 1%, and stroke delivery 0.96 → 0.23.
+
+Built, each with its own switch (`driftAskTiltDeg=85` and `driftLeanIntoBrake=true` together give
+the body before, bitwise: all 654 fingerprints):
+1. `driftAskTiltDeg` 30 / `driftAskTiltSpeed` 3: the lean is capped by the asked speed for any goal,
+   rising from 30° to the full 85° by 3 b/s. Travel asks for 6–7 b/s, so it is unaffected.
+2. `driftLeanIntoBrake` false: with a need below 15° elevation, it leans no further than holding
+   its asked velocity takes, plus `driftBrakeTiltMarginDeg` (10°).
+
+After:
+- By a still owner, ticks past 60° went 17% → 0% (idle_fixed) and 19% → 0% (idle_looking).
+  SHOW_OFF tops out around 50°. Travel histograms are unchanged.
+- Keep-up and visibility over all 23 scripts are within noise. 16-seed checks: camera_sweep
+  longest-unseen median 20.0 → 19.9 s, with 1/16 seeds over 30 s in both; corridor contacts
+  median about 10–11 in both, and each body has one floor-stuck outlier seed (old #8: 38, new #3: 68).
+- New test: `driftLeansOnlySomewhatByAStillOwner`. The old body fails it on 7 of 9 runs.
+- Non-DRIFT fingerprints are bitwise unchanged. 195 of 207 DRIFT fingerprints changed.
+- Tried and dropped: exempting the brake cap near walls made no measurable difference.
+
+### 13.12 The tunnel floor pit, and the gates re-set (2026-10-12, uncommitted)
+
+After §13.11, three of the 3-seed DRIFT gates flipped on seed divergence. The owner chose to fix the
+corridor pit and re-set the bounds from 16-seed data.
+
+The pit, measured on corridor seed 3: pressed to the 1-wide tunnel's side wall or sitting on its
+floor, `roomSpeed` swept a sphere of radius + margin that already touched that block. It read no
+room in any direction, so `roomAxis` was 0 and the room brake cut every stroke to just cancelling
+its current speed. Falling, it wanted 1.9–2.6 b/s and got 0.5–0.67, so it landed. On the floor it
+wanted about 2.1 b/s up and away and got 0. It sat there, scraping, until the leash. The old body
+had the same pit (seed 8: 38 contacts).
+
+- Fix, `driftRoomPastContact` (false is the body before, bitwise): already touching, it sweeps the
+  largest sphere that is clear where it is (9 bisections), so only blocks it comes closer to count.
+  A first cut that shrank the radius in 15% steps undershot the clearance and saw blocks ahead
+  late (stairwell worst impact 8.09 b/s, over its 7.5 bound), so it was replaced by the bisection.
+- After (16 seeds; old body, then now):
+  - corridor contacts 12|38 → 11|20 (mean|worst), impact 2.44|4.67 → 2.54|4.04.
+  - stairwell contacts 49|74 → 40|60, impact 4.62|6.48 → 5.38|7.07 (bound 7.5).
+  - forest worst impact 5.12 → 6.80 (bound 7.5).
+- Gates: the corridor gates pass again on their own bounds, which are left as they were.
+  camera_sweep's longest-unseen bound went 30 → 36 s (`DRIFT_CAMERA_SWEEP_UNSEEN`): one seed in
+  16 goes over 30 s both before (34.1 s) and after (34.6 s), median 20 s.
+- Full suite: 383 tests, 0 failed. With all three of §13.11–12's switches off, the 654
+  fingerprints are identical. With them on, every non-DRIFT fingerprint is unchanged.
+- Lean, rechecked with the room fix in: ticks past 60° by a still owner are still 0%.
+
 ## 14. Phase 2 as built
 
 (reserved)

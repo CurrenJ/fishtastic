@@ -63,6 +63,10 @@ public final class CompanionAgent {
     // Interpolated pose for this frame, written by interpolate().
     private Vec renderPos;
     private float renderYaw, renderPitch, renderBank, renderAppear = 1f, renderTail;
+    /** A drifter's drawn facing, which turns slower than its lean (DriftBody#face). */
+    private float prevFace, renderFace;
+    /** A drifter's drawn squeeze (DriftBody#squeeze), interpolated: it is large enough to step visibly at 20 Hz. */
+    private float prevSqueeze, renderSqueeze;
 
     /**
      * @param length rendered body length in blocks; sets the collision radius
@@ -157,6 +161,7 @@ public final class CompanionAgent {
         this.prevPos = start;
         this.renderPos = start;
         this.prevYaw = renderYaw = owner.yawDeg();
+        this.prevFace = renderFace = renderYaw;
     }
 
     public void step(CompanionWorld world) {
@@ -164,6 +169,8 @@ public final class CompanionAgent {
         BlockQuery blocks = world.blocks();
         prevPos = body.pos;
         prevYaw = body.yaw;
+        prevFace = face();
+        prevSqueeze = squeeze();
         prevPitch = body.pitch;
         prevBank = body.bank;
         prevAppear = appear;
@@ -312,6 +319,7 @@ public final class CompanionAgent {
         }
         prevPos = p;
         prevYaw = body.yaw;
+        prevFace = face();
         prevPitch = body.pitch;
         prevBank = body.bank;
     }
@@ -320,6 +328,8 @@ public final class CompanionAgent {
     public void interpolate(float alpha) {
         renderPos = prevPos.lerp(body.pos, alpha);
         renderYaw = prevYaw + Body.wrap(body.yaw - prevYaw) * alpha;
+        renderFace = prevFace + Body.wrap(face() - prevFace) * alpha;
+        renderSqueeze = prevSqueeze + (squeeze() - prevSqueeze) * alpha;
         renderPitch = prevPitch + (body.pitch - prevPitch) * alpha;
         renderBank = prevBank + (body.bank - prevBank) * alpha;
         renderAppear = prevAppear + (appear - prevAppear) * alpha;
@@ -363,6 +373,13 @@ public final class CompanionAgent {
     /** A drifter's thrust this tick, blocks/s² (0 for swimmers). */
     public double thrust() { return body instanceof DriftBody d ? d.lastThrust : 0; }
     public float spin() { return body instanceof DriftBody d ? d.spin : 0f; }
+    /**
+     * The way the art faces, degrees: a drifter's turns slower than its lean, so it never flips; for
+     * every other body it is the heading.
+     */
+    /** A drifter's drawn squeeze, 0..1: its pulse scaled by how hard the stroke pushes (0 for swimmers). */
+    public float squeeze() { return body instanceof DriftBody d ? d.squeeze : 0f; }
+    public float face() { return body instanceof DriftBody d ? d.face : body.yaw; }
     /** What the mind asked a drifter for this tick, blocks/s (zero for swimmers). */
     public Vec driftAsked() { return body instanceof DriftBody d ? d.asked : Vec.ZERO; }
     /** Whether a drifter started a new pulse cycle this tick. */
@@ -530,6 +547,8 @@ public final class CompanionAgent {
 
     public Vec renderPos() { return renderPos; }
     public float renderYaw() { return renderYaw; }
+    public float renderFace() { return renderFace; }
+    public float renderSqueeze() { return renderSqueeze; }
     public float renderPitch() { return renderPitch; }
     public float renderBank() { return renderBank; }
     public float renderAppear() { return renderAppear; }
