@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+ <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <title>GUI Workbench · Minecraft texture designer</title>
+ <style>:root{font-family:Segoe UI,system-ui,sans-serif;color:#242b2a;background:#eeeae2;font-size:13px;--border:#d8d6cd;--muted:#70766e;--accent:#315f49;--paper:#faf9f5}*{box-sizing:border-box}body{margin:0}button,input,select{font:inherit}button{border:1px solid var(--border);border-radius:5px;background:var(--paper);color:#353d36;cursor:pointer;padding:7px 10px;transition:background .12s}button:hover{background:#e9eee6;border-color:#9bada0}button:disabled{opacity:.4;cursor:default}button.primary{background:var(--accent);border-color:var(--accent);color:white}button.primary:hover{background:#254b39}button:focus-visible,input:focus-visible,select:focus-visible,canvas:focus-visible{outline:2px solid #729d7e;outline-offset:2px}input,select{background:white;border:1px solid var(--border);border-radius:4px;color:#30382f;padding:6px;min-width:0}input[type=checkbox]{accent-color:var(--accent)}header{height:86px;display:flex;justify-content:space-between;align-items:center;padding:0 28px;background:var(--paper);border-bottom:1px solid var(--border);gap:16px}.brand{display:flex;align-items:center;gap:12px}.brand-icon{width:42px;height:42px;display:grid;place-items:center;color:#faf8eb;background:#315f49;border:3px solid #77927f;border-radius:4px;font-size:29px;box-shadow:inset -3px -3px #203f30,inset 3px 3px #8dab8d}h1{font-size:19px;font-weight:650;letter-spacing:-.5px;margin:0}.brand p{font-size:12px;margin:3px 0 0;color:var(--muted)}.header-actions{display:flex;align-items:center;gap:8px}#save-state{font-size:11px;color:var(--muted);margin-right:8px}main{display:grid;grid-template-columns:230px minmax(340px,1fr) 270px;min-height:calc(100vh - 86px)}aside{background:var(--paper)}.library{border-right:1px solid var(--border)}.inspector{border-left:1px solid var(--border)}section{padding:20px 17px;border-bottom:1px solid var(--border)}h2{font-size:12px;font-weight:650;letter-spacing:.1px;margin:0 0 12px}h3{font-size:11px;font-weight:600;margin:16px 0 9px}.hint{font-size:11px;color:var(--muted);line-height:1.65;margin:10px 0 0}.preset-list{display:grid;grid-template-columns:1fr 1fr;gap:6px}.preset-list button{text-align:left;font-size:12px;padding:10px}.preset-list button:last-child{grid-column:1/-1}.preset-list button.active{background:#e4ece2;border-color:#8ca895;color:#315f49}.element-list{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:8px}.element-list button{text-align:left;padding:7px;font-size:12px}.wide{width:100%}.layers{display:flex;flex-direction:column;gap:3px;max-height:380px;overflow:auto}.layer{display:flex;align-items:center;gap:7px;border-radius:4px;border:1px solid transparent;padding:5px}.layer.selected{background:#e4ece2;border-color:#a1b8a5}.layer .select-layer{background:none;border:0;flex:1;text-align:left;padding:4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.layer .visibility{border:0;padding:3px;color:#777;background:none}.layer small{color:var(--muted);font-size:10px}.workspace{min-width:0}.toolbar{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--border);gap:8px;flex-wrap:wrap;background:#f5f3ed}.toolbar>div{display:flex;align-items:center;gap:9px}.toolbar label{display:flex;align-items:center;gap:5px;font-size:11px}.toolbar button{padding:5px 10px;font-size:17px}.toolbar select{font-size:11px;padding:4px}.divider{height:18px;border-left:1px solid var(--border)}.stage{height:620px;max-height:67vh;min-height:350px;overflow:auto;display:grid;align-items:start;justify-content:start;padding:36px;background:#353a36;background-image:radial-gradient(#596057 1px,transparent 1px);background-size:14px 14px}.canvas-wrap{position:relative;line-height:0;background:repeating-conic-gradient(#484f47 0% 25%,#41473f 0% 50%) 0 0/16px 16px;box-shadow:0 12px 36px #0004}#canvas{image-rendering:pixelated;display:block}#overlay{position:absolute;top:0;left:0;touch-action:none;outline-offset:5px}.status{display:flex;justify-content:space-between;gap:12px;padding:9px 18px;background:#f5f3ed;color:var(--muted);font:10px Consolas,monospace;border-bottom:1px solid var(--border)}.output{padding:20px 18px}.output-header{display:flex;align-items:center;justify-content:space-between;gap:8px}.output-header h2{margin:0}.output-header>div{display:flex;gap:6px}.output-header select,.output-header button{font-size:11px;padding:5px}pre{font:11px/1.65 Consolas,monospace;background:#f9f8f3;border:1px solid var(--border);border-radius:5px;padding:12px;color:#3e5e4a;overflow:auto;max-height:200px;white-space:pre;margin:12px 0 0}.field{display:flex;flex-direction:column;gap:5px;margin-bottom:10px;font-size:11px;color:var(--muted)}.field input,.field select{color:#283529;width:100%}.field-pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}.field.checkbox{flex-direction:row;align-items:center}.field.checkbox input{width:auto}.field.color{flex-direction:row;justify-content:space-between;align-items:center}.field.color input{width:44px;height:27px;padding:2px}.section-title{display:flex;align-items:start;justify-content:space-between;gap:8px}.section-title span{font:10px Consolas,monospace;background:#e5e9df;padding:3px 5px;border-radius:3px;color:#63745d}.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}.action-grid button{font-size:11px;padding:7px 4px}.warnings{padding:0;list-style:none;font-size:11px;line-height:1.65;color:#8c6743;margin:0}.warnings li{padding:4px 0}.warnings .ok{color:#557357}#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#22392b;color:#fff;padding:12px 18px;border-radius:6px;opacity:0;pointer-events:none;transition:.2s;box-shadow:0 8px 25px #0003;max-width:90vw;font-size:12px;z-index:10}#toast.show{opacity:1;transform:translateX(-50%)}dialog{border:1px solid var(--border);border-radius:8px;max-width:390px;padding:25px;background:var(--paper);color:#283529}dialog::backdrop{background:#0007}dialog p{line-height:1.7}dialog>div{display:flex;justify-content:end;gap:8px;margin-top:20px}@media(min-width:1550px){main{grid-template-columns:250px minmax(340px,1fr) 300px}.stage{justify-content:center}}@media(max-width:1050px){main{grid-template-columns:190px minmax(300px,1fr) 225px}header{padding:0 16px}.header-actions{gap:5px}#save-state{display:none}section{padding:16px 12px}.toolbar{padding:10px}.stage{padding:20px}}@media(max-width:800px){header{height:auto;padding:16px;flex-wrap:wrap}.header-actions{width:100%;justify-content:end}main{grid-template-columns:160px minmax(200px,1fr)}.inspector{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-top:1px solid var(--border)}.stage{height:440px;max-height:60vh}.toolbar>div{flex-wrap:wrap}.output-header{flex-wrap:wrap}.status{flex-wrap:wrap}.preset-list,.element-list{grid-template-columns:1fr}.preset-list button:last-child{grid-column:auto}}@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+ <header><div class="brand"><span class="brand-icon" aria-hidden="true">▦</span><div><h1>GUI Workbench</h1><p>Minecraft panels, one pixel at a time.</p></div></div><div class="header-actions"><span id="save-state">Saved locally</span><button id="load">Open design</button><button id="save">Save JSON</button><button id="export-png" class="primary">Export PNG ↗</button></div></header>
+ <main>
+  <aside class="library">
+   <section><h2>Start from a layout</h2><div id="presets" class="preset-list"></div></section>
+   <section><h2>Add an element</h2><div id="elements" class="element-list"></div><button id="import-sprite" class="wide">＋ Import PNG sprite</button><p class="hint">Sprites support nearest-neighbor resizing and nine-slice borders.</p></section>
+   <section><h2>Layers <span id="layer-count"></span></h2><p class="hint">Top of the list draws on top.</p><div id="layers" class="layers"></div></section>
+  </aside>
+  <div class="workspace">
+   <div class="toolbar"><div><button id="undo" title="Undo (Ctrl+Z)">↶</button><button id="redo" title="Redo (Ctrl+Shift+Z)">↷</button><span class="divider"></span><label>Zoom <select id="zoom"><option value="1">1×</option><option value="2">2×</option><option value="3" selected>3×</option><option value="4">4×</option><option value="6">6×</option><option value="8">8×</option></select></label></div><div><label><input type="checkbox" id="guides" checked> Labels</label><label><input type="checkbox" id="grid"> Pixel grid</label><label>Snap <select id="snap"><option value="1">1 px</option><option value="2">2 px</option><option value="4">4 px</option><option value="9">9 px</option><option value="18">18 px</option></select></label></div></div>
+   <div class="stage" id="stage"><div class="canvas-wrap"><canvas id="canvas" width="256" height="256" aria-label="GUI design canvas"></canvas><canvas id="overlay" width="768" height="768" tabindex="0" aria-label="Select, move and resize GUI elements"></canvas></div></div>
+   <div class="status"><span id="coordinates">Drag elements · drag the corner to resize</span><span id="dimensions">256 × 256 atlas</span></div>
+   <div class="output"><div class="output-header"><h2>Game integration</h2><div><select id="output-kind" aria-label="Integration output"><option value="java">Java slot positions</option><option value="layout">Layout metadata</option><option value="design">Design JSON</option></select><button id="copy">Copy</button><button id="download-layout">Export layout</button></div></div><pre id="code"></pre><p class="hint">Labels are placement guides unless “Bake into texture” is enabled. In-game text and buttons should usually be drawn by the screen. PNG export includes only baked elements.</p></div>
+  </div>
+  <aside class="inspector">
+   <section><h2>Design</h2><label class="field">Name<input id="project-name" autocomplete="off"></label><div class="field-pair"><label class="field">Atlas width<input id="atlas-w" type="number" min="16" max="2048" step="1"></label><label class="field">Atlas height<input id="atlas-h" type="number" min="16" max="2048" step="1"></label></div></section>
+   <section><div class="section-title"><h2 id="selection-title">Select an element</h2><span id="selection-type"></span></div><div id="properties"><p class="hint">Click the canvas or a layer to edit its dimensions, style, and position.</p></div><div id="selection-actions" hidden><div class="action-grid"><button id="duplicate">Duplicate</button><button id="delete">Delete</button><button id="raise">Bring forward</button><button id="lower">Send backward</button></div><h3>Align to panel</h3><div class="action-grid"><button data-align="left">Left</button><button data-align="center">Center X</button><button data-align="right">Right</button><button data-align="top">Top</button><button data-align="middle">Center Y</button><button data-align="bottom">Bottom</button></div></div></section>
+   <section><h2>Palette</h2><div id="palette"></div><button id="reset-palette" class="wide">Restore vanilla greys</button></section>
+   <section><h2>Checks</h2><ul id="warnings" class="warnings"></ul><p class="hint">Arrow keys nudge 1 px. Shift nudges 10 px. Ctrl+D duplicates. Delete removes. JSON saves include sprite pixels.</p></section>
+  </aside>
+ </main>
+ <div id="toast" role="status" aria-live="polite"></div>
+ <dialog id="preset-dialog"><h2>Replace this design?</h2><p>Your current design has edits. Save its JSON first if you want to keep it.</p><div><button id="preset-cancel">Keep editing</button><button id="preset-confirm" class="primary">Load preset</button></div></dialog>
+ <input type="file" id="json-file" accept="application/json,.json" hidden><input type="file" id="sprite-file" accept="image/png" hidden>
+ <script>(()=>{
+// Shared, dependency-free pixel renderer. Browser previews and CLI PNGs use identical pixels.
+const VERSION = 1;
+const THEME = { face: '#c6c6c6', light: '#ffffff', mid: '#8b8b8b', dark: '#373737', outline: '#000000', recess: '#8b8b8b', accent: '#dc667c' };
+const TYPES = ['panel', 'slot', 'grid', 'button', 'rect', 'separator', 'arrow', 'flame', 'progress', 'heart', 'sprite', 'label'];
+const FONT = {
+ A:'01110/10001/10001/11111/10001/10001/10001',B:'11110/10001/10001/11110/10001/10001/11110',C:'01111/10000/10000/10000/10000/10000/01111',D:'11110/10001/10001/10001/10001/10001/11110',E:'11111/10000/10000/11110/10000/10000/11111',F:'11111/10000/10000/11110/10000/10000/10000',G:'01111/10000/10000/10111/10001/10001/01111',H:'10001/10001/10001/11111/10001/10001/10001',I:'111/010/010/010/010/010/111',J:'00111/00010/00010/00010/10010/10010/01100',K:'10001/10010/10100/11000/10100/10010/10001',L:'10000/10000/10000/10000/10000/10000/11111',M:'10001/11011/10101/10101/10001/10001/10001',N:'10001/11001/10101/10011/10001/10001/10001',O:'01110/10001/10001/10001/10001/10001/01110',P:'11110/10001/10001/11110/10000/10000/10000',Q:'01110/10001/10001/10001/10101/10010/01101',R:'11110/10001/10001/11110/10100/10010/10001',S:'01111/10000/10000/01110/00001/00001/11110',T:'11111/00100/00100/00100/00100/00100/00100',U:'10001/10001/10001/10001/10001/10001/01110',V:'10001/10001/10001/10001/10001/01010/00100',W:'10001/10001/10001/10101/10101/10101/01010',X:'10001/10001/01010/00100/01010/10001/10001',Y:'10001/10001/01010/00100/00100/00100/00100',Z:'11111/00001/00010/00100/01000/10000/11111',
+ '0':'01110/10001/10011/10101/11001/10001/01110','1':'010/110/010/010/010/010/111','2':'01110/10001/00001/00010/00100/01000/11111','3':'11110/00001/00001/01110/00001/00001/11110','4':'00010/00110/01010/10010/11111/00010/00010','5':'11111/10000/10000/11110/00001/00001/11110','6':'01110/10000/10000/11110/10001/10001/01110','7':'11111/00001/00010/00100/01000/01000/01000','8':'01110/10001/10001/01110/10001/10001/01110','9':'01110/10001/10001/01111/00001/00001/01110',
+ '.':'0/0/0/0/0/0/1',':':'0/1/1/0/1/1/0','-':'000/000/000/111/000/000/000','?':'01110/10001/00001/00010/00100/00000/00100','!':'1/1/1/1/1/0/1','/':'00001/00001/00010/00100/01000/10000/10000',' ':'000/000/000/000/000/000/000'
+};
+const id = name => name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+function element(type, x = 8, y = 18) {
+ const defaults = {
+  panel:{w:176,h:166,bevel:3,rounded:true},slot:{w:18,h:18,style:'normal',index:0},grid:{w:162,h:54,cols:9,rows:3,cell:18,gap:0,style:'normal',index:9},button:{w:60,h:20,state:'normal'},rect:{w:24,h:12,color:'#8b8b8b'},separator:{w:100,h:2},arrow:{w:24,h:17,value:0,color:'#ffffff',direction:'right'},flame:{w:14,h:14,value:1,color:'#ffb32c'},progress:{w:60,h:8,value:0.6,color:'#dc667c',direction:'right'},heart:{w:8,h:7,color:'#dc667c'},sprite:{w:16,h:16,sourceW:16,sourceH:16,pixels:[],slice:0},label:{w:100,h:9,text:'Inventory',color:'#404040',bake:false,align:'left'}
+ };
+ return {id:`${type}_${Math.random().toString(36).slice(2,8)}`,type,name:type,x,y,visible:true,...defaults[type]};
+}
+function bounds(e) {
+ if (e.type === 'grid') return {x:e.x,y:e.y,w:e.cols*e.cell+(e.cols-1)*e.gap,h:e.rows*e.cell+(e.rows-1)*e.gap};
+ return {x:e.x,y:e.y,w:e.w,h:e.h};
+}
+function preset(name = 'companions') {
+ const panelH = name === 'hopper' ? 133 : name === 'chest' ? 222 : name === 'companions' ? 202 : 166;
+ const p={version:VERSION,name:id(name),atlas:{w:256,h:256},theme:{...THEME},elements:[]};
+ const add=(type,x,y,opts={})=>{const e={...element(type,x,y),...opts};e.id=`${type}_${p.elements.length}`;p.elements.push(e);return e;};
+ add('panel',0,0,{h:panelH,name:'Main panel'});
+ add('label',8,6,{text:name === 'companions'?'Companions':name[0].toUpperCase()+name.slice(1),name:'Title'});
+ const invY=panelH-82;
+ add('label',8,invY-12,{text:'Inventory',name:'Inventory label'});
+ add('grid',7,invY-1,{name:'Player inventory'});
+ add('grid',7,invY+57,{rows:1,index:0,name:'Hotbar'});
+ if(name==='companions') {
+  add('slot',75,29,{w:26,h:26,style:'large',index:0,name:'Companion'});
+  add('heart',180,0,{name:'Header heart'});
+  add('heart',190,0,{w:5,h:4,style:'small',name:'Encyclopedia badge heart'});
+  add('label',50,18,{text:'Your companion',w:76,align:'center'});
+  add('label',8,58,{text:'Companion name',w:160,align:'center'});
+  add('label',8,89,{text:'Rename',w:104});
+ } else if(name==='furnace') {
+  add('slot',55,16,{index:0,name:'Input'});add('slot',55,52,{index:1,name:'Fuel'});add('slot',111,30,{w:26,h:26,style:'large',index:2,name:'Result'});
+  add('flame',56,36,{value:0,name:'Fuel indicator'});add('arrow',79,34,{name:'Smelt progress'});
+ } else if(name==='crafting') {
+  add('grid',29,16,{cols:3,rows:3,index:1,name:'Crafting inputs'});add('arrow',89,35);add('slot',123,34,{w:26,h:26,style:'large',index:0,name:'Result'});
+ } else if(name==='hopper') add('grid',43,19,{cols:5,rows:1,index:0,name:'Hopper slots'});
+ else if(name==='chest') add('grid',7,17,{rows:6,index:0,name:'Chest slots'});
+ return p;
+}
+function validate(input) {
+ if(!input || input.version !== VERSION || !Array.isArray(input.elements)) throw Error('Expected a version 1 GUI design with an elements array.');
+ const p=structuredClone(input);
+ for(const key of ['w','h']) if(!Number.isInteger(p.atlas?.[key]) || p.atlas[key]<16 || p.atlas[key]>2048) throw Error('Atlas dimensions must be whole numbers between 16 and 2048.');
+ if(p.elements.length>500) throw Error('A design can contain at most 500 elements.');
+ p.theme={...THEME,...p.theme};
+ const ids=new Set();
+ for(const e of p.elements) {
+  if(!TYPES.includes(e.type)) throw Error(`Unknown element type: ${e.type}`);
+  if(typeof e.id!=='string'||ids.has(e.id)) throw Error('Every element needs a unique string ID.'); ids.add(e.id);
+  for(const key of ['x','y','w','h']) if(!Number.isFinite(e[key]) || !Number.isInteger(e[key]) || Math.abs(e[key])>4096 || ((key==='w'||key==='h')&&e[key]<1)) throw Error(`Invalid ${key} on ${e.name || e.id}.`);
+  if(e.type==='grid') for(const key of ['cols','rows','cell','gap']) if(!Number.isInteger(e[key])||e[key]<(key==='gap'?0:1)||e[key]>128) throw Error(`Invalid grid ${key}.`);
+  if(e.type==='sprite' && (!Number.isInteger(e.sourceW)||!Number.isInteger(e.sourceH)||e.sourceW<1||e.sourceH<1||e.sourceW>512||e.sourceH>512||!Array.isArray(e.pixels)||(e.pixels.length!==0 && e.pixels.length!==e.sourceW*e.sourceH*4)||e.pixels.some(v=>!Number.isInteger(v)||v<0||v>255))) throw Error('Sprite pixels must be RGBA bytes, at most 512 × 512.');
+  if(e.align!==undefined&&!['left','center','right'].includes(e.align)) throw Error(`Invalid text alignment on ${e.name || e.id}.`);
+  if(e.value!==undefined&&(!Number.isFinite(e.value)||e.value<0||e.value>1)) throw Error('Progress must be between 0 and 1.');
+  if(e.slice!==undefined&&(!Number.isInteger(e.slice)||e.slice<0||e.slice>Math.min(e.sourceW,e.sourceH)/2)) throw Error('Invalid nine-slice border.');
+ }
+ return p;
+}
+function rasterize(project, {guides=false}={}) {
+ const {w:width,h:height}=project.atlas, data=new Uint8ClampedArray(width*height*4),t={...THEME,...project.theme};
+ const rgba=c=>{if(Array.isArray(c)) return c;const s=String(c||'#000000').replace('#','');return [parseInt(s.slice(0,2),16)||0,parseInt(s.slice(2,4),16)||0,parseInt(s.slice(4,6),16)||0,s.length===8?parseInt(s.slice(6,8),16):255];};
+ const pixel=(x,y,c)=>{x=Math.floor(x);y=Math.floor(y);if(x<0||y<0||x>=width||y>=height) return;const a=rgba(c),i=(y*width+x)*4,alpha=a[3]/255,old=data[i+3]/255,out=alpha+old*(1-alpha);if(!out)return;for(let j=0;j<3;j++)data[i+j]=(a[j]*alpha+data[i+j]*old*(1-alpha))/out;data[i+3]=out*255;};
+ const rect=(x,y,w,h,c)=>{for(let yy=Math.max(0,y);yy<Math.min(height,y+h);yy++)for(let xx=Math.max(0,x);xx<Math.min(width,x+w);xx++)pixel(xx,yy,c);};
+ const bevel=(x,y,w,h,fill,hi,lo,n=1)=>{rect(x,y,w,h,fill);for(let i=0;i<n;i++){rect(x+i,y+i,w-i*2,1,hi);rect(x+i,y+i,1,h-i*2,hi);rect(x+i,y+h-1-i,w-i*2,1,lo);rect(x+w-1-i,y+i,1,h-i*2,lo);}};
+ const slot=(x,y,w,h,style)=>{if(style==='large'){bevel(x,y,w,h,t.face,t.light,t.dark,1);bevel(x+4,y+4,w-8,h-8,t.recess,t.dark,t.light,1);}else bevel(x,y,w,h,t.recess,t.dark,t.light,1);};
+ const mask=(x,y,w,h,rows,c)=>{const mw=rows[0].length,mh=rows.length;for(let yy=0;yy<h;yy++)for(let xx=0;xx<w;xx++)if(rows[Math.floor(yy*mh/h)][Math.floor(xx*mw/w)]==='1')pixel(x+xx,y+yy,c);};
+ const glyph=char=>(FONT[char.toUpperCase()]||FONT['?']).split('/');
+ // Each line aligns within the box the way Java centres text: floor((w - width) / 2).
+ const text=(e)=>{String(e.text).split('\n').forEach((line,i)=>{const width=Math.max(0,[...line].reduce((sum,c)=>sum+glyph(c)[0].length+1,0)-1);let x=e.x+(e.align==='center'?Math.floor((e.w-width)/2):e.align==='right'?e.w-width:0);for(const char of line){const rows=glyph(char);mask(x,e.y+i*9,rows[0].length,7,rows,e.color);x+=rows[0].length+1;}});};
+ for(const e of project.elements) {
+  if(e.visible===false)continue; const {x,y,w,h}=bounds(e);
+  switch(e.type) {
+   case 'panel': {
+    const n=Math.min(Math.max(1,e.bevel||3),Math.floor(Math.min(w,h)/2));
+    bevel(x,y,w,h,t.outline,t.outline,t.outline,1);bevel(x+1,y+1,w-2,h-2,t.face,t.light,t.dark,n-1);
+    if(e.rounded){for(const [xx,yy] of [[x,y],[x+w-1,y],[x,y+h-1],[x+w-1,y+h-1]]){const i=(yy*width+xx)*4;if(xx>=0&&yy>=0&&xx<width&&yy<height)data.fill(0,i,i+4);}}
+    break;
+   }
+   case 'slot':slot(x,y,w,h,e.style);break;
+   case 'grid':for(let r=0;r<e.rows;r++)for(let c=0;c<e.cols;c++)slot(x+c*(e.cell+e.gap),y+r*(e.cell+e.gap),e.cell,e.cell,e.style);break;
+   case 'button':bevel(x,y,w,h,t.outline,t.outline,t.outline);bevel(x+1,y+1,w-2,h-2,e.state==='disabled'?t.mid:t.face,e.state==='pressed'?t.dark:t.light,e.state==='pressed'?t.light:t.dark,2);break;
+   case 'rect':rect(x,y,w,h,e.color);break;
+   case 'separator':rect(x,y,w,1,t.dark);rect(x,y+1,w,1,t.light);break;
+   // Masks scale to the box; draw at 8x7 (normal) or 5x4 (small) or whole multiples to stay pixel-exact.
+   case 'heart':mask(x,y,w,h,e.style==='small'?['01010','11111','01110','00100']:['01100110','11111111','11111111','11111111','01111110','00111100','00011000'],e.color);break;
+   case 'arrow': {
+    const tip=Math.min(Math.floor(h/2),Math.floor(w/2));
+    for(let yy=0;yy<h;yy++)for(let xx=0;xx<w;xx++){const px=e.direction==='left'?w-1-xx:xx,dy=Math.abs(yy-(h-1)/2),inside=px<w-tip?dy<h/6:dy<(w-px)*h/(2*tip);if(inside)pixel(x+xx,y+yy,xx/w<e.value?e.color:t.mid);}
+    break;
+   }
+   case 'flame':for(let yy=0;yy<h;yy++)for(let xx=0;xx<w;xx++){const nx=(xx-(w-1)/2)/(w/2),ny=yy/h,edge=Math.sin(ny*Math.PI/1.6)*0.9;if(Math.abs(nx)<edge)pixel(x+xx,y+yy,yy>=h*(1-e.value)?e.color:t.mid);}break;
+   case 'progress': {
+    bevel(x,y,w,h,t.recess,t.dark,t.light);const innerW=w-2,innerH=h-2;
+    if(e.direction==='up'||e.direction==='down'){const hh=Math.round(innerH*e.value);rect(x+1,y+1+(e.direction==='up'?innerH-hh:0),innerW,hh,e.color);}else{const ww=Math.round(innerW*e.value);rect(x+1+(e.direction==='left'?innerW-ww:0),y+1,ww,innerH,e.color);}break;
+   }
+   case 'label':if(e.bake||guides)text(e);break;
+   case 'sprite': {
+    if(!e.pixels.length)break;
+    const slice=e.slice||0;
+    const map=(v,d,s)=>{const b=Math.min(slice,Math.floor(d/2));return !b?Math.floor(v*s/d):v<b?v:v>=d-b?s-(d-v):b+Math.floor((v-b)*(s-b*2)/(d-b*2));};
+    for(let yy=0;yy<h;yy++)for(let xx=0;xx<w;xx++){const sx=Math.min(e.sourceW-1,map(xx,w,e.sourceW)),sy=Math.min(e.sourceH-1,map(yy,h,e.sourceH)),i=(sy*e.sourceW+sx)*4;pixel(x+xx,y+yy,e.pixels.slice(i,i+4));}break;
+   }
+  }
+ }
+ return {width,height,data};
+}
+function slots(project) {
+ const out=[];
+ for(const e of project.elements)if(e.visible!==false&&(e.type==='slot'||e.type==='grid')) {
+  const rows=e.type==='grid'?e.rows:1,cols=e.type==='grid'?e.cols:1;
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const inset=e.style==='large'?5:1;out.push({name:e.name,index:(e.index||0)+r*cols+c,x:e.x+c*((e.cell||e.w)+(e.gap||0))+inset,y:e.y+r*((e.cell||e.h)+(e.gap||0))+inset});}
+ }
+ return out;
+}
+function javaLayout(project) {
+ const panel=project.elements.find(e=>e.type==='panel');
+ return `// Generated from ${project.name}.json. Coordinates are panel-relative.\n// Choose each slot's container (companion / inventory / inputs) before using this code.\nthis.imageWidth = ${panel?.w||176};\nthis.imageHeight = ${panel?.h||166};\n\n`+slots(project).map(s=>`addSlot(new Slot(/* ${s.name.replaceAll('*/','')} container */ container, ${s.index}, ${s.x-(panel?.x||0)}, ${s.y-(panel?.y||0)}));`).join('\n');
+}
+
+import {THEME,TYPES,preset,element,bounds,validate,rasterize,slots,javaLayout} from './renderer.mjs';
+const $=id=>document.getElementById(id), storageKey='fishtastic.gui-workbench.v1';
+let project=preset(), selected=null, zoom=3, undo=[], redo=[], drag=null, pendingPreset=null, dirty=false;
+try{const saved=localStorage.getItem(storageKey);if(saved)project=validate(JSON.parse(saved));}catch{}
+const canvas=$('canvas'),ctx=canvas.getContext('2d'),overlay=$('overlay'),octx=overlay.getContext('2d');
+const symbols={panel:'▣',slot:'□',grid:'▦',button:'▰',rect:'■',separator:'━',arrow:'➜',flame:'♨',progress:'▬',heart:'♥',sprite:'▧',label:'T'};
+const selection=()=>project.elements.find(e=>e.id===selected);
+const clone=v=>structuredClone(v);
+function toast(message){$('toast').textContent=message;$('toast').classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('toast').classList.remove('show'),3500);}
+function checkpoint(){undo.push(JSON.stringify(project));if(undo.length>80)undo.shift();redo=[];}
+function changed(){dirty=true;try{localStorage.setItem(storageKey,JSON.stringify(project));$('save-state').textContent='Saved locally';}catch{$('save-state').textContent='Save JSON to keep this design';}render();}
+function edit(fn){checkpoint();fn();changed();inspector();}
+function download(name,blob){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+function saveJson(){download(`${safeName()}.json`,new Blob([JSON.stringify(project,null,2)+'\n'],{type:'application/json'}));dirty=false;toast('Design JSON saved. Includes all layers and sprite pixels.');}
+const safeName=()=>project.name.replace(/[^a-zA-Z0-9_-]/g,'_')||'minecraft_gui';
+function codeText(){if($('output-kind').value==='java')return javaLayout(project);if($('output-kind').value==='design')return JSON.stringify(project,null,2);return JSON.stringify(metadata(),null,2);}
+function metadata(){return {name:project.name,atlas:project.atlas,panels:project.elements.filter(e=>e.type==='panel').map(e=>({name:e.name,...bounds(e)})),slots:slots(project),labels:project.elements.filter(e=>e.type==='label').map(e=>({text:e.text,x:e.x,y:e.y,w:e.w,align:e.align||'left',baked:e.bake})),regions:project.elements.filter(e=>e.visible!==false&& !['label','grid'].includes(e.type)).map(e=>({id:e.id,name:e.name,type:e.type,...bounds(e)}))};}
+function render(){
+ const image=rasterize(project,{guides:$('guides').checked});canvas.width=image.width;canvas.height=image.height;ctx.putImageData(new ImageData(image.data,image.width,image.height),0,0);
+ canvas.style.width=`${image.width*zoom}px`;canvas.style.height=`${image.height*zoom}px`;overlay.width=image.width*zoom;overlay.height=image.height*zoom;overlay.style.width=canvas.style.width;overlay.style.height=canvas.style.height;
+ drawOverlay();$('dimensions').textContent=`${project.atlas.w} × ${project.atlas.h} atlas · ${project.elements.length} layers`;
+ $('project-name').value=project.name;$('atlas-w').value=project.atlas.w;$('atlas-h').value=project.atlas.h;$('code').textContent=codeText();$('undo').disabled=!undo.length;$('redo').disabled=!redo.length;layers();warnings();
+}
+function drawOverlay(){
+ octx.clearRect(0,0,overlay.width,overlay.height);
+ if($('grid').checked&&zoom>=3){octx.strokeStyle='#ffffff18';octx.lineWidth=1;octx.beginPath();for(let x=0;x<=overlay.width;x+=zoom){octx.moveTo(x+.5,0);octx.lineTo(x+.5,overlay.height);}for(let y=0;y<=overlay.height;y+=zoom){octx.moveTo(0,y+.5);octx.lineTo(overlay.width,y+.5);}octx.stroke();}
+ const e=selection();if(!e||e.visible===false)return;const b=bounds(e);octx.strokeStyle='#97d4ad';octx.lineWidth=1.5;octx.setLineDash([4,3]);octx.strokeRect(b.x*zoom-.5,b.y*zoom-.5,b.w*zoom+1,b.h*zoom+1);octx.setLineDash([]);octx.fillStyle='#97d4ad';octx.fillRect((b.x+b.w)*zoom-4,(b.y+b.h)*zoom-4,8,8);
+}
+function layers(){
+ $('layers').replaceChildren();$('layer-count').textContent=`(${project.elements.length})`;
+ for(const e of [...project.elements].reverse()){
+  const row=document.createElement('div');row.className='layer'+(e.id===selected?' selected':'');const show=document.createElement('button');show.className='visibility';show.textContent=e.visible===false?'○':'●';show.title=e.visible===false?'Show layer':'Hide layer';show.onclick=()=>edit(()=>e.visible=e.visible===false);row.append(show);
+  const button=document.createElement('button');button.className='select-layer';button.textContent=`${symbols[e.type]} ${e.name}`;button.onclick=()=>select(e.id);row.append(button);const type=document.createElement('small');type.textContent=e.type;row.append(type);$('layers').append(row);
+ }
+}
+function select(id){selected=id;inspector();layers();drawOverlay();}
+function field(label,key,kind='number',options=null){
+ const e=selection(),wrap=document.createElement('label');wrap.className='field'+(kind==='checkbox'?' checkbox':kind==='color'?' color':'');const text=document.createElement('span');text.textContent=label;
+ const input=document.createElement(options?'select':'input');input.dataset.property=key;
+ if(options){for(const v of options){const o=document.createElement('option');o.value=v;o.textContent=v;input.append(o);}input.value=e[key]??options[0];}else{input.type=kind;if(kind==='checkbox')input.checked=!!e[key];else input.value=e[key]??'';if(kind==='number'){input.step=key==='value'?'0.05':'1';input.min=['x','y'].includes(key)?'-4096':'0';input.max=key==='value'?'1':'4096';}}
+ input.onchange=()=>{
+  let value=kind==='checkbox'?input.checked:kind==='number'?Number(input.value):input.value;
+  if(kind==='number'&&!Number.isFinite(value))return;
+  const candidate=clone(project),target=candidate.elements.find(v=>v.id===e.id);target[key]=value;
+  if(target.type==='heart'&&key==='style'){[target.w,target.h]=value==='small'?[5,4]:[8,7];}
+  if(target.type==='grid'){target.w=target.cols*target.cell+(target.cols-1)*target.gap;target.h=target.rows*target.cell+(target.rows-1)*target.gap;}
+  try{validate(candidate);edit(()=>project=candidate);}catch(error){toast(error.message);inspector();}
+ };if(kind==='checkbox'){wrap.append(input,text);}else wrap.append(text,input);return wrap;
+}
+function inspector(){
+ const e=selection();$('selection-actions').hidden=!e;$('properties').replaceChildren();$('selection-title').textContent=e?'Element properties':'Select an element';$('selection-type').textContent=e?.type||'';
+ if(!e){const p=document.createElement('p');p.className='hint';p.textContent='Click the canvas or a layer to edit its dimensions, style, and position.';$('properties').append(p);return;}
+ const add=(...args)=>$('properties').append(field(...args));add('Layer name','name','text');
+ const pair=(a,b)=>{const row=document.createElement('div');row.className='field-pair';row.append(field(...a),field(...b));$('properties').append(row);};pair(['X','x'],['Y','y']);
+ if(e.type!=='grid')pair(['Width','w'],['Height','h']);
+ if(e.type==='panel'){add('Bevel thickness','bevel');add('Rounded corners','rounded','checkbox');}
+ if(e.type==='slot'||e.type==='grid'){add('Slot style','style','text',['normal','large']);add('First container index','index');}
+ if(e.type==='grid'){pair(['Columns','cols'],['Rows','rows']);pair(['Cell size','cell'],['Gap','gap']);}
+ if(e.type==='heart')add('Heart style (8x7 / 5x4)','style','text',['normal','small']);
+ if(e.type==='button')add('State','state','text',['normal','pressed','disabled']);
+ if(e.type==='arrow'||e.type==='progress'){add('Fill direction','direction','text',e.type==='arrow'?['right','left']:['right','left','up','down']);}
+ if(['arrow','flame','progress'].includes(e.type))add('Fill amount (0–1)','value');
+ if(e.color)add('Color','color','color');
+ if(e.type==='label'){add('Text (preview uses a small pixel font)','text','text');add('Alignment','align','text',['left','center','right']);add('Bake into texture','bake','checkbox');}
+ if(e.type==='sprite'){add('Nine-slice border (0 = stretch)','slice');const p=document.createElement('p');p.className='hint';p.textContent=`Source: ${e.sourceW} × ${e.sourceH}. Transparent pixels are preserved.`;$('properties').append(p);}
+ add('Visible','visible','checkbox');add('Lock movement','locked','checkbox');
+}
+function warnings(){
+ const list=[];for(const e of project.elements){if(e.visible===false)continue;const b=bounds(e);if(b.x<0||b.y<0||b.x+b.w>project.atlas.w||b.y+b.h>project.atlas.h)list.push(`${e.name} extends outside the atlas; those pixels will be clipped.`);if(e.type==='slot'&&(e.w<18||e.h<18))list.push(`${e.name}: a vanilla item needs a 16 × 16 interior.`);if(e.type==='label'&&!e.bake)list.push(`${e.name}: preview guide; excluded from PNG.`);if(e.type==='grid'&&e.cell<(e.style==='large'?26:18))list.push(`${e.name}: slot interiors are smaller than 16 px.`);}
+ $('warnings').replaceChildren();for(const warning of list){const li=document.createElement('li');li.textContent=warning;$('warnings').append(li);}if(!list.length){const li=document.createElement('li');li.className='ok';li.textContent='All elements fit inside the atlas.';$('warnings').append(li);}
+}
+function palette(){
+ $('palette').replaceChildren();for(const key of Object.keys(THEME)){const label=document.createElement('label');label.className='field color';label.textContent=key[0].toUpperCase()+key.slice(1);const input=document.createElement('input');input.type='color';input.value=project.theme[key];input.onchange=()=>edit(()=>project.theme[key]=input.value);label.append(input);$('palette').append(label);}
+}
+function loadPreset(name){if(dirty){pendingPreset=name;$('preset-dialog').showModal();}else applyPreset(name);}
+function applyPreset(name){edit(()=>{project=preset(name);selected=null;});dirty=false;palette();document.querySelectorAll('[data-preset]').forEach(b=>b.classList.toggle('active',b.dataset.preset===name));toast(`${name[0].toUpperCase()+name.slice(1)} preset loaded.`);}
+for(const name of ['furnace','crafting','hopper','chest','companions']){const button=document.createElement('button');button.dataset.preset=name;button.textContent=name[0].toUpperCase()+name.slice(1);button.onclick=()=>loadPreset(name);$('presets').append(button);}
+for(const type of TYPES.filter(v=>v!=='sprite')){const button=document.createElement('button');button.textContent=`${symbols[type]} ${type[0].toUpperCase()+type.slice(1)}`;button.onclick=()=>edit(()=>{const e=element(type,8,18);e.name=`${type[0].toUpperCase()+type.slice(1)} ${project.elements.filter(v=>v.type===type).length+1}`;project.elements.push(e);selected=e.id;});$('elements').append(button);}
+const point=event=>{const r=overlay.getBoundingClientRect();return{x:Math.floor((event.clientX-r.left)/zoom),y:Math.floor((event.clientY-r.top)/zoom)};};
+overlay.onpointerdown=event=>{
+ if(event.button!==0)return;const p=point(event),active=selection(),b=active&&bounds(active);
+ const resize=b&&Math.abs(p.x-b.x-b.w)<6/zoom&&Math.abs(p.y-b.y-b.h)<6/zoom;
+ const hit=resize?active:[...project.elements].reverse().find(e=>{if(e.visible===false||e.locked)return false;const r=bounds(e);return p.x>=r.x&&p.y>=r.y&&p.x<r.x+r.w&&p.y<r.y+r.h;});
+ select(hit?.id||null);if(!hit||hit.locked)return;overlay.focus();drag={id:hit.id,start:p,original:clone(hit),resize,before:JSON.stringify(project),moved:false};overlay.setPointerCapture(event.pointerId);
+};
+overlay.onpointermove=event=>{
+ const p=point(event);$('coordinates').textContent=`x ${p.x} · y ${p.y}`;if(!drag)return;const e=selection(),snap=Number($('snap').value),round=v=>Math.round(v/snap)*snap,dx=p.x-drag.start.x,dy=p.y-drag.start.y;
+ if(dx||dy)drag.moved=true;
+ if(drag.resize){if(e.type==='grid'){e.cols=Math.max(1,Math.min(128,Math.round((bounds(drag.original).w+dx+e.gap)/(e.cell+e.gap))));e.rows=Math.max(1,Math.min(128,Math.round((bounds(drag.original).h+dy+e.gap)/(e.cell+e.gap))));e.w=bounds(e).w;e.h=bounds(e).h;}else{e.w=Math.max(1,Math.min(4096,round(drag.original.w+dx)));e.h=Math.max(1,Math.min(4096,round(drag.original.h+dy)));}}else{e.x=Math.max(-4096,Math.min(4096,round(drag.original.x+dx)));e.y=Math.max(-4096,Math.min(4096,round(drag.original.y+dy)));}
+ render();
+};
+function finishDrag(){if(!drag)return;if(drag.moved){undo.push(drag.before);if(undo.length>80)undo.shift();redo=[];changed();}drag=null;inspector();}
+overlay.onpointerup=finishDrag;overlay.onpointercancel=finishDrag;
+$('undo').onclick=()=>{if(!undo.length)return;redo.push(JSON.stringify(project));project=JSON.parse(undo.pop());selected=null;changed();inspector();palette();};
+$('redo').onclick=()=>{if(!redo.length)return;undo.push(JSON.stringify(project));project=JSON.parse(redo.pop());selected=null;changed();inspector();palette();};
+$('duplicate').onclick=()=>{const e=selection();if(e)edit(()=>{const copy=clone(e);copy.id=element(e.type).id;copy.name+=' copy';copy.x+=4;copy.y+=4;project.elements.push(copy);selected=copy.id;});};
+$('delete').onclick=()=>{if(selection())edit(()=>{project.elements=project.elements.filter(e=>e.id!==selected);selected=null;});};
+function reorder(delta){const i=project.elements.findIndex(e=>e.id===selected),target=i+delta;if(i<0||target<0||target>=project.elements.length)return;edit(()=>{const e=project.elements.splice(i,1)[0];project.elements.splice(target,0,e);});}
+$('raise').onclick=()=>reorder(1);$('lower').onclick=()=>reorder(-1);
+document.querySelectorAll('[data-align]').forEach(button=>button.onclick=()=>{const e=selection(),panel=project.elements.find(v=>v.type==='panel'&&v.id!==selected);if(!e||!panel)return;const b=bounds(e),p=bounds(panel);edit(()=>{switch(button.dataset.align){case'left':e.x=p.x+7;break;case'right':e.x=p.x+p.w-b.w-7;break;case'center':e.x=p.x+Math.round((p.w-b.w)/2);break;case'top':e.y=p.y+7;break;case'bottom':e.y=p.y+p.h-b.h-7;break;case'middle':e.y=p.y+Math.round((p.h-b.h)/2);break;}});});
+document.addEventListener('keydown',event=>{
+ if(['INPUT','SELECT','TEXTAREA'].includes(event.target.tagName)||$('preset-dialog').open)return;
+ if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='z'){event.preventDefault();$(event.shiftKey?'redo':'undo').click();return;}
+ if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='s'){event.preventDefault();saveJson();return;}
+ if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='d'){event.preventDefault();$('duplicate').click();return;}
+ if(event.key==='Delete'||event.key==='Backspace'){event.preventDefault();$('delete').click();return;}
+ const e=selection();if(!e||e.locked)return;const delta=event.shiftKey?10:1;if(event.key.startsWith('Arrow')){event.preventDefault();edit(()=>{if(event.key==='ArrowLeft')e.x-=delta;if(event.key==='ArrowRight')e.x+=delta;if(event.key==='ArrowUp')e.y-=delta;if(event.key==='ArrowDown')e.y+=delta;});}
+});
+$('zoom').onchange=()=>{zoom=Number($('zoom').value);render();};$('guides').onchange=render;$('grid').onchange=drawOverlay;$('output-kind').onchange=render;
+$('project-name').onchange=()=>edit(()=>project.name=$('project-name').value||'minecraft_gui');
+for(const key of ['w','h'])$('atlas-'+key).onchange=()=>{const value=Number($('atlas-'+key).value);if(!Number.isInteger(value)||value<16||value>2048){toast('Atlas dimensions must be 16–2048 whole pixels.');render();return;}edit(()=>project.atlas[key]=value);};
+$('reset-palette').onclick=()=>{edit(()=>project.theme={...THEME});palette();};
+$('save').onclick=saveJson;$('load').onclick=()=>$('json-file').click();
+$('json-file').onchange=async event=>{const file=event.target.files[0];if(!file)return;try{if(file.size>8_000_000)throw Error('Design files must be under 8 MB.');const input=validate(JSON.parse(await file.text()));edit(()=>{project=input;selected=null;});palette();toast('Design loaded. Undo returns to your previous design.');}catch(error){toast(error.message);}event.target.value='';};
+$('import-sprite').onclick=()=>$('sprite-file').click();
+$('sprite-file').onchange=async event=>{const file=event.target.files[0];if(!file)return;try{if(file.size>4_000_000)throw Error('PNG sprites must be under 4 MB.');const bitmap=await createImageBitmap(file);if(bitmap.width>512||bitmap.height>512){bitmap.close();throw Error('Sprite dimensions must be at most 512 × 512.');}const temp=document.createElement('canvas');temp.width=bitmap.width;temp.height=bitmap.height;const c=temp.getContext('2d');c.drawImage(bitmap,0,0);const pixels=Array.from(c.getImageData(0,0,temp.width,temp.height).data);bitmap.close();edit(()=>{const e={...element('sprite'),name:file.name,w:temp.width,h:temp.height,sourceW:temp.width,sourceH:temp.height,pixels};project.elements.push(e);selected=e.id;});toast('PNG imported. Set a nine-slice border in element properties to resize its frame.');}catch(error){toast(error.message);}event.target.value='';};
+$('export-png').onclick=()=>{const image=rasterize(project),temp=document.createElement('canvas');temp.width=image.width;temp.height=image.height;temp.getContext('2d').putImageData(new ImageData(image.data,image.width,image.height),0,0);temp.toBlob(blob=>{if(blob){download(`${safeName()}.png`,blob);toast('PNG atlas exported at native resolution. Preview guides excluded.');}},'image/png');};
+$('download-layout').onclick=()=>download(`${safeName()}.layout.json`,new Blob([JSON.stringify(metadata(),null,2)],{type:'application/json'}));
+$('copy').onclick=async()=>{try{await navigator.clipboard.writeText(codeText());toast('Integration output copied.');}catch{toast('Clipboard unavailable. Select the output text or export the layout instead.');}};
+$('preset-cancel').onclick=()=>$('preset-dialog').close();$('preset-confirm').onclick=()=>{$('preset-dialog').close();applyPreset(pendingPreset);};
+palette();render();inspector();
+// Small read-only automation surface for integration checks and scripting.
+window.guiWorkbench={getDesign:()=>clone(project),loadDesign:value=>{const next=validate(value);edit(()=>{project=next;selected=null;});palette();},getPixels:()=>rasterize(project),getLayout:metadata};
+
+})();</script>
+</body>
+</html>

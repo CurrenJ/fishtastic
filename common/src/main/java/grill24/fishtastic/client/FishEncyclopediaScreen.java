@@ -1,5 +1,7 @@
 package grill24.fishtastic.client;
 
+import grill24.fishtastic.companion.CompanionBondUnlocks;
+
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticDataComponents;
@@ -8,7 +10,6 @@ import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.client.effects.CoinArcEffect;
 import grill24.fishtastic.client.renderer.ZoneIconTextures;
-import grill24.fishtastic.companion.CompanionStorage;
 import grill24.fishtastic.component.CharmEffect;
 import grill24.fishtastic.data.EncyclopediaRewardSection;
 import grill24.fishtastic.data.EncyclopediaTiers;
@@ -17,14 +18,10 @@ import grill24.fishtastic.data.FishMoonPhase;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.item.CopperFishingRod;
-import grill24.fishtastic.network.BondCompanionPacket;
 import grill24.fishtastic.network.ClaimEncyclopediaRewardPacket;
-import grill24.fishtastic.network.CompanionFeedbackPacket;
 import grill24.fishtastic.network.FishEncyclopediaSyncPacket;
 import grill24.fishtastic.network.LeaderboardEntry;
-import grill24.fishtastic.network.RenameCompanionPacket;
 import grill24.fishtastic.network.RequestQuestLogPacket;
-import grill24.fishtastic.network.UnequipCompanionPacket;
 import grill24.fishtastic.util.Utility;
 import io.github.currenj.gelatinui.GelatinUIScreen;
 import io.github.currenj.gelatinui.gui.GelatinMenu;
@@ -43,7 +40,6 @@ import io.github.currenj.gelatinui.gui.components.SpriteData;
 import io.github.currenj.gelatinui.gui.components.SpriteProgressBar;
 import io.github.currenj.gelatinui.gui.components.SpriteRectangle;
 import io.github.currenj.gelatinui.gui.components.SpriteRenderMode;
-import io.github.currenj.gelatinui.gui.components.TextInput;
 import io.github.currenj.gelatinui.gui.components.VBox;
 import io.github.currenj.gelatinui.gui.minecraft.MinecraftRenderContext;
 import net.minecraft.client.Minecraft;
@@ -135,35 +131,8 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private boolean closingScreen = false;
     private long closingAtNanos = -1L;
 
-    // ---- Companions tab (docs/fish-companions.md §8.2, §8.4) ----
-    /** Which of the two views the screen shows; the disc is the default. */
-    private boolean companionsView = false;
-    private SpriteButton fishTabButton;
-    private SpriteButton companionsTabButton;
-    private VBox companionsPanel;
-    /** The equipped companion's text input, rebuilt with the panel; null outside the tab. */
-    private TextInput nameInput;
-    private GelatinUIScreen.GlobalClickListener nameFocusListener;
-    /** Last bond/rename outcome shown as a line above the list; cleared once displayed. */
-    private String companionsMessage = "";
-    /** The species whose picker is open, or null; the picker's selection is {@link #pickerSelection}. */
-    private ItemStack pickerFor;
-    private ItemStack pickerSelection;
-    private VBox pickerPanel;
-    /** The picker's modal dim, and the viewport-space spot the panel is pinned to (docs §20). */
-    private IUIElement pickerDim;
-    private float pickerPanelX, pickerPanelY;
-    /** Client-side view of the equipped companion, to notice sync-driven changes in containerTick. */
-    private ItemStack lastSeenCompanion = ItemStack.EMPTY;
-    /** Last-seen bond unlock set, same purpose: unlocks arrive on the quest sync, not this screen's. */
     private java.util.Set<Identifier> lastSeenUnlocks = java.util.Set.of();
-    /** Last-seen carried-inventory fingerprint, so the §20 listing follows the inventory live. */
-    private int lastCarriedFingerprint = Integer.MIN_VALUE;
-    /** The status line rendered per species — the self-test checks the string the player sees. */
-    private final Map<Identifier, String> companionStatusByFish = new LinkedHashMap<>();
-    /** Row count and last-built picker groups, for the self-test's grouping checks. */
-    private int companionRowCount;
-    private java.util.List<CarriedFish.Group> pickerGroups = java.util.List.of();
+    private VBox companionInfo;
 
     // Set by another screen (e.g. QuestLogScreen's tag checklist) right before it requests the
     // encyclopedia menu reopen; consumed once by the next buildUI() to jump straight to that
@@ -254,35 +223,12 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
 
     @Override
     public boolean keyPressed(KeyEvent event) {
-        // While the companion name field has focus it owns the keyboard (except Escape, which
-        // drops focus; Enter commits).
-        if (nameInput != null && nameInput.isFocused()) {
-            if (event.key() == GLFW.GLFW_KEY_ESCAPE) {
-                nameInput.setFocused(false);
-                return true;
-            }
-            if (event.key() == GLFW.GLFW_KEY_ENTER || event.key() == GLFW.GLFW_KEY_KP_ENTER) {
-                sendRename();
-                return true;
-            }
-            nameInput.keyPressed(event.key());
-            return true;
-        }
         // Escape deselects the active fish (back to disc) before closing the screen.
         if (event.key() == GLFW.GLFW_KEY_ESCAPE && selectedFishKey != null && !closing) {
             goBackToDisc();
             return true;
         }
         return super.keyPressed(event);
-    }
-
-    @Override
-    public boolean charTyped(CharacterEvent event) {
-        if (nameInput != null && nameInput.isFocused()) {
-            nameInput.charTyped((char) event.codepoint());
-            return true;
-        }
-        return super.charTyped(event);
     }
 
     @Override
@@ -314,19 +260,10 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         for (Runnable updater : zonePipUpdaters) {
             updater.run();
         }
-        pinBondPicker();
-        tickCompanionsView();
-    }
-
-    /**
-     * While the bond picker is up it is modal — the wheel must not scroll the list beneath it out
-     * from under the dialog (docs §20). {@link #pinBondPicker} keeps it in place regardless; this
-     * stops the page itself moving, which the dim would otherwise make look broken.
-     */
-    @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        if (pickerFor != null) return true;
-        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+        if (!lastSeenUnlocks.equals(QuestClientCache.getUnlockedCompanions())) {
+            lastSeenUnlocks = QuestClientCache.getUnlockedCompanions();
+            refreshFromCache();
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -355,21 +292,8 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         loreContainer = null;
         spawnConditionPipUpdaters.clear();
         zonePipUpdaters.clear();
-        // The companions view is rebuilt from scratch like everything else; detach its global
-        // click listener so the destroyed input can't keep stealing focus.
-        if (nameFocusListener != null) {
-            removeGlobalClickListener(nameFocusListener);
-            nameFocusListener = null;
-        }
-        companionsPanel = null;
-        nameInput = null;
-        pickerPanel = null;
-        companionStatusByFish.clear();
-        companionRowCount = 0;
-        pickerGroups = java.util.List.of();
+        companionInfo = null;
         lastSeenUnlocks = QuestClientCache.getUnlockedCompanions();
-        fishTabButton = null;
-        companionsTabButton = null;
 
         Minecraft mc = Minecraft.getInstance();
 
@@ -378,7 +302,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
 
         buildTabBar();
 
-        if (!companionsView) {
+        {
             sphere = new FishSphereContainer()
                     .discRadius(DISC_RADIUS)
                     .onFishSelected(this::onFishSelected);
@@ -401,6 +325,8 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
 
                     SilhouetteItemButton icon = new SilhouetteItemButton(new ItemStack(item));
                     icon.setSilhouette(!caught);
+                    icon.setBondAvailable(QuestClientCache.isBondUnlocked(fishKey.identifier())
+                            && mc.player != null && !CarriedFish.groupsOf(mc.player, item).isEmpty());
                     icon.setHasUnclaimedReward(FishEncyclopediaClientHelper.fishHasUnclaimedReward(
                             mc.level.registryAccess(), fishKey, fishKey.identifier()));
                     iconItems.add(Map.entry(fishKey, icon));
@@ -422,12 +348,6 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
             }
 
             scheduleRewardPipPopIns();
-        } else {
-            sphere = null;
-            buildCompanionsPanel();
-            if (pickerFor != null) {
-                buildBondPicker();
-            }
         }
 
         rewardFlyOverlay = UI.manualContainer().setSize(0, 0);
@@ -440,32 +360,13 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         updateRootContentSize();
     }
 
-    /** The Fish/Companions view switch along the top edge; the active one sits slightly larger. */
+    /** Companion management stays reachable without a separate catalogue tab. */
     private void buildTabBar() {
-        float tabWidth = 72f, tabHeight = 14f, gap = 4f;
-        float x = (this.width - (tabWidth * 2f + gap)) / 2f;
-
-        fishTabButton = UI.spriteButton(tabWidth, tabHeight, companionsView ? 0xFF444444 : 0xFF228833);
-        fishTabButton.text(translated("screen.fishtastic.encyclopedia.tab.fish"), 0xFFFFFFFF);
-        fishTabButton.setPosition(new Vector2f(x, 12f));
-        fishTabButton.onClick(e -> switchView(false));
-        root.addChild(fishTabButton);
-
-        companionsTabButton = UI.spriteButton(tabWidth, tabHeight, companionsView ? 0xFF228833 : 0xFF444444);
-        companionsTabButton.text(translated("screen.fishtastic.encyclopedia.tab.companions"), 0xFFFFFFFF);
-        companionsTabButton.setPosition(new Vector2f(x + tabWidth + gap, 12f));
-        companionsTabButton.onClick(e -> switchView(true));
-        root.addChild(companionsTabButton);
-    }
-
-    private void switchView(boolean companions) {
-        if (companionsView == companions) return;
-        companionsView = companions;
-        if (companions) {
-            // Opening the tab is the action the companion FTUE's INTRO step asks for.
-            CompanionTutorialClientHandler.onCompanionsTabOpened();
-        }
-        buildUI();
+        SpriteButton button = UI.spriteButton(110f, 14f, 0xFF666666);
+        button.text(translated("screen.fishtastic.companion.manage"), 0xFFFFFFFF);
+        button.setPosition(new Vector2f((this.width - 110f) / 2f, 12f));
+        button.onClick(e -> CompanionScreen.open(ItemStack.EMPTY));
+        root.addChild(button);
     }
 
     /**
@@ -484,9 +385,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         if (infoPageRoot != null) {
             infoPageRoot.forceLayout();
             contentBottom = Math.max(contentBottom, infoPageRoot.getPosition().y + infoPageRoot.getSize().y + 16f);
-        } else if (companionsPanel != null) {
-            companionsPanel.forceLayout();
-            contentBottom = Math.max(contentBottom, companionsPanel.getPosition().y + companionsPanel.getSize().y + 16f);
+
         } else if (sphere != null) {
             contentBottom = Math.max(contentBottom, sphere.getPosition().y + DISC_SIZE + 16f);
         }
@@ -499,6 +398,9 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
             ResourceKey<FishProfile> fishKey = entry.getKey();
             Identifier fishId = fishKey.identifier();
             entry.getValue().setSilhouette(FishEncyclopediaClientCache.getCatchCount(fishId) <= 0);
+            Item species = BuiltInRegistries.ITEM.getOptional(fishId).orElse(null);
+            entry.getValue().setBondAvailable(species != null && mc.player != null
+                    && QuestClientCache.isBondUnlocked(fishId) && !CarriedFish.groupsOf(mc.player, species).isEmpty());
             if (mc.level != null) {
                 entry.getValue().setHasUnclaimedReward(
                         FishEncyclopediaClientHelper.fishHasUnclaimedReward(mc.level.registryAccess(), fishKey, fishId));
@@ -508,18 +410,14 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
             refreshInfoPage();
             updateRootContentSize();
         }
-        if (companionsView) {
-            // Counts, unlock state and the team's own status all live in synced caches, so the
-            // whole list is rebuilt rather than patched — it is short, and this runs only on sync.
-            buildUI();
-        }
+
     }
 
-    /** Staggers unclaimed-reward pip pop-ins across the disc, in icon order. Called once on screen open only. */
+    /** Staggers reward-pip and bond-heart pop-ins across the disc, in icon order. Called once on screen open only. */
     private void scheduleRewardPipPopIns() {
         float delay = REWARD_PIP_POP_INITIAL_DELAY;
         for (SilhouetteItemButton icon : iconRefs.values()) {
-            if (!icon.hasUnclaimedReward()) continue;
+            if (!icon.hasBadge()) continue;
             icon.playPipPopIn(delay);
             delay += REWARD_PIP_POP_STAGGER;
         }
@@ -705,6 +603,9 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         loreContainer = UI.vbox().spacing(3).padding(4).alignment(VBox.Alignment.CENTER);
         page.addChild(loreContainer);
 
+        companionInfo = UI.vbox().spacing(4).alignment(VBox.Alignment.CENTER);
+        page.addChild(companionInfo);
+
         page.scaleToWidth(pageWidth);
         page.setPosition(new Vector2f((this.width - pageWidth) / 2f, startY));
         root.addChild(page);
@@ -717,6 +618,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private void refreshInfoPage() {
         if (selectedFishKey == null || selectedProfile == null) return;
         Identifier fishId = selectedFishKey.identifier();
+        refreshCompanionInfo(fishId);
         int catchCount = FishEncyclopediaClientCache.getCatchCount(fishId);
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;
@@ -1154,469 +1056,30 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
                 () -> uiScreen.runDeferred(() -> rewardFlyOverlay.removeChild(coin))));
     }
 
-    // -------------------------------------------------------------------------
-    // Companions tab (docs/fish-companions.md §8.2, §8.4)
-
-    /**
-     * The Companions list: every discovered species, with its bond status and the one action that
-     * status offers. Only discovered species are listed (§8.2), and unlisted ones appear exactly
-     * where the disc shows them — after their first catch.
-     */
-    private void buildCompanionsPanel() {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null || mc.player == null) return;
-
-        float pageWidth = this.width * 0.6f;
-        VBox page = UI.vbox().spacing(6).padding(6).alignment(VBox.Alignment.CENTER);
-        page.addChild(new Label(translated("screen.fishtastic.encyclopedia.companions.title"), 0xFFFFD700).init(tempContext));
-        if (!companionsMessage.isEmpty()) {
-            page.addChild(label(companionsMessage, 0xFF88CCFF));
-        }
-
-        List<Map.Entry<ResourceKey<FishProfile>, FishProfile>> fishList =
-                FishEncyclopediaClientHelper.getAllFishProfilesSorted(mc.level.registryAccess());
-        ItemStack equipped = CompanionStorage.get(mc.player);
-
-        // Only what the player can act on right now (owner playtest, 2026-10-10): the equipped
-        // companion (so Unequip and the name field stay reachable), or a species whose bond is
-        // unlocked AND whose fish is currently carried — loose or inside a Pile of Fish. A bondable
-        // species you are not carrying is nothing to bond with; its catch progress lives on the
-        // Fish tab. The lock/progress status paths below stay for the defensive cases.
-        for (Map.Entry<ResourceKey<FishProfile>, FishProfile> entry : fishList) {
-            ResourceKey<FishProfile> fishKey = entry.getKey();
-            Identifier fishId = fishKey.identifier();
-            Item item = BuiltInRegistries.ITEM.getOptional(fishId).orElse(Items.COD);
-            boolean isEquipped = !equipped.isEmpty() && equipped.is(item);
-            if (!isEquipped && !(QuestClientCache.isBondUnlocked(fishId)
-                    && !CarriedFish.groupsOf(mc.player, item).isEmpty())) {
-                continue;
-            }
-            int catchCount = FishEncyclopediaClientCache.getCatchCount(fishId);
-            page.addChild(buildCompanionRow(mc, fishKey, fishId, item, catchCount, equipped));
-            companionRowCount++;
-        }
-        if (companionRowCount == 0) {
-            page.addChild(label(translated("screen.fishtastic.encyclopedia.companions.empty"), 0xFFCCCCCC));
-        }
-        lastCarriedFingerprint = carriedFingerprint(mc.player);
-
-        // A width anchor: scaleToWidth would otherwise scale the (narrow) rows UP to fill the
-        // page, blowing small lists up to billboard size. With a page-width spacer as the widest
-        // child, the scale lands at 1 and only shrinks if real content does overflow.
-        page.addChild(UI.rectangle(pageWidth, 1f, 0x00000000));
-        page.scaleToWidth(pageWidth);
-        page.setPosition(new Vector2f((this.width - pageWidth) / 2f, 44f));
-        root.addChild(page);
-        companionsPanel = page;
-        updateRootContentSize();
-    }
-
-    /** One species' card: icon, name, bond status, and the action for that status. */
-    private VBox buildCompanionRow(Minecraft mc, ResourceKey<FishProfile> fishKey, Identifier fishId,
-                                   Item item, int catchCount, ItemStack equipped) {
-        VBox card = UI.vbox().spacing(3).padding(5).alignment(VBox.Alignment.CENTER).backgroundColor(0x55222222);
-
-        HBox row = UI.hbox().spacing(6).alignment(HBox.Alignment.CENTER);
-        ItemRenderer.ItemRendererImpl icon = UI.itemRenderer(new ItemStack(item));
-        icon.itemScale(1.2f);
-        row.addChild(icon);
-
-        VBox text = UI.vbox().spacing(2).alignment(VBox.Alignment.CENTER);
-        text.addChild(label(item.getName(new ItemStack(item)).getString(), 0xFFFFFFFF));
-
-        boolean isEquipped = !equipped.isEmpty() && equipped.is(item);
+    private void refreshCompanionInfo(Identifier fishId) {
+        if (companionInfo == null) return;
+        companionInfo.clearChildren();
         boolean unlocked = QuestClientCache.isBondUnlocked(fishId);
-        boolean unlisted = item.builtInRegistryHolder().is(FishtasticItemTags.UNLISTED_FISH);
-        FishEncyclopediaEntry.UnlockThresholds thresholds = EncyclopediaTiers.thresholdsFor(mc.level.registryAccess(), fishKey);
-
+        Minecraft mc = Minecraft.getInstance();
+        Item item = BuiltInRegistries.ITEM.getOptional(fishId).orElse(null);
+        if (item == null || mc.level == null) return;
         String status;
-        int statusColor = 0xFF55FF55;
-        ResourceKey<Quest> unlockQuest = null;
-        if (isEquipped) {
-            status = translated("screen.fishtastic.encyclopedia.companions.your_companion");
-        } else if (unlocked) {
-            status = translated("screen.fishtastic.encyclopedia.companions.bond_available");
-        } else if (unlisted) {
-            // Quest-only companion (§8.3): name the unlocking quest when one is authored, so the
-            // encyclopedia is always the place that says how to get it.
-            ResourceKey<Quest> foundQuest = FishEncyclopediaClientHelper.findCompanionUnlockQuest(mc.level.registryAccess(), fishId);
-            unlockQuest = foundQuest;
-            if (foundQuest != null) {
-                ResourceKey<Quest> questKey = foundQuest;
-                String questName = mc.level.registryAccess().lookupOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY)
-                        .getOptional(questKey).map(Quest::displayName)
-                        .filter(name -> !name.isEmpty()).orElseGet(() -> questKey.identifier().getPath());
-                status = translated("screen.fishtastic.encyclopedia.companions.bond_quest", questName);
-            } else {
-                status = translated("screen.fishtastic.encyclopedia.companions.bond_hidden_quest");
-            }
-            statusColor = 0xFFCCCCCC;
+        if (unlocked) {
+            boolean carried = mc.player != null && !CarriedFish.groupsOf(mc.player, item).isEmpty();
+            status = translated(carried ? "screen.fishtastic.companion.ready" : "screen.fishtastic.companion.carry", new ItemStack(item).getHoverName().getString());
+        } else if (CompanionBondUnlocks.isUnlisted(fishId)) {
+            status = translated("screen.fishtastic.encyclopedia.companions.bond_hidden_quest");
         } else {
-            // R7.6: the lore threshold is always the furthest, so "N/M catches" needs no tier name.
-            status = translated("screen.fishtastic.encyclopedia.companions.bond_catches",
-                    catchCount, thresholds.loreCatches());
-            statusColor = 0xFFCCCCCC;
+            var thresholds = EncyclopediaTiers.thresholdsFor(mc.level.registryAccess(), selectedFishKey);
+            int required = java.util.Arrays.stream(EncyclopediaRewardSection.values()).mapToInt(section -> section.threshold(thresholds)).max().orElse(0);
+            status = translated("screen.fishtastic.companion.remaining", Math.max(0, required - FishEncyclopediaClientCache.getCatchCount(fishId)));
         }
-        companionStatusByFish.put(fishId, status);
-        text.addChild(label(status, statusColor));
-        row.addChild(text);
-        card.addChild(row);
-
-        if (isEquipped) {
-            SpriteButton unequip = UI.spriteButton(56f, 14f, 0xFF666666).text(
-                    translated("screen.fishtastic.encyclopedia.companions.unequip"), 0xFFFFFFFF);
-            unequip.onClick(e -> sendUnequip());
-            card.addChild(unequip);
-
-            // The companion's name is the stored fish's custom name (§7); blank clears it.
-            HBox nameRow = UI.hbox().spacing(4).alignment(HBox.Alignment.CENTER);
-            nameInput = new TextInput(110f, 12f)
-                    .placeholder(translated("screen.fishtastic.encyclopedia.companions.name_hint"))
-                    .maxLength(RenameCompanionPacket.MAX_NAME_LENGTH)
-                    .backgroundColor(0xFF1A1A1A)
-                    .borderColor(0xFF404040)
-                    .focusedBorderColor(0xFF00AAFF)
-                    .alignment(TextInput.TextAlignment.LEFT);
-            String currentName = equipped.get(net.minecraft.core.component.DataComponents.CUSTOM_NAME) != null
-                    ? equipped.getHoverName().getString() : "";
-            nameInput.text(currentName);
-            // Manual focus handling (instead of TextInput#registerGlobalClickListener) so the
-            // listener can be detached when the panel rebuilds — a leaked one would keep
-            // focusing this destroyed input.
-            nameFocusListener = (mx, my, button) -> {
-                var bounds = nameInput == null ? null : nameInput.getBounds();
-                if (nameInput != null) nameInput.setFocused(bounds != null && bounds.contains(mx, my));
-            };
-            addGlobalClickListener(nameFocusListener);
-            nameRow.addChild(nameInput);
-            SpriteButton set = UI.spriteButton(40f, 12f, 0xFF666666).text(
-                    translated("screen.fishtastic.encyclopedia.companions.set_name"), 0xFFFFFFFF);
-            set.onClick(e -> sendRename());
-            nameRow.addChild(set);
-            card.addChild(nameRow);
-        } else if (unlocked) {
-            SpriteButton bond = UI.spriteButton(56f, 14f, 0xFF228833).text(
-                    translated("screen.fishtastic.encyclopedia.companions.bond"), 0xFFFFFFFF);
-            bond.onClick(e -> openBondPicker(item));
-            card.addChild(bond);
-        } else if (unlisted && unlockQuest != null) {
-            ResourceKey<Quest> questKey = unlockQuest;
-            SpriteButton open = UI.spriteButton(56f, 14f, 0xFF666666).text(
-                    translated("screen.fishtastic.encyclopedia.companions.open_quest"), 0xFFFFFFFF);
-            open.onClick(e -> openQuestLogFor(questKey));
-            card.addChild(open);
+        companionInfo.addChild(label(status, unlocked ? 0xFFFFA4B4 : 0xFFAAAAAA));
+        if (unlocked) {
+            SpriteButton bond = UI.spriteButton(100f, 14f, 0xFF666666).text(translated("screen.fishtastic.companion.choose"), 0xFFFFFFFF);
+            bond.onClick(e -> CompanionScreen.open(new ItemStack(item)));
+            companionInfo.addChild(bond);
         }
-        return card;
-    }
-
-    /**
-     * Opens the picker for {@code species}: only fish the player is carrying right now, collapsed
-     * to one row per full-component identity with a ×N count (§8.2). Nothing is sent until Confirm.
-     */
-    private void openBondPicker(Item species) {
-        pickerFor = new ItemStack(species);
-        pickerSelection = null;
-        buildUI();
-    }
-
-    private void buildBondPicker() {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || pickerFor == null) return;
-
-        // A modal overlay, pinned to the VIEWPORT (docs §20): root is the scrolling content, and
-        // the screen moves it up by scrollY — so overlay children carry a +scrollY local offset
-        // (re-applied every tick by pinBondPicker) to stay put when the tab below is scrolled.
-        float scroll = uiScreen.getScrollY();
-        pickerDim = UI.rectangle(this.width, this.height, 0x88000000);
-        pickerDim.setPosition(new Vector2f(0f, scroll));
-        root.addChild(pickerDim);
-
-        float pageWidth = 220f;
-        pickerPanelX = (this.width - pageWidth) / 2f;
-        pickerPanelY = (this.height - 140f) / 2f;
-        VBox panel = UI.vbox().spacing(5).padding(8).alignment(VBox.Alignment.CENTER).backgroundColor(0xEE181818);
-        panel.addChild(new Label(translated("screen.fishtastic.encyclopedia.companions.picker.title",
-                pickerFor.getHoverName().getString()), 0xFFFFD700).init(tempContext));
-        populatePickerRows(mc, panel);
-        panel.addChild(UI.rectangle(pageWidth, 1f, 0x00000000)); // see buildCompanionsPanel's anchor note
-        panel.scaleToWidth(pageWidth);
-        panel.setPosition(new Vector2f(pickerPanelX, pickerPanelY + scroll));
-        root.addChild(panel);
-        pickerPanel = panel;
-        updateRootContentSize();
-    }
-
-    /**
-     * Keeps the open picker pinned to the viewport (docs §20): called every tick, because the
-     * scroll offset can change under it (mouse wheel elsewhere, edge auto-scroll) even though the
-     * screen also swallows scroll input while the picker is up.
-     */
-    private void pinBondPicker() {
-        if (pickerFor == null || pickerDim == null || pickerPanel == null) return;
-        float scroll = uiScreen.getScrollY();
-        pickerDim.setPosition(new Vector2f(0f, scroll));
-        pickerPanel.setPosition(new Vector2f(pickerPanelX, pickerPanelY + scroll));
-    }
-
-    /** (Re)fills the picker's fish rows + buttons — rerun on every selection to move the highlight. */
-    private void populatePickerRows(Minecraft mc, VBox panel) {
-        List<CarriedFish.Group> groups = pickerFor == null ? List.of() : CarriedFish.groupsOf(mc.player, pickerFor.getItem());
-        pickerGroups = groups;
-        if (groups.isEmpty()) {
-            panel.addChild(label(translated("screen.fishtastic.encyclopedia.companions.picker.empty",
-                    pickerFor.getHoverName().getString()), 0xFFCCCCCC));
-        } else {
-            for (CarriedFish.Group group : groups) {
-                boolean selected = pickerSelection != null
-                        && ItemStack.isSameItemSameComponents(pickerSelection, group.representative());
-                HBox row = UI.hbox().spacing(6).alignment(HBox.Alignment.CENTER);
-                VBox rowBox = UI.vbox().spacing(1).padding(3).alignment(VBox.Alignment.CENTER)
-                        .backgroundColor(selected ? 0x5533AA55 : 0x33222222);
-                rowBox.addChild(row);
-                ItemRenderer.ItemRendererImpl icon = UI.itemRenderer(group.representative().copyWithCount(1));
-                row.addChild(icon);
-                String labelText = group.representative().getHoverName().getString();
-                if (group.count() > 1) labelText += " ×" + group.count();
-                row.addChild(label(labelText, 0xFFFFFFFF));
-                rowBox.onClick(e -> {
-                    pickerSelection = group.representative().copyWithCount(1);
-                    panel.clearChildren();
-                    buildBondPickerContents(panel);
-                });
-                panel.addChild(rowBox);
-            }
-        }
-
-        HBox buttons = UI.hbox().spacing(6).alignment(HBox.Alignment.CENTER);
-        SpriteButton cancel = UI.spriteButton(56f, 14f, 0xFF666666).text(
-                translated("screen.fishtastic.encyclopedia.companions.picker.cancel"), 0xFFFFFFFF);
-        cancel.onClick(e -> {
-            pickerFor = null;
-            pickerSelection = null;
-            buildUI();
-        });
-        buttons.addChild(cancel);
-        if (!groups.isEmpty()) {
-            SpriteButton confirm = UI.spriteButton(56f, 14f, pickerSelection != null ? 0xFF228833 : 0xFF444444).text(
-                    translated("screen.fishtastic.encyclopedia.companions.picker.confirm"), 0xFFFFFFFF);
-            confirm.onClick(e -> {
-                if (pickerSelection != null) confirmBond(pickerSelection);
-            });
-            buttons.addChild(confirm);
-        }
-        panel.addChild(buttons);
-    }
-
-    /** Rebuilds the picker panel's contents in place (title stays; rows + buttons are redrawn). */
-    private void buildBondPickerContents(VBox panel) {
-        Minecraft mc = Minecraft.getInstance();
-        panel.addChild(new Label(translated("screen.fishtastic.encyclopedia.companions.picker.title",
-                pickerFor == null ? "" : pickerFor.getHoverName().getString()), 0xFFFFD700).init(tempContext));
-        populatePickerRows(mc, panel);
-    }
-
-    private void confirmBond(ItemStack selected) {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null) return;
-        mc.player.connection.send(new ServerboundCustomPayloadPacket(new BondCompanionPacket(selected.copyWithCount(1))));
-        pickerFor = null;
-        pickerSelection = null;
-        buildUI();
-    }
-
-    private void sendUnequip() {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null) return;
-        mc.player.connection.send(new ServerboundCustomPayloadPacket(new UnequipCompanionPacket()));
-    }
-
-    private void sendRename() {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || nameInput == null) return;
-        mc.player.connection.send(new ServerboundCustomPayloadPacket(new RenameCompanionPacket(nameInput.getText())));
-        if (nameInput != null) nameInput.setFocused(false);
-    }
-
-    /** Leaves for the quest log with the unlocking quest selected — the §8.4 "with a link". */
-    private void openQuestLogFor(ResourceKey<Quest> questKey) {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null) return;
-        QuestLogScreen.selectOnNextOpen(questKey);
-        mc.player.connection.send(new ServerboundCustomPayloadPacket(new RequestQuestLogPacket()));
-    }
-
-    /**
-     * Called every tick while the screen is open: an async answer (bond/rename feedback, the
-     * attachment sync landing) arrives outside the sync handlers, so the list notices here and
-     * rebuilds once — not per frame.
-     */
-    private void tickCompanionsView() {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null) return;
-
-        // A bond can unlock while the screen is open (the unlock rides the quest sync, which this
-        // screen doesn't handle), so the list watches the set itself and rebuilds once on change.
-        java.util.Set<Identifier> unlocks = QuestClientCache.getUnlockedCompanions();
-        if (!unlocks.equals(lastSeenUnlocks)) {
-            lastSeenUnlocks = unlocks;
-            if (companionsView) {
-                buildUI();
-                return;
-            }
-        }
-
-        CompanionFeedbackPacket.Outcome feedback = CompanionClientState.consumeRecentFeedback();
-        if (feedback != null) {
-            companionsMessage = feedbackText(feedback);
-            if (companionsView) buildUI();
-            return;
-        }
-        if (!companionsView) return;
-        ItemStack current = CompanionStorage.get(mc.player);
-        if (!ItemStack.matches(current, lastSeenCompanion)) {
-            lastSeenCompanion = current.copy();
-            buildUI();
-            return;
-        }
-        // The listing depends on what is carried now (docs §20), and the inventory changes under
-        // the open tab: a cheap fingerprint rebuilds the rows when the carried set moves.
-        int carried = carriedFingerprint(mc.player);
-        if (carried != lastCarriedFingerprint) {
-            lastCarriedFingerprint = carried;
-            buildUI();
-        }
-    }
-
-    /** A cheap hash of the player's inventory for the carried-fish row rebuild ({@link #tickCompanionsView}). */
-    private static int carriedFingerprint(net.minecraft.world.entity.player.Player player) {
-        int h = 1;
-        Inventory inv = player.getInventory();
-        for (int i = 0; i < inv.getContainerSize(); i++) {
-            ItemStack stack = inv.getItem(i);
-            if (stack.isEmpty()) continue;
-            h = h * 31 + (i + 1) * (ItemStack.hashItemAndComponents(stack) * 31 + stack.getCount());
-        }
-        return h;
-    }
-
-    private String feedbackText(CompanionFeedbackPacket.Outcome outcome) {
-        return translated(switch (outcome) {
-            case BONDED -> "screen.fishtastic.encyclopedia.companions.feedback.bonded";
-            case NOT_A_FISH -> "screen.fishtastic.encyclopedia.companions.feedback.not_a_fish";
-            case LOCKED -> "screen.fishtastic.encyclopedia.companions.feedback.locked";
-            case NOT_CARRIED -> "screen.fishtastic.encyclopedia.companions.feedback.not_carried";
-            case RENAMED -> "screen.fishtastic.encyclopedia.companions.feedback.renamed";
-            case NOTHING_TO_RENAME -> "screen.fishtastic.encyclopedia.companions.feedback.nothing_to_rename";
-        });
-    }
-
-    // -------------------------------------------------------------------------
-    // Dev accessors (self-test scene)
-
-    /** The status line the panel rendered for {@code fishId}, or null when it has no row. */
-    public String devCompanionStatus(Identifier fishId) {
-        return companionStatusByFish.get(fishId);
-    }
-
-    public int devCompanionRowCount() {
-        return companionRowCount;
-    }
-
-    /** Switches to the Companions tab exactly as its tab button does. */
-    public void devShowCompanions() {
-        switchView(true);
-    }
-
-    public boolean devOnCompanionsView() {
-        return companionsView;
-    }
-
-    /** Switches back to the fish disc exactly as its tab button does. */
-    public void devShowFish() {
-        switchView(false);
-    }
-
-    /** Opens the picker for {@code fishId} exactly as its Bond button does. */
-    public void devOpenPicker(Identifier fishId) {
-        BuiltInRegistries.ITEM.getOptional(fishId).ifPresent(this::openBondPicker);
-    }
-
-    /** Row groups of the open picker, or an empty list when it is closed. */
-    public java.util.List<CarriedFish.Group> devPickerGroups() {
-        return pickerGroups;
-    }
-
-    /** Selects a picker row exactly as clicking it does (then rebuilds the rows' highlight). */
-    public void devSelectPickerRow(int index) {
-        if (pickerFor == null || index < 0 || index >= pickerGroups.size()) return;
-        pickerSelection = pickerGroups.get(index).representative().copyWithCount(1);
-        if (pickerPanel != null) {
-            pickerPanel.clearChildren();
-            buildBondPickerContents(pickerPanel);
-        }
-    }
-
-    /** Confirms the picker exactly as its Confirm button does. */
-    public void devConfirmPicker() {
-        if (pickerSelection != null) confirmBond(pickerSelection);
-    }
-
-    /** Cancels the picker exactly as its Cancel button does. */
-    public void devCancelPicker() {
-        pickerFor = null;
-        pickerSelection = null;
-        buildUI();
-    }
-
-    /** Unequips exactly as the row's button does. */
-    public void devUnequip() {
-        sendUnequip();
-    }
-
-    /** Types into the name field and commits, exactly as the Set name button does. */
-    public void devRename(String name) {
-        if (nameInput == null) return;
-        nameInput.text(name);
-        sendRename();
-    }
-
-    /** Whether the Companions tab rendered a row for this species (docs §20's filter scene). */
-    public boolean devHasRow(Identifier fishId) {
-        return companionStatusByFish.containsKey(fishId);
-    }
-
-    /** The current scroll offset of the tab content, for the picker-pinning scene. */
-    public float devScrollY() {
-        return uiScreen.getScrollY();
-    }
-
-    /** Scrolls the tab content programmatically (as the wheel would). */
-    public void devSetScroll(float y) {
-        uiScreen.setScrollY(y);
-    }
-
-    /** The open picker panel's global bounds {x, y, w, h}, or null when it is closed. */
-    @org.jetbrains.annotations.Nullable
-    public float[] devPickerBounds() {
-        if (pickerPanel == null) return null;
-        java.awt.geom.Rectangle2D b = pickerPanel.getBounds();
-        return new float[]{(float) b.getX(), (float) b.getY(), (float) b.getWidth(), (float) b.getHeight()};
-    }
-
-    /** The modal dim's global bounds {x, y, w, h}, or null when it is closed. */
-    @org.jetbrains.annotations.Nullable
-    public float[] devPickerDimBounds() {
-        if (pickerDim == null) return null;
-        java.awt.geom.Rectangle2D b = pickerDim.getBounds();
-        return new float[]{(float) b.getX(), (float) b.getY(), (float) b.getWidth(), (float) b.getHeight()};
-    }
-
-    public float devScreenWidth() {
-        return this.width;
-    }
-
-    public float devScreenHeight() {
-        return this.height;
     }
 
     // -------------------------------------------------------------------------

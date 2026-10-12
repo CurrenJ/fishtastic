@@ -8,11 +8,13 @@ import net.minecraft.core.Holder;
 import net.minecraft.world.inventory.MenuType;
 
 public class FishtasticMenuTypes {
+    public static Holder<MenuType<?>> COMPANION;
     public static Holder<MenuType<?>> FISH_TANK_ASSEMBLY;
     public static Holder<MenuType<?>> ELECTRIC_FISH_ORGANIZER;
     public static Holder<MenuType<?>> FISH_TANK_BROWSER;
 
     public static void registerMenuTypes() {
+        COMPANION = RegistrationApiSided.getInstance().registerMenuType("companion", grill24.fishtastic.menu.CompanionMenu::new);
         FISH_TANK_ASSEMBLY = RegistrationApiSided.getInstance().registerMenuType(
                 "fish_tank_assembly",
                 FishTankAssemblyMenu::new

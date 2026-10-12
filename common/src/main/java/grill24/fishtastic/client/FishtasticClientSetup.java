@@ -18,6 +18,10 @@ import net.minecraft.world.inventory.MenuType;
 import java.lang.reflect.Field;
 
 public final class FishtasticClientSetup {
+    @SuppressWarnings("unchecked")
+    public static MenuType<grill24.fishtastic.menu.CompanionMenu> companionMenuType() {
+        return (MenuType<grill24.fishtastic.menu.CompanionMenu>) (MenuType<?>) FishtasticMenuTypes.COMPANION.value();
+    }
     /**
      * The Fish Tank Assembly menu type, cast down from the wildcard {@code Holder<MenuType<?>>}.
      * Registering the matching screen against vanilla {@code MenuScreens}/NeoForge's

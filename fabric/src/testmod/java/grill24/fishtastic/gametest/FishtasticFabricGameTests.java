@@ -1261,6 +1261,61 @@ public class FishtasticFabricGameTests {
     // -------------------------------------------------------------------------
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionMenuClickEquipsAndReturns(GameTestHelper helper) {
+        CompanionMenuGameTests.clickEquipsAndReturns(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionMenuCursorSwapExchangesCompanions(GameTestHelper helper) {
+        CompanionMenuGameTests.cursorSwapExchangesCompanions(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionMenuNumberKeySwapExchangesAndReturns(GameTestHelper helper) {
+        CompanionMenuGameTests.numberKeySwapExchangesAndReturns(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionMenuDragPlacesOneFish(GameTestHelper helper) {
+        CompanionMenuGameTests.dragPlacesOneFish(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionMenuShiftClickTakesOneFromAStack(GameTestHelper helper) {
+        CompanionMenuGameTests.shiftClickTakesOneFromAStack(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionMenuShiftClickSameSpeciesSwapsOnce(GameTestHelper helper) {
+        CompanionMenuGameTests.shiftClickSameSpeciesSwapsOnce(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionMenuShiftClickWithAFullInventoryChangesNothing(GameTestHelper helper) {
+        CompanionMenuGameTests.shiftClickWithAFullInventoryChangesNothing(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionMenuLockedFishIsRejected(GameTestHelper helper) {
+        CompanionMenuGameTests.lockedFishIsRejected(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionMenuClosingWithAFishOnTheCursorKeepsIt(GameTestHelper helper) {
+        CompanionMenuGameTests.closingWithAFishOnTheCursorKeepsIt(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionMenuClickAfterAnOutsideBondSeesTheNewCompanion(GameTestHelper helper) {
+        CompanionMenuGameTests.clickAfterAnOutsideBondSeesTheNewCompanion(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionMenuOutsideRenameReachesTheSlot(GameTestHelper helper) {
+        CompanionMenuGameTests.outsideRenameReachesTheSlot(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void bondTakesTheFishFromTheInventory(GameTestHelper helper) {
         CompanionGameTests.bondTakesTheFishFromTheInventory(helper, helper::makeMockServerPlayerInLevel);
     }

@@ -22,7 +22,12 @@ import java.util.List;
 public final class Companions {
     private Companions() {}
 
-    public enum BondResult { BONDED, NOT_A_FISH, LOCKED, NOT_CARRIED }
+    /** Vanilla menu clicks already move the real item; persist that slot without returning it again. */
+    public static void setFromMenu(ServerPlayer player, ItemStack fish) {
+        CompanionStorage.set(player, fish.isEmpty() ? ItemStack.EMPTY : fish.copyWithCount(1));
+    }
+
+    public enum BondResult { BONDED, NOT_A_FISH, LOCKED, NOT_CARRIED, INVENTORY_FULL }
 
     /**
      * Bonds with a fish the player is carrying. {@code wanted} only <i>describes</i> the fish — the
@@ -34,6 +39,20 @@ public final class Companions {
     public static BondResult bond(ServerPlayer player, ItemStack wanted) {
         if (wanted.isEmpty() || !wanted.is(FishtasticItemTags.FISH)) return BondResult.NOT_A_FISH;
         if (!CompanionBondGate.isUnlocked(player, wanted)) return BondResult.LOCKED;
+        ItemStack previous = CompanionStorage.get(player);
+        if (!previous.isEmpty() && !hasRoomToReturn(player, previous)) {
+            boolean freesSlot = false;
+            for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+                ItemStack carried = player.getInventory().getItem(i);
+                if (sameFish(carried, wanted)) {
+                    // Mirror takeOneMatching's first-match order, rather than assuming a later
+                    // single fish will be taken. Removing a matching stack also creates merge room.
+                    freesSlot = (i < 36 && carried.getCount() == 1) || sameFish(previous, wanted);
+                    break;
+                }
+            }
+            if (!freesSlot) return BondResult.INVENTORY_FULL;
+        }
         ItemStack taken = takeOneMatching(player, wanted);
         if (taken.isEmpty()) return BondResult.NOT_CARRIED;
         equip(player, taken);
@@ -48,6 +67,15 @@ public final class Companions {
         CompanionStorage.set(player, ItemStack.EMPTY);
         RemoveTankEntryPacket.giveOrDrop(player, returned);
         return true;
+    }
+
+    public static boolean hasRoomToReturn(net.minecraft.world.entity.player.Player player, ItemStack fish) {
+        if (fish.isEmpty()) return true;
+        for (int i = 0; i < 36; i++) {
+            ItemStack stack = player.getInventory().getItem(i);
+            if (stack.isEmpty() || (sameFish(stack, fish) && stack.getCount() < Math.min(stack.getMaxStackSize(), 64))) return true;
+        }
+        return false;
     }
 
     /**

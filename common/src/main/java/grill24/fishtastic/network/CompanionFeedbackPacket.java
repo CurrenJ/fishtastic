@@ -20,7 +20,8 @@ public record CompanionFeedbackPacket(Outcome outcome) implements CustomPacketPa
         LOCKED,
         NOT_CARRIED,
         RENAMED,
-        NOTHING_TO_RENAME
+        NOTHING_TO_RENAME,
+        INVENTORY_FULL
     }
 
     /** Maps the server's bond result onto the wire outcome, exhaustively (no name() coupling). */
@@ -30,6 +31,7 @@ public record CompanionFeedbackPacket(Outcome outcome) implements CustomPacketPa
             case NOT_A_FISH -> Outcome.NOT_A_FISH;
             case LOCKED -> Outcome.LOCKED;
             case NOT_CARRIED -> Outcome.NOT_CARRIED;
+            case INVENTORY_FULL -> Outcome.INVENTORY_FULL;
         };
     }
 

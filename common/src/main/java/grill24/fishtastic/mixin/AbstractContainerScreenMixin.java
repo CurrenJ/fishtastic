@@ -23,6 +23,34 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(AbstractContainerScreen.class)
 public abstract class AbstractContainerScreenMixin {
 
+    @Shadow protected Slot hoveredSlot;
+    @Shadow protected int leftPos;
+    @Shadow protected int topPos;
+
+    @Inject(method = "extractRenderState", at = @At("HEAD"))
+    private void fishtastic$holdToBond(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
+        // Find the live slot before vanilla's extraction updates hoveredSlot later in the frame.
+        var screen = (AbstractContainerScreen<?>) (Object) this;
+        if (!(screen instanceof net.minecraft.client.gui.screens.inventory.InventoryScreen)) return;
+        int left = leftPos, top = topPos;
+        Slot live = null;
+        for (Slot slot : menu.slots) {
+            if (slot.isActive() && mouseX >= left + slot.x && mouseX < left + slot.x + 16
+                    && mouseY >= top + slot.y && mouseY < top + slot.y + 16) live = slot;
+        }
+        grill24.fishtastic.client.CompanionBondInput.tick(this, live, menu.getCarried().isEmpty());
+    }
+
+    @Inject(method = "getTooltipFromContainerItem", at = @At("RETURN"), cancellable = true)
+    private void fishtastic$bondTooltip(net.minecraft.world.item.ItemStack stack,
+            org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<java.util.List<net.minecraft.network.chat.Component>> cir) {
+        if (!((Object) this instanceof net.minecraft.client.gui.screens.inventory.InventoryScreen)
+                || !grill24.fishtastic.client.CompanionBondInput.eligible(stack)) return;
+        var lines = new java.util.ArrayList<>(cir.getReturnValue());
+        lines.add(grill24.fishtastic.client.CompanionBondInput.hint(stack));
+        cir.setReturnValue(lines);
+    }
+
     @Shadow @Final
     protected AbstractContainerMenu menu;
 
