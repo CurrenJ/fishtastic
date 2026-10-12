@@ -62,7 +62,7 @@ import java.util.Set;
  *   strolls over · I drop an item ahead · O another companion swims past · K get hurt
  *   X clear them all
  *   Benthics on the ground: J jump · M get on / off a mount · E start / stop gliding (elytra)
- *   G send a benthic riding its perch back down to the ground (Phase 2's dismount, by hand)
+ *   G ground · P climb · B tumble · K hurt
  *   The terrain scenes (half_stairs, slab_path, terraces, trench, cliff, door_wall,
  *   benthic_park) and the ground owner scripts are in the dropdowns.
  * </pre>
@@ -122,6 +122,8 @@ public final class CompanionViewer {
     /** A trio of small free swimmers, or null for a solo companion. */
     private grill24.fishsim.companion.CompanionGroup group;
     private boolean trio;
+    private grill24.fishsim.companion.BenthicGroup benthicGroup;
+    private grill24.fishsim.companion.BenthicGroup.Formation benthicFormation;
     private float lookYaw, lookPitch;
     private boolean paused, stepOnce, teleportNext;
     private long lastNanos = System.nanoTime();
@@ -176,7 +178,9 @@ public final class CompanionViewer {
                     case KeyEvent.VK_J -> jumpNext = true;
                     case KeyEvent.VK_M -> pilotOrScript().riding = !pilotOrScript().riding;
                     case KeyEvent.VK_E -> pilotOrScript().gliding = !pilotOrScript().gliding;
-                    case KeyEvent.VK_G -> agent.devGround();
+                    case KeyEvent.VK_G -> { if (benthicGroup != null) benthicGroup.devGround(); else agent.devGround(); }
+                    case KeyEvent.VK_P -> { if (benthicGroup != null) benthicGroup.devPerch(); else agent.devPerch(); }
+                    case KeyEvent.VK_B -> { if (benthicGroup != null) benthicGroup.devTumble(); else agent.devTumble(); }
                     default -> { }
                 }
             }
@@ -283,12 +287,18 @@ public final class CompanionViewer {
     }
 
     private CompanionAgent newAgent() {
+        benthicGroup = null;
         if (trio) {
             group = new grill24.fishsim.companion.CompanionGroup(tunables, seed, CompanionRun.TRIO_LENGTH, temperament, world());
             return group.leader();
         }
         group = null;
         float length = locomotion == Locomotion.BENTHIC ? benthicLength : CompanionRun.lengthOf(locomotion);
+        if (locomotion == Locomotion.BENTHIC && benthicFormation != null) {
+            benthicGroup = new grill24.fishsim.companion.BenthicGroup(tunables, seed, length, temperament,
+                    gait, 3, benthicFormation, world());
+            return benthicGroup.leader();
+        }
         return new CompanionAgent(tunables, seed, locomotion, length, temperament, gait, world());
     }
 
@@ -325,7 +335,8 @@ public final class CompanionViewer {
     }
 
     private void interpolate(float alpha) {
-        if (group != null) group.interpolate(alpha); else agent.interpolate(alpha);
+        if (benthicGroup != null) benthicGroup.interpolate(alpha);
+        else if (group != null) group.interpolate(alpha); else agent.interpolate(alpha);
     }
 
     private void tick() {
@@ -362,17 +373,26 @@ public final class CompanionViewer {
         hurtNext = false;
         // A scripted door shuts once the fish isn't in the doorway.
         scene.applyDoor(d -> {
-            Vec p = agent.position();
-            double r = agent.radius();
-            return p.x() + r < d[0] || p.x() - r > d[3] || p.y() + r < d[1] || p.y() - r > d[4]
-                    || p.z() + r < d[2] || p.z() - r > d[5];
+            int count = benthicGroup == null ? 1 : benthicGroup.count();
+            for (int i = 0; i < count; i++) {
+                CompanionAgent member = benthicGroup == null ? agent : benthicGroup.member(i);
+                Vec p = member.position();
+                double r = member.radius();
+                boolean clear = p.x() + r < d[0] || p.x() - r > d[3] || p.y() + r < d[1] || p.y() - r > d[4]
+                        || p.z() + r < d[2] || p.z() - r > d[5];
+                if (!clear) return false;
+            }
+            return true;
         });
         if (scene.version() != sceneVersion) {
             sceneVersion = scene.version();
-            agent.voxels().invalidate();
+            if (benthicGroup != null) benthicGroup.invalidateBlocks();
+            else if (group != null) group.invalidateBlocks();
+            else agent.voxels().invalidate();
             renderCache.invalidate();
         }
-        if (group != null) group.step(world()); else agent.step(world());
+        if (benthicGroup != null) benthicGroup.step(world());
+        else if (group != null) group.step(world()); else agent.step(world());
         trail.addLast(agent.position());
         if (trail.size() > TRAIL) trail.removeFirst();
     }
@@ -381,15 +401,23 @@ public final class CompanionViewer {
         renderCache.update(scene, owner.eye());
         BufferedImage fp = CompanionRenderer.firstPerson(FP_W, FP_H, owner, renderCache, agent, true, world());
         if (group != null) CompanionRenderer.drawFollowers(fp, owner, renderCache, group, CompanionRun.TRIO_LENGTH);
+        if (benthicGroup != null) CompanionRenderer.drawBenthicFollowers(fp, owner, renderCache, benthicGroup);
         BufferedImage top = CompanionRenderer.topView(TOP_W, FP_H, owner, renderCache, agent, tunables, trail, 30, world());
         g.drawImage(fp, 0, 0, null);
         g.drawImage(top, FP_W, 0, null);
+        if (agent.landMode() != null) {
+            g.setColor(Color.WHITE);
+            g.drawString("Land: " + agent.landMode() + "  climbs=" + agent.climbs()
+                    + " dismounts=" + agent.dismounts() + " tumbles=" + agent.tumbles()
+                    + "  beat=" + (agent.beat() == null ? "-" : agent.beat())
+                    + " overtakes=" + agent.overtakes() + " roadsides=" + agent.roadsides(), 8, 20);
+        }
         g.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
         g.setColor(new Color(0, 0, 0, 140));
         g.fillRect(0, FP_H - 22, FP_W, 22);
         g.setColor(Color.WHITE);
         g.drawString("WASD move · Shift sprint · J jump · drag/arrows look · F view · T teleport · M mount · E glide · G ground"
-                + " · Space pause · N step · R reseed" + (paused ? "   [PAUSED]" : ""), 8, FP_H - 7);
+                + " · P climb · B tumble · K hurt · Space pause · N step · R reseed" + (paused ? "   [PAUSED]" : ""), 8, FP_H - 7);
     }
 
     private JPanel controls() {
@@ -408,14 +436,19 @@ public final class CompanionViewer {
             canvas.requestFocusInWindow();
         };
         JComboBox<String> classBox = new JComboBox<>(new String[]{"FREE_SWIM", "TRIO", "GLIDE", "DRIFT",
-                "BENTHIC", "BENTHIC plaice", "BENTHIC slug", "BENTHIC spider crab", "ANCHORED"});
+                "BENTHIC", "BENTHIC plaice", "BENTHIC slug", "BENTHIC spider crab",
+                "BENTHIC starfish line", "BENTHIC slug crowd", "ANCHORED"});
         classBox.addActionListener(e -> {
             String c = (String) classBox.getSelectedItem();
             trio = c.equals("TRIO");
             gait = c.equals("BENTHIC plaice") ? GroundGait.RIPPLE : GroundGait.CRAWL;
+            benthicFormation = c.equals("BENTHIC starfish line") ? grill24.fishsim.companion.BenthicGroup.Formation.LINE
+                    : c.equals("BENTHIC slug crowd") ? grill24.fishsim.companion.BenthicGroup.Formation.CROWD : null;
             benthicLength = switch (c) {
                 case "BENTHIC plaice" -> 0.35f;
                 case "BENTHIC slug" -> 0.12f;
+                case "BENTHIC slug crowd" -> 0.12f;
+                case "BENTHIC starfish line" -> 0.4f;
                 case "BENTHIC spider crab" -> 0.6f;
                 default -> CompanionRun.lengthOf(Locomotion.BENTHIC);
             };

@@ -272,11 +272,8 @@ public final class ClientCompanion {
 
     Locomotion locomotion() { return locomotion; }
 
-    /** A flat pose (a starfish's floor sit) is stood up on a shoulder so the sprite reads from the front. */
-    boolean perchStandsUp() { return perchPose.flatPose(); }
-
-    /** The length the perched fish is drawn at, blocks. */
-    float perchLength() { return perchPose.length(); }
+    /** Height of the perched sprite's centre above the surface its feet rest on. */
+    float perchFloorLift() { return perchPose.floorLift(); }
 
     /**
      * Draws the perched fish in the pose space the player layer has set up: its idle animation, the
@@ -343,12 +340,15 @@ public final class ClientCompanion {
         if (agent == null) return List.of("companion: not stepped yet");
         CompanionAgent a = agent;
         String perch = a.perchState() == null ? "" : "  perch " + a.perchState().toLowerCase(Locale.ROOT);
+        String ground = a.footTrail().isEmpty() ? "" : String.format(Locale.ROOT,
+                "  land %s lag %.1f trail %d %s", a.landMode(), a.groundLag(), a.footTrail().size(),
+                a.groundReachable() ? "reachable" : "stranded");
         return List.of(
                 String.format(Locale.ROOT, "%s  %s  temperament %s  %.2f blocks",
                         BuiltInRegistries.ITEM.getKey(stack.getItem()).getPath(), displayClassName(),
                         temperament.name(), length),
                 String.format(Locale.ROOT, "goal %s (%.1f s)%s  pose %s  fade %s", a.goal(),
-                        a.goalTicks() / 20f, perch, a.poseHint(), a.fade()),
+                        a.goalTicks() / 20f, perch + ground, a.poseHint(), a.fade()),
                 "curiosity " + bar(a.curiosity()) + "  wariness " + bar(a.wariness())
                         + "  rest " + bar(a.rest()) + (a.resting() ? " settled" : ""),
                 "proximity " + bar(a.proximity()) + "  attention " + bar(a.attention())

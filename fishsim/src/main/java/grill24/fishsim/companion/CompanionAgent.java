@@ -37,6 +37,9 @@ public final class CompanionAgent {
     private Vec lookTarget;
     /** A percher's body (BENTHIC, ANCHORED), else null; its swim body is the one the mind steers. */
     private final PerchBody perch;
+    /** Ground-group followers share the leader's mind/drives; only their motors step. */
+    private final CompanionAgent groupLeader;
+    private Vec formationSwim = Vec.ZERO;
     private boolean perchSeen;
     private final LocalVoxels voxels = new LocalVoxels();
     private final Breadcrumbs crumbs = new Breadcrumbs();
@@ -96,11 +99,17 @@ public final class CompanionAgent {
      */
     public CompanionAgent(CompanionTunables t, long seed, Locomotion locomotion, float length, Temperament temperament,
                           GroundGait gait, CompanionWorld world) {
+        this(t, seed, locomotion, length, temperament, gait, world, null);
+    }
+
+    CompanionAgent(CompanionTunables t, long seed, Locomotion locomotion, float length, Temperament temperament,
+                   GroundGait gait, CompanionWorld world, CompanionAgent groupLeader) {
         OwnerState owner = world.owner();
         BlockQuery blocks = world.blocks();
         this.t = t;
         this.temperament = temperament;
-        this.drives = new Drives(temperament);
+        this.groupLeader = groupLeader;
+        this.drives = groupLeader == null ? new Drives(temperament) : groupLeader.drives;
         this.length = length;
         this.locomotion = locomotion;
         double radius = Math.max(0.08, Math.min(0.3, length * 0.3));
@@ -118,7 +127,7 @@ public final class CompanionAgent {
                 this.perch = new PerchBody(t, locomotion, swim, owner, radius, length, seed, drives);
             }
             this.body = perch;
-            this.mind = new Mind(t, swim, seed, drives, temperament);
+            this.mind = groupLeader == null ? new Mind(t, swim, seed, drives, temperament) : groupLeader.mind;
             start = perch.pos;
             swim.pace = temperament.pace();
         } else {
@@ -146,11 +155,12 @@ public final class CompanionAgent {
         ticks++;
 
         voxels.update(blocks, owner.eye());
-        drives.update(world);
+        if (groupLeader == null) drives.update(world);
         if (owner.teleported()) crumbs.clear();
         crumbs.record(owner.chest());
         lastChest = owner.chest();
         if (perch != null && perch.ground != null) {
+            perch.gmind.playerPoints = world.points();
             if (owner.teleported()) footCrumbs.clear();
             // Only where they set foot: in the air over a gap (a jump, a fall, flight) their feet
             // aren't a way across it.
@@ -167,16 +177,21 @@ public final class CompanionAgent {
         }
 
         if (perch != null) {
+            if (perch.onGround() && groupLeader == null) {
+                perch.gmind.intent = mind.thinkGround(owner, voxels, perch.ground);
+            }
             // The drives react to whether it was seen last tick; seen is then judged where the
             // body is now, against this tick's camera (judging last tick's spot against this tick's
             // camera put a crab riding a walking owner's hand out of view).
-            perch.step(owner, voxels, perchSeen, () -> mind.think(owner, voxels, crumbs),
-                    () -> mind.ownerAvoidance(owner), () -> mind.reset(owner));
+            perch.step(owner, voxels, perchSeen,
+                    () -> groupLeader == null ? mind.think(owner, voxels, crumbs) : formationSwim,
+                    () -> mind.ownerAvoidance(owner), () -> { if (groupLeader == null) mind.reset(owner); });
             perchSeen = Visibility.visible(owner, perch.pos, voxels);
             if (fade == Fade.NONE && perch.wantsFade && !perch.attached()) fade = Fade.OUT;
             // Riding the owner through a teleport: it went with them, so don't draw it streaking.
             if (perch.attached() && owner.teleported()) prevPos = perch.pos;
-            perchPose();
+            if (groupLeader == null) perchPose();
+            else { pose = groupLeader.pose; lookTarget = groupLeader.lookTarget; }
         } else {
             Vec desired = mind.think(owner, voxels, crumbs);
             body.step(desired, mind.wanderScale, mind.ownerAvoidance(owner), voxels, Capsule.ownerBody(owner));
@@ -223,7 +238,11 @@ public final class CompanionAgent {
      * (watching it from the shoulder is just waiting to hop).
      */
     private void perchPose() {
-        if (perch.onGround()) lookTarget = null;
+        if (perch.onGround()) {
+            pose = mind.pose;
+            lookTarget = mind.goal == Mind.Goal.INSPECT && drives.target != null ? drives.target.pos : drives.threatPos;
+            return;
+        }
         if (perch.mode == PerchBody.Mode.SWIM) {
             pose = mind.pose;
             lookTarget = mind.goal == Mind.Goal.INSPECT && drives.target != null ? drives.target.pos : null;
@@ -269,7 +288,7 @@ public final class CompanionAgent {
     private void place(OwnerState owner) {
         Vec p = besideOwner(owner, body.radius);
         body.placeAt(p, owner.yawDeg());
-        mind.reset(owner);
+        if (groupLeader == null) mind.reset(owner);
         if (perch != null) {
             // A percher comes back where it lives: on its owner.
             perch.reperch(owner);
@@ -343,10 +362,11 @@ public final class CompanionAgent {
 
     /**
      * The mind's goal — or PERCH while a percher is riding or hopping (its hops aren't mind goals),
-     * or a benthic's land mode while it walks (GROUND_IDLE, GROUND_FOLLOW, CATCH_UP).
+     * or its ground desire while it walks. Ground travel mode is exposed separately by landMode.
      */
     public String goal() {
-        if (perch != null && perch.mode == PerchBody.Mode.GROUND) return perch.gmind.land.name();
+        if (perch != null && perch.mode == PerchBody.Mode.GROUND)
+            return mind.goal.name();
         return perch != null && perch.mode != PerchBody.Mode.SWIM ? "PERCH" : mind.goal.name();
     }
     /** A percher's mode and slot, for overlays (null for other classes). */
@@ -390,8 +410,55 @@ public final class CompanionAgent {
     public int perchUnseenTicks() { return perch == null ? -1 : perch.unseenTicks; }
     /** Whether a benthic on the ground is coming up alongside its owner to hop to their hand. */
     public boolean comingClose() { return perch != null && perch.gmind != null && perch.gmind.wantClose; }
-    /** Dev trigger: a benthic riding its perch goes back down to the ground (Phase 2's dismount, by hand). */
+    /** Dev trigger: a benthic riding its perch goes back down to the ground. */
     public void devGround() { if (perch != null) perch.devGround(); }
+
+    void groupSlot(PerchBody.Slot slot, boolean follower, int phase) {
+        perch.home = slot;
+        perch.slot = slot;
+        perch.groupMember = true;
+        perch.groupFollower = follower;
+        perch.gmind.formationMember = true;
+        perch.ground.tailPhase += phase * (float) (2 * Math.PI / 3);
+    }
+
+    void groupStart(Vec near) {
+        double floor = perch.ground.footprintFloorFrom(voxels, near.x(), near.z(), near.y() - 0.5);
+        Vec at = new Vec(near.x(), floor + radius() + LocalVoxels.GROUND_LIFT, near.z());
+        if (!Double.isNaN(floor) && voxels.sphereClear(at, radius())
+                && perch.ground.placeOnFloor(near, yaw(), voxels)) {
+            perch.copyFromGround();
+            prevPos = renderPos = body.pos;
+        }
+    }
+
+    void formation(Vec target, Vec push, double speed, boolean allowClimb) {
+        perch.gmind.formationTarget = target;
+        perch.gmind.formationPush = push;
+        perch.gmind.formationSpeed = speed;
+        perch.allowGroupClimb = allowClimb;
+        formationSwim = target == null ? Vec.ZERO : target.sub(position()).scale(2).clampLength(t.catchUpSpeed);
+    }
+
+    void formationTurn(float yaw) { perch.gmind.formationFace = yaw; }
+    public void devPerch() { if (perch != null) perch.devPerch(); }
+    public void devTumble() { if (perch != null) perch.devTumble(); }
+    public int climbs() { return perch == null ? 0 : perch.climbs; }
+    /** In-view beats begun on the ground (spec §5): overtakes and roadside stops. */
+    public int overtakes() { return perch == null || perch.gmind == null ? 0 : perch.gmind.overtakes; }
+    public int roadsides() { return perch == null || perch.gmind == null ? 0 : perch.gmind.roadsides; }
+    /** The in-view beat under way on the ground, or null. */
+    public String beat() { return perch == null || perch.gmind == null || perch.gmind.beat == null ? null : perch.gmind.beat.name(); }
+    public int dismounts() { return perch == null ? 0 : perch.dismounts; }
+    public int tumbles() { return perch == null ? 0 : perch.tumbles; }
+    public boolean tumbling() { return perch != null && perch.tumbling; }
+    public String landMode() {
+        if (perch == null) return null;
+        if (perch.tumbling) return "TUMBLE";
+        if (perch.climbing) return "CLIMB";
+        if (perch.dismounting) return "DISMOUNT";
+        return onGround() ? perch.gmind.land.name() : perch.mode.name();
+    }
 
     /** Dev trigger: as if the owner had idled long enough to settle (see {@link Drives#devDrowsy}). */
     public void devDrowsy() { drives.devDrowsy(); }
@@ -400,7 +467,7 @@ public final class CompanionAgent {
     /** Whether a percher is on its owner: riding, or pushing off or touching down in a hop. */
     public boolean onOwner() { return perch != null && perch.onOwner(); }
     public int hops() { return perch == null ? 0 : perch.hops; }
-    public int goalTicks() { return perch != null && perch.mode == PerchBody.Mode.GROUND ? perch.gmind.landTicks : mind.goalTicks; }
+    public int goalTicks() { return mind.goalTicks; }
     public int goalSwitches() { return mind.goalSwitches; }
     public int showOffs() { return mind.showOffs; }
     public float proximity() { return mind.proximity; }

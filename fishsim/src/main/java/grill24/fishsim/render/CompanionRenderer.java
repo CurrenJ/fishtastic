@@ -151,6 +151,7 @@ public final class CompanionRenderer {
             case CAT -> CAT;
             case DROPPED_ITEM -> ITEM;
             case COMPANION -> OTHER_COMPANION;
+            case PLAYER -> new Color(0x3D5A80);
         };
     }
 
@@ -321,6 +322,19 @@ public final class CompanionRenderer {
             if (f.renderAppear() < 0.01f || !voxels.segmentClear(cam.pos(), f.renderPos(), 0.0)) continue;
             drawFishAt(g, cam, length * f.renderAppear(), f.renderPos(), f.renderYaw(), f.renderPitch(),
                     f.renderBank(), f.renderTailPhase(), FISH);
+        }
+        g.dispose();
+    }
+
+    /** Ground formation members use exactly the solo renderer and their own interpolated pose. */
+    public static void drawBenthicFollowers(BufferedImage img, OwnerState owner, LocalVoxels voxels,
+                                            grill24.fishsim.companion.BenthicGroup group) {
+        Graphics2D g = img.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        Cam cam = Cam.of(owner, img.getWidth(), img.getHeight());
+        for (int i = 1; i < group.count(); i++) {
+            CompanionAgent a = group.member(i);
+            if (a.renderAppear() > 0.01f && voxels.segmentClear(cam.pos(), a.renderPos(), 0)) drawFish(g, cam, a);
         }
         g.dispose();
     }

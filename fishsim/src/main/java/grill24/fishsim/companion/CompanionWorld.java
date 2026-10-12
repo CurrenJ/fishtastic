@@ -10,7 +10,7 @@ import java.util.List;
  *
  * @param owner  the owner's body, view and flags
  * @param blocks the blocks around the owner
- * @param points things nearby worth reacting to (hostiles, cats, dropped items, other companions)
+ * @param points things nearby worth reacting to (hostiles, cats, dropped items, companions, player feet)
  * @param held   what the owner holds in their main hand, as the companion understands it (spec §3.1)
  * @param hurt   the owner took damage this tick
  */

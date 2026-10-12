@@ -1,6 +1,6 @@
 # Fish companions: benthics on the ground (design spec)
 
-Status: spec settled 2026-10-11; Phase 1 built 2026-10-12 (§10), awaiting the owner's viewer look. Builds on the companion sim (docs/fish-companions-sim-plan.md, Phases 1–3).
+Status: Phases 1–2 verified, large-crab terrain gap repaired (§13); Phase 3 group foundation built (§15). Owner authorized proceeding through Phases 3–5 on 2026-10-12 with visual approval pending. Full implementation is not complete. Builds on the companion sim (docs/fish-companions-sim-plan.md, Phases 1–3).
 Owner calls are marked **(owner)**; §9 records the answers to the open questions (all settled 2026-10-11).
 
 ## 1. The idea
@@ -355,3 +355,415 @@ Pick **BENTHIC** (or plaice / slug / spider crab), scene **benthic_park**, owner
 7. Mount (M) or glide (E): it climbs on, or fades onto its perch, within a second. Then G to send
    it back down (Phase 2 will do that itself).
 8. The trench (J to jump it at a run): it hops across after you.
+
+## 11. Phase 2 — original handoff (superseded by §12)
+
+Paused at the coordinator's request (usage). Nothing committed or staged. Baseline for this phase is 95a320fd.
+
+**Fingerprint baseline:** recorded before any Phase 2 edit with `FingerprintProbe -PsimStdout -PfpAll=1`, saved to
+`%TEMP%/fp_base_p2.txt` (516 lines: 33 FP + 69 each of FREE_SWIM, GLIDE, BENTHIC, ANCHORED, DRIFT, PERCHER, TRIO).
+If %TEMP% has been cleaned, re-record it from a 95a320fd checkout (git stash or a worktree), not from this tree.
+
+**Done (edited, NOT yet compiled):**
+- `OwnerState`: new last component `double landedFall` (the height of the fall the owner lands from this tick, else 0). The
+  11- and 9-arg constructors delegate with 0, so `common/` callers are unchanged. Phase 5's adapter fills it from the player's fall distance.
+- `OwnerScript`: the Pilot tracks the fall (`airborne`/`fallTop`, gravity falls in terrain mode only, so ladders, flight and
+  swimming never count) and reports `landed`; a scripted hurt (`Pilot.hurt()`/`takeHurt()`, `hurtOnce()` segment) that
+  `nextWorld` passes through as `CompanionWorld.hurt` (scripts without one still use `CompanionWorld.of`, so they're unchanged).
+  The new `GROUND_NAMES` are mine_in_place, pace_chest (both start with a 45 s stand so it climbs on first),
+  long_idle_then_walk, hurt_while_perched and fall_landing. fall_landing runs on the `cliff` scene: the owner starts on top at
+  z=8.5 and walks 5 blocks off the edge at z=6. That is under the 6-block dismount threshold, so it is still perched when the
+  owner lands the 5-block fall.
+- `GroundBody.placeTumbling(p, v, yaw)`: falls keeping its facing (no flip, no turn to the fall).
+- `GroundMind`: `daze` (ticks it stands still after a tumble landing, counted only while grounded) and `closeCalm` (an
+  AMBLE approach at 0.8× cruise for the climb, instead of a scurry).
+
+**Not started — the PerchBody / CompanionAgent core (the plan, worked out against the code):**
+1. `PerchBody` fields: `climbing`, `dismounting`, `perchedTicks` (ticks home on the perch: reset on a climb landing, on
+   `reperch`, and on the riding switch in `wantedSlot`), a travel ring of owner feet (80 ticks), `sinceSprint`,
+   `sinceMounted`, `tumbleCooldown` (200), `tumbleTicks`/`tumbling`, counters `climbs`/`dismounts`/`tumbles`, and `devClimb`/`devTumble`.
+   Gate ALL of it on `ground != null` so the PERCHER (no-gait) path stays bitwise identical.
+2. CLIMB, in `groundStep`'s `ready` block: `climbWant = (drives.resting || devClimb) && owner horizontal speed < 0.3 && not
+   riding or gliding`. Priority: cover > hand (look-down, held item, unseen) > climb to `home`. If the slot is in range and
+   the arc is clear, set `climbing = true` and call `beginGroundHop(home)`. Otherwise `gmind.wantClose` with `closeCalm = true`.
+   On landing in `fly()`, if `climbing`, set `homeGround = false`, `climbs++` and `perchedTicks = 0`. Clear `climbing` in
+   `abortGroundHop`, `enterGroundFalling` and `startSwim`.
+3. DISMOUNT, in `wantedSlot` after the riding check: if `ground != null && !homeGround && perchedTicks >= 200 &&` net feet
+   travel over the 80-tick ring is at least 6 `&& sinceSprint >= 20 && sinceMounted >= 80 && !inWater`, then set
+   `homeGround = true` and `dismounting = true`; the existing `hopDown` path takes it from there. Give `groundSpot` a
+   behind-and-to-the-side-first option order for a dismount. Count `dismounts` in `enterGroundFalling` when `dismounting`.
+4. TUMBLE, at the top of `step()`: `ground != null && attached() && tumbleCooldown == 0 && !riding/gliding &&
+   (drives.sinceHurt == 0 || o.landedFall() >= 3 || devTumble)`.
+   - Call `attach(o)` first. The velocity is the owner's horizontal velocity, plus 2 b/s outward (the slot's side; the head
+     and back fall backward), plus 2 b/s up.
+   - Measure the impulse against the owner's velocity with y zeroed: at a fall landing the owner's y velocity is about
+     −18, which would blow the 16 b/s impulse bound.
+   - Then `ground.placeTumbling`, `gmind.daze = 10`, `groundHopCooldown = 40`, `homeGround = true`, `tumbles++`, and enter
+     GROUND.
+   - `onOwner()` stays true for the first 3 tumble ticks.
+   - The cooldown stops a hostile's once-a-second hits from bouncing it back off its cover shoulder each time.
+5. `CompanionAgent`: `climbs()`, `dismounts()`, `tumbles()`, `tumbling()`, and `landMode()` (TUMBLE / CLIMB / DISMOUNT /
+   PERCHED / SWIM / HOP / a ground land mode), plus `devPerch()` and `devTumble()`. `devGround` already exists.
+6. Harness:
+   - Add `tumbling` and `land` to `CompanionRun.Sample` (`CompanionRun` is the only place it's constructed).
+   - Exempt tumble-air ticks from the tail-first and facing checks in `metrics()`: it falls sideways while facing ahead,
+     by design.
+   - Add climbs, dismounts, tumbles and the first-climb tick to `GroundMetrics`.
+7. Tests, in `BenthicGroundInvariantTest`:
+   - mine_in_place and pace_chest: at most 1 climb and 1 dismount.
+   - long_idle_then_walk: a climb, then a dismount after the walk starts.
+   - hurt_while_perched and fall_landing: a tumble.
+   - Tumble acceleration within the hop bound.
+   - Add a spider config on stepped ground once item 8 is fixed.
+8. Spider-crab carry-over: not yet traced. Start with `BenthicGroundProbe -PsweepLength=0.6 -PsweepSeeds=8` on
+   stairs_up_down and step_gaps, then `-Ptrace=stairs_up_down -PtracePos=<fading seed>`. Suspects, untested: `pace` caps the
+   size at 0.8; the standoff and crouch time scale with size; on 1-deep treads the 0.6 footprint spans two steps.
+9. Viewer keys (tumble/hurt, climb), a land-mode overlay line, and the §11 as-built write-up.
+
+**Compiles / tests right now:** unknown, and probably not. Nothing has been compiled since these edits; `OwnerState` and
+`OwnerScript` changed signatures, and nothing that reads the new fields exists yet. First step next time: `./gradlew :fishsim:compileJava`.
+
+**Traced findings so far:** none (no runs made this phase beyond the baseline).
+
+## 12. Phase 2 as built (2026-10-12, uncommitted)
+
+**Scope.** Solo perch transitions in `fishsim`; the game adapter remains on its existing no-gait
+percher path. Formations, ground desires and game integration remain Phases 3–5. The owner viewer
+gate is still open; no visual approval is inferred from the headless checks.
+
+### 12.1 Behavior
+
+- **CLIMB:** sustained rest with the owner stationary calls the companion onto its seeded home
+  slot. Cover and hand attention retain priority. It approaches calmly when out of range, crouches,
+  then uses the checked ballistic arc. A successful landing ends its ground visit and starts the
+  ten-second perch dwell clock; aborted hops do not count as climbs.
+- **DISMOUNT:** after at least ten seconds perched, net horizontal owner travel of six blocks over
+  the last eighty ticks calls it down. Sprinting suppresses it until twenty ticks after the sprint;
+  riding/gliding suppress it until eighty ticks after returning to foot travel. The landing choices
+  prefer behind and beside the owner. Mining and pacing between nearby chests leave it perched.
+- **TUMBLE:** owner hurt or a landed fall of at least three blocks knocks an attached companion
+  outward at 2 blocks/s and upward at 2 blocks/s, carrying the owner's horizontal velocity. It
+  keeps its facing in flight, lands with the ground body's squash and pauses ten grounded ticks
+  before resuming. The first three ticks count as leaving the owner. A 200-tick cooldown protects
+  a regained perch from repeated hits; riding, gliding and water suppress land tumbles.
+- **Inputs and diagnostics:** `OwnerState.landedFall` defaults to zero for existing callers. The
+  terrain pilot measures gravity falls and supports scripted hurt. The harness records tumble
+  flight and land mode, and reports climbs, dismounts, tumbles and first climb attempt tick.
+  Tumble flight is exempt from heading-first checks; collision, acceleration and impulse checks
+  still apply. `CompanionAgent` exposes the same counters and `devPerch` / `devTumble` triggers.
+- **Viewer:** P requests a climb, B requests a tumble, K hurts the owner and G returns to ground.
+  The overlay shows land mode and transition counters. Use `benthic_park` with manual driving,
+  or the new `mine_in_place`, `pace_chest`, `long_idle_then_walk`, `hurt_while_perched` and
+  `fall_landing` scripts. A tumble request waits until attached and out of cooldown.
+
+### 12.2 Verification
+
+- `:fishsim:test` and both platform builds passed together: **329 tests, 312 passed, 17 skipped,
+  zero failures**. Measurement probes are skipped in this normal suite. Existing compiler
+  deprecation/unchecked warnings remain.
+- The ground invariant matrix now includes the five transition scripts. Explicit checks require
+  one climb and no dismount on mining/chest pacing, a climb and dismount on the long idle/walk,
+  and tumbles on hurt and hard landing. A separate check covers short-fall rejection, rider
+  protection, repeated hits during cooldown and a new tumble after cooldown expires.
+- Regenerated the missing baseline from detached commit `95a320fd` in an isolated checkout.
+  `FingerprintProbe -PsimStdout -PfpAll=1`: **all 447 protected fingerprints identical** (FREE_SWIM,
+  GLIDE, DRIFT, ANCHORED, PERCHER and TRIO); BENTHIC changed in 30 of 69 runs as expected.
+  Baseline and current logs are `build/fp-base-p2.txt` and `build/p2-targeted.txt`.
+- Final validation log: `build/p2-validation.txt`. `git diff --check` passes.
+
+### 12.3 Remaining gate and terrain gap (historical; terrain repair in §13)
+
+Run `./gradlew :fishsim:runCompanionViewer` for the owner's look at idle climbing, walking
+dismounts and the tumble/landing. Do this before advancing to formations or game integration.
+
+The Phase 1 spider-crab terrain gap remains open. The eight-seed 0.6-block crawl diagnostic
+(`build/p2-spider.txt`) reproduces fades in 6/8 half-stair runs and 4/8 terrace runs. With automatic
+dismounts, those runs can return to ground and fade again: up to three fades on stairs, four on
+terraces; longest measured stall 6.6 seconds and worst terrace impact 8.87 blocks/s. Large crabs
+remain asserted on level ground only. A trace shows short stair bounds repeatedly shedding
+horizontal speed; trying wider bounds across adjacent treads did not reliably eliminate stalls
+or impacts, so that experiment was removed. Next work should trace the stalled routing and
+landing states as well as stair speed, rather than merely increasing gait speed. This gap still
+needs resolution before Phase 5; the 3.5-second stuck and no-fade terrain guarantees are not
+claimed for the large crab.
+
+## 13. Terrain continuation (2026-10-12, uncommitted)
+
+Continued the Phase 2 handoff without crossing its owner viewer gate. Formations, ground desires
+and game integration remain Phases 3–5.
+
+### 13.1 Repairs
+
+- **Corner approaches:** ascending step hops now use the same highest-footprint support rule as
+  walking. The old requirement for support under every footprint column rejected valid diagonal
+  landings at stair corners; the crab stopped there while routing still reported a reachable trail,
+  until lag forced a fade. The ballistic clearance check still validates the complete arc.
+- **Hop heading:** a terrain hop waits until its heading is within 20 degrees of the chosen route.
+  Previously a crab still turning after a hand-hop landing could launch toward a terrace's side,
+  fall off and become stranded below the tall section. It brakes and turns before committing now.
+- **Edge touchdowns:** flight uses a separate support query, independent of the three-block limit
+  on deliberate walking drops. A deep neighbouring footprint column no longer masks the surface
+  supporting the body. Surfaces above the previous underside do not count as touchdowns.
+- **Perch hops down:** a descending hop hands control to the ground motor when it crosses actual
+  support, including a higher tread before its chosen landing. Previously it hit that tread as an
+  air collision (the reproduced 8.87 blocks/s impact), then fell from the collision state.
+- **Regression coverage:** spider-crab runs now cover stairs and terraces as well as level walking,
+  meandering and sprinting, with eight seeds. They use the existing collision, floor, motion, stuck,
+  fade and visibility bounds without new exceptions. Traces print their target and continue from
+  the requested start tick through the end of the run, to expose later-cycle stalls.
+
+### 13.2 Measurements and remaining work
+
+The eight-seed, two-minute 0.6-block crawler diagnostic (`build/benthic-spider-fix.txt`) now has
+zero fades in all eight stair runs and all eight terrace runs, zero block penetrations and zero
+floor-error ticks. Worst stuck time is 0.6 seconds on stairs and 2.2 seconds on terraces; worst
+contact is 2.15 blocks/s on stairs and 0.44 on terraces. The named stair/terrace gap from §12.3 is
+resolved for this matrix. The general greedy-routing limitation remains, including slab-path
+fallbacks; this does not claim universal terrain pathfinding.
+
+Final validation (`build/benthic-validation.txt`): `:fishsim:test :fabric:build :neoforge:build`
+passed together, 329 tests with 312 passed, 17 diagnostic probes skipped and zero failures.
+The expanded ground matrix runs 121 two-minute simulations (the spider configuration now uses
+eight seeds). `FingerprintProbe -PsimStdout -PfpAll=1` (`build/benthic-fingerprints.txt`) matches
+all 447 protected fingerprints against `build/fp-base-p2.txt`: FREE_SWIM, GLIDE, DRIFT, ANCHORED,
+PERCHER and TRIO are bitwise unchanged. `git diff --check` passes.
+
+The owner gate is still open. Run `./gradlew :fishsim:runCompanionViewer`, choose BENTHIC spider
+crab in `benthic_park`, and review stairs/terraces plus P (climb), walking (dismount) and B/K
+(tumble/hurt). The owner should approve the movement before advancing to Phase 3 formations.
+
+## 14. Current-game perch rendering feedback (2026-10-12)
+
+The owner's game playtest found an upside-down crab embedded in its shoulder, a vertical starfish
+embedded in its shoulder, and head riders that did not follow head pitch. These are renderer bugs
+in the existing game percher, independent of the ground simulation's pending integration.
+
+The perch layer now converts the player's down-positive model frame to the animator's up-positive
+frame, preserves floor-sitters' flat pose, and lifts benthic centres by `FishAnimator.floorPoseLift`
+(including each upright species' measured foot pivot). Shoulder riders attach to the posed torso;
+head riders attach to the actual head model part before the crown offset, inheriting head pitch,
+yaw and pose changes. The anchored back pose retains its existing transform. Visual confirmation
+in game is still required.
+
+Automatic dismounts are still simulation-only: at least ten seconds perched, then six blocks of
+net walking travel within four seconds. Standing still encourages climbing after sustained rest,
+not dismounting. The current game constructors still select the no-gait percher; ground commands
+and game adaptation remain Phase 5. This feedback does not close the terrain viewer gate.
+
+## 15. Group foundation continuation (2026-10-12, uncommitted)
+
+**Owner authorization:** "Proceed through Phases 3–5; keep visual approval pending." Continue the
+full benthic-follow implementation; do not stop at the earlier viewer gate or infer visual approval.
+
+### 15.1 Implemented
+
+- `FishProfile.companionGroup`: optional `companion_group` codec with count 1–3 and `line`/`crowd`.
+  Starfish declares three in a line; trapania_scurra and willans_chromodoris declare crowds of three.
+  Other profiles are unchanged. Codec round-trip and rejection tests cover both formations, zero,
+  negative and excessive counts, and unknown formation names.
+- `BenthicGroup` supplies one full leader with shared mind/drives and follower motors. The follower
+  agent references the leader's mind but never updates/thinks/resets it, nor independently updates
+  shared drives. Each has its own ground/perch motor, phase offset, checked hops, fade fallback and
+  interpolation. Water stations follow the swimming leader instead of aiming at the floor.
+- Lines steer at the predecessor's newest foot trail point and regulate spacing with speed. An
+  earlier implementation aimed at a short station behind it; arrival braking overshot that point
+  and made followers circle back, accumulating lag. Sharp travel turns prepare follower headings
+  together. Crowds use separation/cohesion without alignment. Initial followers spawn at distinct
+  floor positions, with clearance checked before placement.
+- Multi-member groups allocate left shoulder, right shoulder, head leader-first and suppress
+  shoulder wandering. Solos retain their seeded slot. Settling climbs wait for the predecessor's
+  successful landing, with an additional stagger clock; viewer P requests the same sequence.
+- Formation routing avoids walking through the owner's feet and anticipates their path, giving
+  small crawlers extra room to escape. This is currently formation-only. Ordinary solo routing
+  remains the verified Phase 2 path. Urgent scurry skips the idle rhythm's speed-request delay,
+  retaining the motor's acceleration, jerk and turn caps.
+- Viewer class choices `BENTHIC starfish line` and `BENTHIC slug crowd` draw all members. G/P/B
+  operate on the whole group. `BenthicGroupTest` runs 24 two-minute group simulations across flat
+  walking, meanders, stairs and idle-then-walk; checks terrain clearance, floor contact, foot overlap
+  ≤0.5% and no fades on flat walking. Separate tests cover unique slots, staggered successful climbs
+  and count rejection. Diagnostics with `-PsimStdout` print overlaps and high-lag routing states.
+
+### 15.2 Still required for the full goal
+
+Validation of this retained foundation: `:fishsim:test :common:test :fabric:build :neoforge:build`
+passed together (`build/benthic-phase3-validation.txt`): 332 simulation tests, 315 passed and 17
+diagnostic probes skipped; 760 common tests with zero failures. The group matrix and group codec
+tests pass. `build/benthic-phase3-fingerprints.txt` matches all 447 protected fingerprints against
+`build/fp-base-p2.txt`. `git diff --check` passes. These checks do not cover the unfinished items below.
+
+This is a foundation, not a completed Phase 3–5 claim. Continue with:
+
+1. Line-order and inter-member overlap invariants; measured line wave/crowd spread. Pace-dependent
+   leader meander is not enabled: the first attempt exposed another flat-walk follower fade and
+   was removed. Per-member phase offsets exist, but animator breath/gait plumbing remains Phase 5.
+2. Ground INSPECT/HIDE/GUARD/NUZZLE and in-view overtake/roadside/turn reveal beats. Current sharp
+   turn preparation handles heading delay but is not the full turn-reveal beat or a seen guarantee.
+3. Any-player scatter (`PLAYER` points), passer-by and backward-walk scripts, with solo as well as
+   group coverage; preserve the currently passing solo and protected non-benthic paths.
+4. Game adapter: gait selection, group field consumption, collision tops/partial floor sampling,
+   riding/gliding/fall events, sample-budget measurement. Game constructors still select the
+   existing no-gait percher and do not consume `companion_group` yet.
+5. Render all group members on ground/water/perches, including phase-offset breath and plaice
+   ripple. Commands/overlay must expose ground/perch/tumble, count/formation, lag and trail state.
+6. Broad invariant/fingerprint verification, seen measurements against the percher baseline,
+   in-game render/playtest verification, and the owner's pending visual review. Do not mark the
+   full goal complete while any of these remains unverified.
+
+## 16. Player scatter and adapter continuation (2026-10-12, uncommitted)
+
+The owner's authorization in §15 remains in force; visual approval is still pending.
+
+- `PLAYER` points carry nearby bystanders' feet and velocity. The game adapter gathers alive
+  players within four blocks, excluding the owner, and discards teleport velocities. Drives ignore
+  these points: passing players do not create curiosity or fear.
+- Both solo ground motors and formation members anticipate a bystander's crossing up to 1.2 seconds
+  ahead, choose a lateral escape on the side they already face, and use urgent scurry. Players on
+  another floor are ignored. When several paths threaten a member, it reacts to the soonest crossing.
+  The existing owner avoidance and the verified formation owner-scatter path are retained.
+- `BenthicPlayerScatterTest` verifies the solo escape decision, absence of curiosity/fear, rejection
+  of another-floor players, and 18 ten-second passer simulations (three sizes, two directions,
+  three seeds), with at most one underfoot tick per run (0.5%). Full backward-owner and repeated
+  passer group scripts remain required; this does not close all of §15.2 item 3.
+- `LevelBlocks.top` supplies the collision shape's maximum height within its cell. The usual
+  `solid` then `top` pair shares a collision query, preserving one counted sample per queried cell.
+  This is the sim's existing column approximation, not exact stair or multi-box shape geometry.
+  Sampling-budget measurement in game remains pending.
+- The owner adapter now passes riding and elytra flags, and retains descending fall distance across
+  vanilla's landing reset. Teleports, water, ladders, mounts, elytra and creative flight discard
+  pending falls. Tests cover the final descent, a single landing event and protected movement.
+- Viewer terrain changes invalidate all benthic members; scripted doors wait until every member
+  clears the doorway. This fixes stale follower collision data and doors closing through followers.
+
+Game gait/group constructors, ground desires and in-view beats, rendering/commands, broad group
+invariants and visual verification remain unfinished as listed in §15.2. The game still uses the
+no-gait percher until constructor and rendering integration is completed.
+
+Validation: `:fishsim:test :common:test :fabric:build :neoforge:build` passed together
+(`build/benthic-scatter-final-validation.txt`): 335 simulation tests, 318 passed, 17 diagnostic
+probes skipped, zero failures; 762 common tests with zero failures. Both loader builds passed.
+`FingerprintProbe -PsimStdout -PfpAll=1` (`build/benthic-scatter-fingerprints.txt`) matches all
+447 protected fingerprints against `build/fp-base-p2.txt`. `git diff --check` passes. Changes are
+uncommitted. Resume with the unfinished ground desires and visibility beats in §15.2, plus the
+remaining formation invariants and game integration; keep the full goal active.
+
+## 17. Ground desires continuation (2026-10-12, uncommitted)
+
+- Ground leaders now use the existing `Mind` goal scoring, commitment and cooldowns, with
+  perception taken from their actual ground position. Ground proximity uses the horizontal
+  four-to-sixteen-block lag range: the swimmer's comfort band incorrectly made normal floor
+  idle spots so urgent that inspection and nuzzling could never win.
+- INSPECT supplies a species/temperament-sized floor standoff for items and companions. Only
+  an actual close approach engages and habituates it; ground fish no longer satisfy curiosity
+  simply by watching from anywhere. Held items retain their existing hand-hop presentation.
+- HIDE huddles on the owner's far side from a hostile; GUARD stands between the owner and that
+  hostile, looking toward it and puffing or biting. Hostiles no longer send ground fish onto
+  a shoulder. Cats retain their head-climb response. NUZZLE brushes along one ankle and past
+  it, then uses the Mind's existing cooldown; it is available to docile temperaments.
+- Ground destinations are projected onto footprint support and checked as walkable. Terrain
+  recovery, catching up, tumble daze and foot avoidance retain priority. Followers do not think
+  independently: they follow their leader's detour and share its pose/drives.
+- `goal()` and `goalTicks()` now report the ground Mind's desire and its clock. `landMode()`
+  separately reports idle/follow/catch-up and transitions. Ground metrics use the latter for
+  travel/stuck/catch-up measurements. Mixing desire names with the old travel-mode clock had
+  produced false commitment failures. The game overlay includes land mode, lag, trail size and
+  reachability when a ground trail exists.
+- Four end-to-end behavior tests check actual item approach and release, opposite ground
+  cover/guard sides, ankle approach and nuzzle cooldown, and both formations approaching their
+  leader's inspection. `BenthicVisibilityTest` is a normal regression test comparing three seeds
+  of two-minute walks to the no-gait percher, counting only ticks with owner speed above 1 b/s.
+  Straight walking measures 17.47% seen against 15.56%; meandering measures 20.17% against 16.69%
+  (`build/benthic-seen-baseline.txt`). The required straight-walking comparison passes.
+
+Validation: `:fishsim:test` (`build/benthic-desires-clock-validation.txt`) passes 340 tests:
+323 passed, 17 diagnostic probes skipped, zero failures. `FingerprintProbe -PsimStdout -PfpAll=1`
+and both platform builds passed together (`build/benthic-desires-fingerprints-builds.txt`);
+all 447 protected fingerprints match `build/fp-base-p2.txt`. `git diff --check` passes.
+
+**Still unfinished:** ground overtake, roadside and turn-reveal beats. A direct moving destination
+ahead of the owner caused terrain contacts and follower fades and was removed, along with its
+early attention override. The retained visibility measurements include existing hand hops; they
+do not prove the requested ground beats. The failed experiment is recorded in
+`build/benthic-ground-beats-validation.txt` for diagnosis. Use stable overtaking stations and
+heading preparation, and account for the ground catch-up hysteresis interrupting the detour,
+before retrying. Keep the full terrain/group contracts; do not relax them to keep this experiment.
+Also continue the remaining Phase 3 measurements/invariants, repeated climb-cycle and cat-cover
+slot checks, passer/backward group scripts, and Phase 5 game integration and visual verification
+from §15.2. The game still constructs the no-gait percher; visual approval remains pending.
+
+## 18. In-view beats continuation (2026-10-12, uncommitted)
+
+The owner's authorization in §15 remains in force; visual approval is still pending.
+
+### 18.1 Behavior
+
+- **One beat state in `GroundMind`**, for a solo or a group leader in GROUND_FOLLOW (never a follower,
+  which follows its leader's trail through the beat). A beat targets a **fixed world spot**,
+  chosen once: `ahead` blocks along the owner's travel, past where they will be when it gets
+  there, off to the side it is already on. It is planned only if reachable in ≤ 5 s at 85% of its
+  top scurry, and only where (a) the owner's own way ahead is level and walkable for the whole beat,
+  (b) its route to the spot is level (no step at all: a beat is a dash, not a climb), and (c) the
+  dash, any lead and the wait stay outside the reach of `ownerPush` against the owner walking on
+  straight. Otherwise no beat. This is the §17 retry advice: no moving destination.
+- **OVERTAKE** (3.3 ahead, 1.5–2.3 aside): it scurries past, then **leads**, keeping 3.3 ahead at
+  the owner's pace along the pre-checked line to a fixed end point for 1.5–3 s (×1.5 for a
+  racer), then stops and waits facing on: the drop back. **ROADSIDE** (4.8 ahead, 1.6–2.4 aside):
+  it dashes there and waits facing the path. Either ends once the owner passes it by 0.6, or on
+  a turn of more than 40°, an intent, a hand hop, a scatter, catch-up, a fade or a timeout. If they
+  stop with it out ahead, it stays there in view, and that becomes its first idle spot.
+- **Trigger:** a straight walk (travel heading within 10° over 12 ticks), looking where they go,
+  not sprinting, unseen for ½ of the ground attention time (¼ for the sprinter's `raceAhead`),
+  checked every 10 ticks. The sprinter picks overtake 75% of the time, others 30%. Cooldown 5 s
+  for a racer, 12 s for others. During a beat the catch-up switch waits until 1.5 blocks later.
+- **The turn reveal is the walk itself.** Within 8 blocks with a walkable line, a solo already
+  walks straight at its owner and cuts the corner. A separate TURN dash was built and measured:
+  no seen gain (baseline crab meander 21.95% off vs 21.89% on, 20 turn beats), and in the pillared
+  cellar and on stairs it added contacts. It was removed.
+- **Beats don't starve the hand ride.** A glimpse during a beat, or in the 60 ticks after, does
+  not reset the attention clock. When they did, the beats (due sooner) displaced the hand ride,
+  which is ~98% of walking seen, and the sprinter crab lost walking seen in 9 of 12 seeds.
+- Beats draw from their own random stream, so a run in which no beat starts is bitwise the run
+  without them. `GroundMind.beatsEnabled` (diagnostics) switches them off.
+  `CompanionAgent.beat()/overtakes()/roadsides()` and the viewer overlay report them.
+
+### 18.2 Measurements (equal seeds, beats off vs on)
+
+- **Walking seen, per seed (12 seeds):** sprinter crab walk_flat up in 12/12 (e.g. 295→361,
+  270→538), sprinter crab meander up 11/12, baseline spider crab (0.6) walk_flat up 12/12,
+  baseline crab meander up 9/12. Baseline crab walk_flat: 3 beats in 12 seeds ("others rarely";
+  a 0.3 crab barely out-walks a 4.3 b/s owner), 9 runs identical, 3 down (−3, −2 and −69 ticks:
+  a one-beat reshuffle).
+- **Terrain tails (20 seeds; low_ceiling, jumping, stairs 0.3/0.6, meander):** fades, leash runs,
+  inside-owner runs and unseen > 30 s identical or within one tick-level difference. No beat
+  starts in the cellar. Six-seed seen table: no beat ever adds a fade (`build/beat-probe-final.txt`).
+- **Pre-existing, not beats (unchanged with beats off):** slug (0.12) fades 36–39 in 6 seeds of
+  sprint_away (it can't keep pace with a sprint); spider crab stairs fades 4 in 20 seeds (seeds
+  1–8, which the invariant runs, are clean).
+
+### 18.3 Named gap found on the way (not fixed)
+
+**Idle come-alongside walks under the owner's feet.** When a ground crab comes up for a hand
+hop from the far side of the hand, its straight walk crosses their feet. Once the hand is in
+range with a clear arc, it crouches there, inside their body for ~1 s (traced: low_ceiling
+seed 1, ticks 1238–1260). This is the cellar's inside-owner tail; beats only resample it. Two
+fixes were tried and **reverted, unvalidated**: a no-hop-from-underfoot guard (doubled the
+cellar's worst inside share, 0.009 → 0.020), and a round-the-feet detour (cost the jumping script
+17 s of unseen, 27.5 → 44.3 s). Formations already route round the ankles; a solo needs a
+detour that doesn't strand the hop.
+
+### 18.4 Validation
+
+`:fishsim:test` (`build/beats-validation-3.txt`): 347 tests, 325 passed, 22 diagnostic probes
+skipped, zero failures. Normal-suite `BenthicBeatTest` covers the racer's beats, seen against
+beats off, no beat-caused fades, and the bitwise no-beat run. `BenthicBeatProbe` (simStdout) has
+`beats` (seen table), `perSeed`, `tails` and `cases`/`inside` traces. `FingerprintProbe
+-PsimStdout -PfpAll=1` (`build/beats-fingerprints.txt`): all 447 protected fingerprints match
+`build/fp-base-p2.txt`; the 69 BENTHIC changed as meant. `:fabric:build :neoforge:build` and
+`:common:test` pass. `git diff --check` passes.
+
+**Still unfinished (from §15.2/§17):** the §18.3 come-alongside gap; Phase 3 line-order and
+inter-member overlap invariants, measured line wave and crowd spread; repeated climb cycles and
+cat-cover slot checks; passer and backward-owner group scripts; and all of Phase 5 game
+integration (gait/group constructors, rendering every member, commands, the floor-sampling
+budget in game). The game still constructs the no-gait percher. Owner viewer look for the
+beats: `./gradlew :fishsim:runCompanionViewer`, BENTHIC (sprinter for frequent overtakes),
+`benthic_park` or walk_flat, watching the overlay's beat field.

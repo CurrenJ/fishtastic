@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class BenthicGroundInvariantTest {
 
     private static final long[] SEEDS = {1, 2, 3};
+    private static final long[] SPIDER_SEEDS = {1, 2, 3, 4, 5, 6, 7, 8};
     private static final int TICKS = 2400;
 
     /** A body to run: its gait and length, and the scripts it runs. */
@@ -38,10 +39,9 @@ class BenthicGroundInvariantTest {
             new Config("plaice", GroundGait.RIPPLE, 0.35f,
                     List.of("plaice_walk_flat", "walk_flat", "walk_meander", "stairs_up_down", "step_gaps", "parkour_gap")),
             new Config("slug", GroundGait.CRAWL, 0.12f, List.of("walk_flat", "walk_meander", "stairs_up_down", "step_gaps")),
-            // Named Phase 1 gap: the spider-crab size on stepped ground (half stairs, terraces)
-            // falls behind and fades in most runs (8 seeds: half stairs 6, terraces 4, one contact
-            // up to 8.9 b/s) — see the spec's Phase 1 as-built. Asserted on the level only.
-            new Config("spider", GroundGait.CRAWL, 0.6f, List.of("walk_flat", "walk_meander", "sprint_away")));
+            // Eight seeds guard the former corner stalls and hard perch-hop touchdowns on terrain.
+            new Config("spider", GroundGait.CRAWL, 0.6f,
+                    List.of("walk_flat", "walk_meander", "sprint_away", "stairs_up_down", "step_gaps")));
 
     /** Followed on foot the whole way: no fade onto the perch. */
     private static final Set<String> NO_FADE = Set.of(
@@ -79,7 +79,7 @@ class BenthicGroundInvariantTest {
             results = new LinkedHashMap<>();
             for (Config c : CONFIGS) {
                 for (String script : c.scripts()) {
-                    for (long seed : SEEDS) {
+                    for (long seed : c.name().equals("spider") ? SPIDER_SEEDS : SEEDS) {
                         CompanionRun run = CompanionRun.benthic(script, seed, c.length(), Temperament.BASELINE, c.gait(),
                                 CompanionTunables.defaults(), true);
                         run.run(TICKS);
@@ -122,6 +122,64 @@ class BenthicGroundInvariantTest {
     }
 
     // ── Blocks and the floor ───────────────────────────────────────────────────────────────────
+
+    @Test
+    void idleClimbAndTravelDismount() {
+        all((k, r) -> {
+            String s = script(k);
+            if (s.equals("mine_in_place") || s.equals("pace_chest")) {
+                assertEquals(1, r.g().climbs(), "idle should settle onto the perch: " + why(k, r));
+                assertEquals(0, r.g().dismounts(), "local activity should stay perched: " + why(k, r));
+            }
+            if (s.equals("long_idle_then_walk")) {
+                assertTrue(r.g().climbs() >= 1, "never climbed: " + why(k, r));
+                assertTrue(r.g().dismounts() >= 1, "never dismounted: " + why(k, r));
+                assertTrue(r.g().firstClimbTick() >= 600 && r.g().firstClimbTick() < 1200,
+                        "climb should follow sustained rest: " + why(k, r));
+            }
+        });
+    }
+
+    @Test
+    void joltsTumbleOffThePerch() {
+        all((k, r) -> {
+            if (Set.of("hurt_while_perched", "fall_landing").contains(script(k))) {
+                assertTrue(r.g().tumbles() >= 1, "never tumbled: " + why(k, r));
+            } else if (Set.of("mine_in_place", "pace_chest", "long_idle_then_walk").contains(script(k))) {
+                assertEquals(0, r.g().tumbles(), "ordinary activity is a dismount, not a tumble: " + why(k, r));
+            }
+        });
+    }
+
+    @Test
+    void tumbleCooldownAndMountProtection() {
+        CompanionRun run = CompanionRun.benthic("long_idle_then_walk", 1, 0.3f, Temperament.BASELINE,
+                GroundGait.CRAWL, CompanionTunables.defaults(), true);
+        run.run(900);
+        CompanionAgent a = run.agent;
+        OwnerState o = run.owner;
+        assertTrue(a.riding(), "initial idle should climb");
+        OwnerState mounted = new OwnerState(o.eye(), Vec.ZERO, o.yawDeg(), o.pitchDeg(), false, false,
+                true, o.fovDeg(), false, true, false, 5);
+        a.step(new CompanionWorld(mounted, run.scene, List.of(), CompanionWorld.Held.NONE, true));
+        assertEquals(0, a.tumbles(), "a rider stays aboard even on a jolt");
+        OwnerState shortFall = new OwnerState(o.eye(), Vec.ZERO, o.yawDeg(), o.pitchDeg(), false, false,
+                true, o.fovDeg(), false, false, false, 2.9);
+        a.step(CompanionWorld.of(shortFall, run.scene));
+        assertEquals(0, a.tumbles(), "a short fall is not a hard landing");
+        a.step(new CompanionWorld(o, run.scene, List.of(), CompanionWorld.Held.NONE, true));
+        assertEquals(1, a.tumbles());
+        a.devPerch();
+        for (int i = 0; i < 190; i++) {
+            a.step(new CompanionWorld(o, run.scene, List.of(), CompanionWorld.Held.NONE, i % 20 == 0));
+        }
+        assertTrue(a.riding(), "it should regain its perch during cooldown: " + a.landMode()
+                + " " + a.position() + " close=" + a.comingClose() + " climbs=" + a.climbs());
+        assertEquals(1, a.tumbles(), "repeated hits must not bounce it straight back off");
+        for (int i = 0; i < 10; i++) a.step(CompanionWorld.of(o, run.scene));
+        a.step(new CompanionWorld(o, run.scene, List.of(), CompanionWorld.Held.NONE, true));
+        assertEquals(2, a.tumbles(), "another jolt can tumble it once cooldown expires");
+    }
 
     @Test
     void neverInsideABlock() {
