@@ -59,11 +59,17 @@ final class GroupRun {
 
     /** A party-built formation: one member per length, leader first (docs/fish-companions-party.md §3). */
     GroupRun(String script, long seed, float[] lengths, Temperament tm, BenthicGroup.Formation formation) {
+        this(script, seed, lengths, tm, formation, CompanionTunables.defaults());
+    }
+
+    /** As above, with the tunables given (equal-ground A/B of a switch). */
+    GroupRun(String script, long seed, float[] lengths, Temperament tm, BenthicGroup.Formation formation,
+             CompanionTunables tunables) {
         this.script = script;
         this.seed = seed;
         owner = OwnerScript.named(script, seed);
         CompanionWorld world = owner.nextWorld();
-        group = new BenthicGroup(CompanionTunables.defaults(), seed, lengths, tm, GroundGait.CRAWL, formation, world);
+        group = new BenthicGroup(tunables, seed, lengths, tm, GroundGait.CRAWL, formation, world);
         first = world;
     }
 
