@@ -4,6 +4,8 @@ import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.companion.CompanionGroups;
+import grill24.fishtastic.companion.CompanionParty;
 import grill24.fishtastic.menu.CompanionMenu;
 import grill24.fishtastic.network.BondCompanionPacket;
 import grill24.fishtastic.network.OpenCompanionMenuPacket;
@@ -26,12 +28,19 @@ import net.minecraft.world.item.ItemStack;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Vanilla slots do all item movement; the pile strip selects a real fish via the validated bond path. */
+/**
+ * The companion party screen (docs/fish-companions-party.md §5.3). Vanilla slots do all item
+ * movement; the pile strip selects a real fish via the validated bond path. One party slot is
+ * <i>selected</i> — the last one clicked — and the name box and the pile strip act on it.
+ */
 public final class CompanionScreen extends AbstractContainerScreen<CompanionMenu> {
     private static final Identifier TEXTURE = Fishtastic.id("textures/gui/companions.png");
+    /** The 26x26 slot frame baked into the atlas around the middle slot; drawn again for the others. */
+    private static final int FRAME_U = 75, FRAME_V = 29, FRAME_SIZE = 26;
     private EditBox name;
     private Button rename, piles, previous, next;
     private ItemStack lastCompanion = ItemStack.EMPTY;
+    private int selected = -1;
     private boolean pileView;
     private int page;
     private String feedback = "";
@@ -56,7 +65,7 @@ public final class CompanionScreen extends AbstractContainerScreen<CompanionMenu
         name.setMaxLength(RenameCompanionPacket.MAX_NAME_LENGTH);
         addRenderableWidget(name);
         rename = addRenderableWidget(Button.builder(text("rename"), b -> {
-            minecraft.player.connection.send(new ServerboundCustomPayloadPacket(new RenameCompanionPacket(name.getValue())));
+            minecraft.player.connection.send(new ServerboundCustomPayloadPacket(new RenameCompanionPacket(selected(), name.getValue())));
             name.setFocused(false);
         }).bounds(leftPos + 116, topPos + 87, 52, 16).build());
         piles = addRenderableWidget(Button.builder(text("piles"), b -> {
@@ -71,6 +80,13 @@ public final class CompanionScreen extends AbstractContainerScreen<CompanionMenu
         lastCompanion = ItemStack.EMPTY;
         updateName();
         updateControls();
+    }
+
+    /** The selected party slot: the last one clicked, else the first filled one, else the lead. */
+    private int selected() {
+        if (selected >= 0) return selected;
+        for (int i = 0; i < CompanionMenu.PARTY_SLOTS; i++) if (menu.getSlot(i).hasItem()) return i;
+        return CompanionParty.LEAD;
     }
 
     /** Like the anvil: a focused name box eats keys, so E/Q/1-9 type instead of closing or moving slots. */
@@ -99,7 +115,7 @@ public final class CompanionScreen extends AbstractContainerScreen<CompanionMenu
     }
 
     private void updateName() {
-        ItemStack current = menu.getSlot(0).getItem();
+        ItemStack current = menu.getSlot(selected()).getItem();
         if (!ItemStack.matches(current, lastCompanion)) {
             lastCompanion = current.copy();
             Component custom = current.get(DataComponents.CUSTOM_NAME);
@@ -109,7 +125,7 @@ public final class CompanionScreen extends AbstractContainerScreen<CompanionMenu
     }
 
     private void updateControls() {
-        boolean equipped = menu.getSlot(0).hasItem(), cursorEmpty = menu.getCarried().isEmpty();
+        boolean equipped = menu.getSlot(selected()).hasItem(), cursorEmpty = menu.getCarried().isEmpty();
         name.visible = rename.visible = !pileView;
         name.active = rename.active = equipped && cursorEmpty;
         piles.active = cursorEmpty && (!pileFish().isEmpty() || pileView);
@@ -140,28 +156,57 @@ public final class CompanionScreen extends AbstractContainerScreen<CompanionMenu
         return QuestClientCache.isBondUnlocked(BuiltInRegistries.ITEM.getKey(fish.getItem()));
     }
 
+    /** The party as the menu shows it right now (the mirror, so it follows clicks immediately). */
+    private CompanionParty shownParty() {
+        List<ItemStack> slots = new ArrayList<>();
+        for (int i = 0; i < CompanionMenu.PARTY_SLOTS; i++) slots.add(menu.getSlot(i).getItem());
+        return new CompanionParty(slots);
+    }
+
+    /** What the party makes, e.g. "Bluegill school + Clownfish" (§5.3: how a player learns that matching species group up). */
+    private String preview(CompanionParty party) {
+        if (minecraft.level == null || party.isEmpty()) return "";
+        List<String> parts = new ArrayList<>();
+        for (CompanionGroups.Group group : CompanionGroups.of(party, minecraft.level.registryAccess())) {
+            String species = party.get(group.leader()).getItem().getName(party.get(group.leader())).getString();
+            String key = "screen.fishtastic.companion.preview." + group.kind().name().toLowerCase(java.util.Locale.ROOT);
+            parts.add(Component.translatable(key, species, group.count()).getString());
+        }
+        return String.join(text("preview.join").getString(), parts);
+    }
+
     @Override public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         super.extractBackground(graphics, mouseX, mouseY, partialTick);
         graphics.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, leftPos, topPos, 0, 0, imageWidth, imageHeight, 256, 256);
-        ItemStack equipped = menu.getSlot(0).getItem();
-        // Header above the slot, name below, both centred; the 8x7 heart (atlas 180,0) only accompanies a bonded fish.
-        Component header = text(equipped.isEmpty() ? "empty" : "your_companion");
-        int headerWidth = font.width(header) + (equipped.isEmpty() ? 0 : 12);
+        CompanionParty party = shownParty();
+        for (int i = 0; i < CompanionMenu.PARTY_SLOTS; i++) {
+            int frameX = leftPos + CompanionMenu.PARTY_SLOT_X[i] - 5, frameY = topPos + CompanionMenu.PARTY_SLOT_Y - 5;
+            if (frameX - leftPos != FRAME_U) {
+                graphics.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, frameX, frameY, FRAME_U, FRAME_V, FRAME_SIZE, FRAME_SIZE, 256, 256);
+            }
+            if (i == selected() && !party.isEmpty()) {
+                graphics.outline(frameX - 1, frameY - 1, FRAME_SIZE + 2, FRAME_SIZE + 2, 0xFFFFFFFF);
+            }
+        }
+        // The lead: the 5x4 heart (atlas 190,0) in slot 0's frame corner, drawn 1:1 (half sizes drop rows).
+        graphics.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, leftPos + CompanionMenu.PARTY_SLOT_X[0] - 4,
+                topPos + CompanionMenu.PARTY_SLOT_Y - 4, 190, 0, 5, 4, 256, 256);
+        // Header above the slots, party preview below, both centred; the 8x7 heart (atlas 180,0) only accompanies a party.
+        Component header = text(party.isEmpty() ? "empty" : "your_party");
+        int headerWidth = font.width(header) + (party.isEmpty() ? 0 : 12);
         int headerX = leftPos + (imageWidth - headerWidth) / 2;
-        if (!equipped.isEmpty()) {
+        if (!party.isEmpty()) {
             graphics.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, headerX, topPos + 19, 180, 0, 8, 7, 256, 256);
             headerX += 12;
         }
         graphics.text(font, header, headerX, topPos + 19, 0xFF404040, false);
-        if (!equipped.isEmpty()) {
-            String name = font.plainSubstrByWidth(equipped.getHoverName().getString(), 160);
-            graphics.text(font, name, leftPos + (imageWidth - font.width(name)) / 2, topPos + 58, 0xFF404040, false);
-        }
+        String line = font.plainSubstrByWidth(preview(party), 160);
+        if (!line.isEmpty()) graphics.text(font, line, leftPos + (imageWidth - font.width(line)) / 2, topPos + 58, 0xFF404040, false);
         String status = !feedback.isEmpty() ? feedback : pileView ? text("choose_pile").getString() : "";
         graphics.text(font, font.plainSubstrByWidth(status, 108), leftPos + 8, topPos + 74, 0xFF404040, false);
         // Species highlighting is contextual; the rest of the inventory stays fully usable.
         if (menu.highlightedSpecies() != null) {
-            for (int i = 1; i < menu.slots.size(); i++) {
+            for (int i = CompanionMenu.INVENTORY_START; i < menu.slots.size(); i++) {
                 var slot = menu.getSlot(i);
                 if (slot.getItem().is(menu.highlightedSpecies())) {
                     graphics.fill(leftPos + slot.x, topPos + slot.y, leftPos + slot.x + 16, topPos + slot.y + 16, 0x446ACC81);
@@ -187,6 +232,10 @@ public final class CompanionScreen extends AbstractContainerScreen<CompanionMenu
 
     @Override protected List<Component> getTooltipFromContainerItem(ItemStack stack) {
         List<Component> tooltip = new ArrayList<>(super.getTooltipFromContainerItem(stack));
+        if (hoveredSlot != null && CompanionMenu.isPartySlot(hoveredSlot.index)) {
+            if (hoveredSlot.index == CompanionParty.LEAD) tooltip.add(text("lead"));
+            return tooltip;
+        }
         if (stack.is(FishtasticItemTags.FISH)) tooltip.add(text(unlocked(stack) ? "eligible" : "locked"));
         if (stack.is(FishtasticItems.PILE_OF_FISH.value())) tooltip.add(text("pile_hint"));
         return tooltip;
@@ -215,9 +264,13 @@ public final class CompanionScreen extends AbstractContainerScreen<CompanionMenu
             List<CarriedFish.Group> fish = pileFish();
             if (event.button() == 0 && menu.getCarried().isEmpty() && index < fish.size() && unlocked(fish.get(index).representative())) {
                 minecraft.player.connection.send(new ServerboundCustomPayloadPacket(
-                        new BondCompanionPacket(fish.get(index).representative().copyWithCount(1))));
+                        new BondCompanionPacket(fish.get(index).representative().copyWithCount(1), selected())));
             }
             return true;
+        }
+        if (hoveredSlot != null && CompanionMenu.isPartySlot(hoveredSlot.index)) {
+            selected = hoveredSlot.index;
+            updateName();
         }
         return super.mouseClicked(event, doubleClick);
     }

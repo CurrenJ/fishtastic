@@ -509,6 +509,10 @@ public class NeoForgeGameTestRegistration {
             PacketRoundTripGameTests::companionFishingEventPacketRoundTrips);
         register(event, env, "companion_scene_packet_round_trips", 200,
             PacketRoundTripGameTests::companionScenePacketRoundTrips);
+        register(event, env, "companion_slot_packets_round_trip", 200,
+            PacketRoundTripGameTests::companionSlotPacketsRoundTrip);
+        register(event, env, "companion_party_codecs_migrate_and_round_trip", 200,
+            PacketRoundTripGameTests::companionPartyCodecsMigrateAndRoundTrip);
         register(event, env, "ambient_context_request_packet_round_trips", 200,
             PacketRoundTripGameTests::ambientContextRequestPacketRoundTrips);
         register(event, env, "ambient_context_response_packet_round_trips", 200,
@@ -653,8 +657,14 @@ public class NeoForgeGameTestRegistration {
             helper -> CompanionGameTests.unequipReturnsTheIdenticalFish(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "unequip_with_a_full_inventory_drops_the_fish", 200,
             helper -> CompanionGameTests.unequipWithAFullInventoryDropsTheFish(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "bonding_a_second_fish_returns_the_first", 200,
-            helper -> CompanionGameTests.bondingASecondFishReturnsTheFirst(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "bonding_a_second_fish_fills_the_next_slot", 200,
+            helper -> CompanionGameTests.bondingASecondFishFillsTheNextSlot(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "bond_into_a_full_party_is_refused", 200,
+            helper -> CompanionGameTests.bondIntoAFullPartyIsRefused(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "bond_into_a_named_slot_returns_its_fish", 200,
+            helper -> CompanionGameTests.bondIntoANamedSlotReturnsItsFish(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "three_of_one_species_fill_the_party", 200,
+            helper -> CompanionGameTests.threeOfOneSpeciesFillTheParty(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "companion_is_kept_on_death", 200,
             helper -> CompanionGameTests.companionIsKeptOnDeath(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper),
                 (before, after) -> after.restoreFrom(before, false)));
@@ -684,10 +694,14 @@ public class NeoForgeGameTestRegistration {
             helper -> CompanionMenuGameTests.dragPlacesOneFish(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "companion_menu_shift_click_takes_one_from_a_stack", 200,
             helper -> CompanionMenuGameTests.shiftClickTakesOneFromAStack(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "companion_menu_shift_click_same_species_swaps_once", 200,
-            helper -> CompanionMenuGameTests.shiftClickSameSpeciesSwapsOnce(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "companion_menu_shift_click_with_a_full_inventory_changes_nothing", 200,
-            helper -> CompanionMenuGameTests.shiftClickWithAFullInventoryChangesNothing(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_menu_shift_click_fills_the_first_empty_slot_once", 200,
+            helper -> CompanionMenuGameTests.shiftClickFillsTheFirstEmptySlotOnce(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_menu_shift_click_with_a_full_party_or_inventory_changes_nothing", 200,
+            helper -> CompanionMenuGameTests.shiftClickWithAFullPartyOrInventoryChangesNothing(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_menu_three_slots_equip_and_return", 200,
+            helper -> CompanionMenuGameTests.threeSlotsEquipAndReturn(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_menu_moving_between_slots_reorders_the_party", 200,
+            helper -> CompanionMenuGameTests.movingBetweenSlotsReordersTheParty(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "companion_menu_locked_fish_is_rejected", 200,
             helper -> CompanionMenuGameTests.lockedFishIsRejected(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "companion_menu_closing_with_a_fish_on_the_cursor_keeps_it", 200,
@@ -724,6 +738,10 @@ public class NeoForgeGameTestRegistration {
             helper -> CompanionSceneGameTests.outOfRangePairPlaysNothing(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "companion_scene_one_scene_per_companion", 200,
             helper -> CompanionSceneGameTests.oneScenePerCompanion(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_scene_a_group_takes_part_through_its_leader", 200,
+            helper -> CompanionSceneGameTests.aGroupTakesPartThroughItsLeader(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_scene_one_scene_per_owner_pair_at_a_time", 200,
+            helper -> CompanionSceneGameTests.oneScenePerOwnerPairAtATime(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "companion_scene_same_species_beats_free_swimmers", 200,
             helper -> CompanionSceneGameTests.sameSpeciesPairBeatsFreeSwimmers(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "companion_scene_nearby_observers_told_far_ones_not", 200,

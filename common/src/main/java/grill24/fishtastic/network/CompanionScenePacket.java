@@ -17,9 +17,12 @@ import java.util.UUID;
  *
  * <p>Sent to every player near either participant — the companions are only ever visible up
  * close, so a scene resolving across the world is not worth a packet.
+ *
+ * <p>A companion is (owner, party slot) (docs/fish-companions-party.md §5.2); a group takes part
+ * through its leader's slot.
  */
-public record CompanionScenePacket(CompanionSceneType scene, UUID first, UUID second, long startTime)
-        implements CustomPacketPayload {
+public record CompanionScenePacket(CompanionSceneType scene, UUID first, int firstSlot, UUID second, int secondSlot,
+                                   long startTime) implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<CompanionScenePacket> TYPE =
             new CustomPacketPayload.Type<>(FishtasticPackets.COMPANION_SCENE_ID);
@@ -28,7 +31,9 @@ public record CompanionScenePacket(CompanionSceneType scene, UUID first, UUID se
             StreamCodec.composite(
                     CompanionSceneType.STREAM_CODEC, CompanionScenePacket::scene,
                     UUIDUtil.STREAM_CODEC, CompanionScenePacket::first,
+                    ByteBufCodecs.VAR_INT, CompanionScenePacket::firstSlot,
                     UUIDUtil.STREAM_CODEC, CompanionScenePacket::second,
+                    ByteBufCodecs.VAR_INT, CompanionScenePacket::secondSlot,
                     ByteBufCodecs.VAR_LONG, CompanionScenePacket::startTime,
                     CompanionScenePacket::new
             );

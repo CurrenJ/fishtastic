@@ -48,7 +48,7 @@ public final class CompanionSceneGameTests {
     private static void setUp(GameTestHelper helper) {
         CompanionSceneManager.resetForTest();
         for (ServerPlayer player : helper.getLevel().players()) {
-            CompanionStorage.set(player, ItemStack.EMPTY);
+            CompanionStorage.clear(player);
             player.fishing = null;
         }
     }
@@ -64,8 +64,8 @@ public final class CompanionSceneGameTests {
         return player;
     }
 
-    private static void equip(ServerPlayer player, Item fish) {
-        CompanionStorage.set(player, new ItemStack(fish));
+    private static void equip(ServerPlayer player, Item... party) {
+        for (int i = 0; i < party.length; i++) CompanionStorage.set(player, i, new ItemStack(party[i]));
     }
 
     /** One scheduler tick at {@code now}, collecting everything sent. */
@@ -98,8 +98,43 @@ public final class CompanionSceneGameTests {
         Set<UUID> participants = Set.of(packet.first(), packet.second());
         helper.assertTrue(participants.equals(Set.of(a.getUUID(), b.getUUID())),
                 "participants were " + participants);
-        helper.assertTrue(CompanionSceneManager.isBusy(a.getUUID(), 1000)
-                && CompanionSceneManager.isBusy(b.getUUID(), 1000), "both participants must be busy");
+        helper.assertTrue(packet.firstSlot() == 0 && packet.secondSlot() == 0,
+                "solo companions take part through slot 0, got " + packet.firstSlot() + "/" + packet.secondSlot());
+        helper.assertTrue(CompanionSceneManager.isBusy(a.getUUID(), 0, 1000)
+                && CompanionSceneManager.isBusy(b.getUUID(), 0, 1000), "both participants must be busy");
+        helper.succeed();
+    }
+
+    /** Party spec §7: a same-species group is one member, scheduled through its leader (lowest) slot. */
+    public static void aGroupTakesPartThroughItsLeader(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        setUp(helper);
+        ServerPlayer a = place(mockPlayer.get(), 0, 0);
+        ServerPlayer b = place(mockPlayer.get(), 2, 0);
+        equip(a, STARFISH, BLUEGILL, BLUEGILL);
+        equip(b, BLUEGILL);
+
+        List<Sent> sent = tick(helper, 1000);
+        helper.assertTrue(!sent.isEmpty(), "the bluegills should meet");
+        CompanionScenePacket packet = sent.get(0).packet();
+        helper.assertTrue(packet.scene() == CompanionSceneType.G1_SAME_SPECIES, "scene was " + packet.scene());
+        int aSlot = packet.first().equals(a.getUUID()) ? packet.firstSlot() : packet.secondSlot();
+        helper.assertTrue(aSlot == 1, "a's bluegill pair takes part through slot 1 (its leader), got " + aSlot);
+        helper.assertTrue(CompanionSceneManager.isBusy(a.getUUID(), 1, 1000), "the pair's leader is busy");
+        helper.assertTrue(!CompanionSceneManager.isBusy(a.getUUID(), 0, 1000), "the starfish is not in the scene");
+        helper.succeed();
+    }
+
+    /** Party spec §7: two owners share at most one scene at a time, even with more pairings free. */
+    public static void oneScenePerOwnerPairAtATime(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        setUp(helper);
+        ServerPlayer a = place(mockPlayer.get(), 0, 0);
+        ServerPlayer b = place(mockPlayer.get(), 2, 0);
+        equip(a, BLUEGILL, BETTA);
+        equip(b, BLUEGILL, BETTA);
+
+        helper.assertTrue(!tick(helper, 1000).isEmpty(), "the first pairing plays");
+        helper.assertTrue(tick(helper, 1001).isEmpty(),
+                "the bettas are free, but their owners already share a scene");
         helper.succeed();
     }
 

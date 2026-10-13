@@ -311,16 +311,16 @@ public final class CompanionRenderer {
                 a.renderBank(), a.renderTailPhase(), body);
     }
 
-    /** A trio's followers, drawn like the leader where the owner can see them. */
+    /** A school's followers, each at its own body length, drawn like the leader where the owner can see them. */
     public static void drawFollowers(BufferedImage img, OwnerState o, LocalVoxels voxels,
-                                     grill24.fishsim.companion.CompanionGroup group, float length) {
+                                     grill24.fishsim.companion.CompanionGroup group) {
         Graphics2D g = img.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         Cam cam = Cam.of(o, img.getWidth(), img.getHeight());
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < group.followerCount(); i++) {
             var f = group.follower(i);
             if (f.renderAppear() < 0.01f || !voxels.segmentClear(cam.pos(), f.renderPos(), 0.0)) continue;
-            drawFishAt(g, cam, length * f.renderAppear(), f.renderPos(), f.renderYaw(), f.renderPitch(),
+            drawFishAt(g, cam, f.length() * f.renderAppear(), f.renderPos(), f.renderYaw(), f.renderPitch(),
                     f.renderBank(), f.renderTailPhase(), FISH);
         }
         g.dispose();

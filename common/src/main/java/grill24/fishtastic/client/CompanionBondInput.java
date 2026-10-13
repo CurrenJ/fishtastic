@@ -58,8 +58,9 @@ public final class CompanionBondInput {
             spent = true;
         }
         if (target != null && System.currentTimeMillis() - started >= HOLD_MS) {
-            ItemStack equipped = CompanionStorage.get(mc.player);
-            if (!equipped.isEmpty() && equipped.is(fish.getItem())) CompanionScreen.open(fish);
+            // The first empty party slot takes it; a full party opens the menu with the fish
+            // highlighted rather than silently replacing a companion (party spec §5.3).
+            if (CompanionStorage.party(mc.player).firstEmpty() < 0) CompanionScreen.open(fish);
             else mc.player.connection.send(new ServerboundCustomPayloadPacket(new BondCompanionPacket(fish)));
             target = null;
             spent = true;
@@ -74,7 +75,7 @@ public final class CompanionBondInput {
             int cells = Math.min(6, (int) ((System.currentTimeMillis() - started) * 6 / HOLD_MS));
             return Component.translatable("screen.fishtastic.companion.holding", key, "■".repeat(cells) + "□".repeat(6 - cells));
         }
-        boolean equipped = mc.player != null && CompanionStorage.get(mc.player).is(stack.getItem());
-        return Component.translatable(equipped ? "screen.fishtastic.companion.hold_manage" : "screen.fishtastic.companion.hold", key);
+        boolean full = mc.player != null && CompanionStorage.party(mc.player).firstEmpty() < 0;
+        return Component.translatable(full ? "screen.fishtastic.companion.hold_manage" : "screen.fishtastic.companion.hold", key);
     }
 }

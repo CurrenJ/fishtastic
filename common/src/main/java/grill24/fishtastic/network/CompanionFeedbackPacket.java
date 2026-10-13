@@ -21,7 +21,8 @@ public record CompanionFeedbackPacket(Outcome outcome) implements CustomPacketPa
         NOT_CARRIED,
         RENAMED,
         NOTHING_TO_RENAME,
-        INVENTORY_FULL
+        INVENTORY_FULL,
+        PARTY_FULL
     }
 
     /** Maps the server's bond result onto the wire outcome, exhaustively (no name() coupling). */
@@ -32,6 +33,7 @@ public record CompanionFeedbackPacket(Outcome outcome) implements CustomPacketPa
             case LOCKED -> Outcome.LOCKED;
             case NOT_CARRIED -> Outcome.NOT_CARRIED;
             case INVENTORY_FULL -> Outcome.INVENTORY_FULL;
+            case PARTY_FULL -> Outcome.PARTY_FULL;
         };
     }
 

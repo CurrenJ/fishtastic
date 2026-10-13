@@ -126,6 +126,11 @@ public final class CompanionViewer {
     private boolean trio;
     private grill24.fishsim.companion.BenthicGroup benthicGroup;
     private grill24.fishsim.companion.BenthicGroup.Formation benthicFormation;
+    /**
+     * A party-built group's member lengths, leader first (docs/fish-companions-party.md §3), or null
+     * for the old identical-member trio and benthic groups.
+     */
+    private float[] memberLengths;
     private float lookYaw, lookPitch;
     private boolean paused, stepOnce, teleportNext;
     private long lastNanos = System.nanoTime();
@@ -291,14 +296,19 @@ public final class CompanionViewer {
     private CompanionAgent newAgent() {
         benthicGroup = null;
         if (trio) {
-            group = new grill24.fishsim.companion.CompanionGroup(tunables, seed, CompanionRun.TRIO_LENGTH, temperament, world());
+            group = memberLengths != null
+                    ? new grill24.fishsim.companion.CompanionGroup(tunables, seed, memberLengths, temperament, world())
+                    : new grill24.fishsim.companion.CompanionGroup(tunables, seed, CompanionRun.TRIO_LENGTH, temperament, world());
             return group.leader();
         }
         group = null;
         float length = locomotion == Locomotion.BENTHIC ? benthicLength : CompanionRun.lengthOf(locomotion);
         if (locomotion == Locomotion.BENTHIC && benthicFormation != null) {
-            benthicGroup = new grill24.fishsim.companion.BenthicGroup(tunables, seed, length, temperament,
-                    gait, 3, benthicFormation, world());
+            benthicGroup = memberLengths != null
+                    ? new grill24.fishsim.companion.BenthicGroup(tunables, seed, memberLengths, temperament,
+                            gait, benthicFormation, world())
+                    : new grill24.fishsim.companion.BenthicGroup(tunables, seed, length, temperament,
+                            gait, 3, benthicFormation, world());
             return benthicGroup.leader();
         }
         return new CompanionAgent(tunables, seed, locomotion, length, temperament, gait, driftStyle, world());
@@ -402,7 +412,7 @@ public final class CompanionViewer {
     private void paintView(Graphics2D g) {
         renderCache.update(scene, owner.eye());
         BufferedImage fp = CompanionRenderer.firstPerson(FP_W, FP_H, owner, renderCache, agent, true, world());
-        if (group != null) CompanionRenderer.drawFollowers(fp, owner, renderCache, group, CompanionRun.TRIO_LENGTH);
+        if (group != null) CompanionRenderer.drawFollowers(fp, owner, renderCache, group);
         if (benthicGroup != null) CompanionRenderer.drawBenthicFollowers(fp, owner, renderCache, benthicGroup);
         BufferedImage top = CompanionRenderer.topView(TOP_W, FP_H, owner, renderCache, agent, tunables, trail, 30, world());
         g.drawImage(fp, 0, 0, null);
@@ -420,6 +430,23 @@ public final class CompanionViewer {
         g.setColor(Color.WHITE);
         g.drawString("WASD move · Shift sprint · J jump · drag/arrows look · F view · T teleport · M mount · E glide · G ground"
                 + " · P climb · B tumble · K hurt · Space pause · N step · R reseed" + (paused ? "   [PAUSED]" : ""), 8, FP_H - 7);
+    }
+
+    /** Party-built groups (docs/fish-companions-party.md §3): same-species members of different sizes. */
+    private static final String SCHOOL_MIXED = "SCHOOL bluegill 9/16/24 cm", SCHOOL_PAIR = "SCHOOL pair 16/24 cm",
+            SCHOOL_BIG = "SCHOOL big 25/40/60 cm", STARFISH_PAIR = "BENTHIC starfish pair 30/45 cm",
+            SLUG_CROWD_MIXED = "BENTHIC slug crowd 8/12/18 cm";
+
+    /** Member lengths, leader first, for a party-built group class, or null for every other class. */
+    private static float[] partyLengths(String c) {
+        return switch (c) {
+            case SCHOOL_MIXED -> CompanionRun.SCHOOL_MIXED;
+            case SCHOOL_PAIR -> CompanionRun.SCHOOL_PAIR;
+            case SCHOOL_BIG -> CompanionRun.SCHOOL_BIG;
+            case STARFISH_PAIR -> CompanionRun.STARFISH_PAIR;
+            case SLUG_CROWD_MIXED -> CompanionRun.SLUG_CROWD_MIXED;
+            default -> null;
+        };
     }
 
     private JPanel controls() {
@@ -440,16 +467,20 @@ public final class CompanionViewer {
         JComboBox<String> classBox = new JComboBox<>(new String[]{"FREE_SWIM", "TRIO", "GLIDE",
                 "DRIFT bell (flapjack)", "DRIFT jet (squid)", "DRIFT bob (man o' war)",
                 "BENTHIC", "BENTHIC plaice", "BENTHIC slug", "BENTHIC spider crab",
-                "BENTHIC starfish line", "BENTHIC slug crowd", "ANCHORED"});
+                "BENTHIC starfish line", "BENTHIC slug crowd", "ANCHORED",
+                SCHOOL_MIXED, SCHOOL_PAIR, SCHOOL_BIG, STARFISH_PAIR, SLUG_CROWD_MIXED});
         classBox.addActionListener(e -> {
             String c = (String) classBox.getSelectedItem();
-            trio = c.equals("TRIO");
+            memberLengths = partyLengths(c);
+            trio = c.equals("TRIO") || c.startsWith("SCHOOL");
             gait = c.equals("BENTHIC plaice") ? GroundGait.RIPPLE : GroundGait.CRAWL;
             driftStyle = c.startsWith("DRIFT jet") ? grill24.fishsim.companion.DriftStyle.JET
                     : c.startsWith("DRIFT bob") ? grill24.fishsim.companion.DriftStyle.BOB
                     : grill24.fishsim.companion.DriftStyle.BELL;
-            benthicFormation = c.equals("BENTHIC starfish line") ? grill24.fishsim.companion.BenthicGroup.Formation.LINE
-                    : c.equals("BENTHIC slug crowd") ? grill24.fishsim.companion.BenthicGroup.Formation.CROWD : null;
+            benthicFormation = c.equals("BENTHIC starfish line") || c.equals(STARFISH_PAIR)
+                    ? grill24.fishsim.companion.BenthicGroup.Formation.LINE
+                    : c.equals("BENTHIC slug crowd") || c.equals(SLUG_CROWD_MIXED)
+                    ? grill24.fishsim.companion.BenthicGroup.Formation.CROWD : null;
             benthicLength = switch (c) {
                 case "BENTHIC plaice" -> 0.35f;
                 case "BENTHIC slug" -> 0.12f;
