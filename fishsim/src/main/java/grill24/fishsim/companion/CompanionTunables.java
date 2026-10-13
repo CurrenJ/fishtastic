@@ -131,6 +131,36 @@ public final class CompanionTunables {
     /** Ride height above the owner's chest, blocks: shoulder to head height. */
     public float driftRideHeight = 0.35f;
 
+    /** Phase 2: false restores the bell body for equal-seed squid comparisons. */
+    public boolean driftJet = true;
+    /** Fin acceleration, blocks/s²: enough to hover and sidestep, too weak for fast travel. */
+    public float jetFinThrust = 2f;
+    /** Squid mantle turn cap, degrees/tick; fins turn faster while hovering. */
+    public float jetTurnDegPerTick = 24f;
+    public float jetSlowTurnDegPerTick = 30f;
+    /** Travel jets: cycle seconds and squeeze fraction, independent of the bell's slow idle. */
+    public float jetPulseSeconds = 0.35f;
+    public float jetPulseDuty = 0.6f;
+    public float jetThrust = 28f;
+    /** Cut unused jet thrust once fins have already closed the planned velocity gap. */
+    public boolean jetArrive = true;
+    /** Extra forward ride offset for squid, blocks; 0 uses the bell's shoulder station. */
+    public float jetRideAhead = 2.2f;
+    /** Extra room around a travelling squid, blocks, for its faster corrections. */
+    public float jetRoomMargin = 0.2f;
+    /** Travel prediction, seconds, only when the whole catch-up lane is clear. */
+    public float jetFollowLead = 0.7f;
+    /** Largest steering error at mantle onset; fins finish lining the mantle up first. */
+    public float jetAlignDeg = 8f;
+    /** Time to open the counter fins before full stopping drag is available, seconds. */
+    public float jetBrakeDelay = 0.2f;
+    /** Counter fins can brake during a mantle stroke; holding thrust never pays that braking drag. */
+    public boolean jetCounterFinBrake = true;
+    /** Escort and view-pass targets reorient with the squid's fins instead of a bell's slow yaw. */
+    public boolean jetMindTurn = true;
+    /** Relative pace of a squid's attention pass, blocks/s; 0 restores the bell's pass pace. */
+    public float jetViewPassSpeed = 2.5f;
+
     // Phase 1 of the drifter rework (docs/fish-companions-drift.md §3, §4, §13): each its own switch,
     // for equal-ground A/B. All on is the adopted body; all off is the first cut, bitwise.
     /** Pulse again as soon as it needs to, instead of waiting out a slow idle cycle. */

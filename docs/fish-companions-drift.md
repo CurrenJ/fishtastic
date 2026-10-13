@@ -1,6 +1,6 @@
 # Fish companions: drifters rework (design spec)
 
-Status: spec written 2026-10-12, owner answers in §11. Phases 0–1 built and merged (§12–§13); Phase 1 accepted by the owner in the viewer (§11). Phase 2 (jet) resumed at the owner's request; isolated candidate and regression fixes are in §14, owner viewer gate pending. Builds on the companion sim
+Status: spec written 2026-10-12, owner answers in §11. Phases 0–1 built and merged (§12–§13); Phase 1 accepted by the owner in the viewer (§11). Phase 2 (jet) built in an isolated worktree, merged, and accepted by the owner in the viewer on 2026-10-13 (§14). Next: Phase 3 (bob). Builds on the companion sim
 (docs/fish-companions-sim-plan.md; DRIFT first cut and its open problems in §9.3, parked in §9.6).
 Quality bar: the same as FREE_SWIM and the benthic ground follow (docs/fish-companions-benthic-follow.md).
 
@@ -666,12 +666,14 @@ had the same pit (seed 8: 38 contacts).
 
 ## 14. Phase 2 as built
 
-Phase 2 squid candidate implemented on 2026-10-12 in the managed worktree
-`C:/Users/curre/.codex/worktrees/companion-squid/fishtastic`; not merged or owner accepted.
-See that worktree's `docs/fish-companions-squid-handoff.md` for implementation, verification,
-equal-seed measurements and the viewer gate. Fins / mantle jets, bounded full-sphere turns,
-arrival trimming and a squid viewer silhouette are built. The reported turn-visibility,
-doorway-contact and stopping-owner regressions now have fixes and enforced tests: 16-seed
-baseline about_face seen 32% (minimum 27%), doorway at most 3 light contacts (0.32 b/s), and
-zero owner overlap on sprint stops. Stair visibility also recovers. The handoff names the
-remaining style differences (doorway view time and pulse jerk); Phase 2 is not owner accepted.
+Phase 2 squid (`jet`) was built on 2026-10-12 in a separate worktree and merged into the main
+tree on 2026-10-13. Implementation, verification, equal-seed measurements and ablation switches
+are in [`fish-companions-squid-handoff.md`](fish-companions-squid-handoff.md). It has fins and
+mantle jets, bounded full-sphere turns, arrival trimming and a squid viewer silhouette. The
+turn-visibility, doorway-contact and stopping-owner regressions have fixes and enforced tests
+(`JetBodyTest`): 16-seed baseline about_face seen 32% (minimum 27%), doorway at most 3 light
+contacts (0.32 b/s), zero owner overlap on sprint stops.
+
+**Owner gate (2026-10-13, viewer):** "Squid looks good, we can merge." Accepted with its
+defaults. The named differences JET_DOORWAY_VIEW, JET_PULSE_JERK and JET_COUNTER_TRAVEL
+(handoff) are accepted with it. In-game squid sprite deformation stays in Phase 5.

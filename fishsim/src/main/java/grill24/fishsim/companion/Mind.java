@@ -619,7 +619,9 @@ final class Mind {
         if (Float.isNaN(escortYaw)) escortYaw = hs > 0.5 ? (float) o.velocity().yawDeg() : o.yawDeg();
         if (hs > 0.5) {
             float diff = Body.wrap((float) o.velocity().yawDeg() - escortYaw);
-            escortYaw = Body.wrap(escortYaw + Body.clamp(diff, -6f, 6f));
+            float turn = body instanceof DriftBody drift && drift.style == DriftStyle.JET && t.driftJet && t.jetMindTurn
+                    ? t.jetTurnDegPerTick : 6f;
+            escortYaw = Body.wrap(escortYaw + Body.clamp(diff, -turn, turn));
         }
         Vec f = Vec.fromYawPitch(escortYaw, 0);
         Vec r = f.cross(Vec.UP);
@@ -665,6 +667,7 @@ final class Mind {
         // Crossing over goes in front of the owner, never through them.
         double centre = 1 - Math.min(1, Math.pow(lateralSigned / (t.escortLateral * body.g.lateralScale() * temperament.band()), 2));
         double along = alongBase + driftAlong * 0.4 + surge + 1.4 * centre + body.g.alongOffset();
+        if (body instanceof DriftBody d && d.style == DriftStyle.JET && t.driftJet) along += t.jetRideAhead;
         double height = 0.15 + driftHeight * 0.25;
         Vec station = chest.add(r.scale(lateralSigned)).add(f.scale(along)).add(0, height, 0);
         if (body.g.rideHeight() > 0) station = ridingHigh(v, station, body.g.rideHeight());
@@ -696,6 +699,11 @@ final class Mind {
         // A drifter comes up alongside them, not up their trail and into their back (§13.8).
         if (body.locomotion == grill24.fishsim.core.Locomotion.DRIFT && t.driftOwnerAside > 0) {
             dest = driftAside(o, v, chest, dest);
+        }
+        if (body instanceof DriftBody drift && drift.style == DriftStyle.JET && t.driftJet) {
+            Vec lead = dest.add(o.velocity().horizontal().scale(t.jetFollowLead));
+            if (v.segmentClear(dest, lead, body.radius + ROUTE_MARGIN)
+                    && v.segmentClear(body.pos, lead, body.radius + ROUTE_MARGIN)) dest = lead;
         }
         // Routes keep a margin beyond the body's radius: a fish turns in an arc, not on the line.
         if (!v.segmentClear(body.pos, dest, body.radius + ROUTE_MARGIN)) {
@@ -764,7 +772,9 @@ final class Mind {
             laggedYaw = o.yawDeg();
         }
         // The aim lags the camera: the fish swims to where the owner was looking a moment ago.
-        laggedYaw = Body.wrap(laggedYaw + Body.clamp(Body.wrap(o.yawDeg() - laggedYaw), -3.5f, 3.5f));
+        float turn = body instanceof DriftBody drift && drift.style == DriftStyle.JET && t.driftJet && t.jetMindTurn
+                ? t.jetTurnDegPerTick * 0.5f : 3.5f;
+        laggedYaw = Body.wrap(laggedYaw + Body.clamp(Body.wrap(o.yawDeg() - laggedYaw), -turn, turn));
         float pitch = Body.clamp(o.pitchDeg(), -25f, 35f);
         Vec cam = o.camera();
         Vec enterPoint = cam.add(Vec.fromYawPitch(laggedYaw + showSide * 28, pitch + 6).scale(1.8));
@@ -782,13 +792,18 @@ final class Mind {
         double speed;
         if (showPhase == 0) {
             if (d < 0.45) showPhase = 1;
-            speed = Math.min(body.g.cruiseSpeed() * 1.6, 0.4 + d * 1.5);
+            double pace = body instanceof DriftBody drift && drift.style == DriftStyle.JET && t.driftJet
+                    && t.jetViewPassSpeed > 0
+                    ? t.jetViewPassSpeed : body.g.cruiseSpeed() * 1.6;
+            speed = Math.min(pace, 0.4 + d * 1.5);
         } else {
             if (d < 0.5) {
                 showPhase = 0;
                 showSide = -showSide;
             }
-            speed = body.g.cruiseSpeed() * 0.9;
+            speed = body instanceof DriftBody drift && drift.style == DriftStyle.JET && t.driftJet
+                    && t.jetViewPassSpeed > 0
+                    ? t.jetViewPassSpeed * 0.6 : body.g.cruiseSpeed() * 0.9;
         }
         // Swim relative to the owner, so a show still reaches the front of someone walking.
         Vec relative = aroundOwner(o, v, dest).sub(body.pos).normalize().scale(speed);

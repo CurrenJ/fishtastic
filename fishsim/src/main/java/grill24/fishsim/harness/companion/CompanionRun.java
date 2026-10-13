@@ -44,7 +44,8 @@ public final class CompanionRun {
                          boolean riding, String pose, float curiosity,
                          boolean impulse, double impulseSize, boolean onGround, boolean feetDown, double lag,
                          boolean reachable, boolean doorClosed, boolean tumbling, String land,
-                         Vec asked, boolean strokeStart, float flare, float tilt, float tiltRate) {}
+                         Vec asked, boolean strokeStart, float flare, float tilt, float tiltRate, Vec propulsion,
+                         double mantleThrust) {}
 
     public final VoxelScene scene;
     public final OwnerScript script;
@@ -180,7 +181,7 @@ public final class CompanionRun {
                     agent.poseHint().name(), agent.curiosity(), agent.impulse(), agent.lastImpulse(),
                     agent.onGround(), agent.feetDown(), agent.groundLag(), agent.groundReachable(), scene.doorClosed(),
                     agent.tumbling(), agent.landMode(), agent.driftAsked(), agent.driftStrokeStart(),
-                    agent.flare(), agent.driftTilt(), agent.driftTiltRate()));
+                    agent.flare(), agent.driftTilt(), agent.driftTiltRate(), agent.driftPropulsion(), agent.mantleThrust()));
         }
     }
 
@@ -419,6 +420,8 @@ public final class CompanionRun {
                 // backwards, or a bell pulsing tentacles-first. A bell sinking between pulses is
                 // just sinking, so for a drifter only ticks with real thrust count.
                 boolean propelled = agent.locomotion() != Locomotion.DRIFT || s.thrust() > 1.0;
+                if (agent.locomotion() == Locomotion.DRIFT && agent.driftStyle() == DriftStyle.JET && tunables.driftJet)
+                    propelled = s.mantleThrust() > 1.0;
                 if (s.vel().length() > 1.0 && propelled && !s.tumbling()) {
                     movingTicks++;
                     if (tailFirst(s, agent.locomotion(), agent.driftStyle())) tailFirstTicks++;
@@ -492,15 +495,15 @@ public final class CompanionRun {
     /**
      * Whether {@code s} is travelling more than 100° from its front: the heading for a swimmer, the
      * bell's axis for a drifter. Per drift style (docs/fish-companions-drift.md §5), a {@code jet}
-     * squid travelling mantle-first is going forwards; until its body exists (Phase 2) its front is
-     * the same axis as the bell's.
+     * squid travelling mantle-first is going forwards: its reported axis points toward the mantle,
+     * rather than the tentacles. Off-axis fin corrections can briefly travel across this axis.
      */
     static boolean tailFirst(Sample s, Locomotion c, DriftStyle style) {
         Vec front = Vec.fromYawPitch(s.yaw(), s.pitch());
         if (c == Locomotion.DRIFT) {
             front = switch (style) {
                 case BELL, BOB -> front;
-                case JET -> front; // Phase 2: the mantle's axis, which the jet body will report.
+                case JET -> front; // Mantle-first is forward; tentacle-first is reverse.
             };
         }
         return front.dot(s.vel().normalize()) < -0.17;
@@ -659,6 +662,7 @@ public final class CompanionRun {
         boolean inCycle = false, cycleClean = false;
         // Swings of the ask.
         int reorients = 0, swingStart = -1;
+        int lastSwing = -SWING_TICKS;
         double sumReorient = 0, maxReorient = 0;
         // Floor clearance.
         double minClear = Double.NaN;
@@ -698,10 +702,11 @@ public final class CompanionRun {
                 cycleN++;
             }
 
-            if (swingStart < 0 && k >= SWING_TICKS && settled) {
+            if (swingStart < 0 && k >= SWING_TICKS && k - lastSwing >= SWING_TICKS && settled) {
                 Vec now = s.asked(), then = samples.get(k - SWING_TICKS).asked();
                 if (now.length() > 0.5 && then.length() > 0.5 && now.normalize().dot(then.normalize()) < 0) {
                     swingStart = k;
+                    lastSwing = k;
                 }
             }
             if (swingStart >= 0 && (alongAsked(s) || k == n - 1)) {
@@ -751,7 +756,7 @@ public final class CompanionRun {
      */
     private static boolean alongAsked(Sample s) {
         if (s.thrust() <= 1.0) return false;
-        Vec axis = Vec.fromYawPitch(s.yaw(), s.pitch()), ask = s.asked();
+        Vec axis = s.propulsion().normalize(), ask = s.asked();
         if (ask.horizontalLength() > 0.5 * ask.length()) {
             Vec ah = new Vec(axis.x(), 0, axis.z()), kh = new Vec(ask.x(), 0, ask.z());
             if (ah.length() < Math.sin(Math.toRadians(10))) return false;
