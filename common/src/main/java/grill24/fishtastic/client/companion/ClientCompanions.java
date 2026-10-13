@@ -1,10 +1,13 @@
 package grill24.fishtastic.client.companion;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import grill24.fishsim.companion.PartyGrouping;
 import grill24.fishsim.companion.PointOfInterest;
 import grill24.fishsim.companion.Temperament;
 import grill24.fishtastic.client.FishtasticClientConfig;
 import grill24.fishtastic.companion.CompanionFishingOutcome;
+import grill24.fishtastic.companion.CompanionGroups;
+import grill24.fishtastic.companion.CompanionParty;
 import grill24.fishtastic.companion.CompanionSceneType;
 import grill24.fishtastic.companion.CompanionStorage;
 import grill24.fishtastic.util.FishingMinigameAnimation;
@@ -31,11 +34,14 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Every companion fish the client can see (docs/fish-companions-sim-plan.md §3.5). Each tick it
- * reads the synced companion of every player in the client level ({@link CompanionStorage}) and
- * keeps one {@link ClientCompanion} per non-empty one — created when a player with a companion
- * comes into view, rebuilt when their companion changes, dropped when they leave or unequip — then
- * steps each one's sim from the world the {@link CompanionWorldAdapter} builds.
+ * Every companion fish the client can see (docs/fish-companions-sim-plan.md §3.5,
+ * docs/fish-companions-party.md §3). Each tick it reads the synced party of every player in the
+ * client level ({@link CompanionStorage#party}), groups it ({@link PartyGrouping}, via
+ * {@link CompanionGroups#members}) and keeps one {@link ClientCompanion} per group — created when a
+ * player with a party comes into view, all rebuilt when their party changes, dropped when they leave
+ * or empty it — then steps each one's sim from the world the {@link CompanionWorldAdapter} builds.
+ * A companion is identified by its owner and its group's lowest slot; the party lead is found by
+ * slot ({@link ClientCompanion#holdsSlot}), since it may follow in its own school (D9).
  *
  * <p>The client settings are respected at the submit sites: other players' companions can be hidden
  * entirely, and your own can be hidden in first person.
@@ -47,7 +53,10 @@ import java.util.UUID;
 public final class ClientCompanions {
     private ClientCompanions() {}
 
-    private static final Map<UUID, ClientCompanion> COMPANIONS = new HashMap<>();
+    /** One player's party as this client runs it: the synced party and one companion per group. */
+    private record OwnerParty(Player owner, CompanionParty party, List<ClientCompanion> companions) {}
+
+    private static final Map<UUID, OwnerParty> PARTIES = new HashMap<>();
     /** Dev-only companions with no owner, round an imaginary still owner — a stand-in for another player's. */
     private static final Map<UUID, ClientCompanion> PHANTOMS = new HashMap<>();
     @Nullable private static ClientLevel trackedLevel;
@@ -55,8 +64,10 @@ public final class ClientCompanions {
     /** Another companion counts as a point of interest within this range of an owner, blocks. */
     private static final double COMPANION_RANGE = 16.0;
 
-    /** Dev: the temperament forced on the local companion, or null for its species' own. */
-    @Nullable private static Temperament temperamentOverride;
+    /** Dev: the temperament forced on the local party's companion holding each slot, or null for its species' own. */
+    private static final Temperament[] temperamentOverrides = new Temperament[CompanionParty.SIZE];
+    /** Dev: the party slot (0 = lead) the overlay and the dev triggers act on. */
+    private static int devSlot = CompanionParty.LEAD;
     /** Dev: draw the debug overlay. */
     private static boolean overlay;
 
@@ -84,7 +95,7 @@ public final class ClientCompanions {
         Minecraft mc = Minecraft.getInstance();
         ClientLevel level = mc.level;
         if (level != trackedLevel) {
-            COMPANIONS.clear();
+            PARTIES.clear();
             PHANTOMS.clear();
             CompanionDevPoints.clear();
             trackedLevel = level;
@@ -95,18 +106,16 @@ public final class ClientCompanions {
 
         Set<UUID> seen = new HashSet<>();
         for (Player player : level.players()) {
-            ItemStack stack = CompanionStorage.get(player);
-            if (stack.isEmpty()) continue;
+            CompanionParty party = CompanionStorage.party(player);
+            if (party.isEmpty()) continue;
             UUID id = player.getUUID();
             seen.add(id);
-            ClientCompanion existing = COMPANIONS.get(id);
-            if (existing == null || existing.owner() != player || !ItemStack.matches(existing.stack(), stack)) {
-                boolean local = player == mc.player;
-                COMPANIONS.put(id, new ClientCompanion(player, null, 0f, stack, level,
-                        local ? temperamentOverride : null));
+            OwnerParty existing = PARTIES.get(id);
+            if (existing == null || existing.owner() != player || !existing.party().matches(party)) {
+                PARTIES.put(id, build(player, party, level));
             }
         }
-        COMPANIONS.keySet().retainAll(seen);
+        PARTIES.keySet().retainAll(seen);
 
         CompanionDevPoints.tick(level);
         List<PointOfInterest> devPoints = CompanionDevPoints.points();
@@ -118,15 +127,36 @@ public final class ClientCompanions {
         recordCost(step);
     }
 
+    /** One companion per group of {@code player}'s party, in group order. */
+    private static OwnerParty build(Player player, CompanionParty party, ClientLevel level) {
+        UUID id = player.getUUID();
+        boolean local = player == Minecraft.getInstance().player;
+        List<ClientCompanion> companions = new ArrayList<>();
+        for (PartyGrouping.Group group : PartyGrouping.group(CompanionGroups.members(party, level.registryAccess(),
+                s -> ClientCompanion.trueLength(s, level), s -> ClientCompanion.stackSeed(id, s)))) {
+            List<ItemStack> stacks = new ArrayList<>();
+            Temperament override = null;
+            for (PartyGrouping.Member member : group.members()) {
+                stacks.add(party.get(member.slot()));
+                if (local && override == null) override = temperamentOverrides[member.slot()];
+            }
+            companions.add(new ClientCompanion(player, null, 0f, group, stacks, level, override));
+        }
+        return new OwnerParty(player, party, List.copyOf(companions));
+    }
+
     /** Every companion this client runs, phantoms included. */
     private static List<ClientCompanion> all() {
-        List<ClientCompanion> all = new ArrayList<>(COMPANIONS.size() + PHANTOMS.size());
-        all.addAll(COMPANIONS.values());
+        List<ClientCompanion> all = new ArrayList<>();
+        for (OwnerParty party : PARTIES.values()) all.addAll(party.companions());
         all.addAll(PHANTOMS.values());
         return all;
     }
 
-    /** The other companions near {@code self}'s fish, as its points of interest (from this client's own sims). */
+    /**
+     * The other companions near {@code self}'s fish, as its points of interest (from this client's
+     * own sims) — party-mates included; Phase 2 makes them familiar (party spec §7).
+     */
     private static List<PointOfInterest> othersNear(ClientCompanion self) {
         if (self.agent() == null || count() < 2) return List.of();
         List<PointOfInterest> out = new ArrayList<>();
@@ -135,13 +165,21 @@ public final class ClientCompanions {
             i++;
             if (other == self || other.agent() == null) continue;
             if (other.agent().position().distanceTo(self.agent().position()) > COMPANION_RANGE) continue;
-            // A stable id per companion that can't collide with an entity's: its owner's entity id,
-            // negated (phantoms have no owner; they take an index below every real id).
-            int id = other.owner() != null ? -1 - other.owner().getId() : Integer.MIN_VALUE + i;
-            PointOfInterest p = other.asPoint(id);
+            PointOfInterest p = other.asPoint(pointId(other, i));
             if (p != null) out.add(p);
         }
         return out;
+    }
+
+    /**
+     * A stable id per companion that can't collide with an entity's (party spec §5.2): its owner's
+     * entity id and its group's lowest slot (its identity; the formation leader can change with
+     * sizes), negated. Phantoms have no owner; they take an index below every real id.
+     */
+    static int pointId(ClientCompanion companion, int index) {
+        Player owner = companion.owner();
+        return owner != null ? -1 - (owner.getId() * CompanionParty.SIZE + companion.lowestSlot())
+                : Integer.MIN_VALUE + index;
     }
 
     private static void recordCost(long stepNanos) {
@@ -164,7 +202,7 @@ public final class ClientCompanions {
 
     /** A block changed on the client: every companion forgets the blocks it sampled (cheap; resampled lazily). */
     public static void onBlockChanged(BlockPos pos) {
-        if (COMPANIONS.isEmpty() && PHANTOMS.isEmpty()) return;
+        if (PARTIES.isEmpty() && PHANTOMS.isEmpty()) return;
         for (ClientCompanion companion : all()) companion.invalidateBlocks();
     }
 
@@ -178,24 +216,55 @@ public final class ClientCompanions {
     }
 
     /** The scene packet's landing point. Pet-to-pet scenes return in Phase 4 (plan §5); ignored for now. */
-    public static void onScenePacket(CompanionSceneType scene, UUID first, UUID second, long startTime) {
+    public static void onScenePacket(CompanionSceneType scene, UUID first, int firstSlot, UUID second, int secondSlot,
+                                     long startTime) {
     }
 
+    /**
+     * The local player's lead companion: the group holding slot 1 (the lead), or the first group
+     * when the lead slot is empty.
+     */
     @Nullable
     public static ClientCompanion local() {
+        return inSlot(localCompanions(), CompanionParty.LEAD, true);
+    }
+
+    /** Every companion of the local player's party, in group order. */
+    public static List<ClientCompanion> localCompanions() {
         Player player = Minecraft.getInstance().player;
-        return player == null ? null : COMPANIONS.get(player.getUUID());
+        return player == null ? List.of() : companionsOf(player);
     }
 
-    /** The tracked companion of any player — the perch layer's lookup by rendered entity id. */
+    /** Every tracked companion of any player — the perch layer's lookup by rendered entity. */
+    public static List<ClientCompanion> companionsOf(Player player) {
+        OwnerParty party = PARTIES.get(player.getUUID());
+        return party == null ? List.of() : party.companions();
+    }
+
+    /** The local companion the dev triggers and the overlay act on: the group holding {@link #devSlot}. */
     @Nullable
-    public static ClientCompanion get(Player player) {
-        return COMPANIONS.get(player.getUUID());
+    private static ClientCompanion selected() {
+        return inSlot(localCompanions(), devSlot, false);
     }
 
-    /** How many companions the client is currently tracking, phantoms included. */
+    @Nullable
+    private static ClientCompanion inSlot(List<ClientCompanion> companions, int slot, boolean fallBack) {
+        for (ClientCompanion c : companions) if (c.holdsSlot(slot)) return c;
+        return fallBack && !companions.isEmpty() ? companions.get(0) : null;
+    }
+
+    /** How many companions the client is currently tracking (one per group), phantoms included. */
     public static int count() {
-        return COMPANIONS.size() + PHANTOMS.size();
+        int n = PHANTOMS.size();
+        for (OwnerParty party : PARTIES.values()) n += party.companions().size();
+        return n;
+    }
+
+    /** How many fish bodies the client is currently tracking, phantoms included. */
+    public static int bodyCount() {
+        int n = 0;
+        for (ClientCompanion c : all()) n += c.bodyCount();
+        return n;
     }
 
     // ---------------------------------------------------------------- world pass
@@ -207,9 +276,12 @@ public final class ClientCompanions {
         if (mc.level == null || count() == 0) return;
         Vec3 cam = mc.gameRenderer.getMainCamera().position();
         boolean firstPerson = mc.options.getCameraType().isFirstPerson();
-        for (ClientCompanion companion : COMPANIONS.values()) {
-            if (!shouldDraw(companion, firstPerson)) continue;
-            if (companion.submitWorld(poseStack, nodes, cam, partialTick)) worldSubmitsThisFrame++;
+        for (OwnerParty party : PARTIES.values()) {
+            for (ClientCompanion companion : party.companions()) {
+                if (!shouldDraw(companion, firstPerson)) continue;
+                if (companion.submitWorld(poseStack, nodes, cam, partialTick)) worldSubmitsThisFrame++;
+                companion.submitNames(poseStack, nodes, cam, partialTick);
+            }
         }
         if (FishtasticClientConfig.hideOtherCompanions()) return;
         for (ClientCompanion phantom : PHANTOMS.values()) {
@@ -247,10 +319,10 @@ public final class ClientCompanions {
         if (!overlay) return;
         Minecraft mc = Minecraft.getInstance();
         Font font = mc.font;
-        List<String> lines = new ArrayList<>();
-        ClientCompanion local = local();
-        if (local == null) lines.add("no local companion");
-        else lines.addAll(local.debugLines());
+        List<String> lines = new ArrayList<>(partyLines());
+        ClientCompanion selected = selected();
+        if (selected == null) lines.add("slot " + (devSlot + 1) + ": empty");
+        else lines.addAll(selected.debugLines());
         lines.add(costLine());
         int y = 4;
         int width = 0;
@@ -262,6 +334,16 @@ public final class ClientCompanions {
         }
     }
 
+    /** The overlay's party header: one line per group, the selected one marked. */
+    private static List<String> partyLines() {
+        List<ClientCompanion> companions = localCompanions();
+        if (companions.isEmpty()) return List.of("party: empty");
+        List<String> lines = new ArrayList<>();
+        lines.add("party (debug slot " + (devSlot + 1) + ")");
+        for (ClientCompanion c : companions) lines.add((c.holdsSlot(devSlot) ? "> " : "  ") + c.partyLine());
+        return lines;
+    }
+
     /** The sim's cost over the last second: block samples, their time, and the whole step (plan §7 risk 3). */
     static String costLine() {
         long samples = 0, sampleNanos = 0, stepNanos = 0, worstStep = 0;
@@ -271,9 +353,9 @@ public final class ClientCompanions {
             stepNanos += costStepNanos[i];
             worstStep = Math.max(worstStep, costStepNanos[i]);
         }
-        return String.format(Locale.ROOT, "%d companions  blocks %.0f/tick %.0f us/tick  step %.0f us/tick (worst %d us)"
+        return String.format(Locale.ROOT, "%d companions (%d fish)  blocks %.0f/tick %.0f us/tick  step %.0f us/tick (worst %d us)"
                         + "  peak blocks %d/tick, step %d us",
-                count(), samples / (double) COST_WINDOW, sampleNanos / 1000.0 / COST_WINDOW,
+                count(), bodyCount(), samples / (double) COST_WINDOW, sampleNanos / 1000.0 / COST_WINDOW,
                 stepNanos / 1000.0 / COST_WINDOW, worstStep / 1000, peakSamples, peakStepNanos / 1000);
     }
 
@@ -299,7 +381,7 @@ public final class ClientCompanions {
     public static UUID addPhantom(ItemStack fish, Vec3 eye, float yaw) {
         Minecraft mc = Minecraft.getInstance();
         UUID id = UUID.randomUUID();
-        if (mc.level != null) PHANTOMS.put(id, new ClientCompanion(null, eye, yaw, fish, mc.level, null));
+        if (mc.level != null) PHANTOMS.put(id, ClientCompanion.phantom(eye, yaw, fish, mc.level));
         return id;
     }
 
@@ -321,22 +403,43 @@ public final class ClientCompanions {
     }
 
     /**
-     * Dev-only (`/fishtastic companion temperament <id>|species`): rebuilds the local companion with
-     * a temperament of your choosing, or its species' own.
+     * Dev-only (`/fishtastic companion debug slot <1-3>`): which party slot the overlay and the dev
+     * triggers act on — the companion (solo or group) holding that slot.
+     */
+    public static String devSlot(int slot) {
+        devSlot = slot;
+        ClientCompanion c = selected();
+        return "Companion debug slot " + (slot + 1) + (c == null ? " (empty)" : ": " + c.partyLine());
+    }
+
+    /** Dev-only: the party slot the dev triggers act on, 0-based. */
+    public static int devSlot() {
+        return devSlot;
+    }
+
+    /**
+     * Dev-only (`/fishtastic companion temperament <id>|species`): rebuilds the selected companion
+     * (the debug slot's) with a temperament of your choosing, or its species' own.
      */
     public static String devTemperament(@Nullable String id) {
-        if (id == null) {
-            temperamentOverride = null;
-        } else {
+        Temperament chosen = null;
+        if (id != null) {
             Temperament t = Temperament.named(id);
             if (!t.name().equals(id.toLowerCase(Locale.ROOT)) && !id.equalsIgnoreCase("baseline")) {
                 return "Unknown temperament " + id;
             }
-            temperamentOverride = t;
+            chosen = t;
+        }
+        // A group shares one mind: every slot it holds gets the override, so it survives regrouping.
+        ClientCompanion c = selected();
+        if (c != null) {
+            for (int s : c.group().slots()) temperamentOverrides[s] = chosen;
+        } else {
+            temperamentOverrides[devSlot] = chosen;
         }
         Player player = Minecraft.getInstance().player;
-        if (player != null) COMPANIONS.remove(player.getUUID()); // rebuilt next tick
-        return "Companion temperament: " + (id == null ? "its species' own" : temperamentOverride.name());
+        if (player != null) PARTIES.remove(player.getUUID()); // rebuilt next tick
+        return "Companion temperament (slot " + (devSlot + 1) + "): " + (id == null ? "its species' own" : chosen.name());
     }
 
     /** Dev-only: every temperament id the command accepts. */
@@ -347,55 +450,59 @@ public final class ClientCompanions {
         return ids;
     }
 
-    /** Dev-only (`/fishtastic companion fake hostile|cat|item|companion|clear`). */
+    /** Dev-only (`/fishtastic companion fake hostile|cat|item|companion|clear`): seen by the whole local party. */
     public static String devFake(String kind) {
         if (kind.equals("clear")) {
             CompanionDevPoints.clear();
             return "Fake points cleared";
         }
-        ClientCompanion local = local();
+        ClientCompanion local = selected();
         Player player = Minecraft.getInstance().player;
-        if (local == null || player == null) return "No local companion — bond one first";
+        if (local == null || player == null) return "No companion in debug slot " + (devSlot + 1) + " — bond one first";
         CompanionDevPoints.Kind k = CompanionDevPoints.Kind.valueOf(kind.toUpperCase(Locale.ROOT));
         return CompanionDevPoints.add(k, new CompanionWorldAdapter.OwnerTracker().owner(player, true));
     }
 
-    /** Dev-only (`/fishtastic companion hurt`): the local companion sees its owner hurt next tick. */
+    /** Dev-only (`/fishtastic companion hurt`): the selected companion sees its owner hurt next tick. */
     public static String devHurt() {
-        ClientCompanion local = local();
-        if (local == null) return "No local companion";
+        ClientCompanion local = selected();
+        if (local == null) return noSelected();
         local.devHurt();
-        return "Owner hurt (for the companion only)";
+        return "Owner hurt (for the slot " + (devSlot + 1) + " companion only)";
     }
 
     /** Dev-only (`/fishtastic companion drowsy`): as if you'd stood still long enough for it to settle. */
     public static String devDrowsy() {
-        ClientCompanion local = local();
-        if (local == null) return "No local companion";
+        ClientCompanion local = selected();
+        if (local == null) return noSelected();
         local.devDrowsy();
         return "Companion drowsy — stand still and it settles";
     }
 
     /** Dev-only (`/fishtastic companion ground`): a ground benthic (and its group) back down off the perch. */
     public static String devGround() {
-        ClientCompanion local = local();
-        if (local == null) return "No local companion";
-        return local.devGround() ? "Companion back down to the ground" : "Your companion doesn't walk on the ground";
+        ClientCompanion local = selected();
+        if (local == null) return noSelected();
+        return local.devGround() ? "Companion back down to the ground" : "That companion doesn't walk on the ground";
     }
 
     /** Dev-only (`/fishtastic companion climb`): a ground benthic (and its group, in turn) climbs onto the perch. */
     public static String devClimb() {
-        ClientCompanion local = local();
-        if (local == null) return "No local companion";
-        return local.devClimb() ? "Companion climbing on — stand still" : "Your companion doesn't walk on the ground";
+        ClientCompanion local = selected();
+        if (local == null) return noSelected();
+        return local.devClimb() ? "Companion climbing on — stand still" : "That companion doesn't walk on the ground";
     }
 
     /** Dev-only (`/fishtastic companion tumble`): a perched ground benthic is knocked off (waits until attached). */
     public static String devTumble() {
-        ClientCompanion local = local();
-        if (local == null) return "No local companion";
+        ClientCompanion local = selected();
+        if (local == null) return noSelected();
         return local.devTumble() ? "Companion tumbles off once it's perched and out of cooldown"
-                : "Your companion doesn't walk on the ground";
+                : "That companion doesn't walk on the ground";
+    }
+
+    private static String noSelected() {
+        return "No companion in debug slot " + (devSlot + 1);
     }
 
     /** Dev-only (`/fishtastic companion debug on|off`): the debug overlay. */
@@ -406,15 +513,15 @@ public final class ClientCompanions {
 
     /**
      * Dev-only (`/fishtastic companion catchdemo`): opens a demo bar whose one fish target is a
-     * member of the local companion's own species, flagged undiscovered. Lives here rather than in
-     * the command because the command class must never use {@code Minecraft.player} — see the class
-     * note on {@code CompanionCommand}.
+     * member of the local lead companion's own species, flagged undiscovered. Lives here rather than
+     * in the command because the command class must never use {@code Minecraft.player} — see the
+     * class note on {@code CompanionCommand}.
      */
     public static String devOpenCatchDemo() {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return "No client player";
-        ItemStack companion = CompanionStorage.get(mc.player);
-        if (companion.isEmpty()) return "No companion equipped — bond one first (or /fishtastic companion on)";
+        ItemStack companion = CompanionStorage.lead(mc.player);
+        if (companion.isEmpty()) return "No lead companion — bond one first (or /fishtastic companion on)";
         ItemStack reward = companion.copyWithCount(1);
         FishingMinigameAnimation animation = new FishingMinigameAnimation();
         // The bare constructor stages three example TREASURE targets; clear them first, exactly as
@@ -445,10 +552,12 @@ public final class ClientCompanions {
         return "No active target to catch";
     }
 
-    /** Dev diagnostics for the local player's companion. */
+    /** Dev diagnostics for the local player's party: every group, then the selected one in detail. */
     public static String debugState() {
-        ClientCompanion local = local();
-        return "tracked=" + count() + " perchLayer=" + perchLayerCalls + "/" + perchSubmits + " | " + (local == null ? "no local companion" : String.join(" | ", local.debugLines()))
+        ClientCompanion local = selected();
+        return "tracked=" + count() + " bodies=" + bodyCount() + " perchLayer=" + perchLayerCalls + "/" + perchSubmits
+                + " | " + String.join(" | ", partyLines())
+                + " | " + (local == null ? "no companion in debug slot " + (devSlot + 1) : String.join(" | ", local.debugLines()))
                 + " | " + costLine();
     }
 }

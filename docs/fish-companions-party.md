@@ -83,8 +83,8 @@ storage change.
 | 2–3 × same of another class (GLIDE, DRIFT, ANCHORED, pure percher) | 2–3 | Separate party members, no group formation (D7) |
 | Different species | 1 each | Separate party members (§6) |
 
-- **The group leader is the member in the lowest slot**, so a school in slots 1–3 is led by the
-  lead.
+- **The group leader is picked by size (D9): the smallest fish leads.** Ties go to the lowest
+  slot, so identical members keep today's leader. The group paces to its slowest member (D10).
 - **The old count rules are retired:**
   - `CompanionGroup.isTrio` (FREE_SWIM and under 20 cm). Any size forms a group (D8).
   - `companion_group.count`. The field keeps only its style (`line` / `crowd`), and `count` is
@@ -156,6 +156,34 @@ Slot 1 is the **lead** (owner answer D4).
 ### 5.4 Commands
 - `/fishtastic companion give <player> <species> [size] [slot]`.
 - `debug slot <n>` chooses whose overlay shows; the cost line shows party totals.
+
+### 5.5 Rename and pile picking (D12, Phase 1d)
+
+The hidden "selected slot" mode goes. Every action names its own slot.
+
+- **Pencil tabs.**
+  - Under each party slot is a small pencil button (drawn in code or from our own atlas; no
+    Mojang assets). It's disabled for an empty slot.
+  - Clicking it opens the name row bound to **that** slot, with the pencil highlighted.
+  - ✓ or Enter saves (`RenameCompanionPacket(slot, name)`), and Esc or the pencil again cancels.
+  - If that slot's fish is moved or swapped while the row is open, the row closes without saving.
+  - The focused box still eats keys (the anvil rule).
+- **Pile strip → cursor.**
+  - Clicking a fish in the strip sends a new packet that only describes the fish, like bonding.
+    The server finds a fish identical in every component inside a Pile of Fish in the inventory,
+    takes it out (`takeOneMatching`'s pile half, including the one-fish-left rule), and puts it
+    on the menu's cursor.
+  - It only works with an empty cursor, and the server rechecks that.
+  - From there it's ordinary vanilla handling: click any party slot, or put it anywhere.
+  - **Known catch, accepted:** a fish you change your mind about goes back as a loose fish, not
+    into its pile. Closing with it on the cursor returns it to the inventory, or drops it, as
+    vanilla does.
+- **Game tests:**
+  - strip-to-cursor (from a pile, and a pile left with one fish);
+  - cursor not empty → refused;
+  - a stale description → refused;
+  - rename slot 2 while slot 1 holds a fish;
+  - rename row closes when its fish moves.
 
 ---
 
@@ -284,6 +312,18 @@ longer used for ANCHORED. This is an **intended** fingerprint change for the ANC
 made in Phase 2 with the perch allocator, behind a switch, and reported as such. Phase 1 keeps
 every fingerprint bitwise.
 
+Answered 2026-10-13 (after 1b's measurements):
+
+| # | Question | Answer |
+|---|---|---|
+| D9 | Who leads a group? | **Chosen automatically by size, not by the player.** The smallest fish leads (1b measured lines better that way); the direction is A/B'd on schools in Phase 2a |
+| D10 | Does a group pace itself to its slowest member? | **Yes** |
+| D11 | Keep the 0.25-block render floor? | **No: every companion, solo or grouped, draws true to size** |
+| D12 | How do rename and the pile strip pick a slot without a pick-up click? | **No selected slot.** A pencil tab under each slot renames that fish; the pile strip puts the chosen fish on the cursor (§5.5) |
+
+The party lead (slot 1) is unchanged: it is the party's buddy (§4). Inside a group, the size
+rule picks the formation leader.
+
 ---
 
 ## 11. Phase 1a as built (server, data, menu)
@@ -321,4 +361,55 @@ Full record: [`fish-companions-party-1b-asbuilt.md`](fish-companions-party-1b-as
 - **Two grouping rules exist** (this one and 1a's `CompanionGroups`). 1c makes common delegate to
   `PartyGrouping`, so there's one source of truth.
 
-## 13. Phase 1c as built (reserved: client wiring)
+## 13. Phase 1c as built (client wiring)
+
+Full record: [`fish-companions-party-1c-asbuilt.md`](fish-companions-party-1c-asbuilt.md).
+- **Groups:** `CompanionGroups` delegates to `PartyGrouping`, so there's one grouping rule.
+  `ClientCompanions` keeps one companion per group, keyed by (owner, lowest slot), and rebuilds
+  it when the party changes.
+- **Lead:** found by which group holds slot 0; it may be a follower in its own school (D9).
+- **Retired:** the automatic trio and `companion_group.count`. The count is optional and ignored,
+  and it's removed from the three shipped profiles.
+- **True size (D11):** every companion. The 0.25 floor only ever affected the sim body and the
+  perched pose. A 9 cm bluegill is 0.08 blocks, a tiny speck that's still visible.
+- **Names (D6):** each fish's name sits above it while its owner sneaks.
+- **Dev:** `debug slot <1-3>` picks the slot for the overlay and the dev triggers; `swell` and
+  `squeeze` stay global. The self-test scene `companionparty` is added.
+- **Verified on the merged tree:**
+  - `:fishsim:test` 470 tests, 0 failed; `:common:test`; both builds;
+  - Fabric game tests 360/360; NeoForge 354/354;
+  - self-tests 21/21 on both loaders (in the fork).
+- **Open for the owner:**
+  - Identical labels in a tight school stack into a blob.
+  - A 9 cm solo is a 1–2 pixel speck in first person.
+  - Party-mates inspect each other until Phase 2's familiarity rule.
+
+## 14. Phase 2a as built (group leader by size, pacing)
+
+Full record: [`fish-companions-party-2a-asbuilt.md`](fish-companions-party-2a-asbuilt.md).
+- **D9:** `PartyGrouping` puts each group in formation order, smallest first, with ties to the
+  lower slot.
+- **Measured over 8 equal seeds:**
+  - lines are clearly better smallest-first: worst underfoot 22 against 43, line order on stairs
+    20% against 45%, sprint fades 4 → 0;
+  - schools are equal or slightly better;
+  - crowds are a trade-off: less underfoot and lag, but more member overlap (worst 67 against 37).
+- **D10 comes free with D9.** A ground body's pace grows with its size, so the smallest leader is
+  always the slowest; for swimmers, pace doesn't depend on size. The explicit cap
+  (`groupPaceCap`, default off) acts only on big-leader orders, which D9 never produces, and it
+  was a trade-off there.
+- **MIXED_SPRINT_FADE closed:** lines allow no fades on any script.
+- **Verified on the merged tree:**
+  - all 654 fingerprints and 276 group fingerprints are bitwise against `b06bbb25`;
+  - `:fishsim:test`: 470 tests, 0 failed.
+- **Open:** crowd overlap (keep smallest-first, or try biggest-in-the-middle); benthics under
+  10 cm all walk at one pace.
+- **Owner, 2026-10-13:** crowds try **biggest in the middle** (fork 2a′, an A/B against
+  smallest-first; adopted only on a clear win). Benthics under 10 cm sharing one pace is fine
+  as is.
+- **2a′ result (not merged):** biggest in the middle fixes crowd overlap (slugs, worst 45 vs 67)
+  but makes follower lag worse on 8/8 seeds and under-your-feet time on 6–7/8. Not a clear win,
+  so smallest-first stays. The switch `crowdBiggestMiddle` (default off) and the record are in
+  worktree `agent-a47b5047676c4a41b` (`build/2a2/party-2a2-fishsim.patch`,
+  `docs/fish-companions-party-2a2-asbuilt.md`). Untried idea: keep smallest-first and widen the
+  crowd's side spacing when sizes are mixed.

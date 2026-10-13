@@ -147,7 +147,7 @@ public final class RenderSelfTest {
     /** Scenes that run only when the marker names them (they need something the default run lacks). */
     private static final List<String> OPT_IN_SCENES = List.of("matte", "matteclip", "fourwaters", "cathedral",
             "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench",
-            "companionbond", "companionsim", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk");
+            "companionbond", "companionsim", "companionparty", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk");
 
     private static Boolean armed;
     /** Keep ordinary automatic features from interfering with explicitly armed fixture scenes. */
@@ -381,6 +381,7 @@ public final class RenderSelfTest {
             case "cosmeticpreview" -> queueCosmeticPreviewScene();
             case "companionbond" -> queueCompanionBondScene();
             case "companionsim" -> queueCompanionSimScene();
+            case "companionparty" -> queueCompanionPartyScene();
             case "ambientparity" -> queueAmbientParityScene();
             case "ambientwater" -> queueAmbientWaterScene();
             case "ambientcontext" -> queueAmbientContextScene();
@@ -4677,8 +4678,11 @@ public final class RenderSelfTest {
     private static void queueCompanionSimScene() {
         queue(1, RenderSelfTest::paradeSetup);
         queue(1, mc -> grill24.fishtastic.client.companion.ClientCompanions.devOverlay(true));
-        String[][] fish = {{"bluegill", "12", "trio"}, {"bluegill", "25", "solo"}, {"starfish", "20", "benthic"},
+        // One fish is one body now (party spec §3): a small bluegill is a small solo, not a trio,
+        // and every fish is drawn at its true size (D11).
+        String[][] fish = {{"bluegill", "9", "small_solo"}, {"bluegill", "25", "solo"}, {"starfish", "20", "benthic"},
                 {"garden_eel", "40", "anchored"}, {"glass_squid", "20", "drift"}, {"giant_manta_ray", "150", "glide"}};
+        queue(1, mc -> server(mc, RenderSelfTest::clearParties));
         for (String[] f : fish) {
             // Slot 1 (the lead) each time, so each fish replaces the last: one companion on screen.
             queue(1, mc -> server(mc, s -> run(s, "fishtastic companion give @p fishtastic:" + f[0] + " " + f[1] + " 1")));
@@ -4686,6 +4690,9 @@ public final class RenderSelfTest {
                 var local = grill24.fishtastic.client.companion.ClientCompanions.local();
                 check("companionsim." + f[2] + ".tracked", local != null && local.agent() != null,
                         "local=" + local);
+                check("companionsim." + f[2] + ".oneBody",
+                        grill24.fishtastic.client.companion.ClientCompanions.localCompanions().size() == 1
+                                && local != null && local.bodyCount() == 1, "local=" + (local == null ? null : local.partyLine()));
                 companionLog(f[2] + " first person");
                 screenshot(mc, "companionsim", f[2] + "_fp");
                 mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
@@ -4718,8 +4725,74 @@ public final class RenderSelfTest {
         });
         queue(1, mc -> {
             grill24.fishtastic.client.companion.ClientCompanions.devOverlay(false);
-            server(mc, s -> run(s, "fishtastic companion off"));
+            server(mc, RenderSelfTest::clearParties);
         });
+    }
+
+    /**
+     * The three-slot party (docs/fish-companions-party.md §3, D6, D11): a school of three
+     * mixed-size bluegill from three slots, then a mixed party of three species (one solo each),
+     * in first and third person, with and without the owner sneaking (each fish's name above it).
+     */
+    private static void queueCompanionPartyScene() {
+        queue(1, RenderSelfTest::paradeSetup);
+        queue(1, mc -> grill24.fishtastic.client.companion.ClientCompanions.devOverlay(true));
+        String[][] parties = {
+                {"school", "bluegill 9", "bluegill 16", "bluegill 24"},
+                {"mixed", "bluegill 12", "starfish 40", "garden_eel 40"}};
+        // groups and bodies each party makes
+        String[][] expect = {{"1", "3"}, {"3", "3"}};
+        for (int p = 0; p < parties.length; p++) {
+            String[] party = parties[p];
+            String[] want = expect[p];
+            String name = party[0];
+            queue(1, mc -> server(mc, s -> {
+                clearParties(s);
+                for (int slot = 1; slot <= 3; slot++) {
+                    String[] f = party[slot].split(" ");
+                    run(s, "fishtastic companion give @p fishtastic:" + f[0] + " " + f[1] + " " + slot);
+                }
+            }));
+            queue(80, mc -> {
+                var companions = grill24.fishtastic.client.companion.ClientCompanions.localCompanions();
+                int bodies = 0;
+                for (var c : companions) bodies += c.bodyCount();
+                String lines = String.join("; ", companions.stream()
+                        .map(grill24.fishtastic.client.companion.ClientCompanion::partyLine).toList());
+                check("companionparty." + name + ".groups", companions.size() == Integer.parseInt(want[0]), lines);
+                check("companionparty." + name + ".bodies", bodies == Integer.parseInt(want[1]), lines);
+                boolean kinds = name.equals("school")
+                        ? companions.size() == 1 && companions.get(0).displayClassName().equals("school of 3")
+                        : companions.stream().allMatch(c -> c.bodyCount() == 1);
+                check("companionparty." + name + ".kinds", kinds, lines);
+                companionLog(name + " first person");
+                screenshot(mc, "companionparty", name + "_fp");
+                mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
+            });
+            queue(40, mc -> {
+                companionLog(name + " third person");
+                screenshot(mc, "companionparty", name + "_tp");
+                mc.options.keyShift.setDown(true);
+            });
+            queue(20, mc -> {
+                check("companionparty." + name + ".sneaking", mc.player.isCrouching(), "");
+                screenshot(mc, "companionparty", name + "_tp_names");
+                mc.options.keyShift.setDown(false);
+                mc.options.setCameraType(CameraType.FIRST_PERSON);
+            });
+        }
+        queue(20, mc -> {
+            grill24.fishtastic.client.companion.ClientCompanions.devOverlay(false);
+            server(mc, RenderSelfTest::clearParties);
+        });
+    }
+
+    /**
+     * Empties every player's companion party. {@code /fishtastic companion off} needs a player
+     * source, and {@link #run} runs commands as the server, so it would silently do nothing.
+     */
+    private static void clearParties(MinecraftServer s) {
+        for (ServerPlayer player : s.getPlayerList().getPlayers()) grill24.fishtastic.companion.CompanionStorage.clear(player);
     }
 
     private static void companionLog(String label) {

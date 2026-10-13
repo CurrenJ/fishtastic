@@ -26,6 +26,7 @@ import grill24.fishtastic.gametest.QuestTrackerGameTests;
 import grill24.fishtastic.gametest.FishTankAssemblyRefitGameTests;
 import grill24.fishtastic.gametest.CarriedFishGameTests;
 import grill24.fishtastic.gametest.CompanionBondGameTests;
+import grill24.fishtastic.gametest.CompanionGroupsGameTests;
 import grill24.fishtastic.gametest.CompanionMenuGameTests;
 import grill24.fishtastic.gametest.CompanionQuestUnlockGameTests;
 import grill24.fishtastic.gametest.CompanionSceneGameTests;
@@ -720,6 +721,16 @@ public class NeoForgeGameTestRegistration {
             CompanionQuestUnlockGameTests::questUnlocksOnlyOnceDone);
         register(event, env, "companion_quest_scan_reports_each_species_once", 200,
             CompanionQuestUnlockGameTests::questScanReportsEachSpeciesOnce);
+
+        // ----- Companion party grouping (party spec §3) -----
+        register(event, env, "companion_groups_free_swimmer_duplicates_school", 100,
+            CompanionGroupsGameTests::freeSwimmerDuplicatesSchool);
+        register(event, env, "companion_groups_ground_benthics_form_their_formation", 100,
+            CompanionGroupsGameTests::groundBenthicsFormTheirFormation);
+        register(event, env, "companion_groups_non_grouping_duplicates_stay_separate", 100,
+            CompanionGroupsGameTests::nonGroupingDuplicatesStaySeparate);
+        register(event, env, "companion_groups_mixed_party_is_all_solos", 100,
+            CompanionGroupsGameTests::mixedPartyIsAllSolos);
 
         // ----- Companion pet-to-pet scenes (Phase 6) -----
         register(event, env, "companion_scene_same_species_pair_plays_g1", 200,

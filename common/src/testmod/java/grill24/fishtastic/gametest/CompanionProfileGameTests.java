@@ -18,7 +18,11 @@ public final class CompanionProfileGameTests {
         return registry.getValue(grill24.fishtastic.util.Ids.of("fishtastic", path));
     }
 
-    /** Plaice ripples, starfish walk in a line of three, the two sea slugs in crowds of three. */
+    /**
+     * Plaice ripples; starfish walk in a line and the two sea slugs in crowds when the party holds
+     * several (docs/fish-companions-party.md §3: groups come from the party, and the profile's
+     * deprecated {@code count} is no longer shipped).
+     */
     public static void benthicCompanionDataLoads(GameTestHelper helper) {
         Registry<FishProfile> registry = helper.getLevel().registryAccess()
                 .lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
@@ -27,15 +31,13 @@ public final class CompanionProfileGameTests {
                 "plaice must ripple-glide");
         FishProfile starfish = profile(registry, "starfish");
         helper.assertTrue(starfish != null && starfish.companionGroup().isPresent()
-                        && starfish.companionGroup().get().count() == 3
                         && starfish.companionGroup().get().formation() == FishProfile.CompanionGroupConfig.Formation.LINE,
-                "starfish must be a line of three");
+                "starfish must walk in a line");
         for (String slug : new String[] {"trapania_scurra", "willans_chromodoris"}) {
             FishProfile p = profile(registry, slug);
             helper.assertTrue(p != null && p.companionGroup().isPresent()
-                            && p.companionGroup().get().count() == 3
                             && p.companionGroup().get().formation() == FishProfile.CompanionGroupConfig.Formation.CROWD,
-                    slug + " must be a crowd of three");
+                    slug + " must walk as a crowd");
         }
         FishProfile spider = profile(registry, "japanese_spider_crab");
         helper.assertTrue(spider != null && spider.companionGait() == FishProfile.CompanionGait.CRAWL

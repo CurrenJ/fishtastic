@@ -36,19 +36,21 @@ public final class CompanionPerchLayer extends RenderLayer<AvatarRenderState, Pl
         if (mc.level == null || state.isInvisible) return;
         Entity entity = mc.level.getEntity(state.id);
         if (!(entity instanceof Player player)) return; // mannequins and anything else: no companion
-        ClientCompanion companion = ClientCompanions.get(player);
         ClientCompanions.perchLayerCalls++;
-        if (companion == null || !ClientCompanions.shouldDrawOnPerch(companion)) return;
-
         // The layer frame after LivingEntityRenderer's setup (body yaw, then scale(-1,-1,1),
         // 0.9375 model scale, translate(0,-1.501,0)) puts y=0 at ~1.41 blocks — the shoulder
         // line. x is mirrored by the flip, z is not, and the model faces -z. (Vanilla's parrot
         // layer passes -1.5 here only because its own model pose hoists it back down again.)
         // The slot is the sim's: where the companion decided to ride (plan §3.4). A benthic group
-        // rides up to three at once, one per slot (left shoulder, right shoulder, head).
+        // rides up to three at once, one per slot (left shoulder, right shoulder, head), and every
+        // companion of the party draws its own riders. Phase 1 has no perch allocator (party spec
+        // §6.2), so two different species can share a slot and overlap.
         float partialTick = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
-        for (int i = 0; i < companion.memberCount(); i++) {
-            if (companion.drawsOnPerch(i)) submitMember(poseStack, collector, lightCoords, state, companion, i, partialTick);
+        for (ClientCompanion companion : ClientCompanions.companionsOf(player)) {
+            if (!ClientCompanions.shouldDrawOnPerch(companion)) continue;
+            for (int i = 0; i < companion.memberCount(); i++) {
+                if (companion.drawsOnPerch(i)) submitMember(poseStack, collector, lightCoords, state, companion, i, partialTick);
+            }
         }
     }
 
@@ -77,7 +79,7 @@ public final class CompanionPerchLayer extends RenderLayer<AvatarRenderState, Pl
             // Player models use down-positive Y and mirrored X. FishAnimator expects up-positive
             // Y: undo that frame flip so crabs stand upright and floor-sitters stay face-up/flat.
             poseStack.scale(-1f, -1f, 1f);
-            poseStack.translate(0f, companion.perchFloorLift(), 0f);
+            poseStack.translate(0f, companion.perchFloorLift(i), 0f);
         }
         ClientCompanions.perchSubmits++;
         companion.submitPerched(i, poseStack, collector, lightCoords, partialTick, 180f);
