@@ -1,0 +1,4 @@
+Final fishsim counts on frozen fix-round code (2026-10-13), from fishsim/build/test-results/test/*.xml
+Command: ./gradlew.bat :fishsim:test --rerun  (console: "Test result: SUCCESS - 440 tests, 404 passed, 0 failed, 36 skipped")
+XML totals: tests=440 failures=0 errors=0 skipped=36
+Includes the new corner-churn regression probe aSaturatedWindowOfStillWaterKeepsOneSignatureTickAfterTick.

@@ -1,0 +1,35 @@
+
+> Configure project :
+Architect Plugin: 3.5.170
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :fishsim:compileJava UP-TO-DATE
+> Task :fishsim:processResources NO-SOURCE
+> Task :fishsim:classes UP-TO-DATE
+> Task :fishsim:jar UP-TO-DATE
+> Task :common:processResources UP-TO-DATE
+
+> Task :common:compileJava
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: D:\GitHub\fishtastic\common\src\main\java\grill24\fishtastic\client\selftest\RenderSelfTest.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+> Task :common:classes
+> Task :common:compileTestJava
+> Task :common:idConstructionGuard
+> Task :common:java17ApiGuard
+> Task :common:processTestResources NO-SOURCE
+> Task :common:testClasses
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.joml.MemUtil$MemUtilUnsafe (file:/C:/Users/curre/.gradle/caches/modules-2/files-2.1/org.joml/joml/1.10.8/fc0a71dad90a2cf41d82a76156a0e700af8e4f8d/joml-1.10.8.jar)
+WARNING: Please consider reporting this to the maintainers of class org.joml.MemUtil$MemUtilUnsafe
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+> Task :common:test
+
+[Incubating] Problems report is available at: file:///D:/GitHub/fishtastic/build/reports/problems/problems-report.html
+
+BUILD SUCCESSFUL in 1m 5s
+8 actionable tasks: 5 executed, 3 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.2.1/userguide/configuration_cache_enabling.html

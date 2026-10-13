@@ -1,0 +1,127 @@
+
+> Configure project :
+Architect Plugin: 3.5.170
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :fishsim:compileJava UP-TO-DATE
+> Task :fishsim:processResources NO-SOURCE
+> Task :fishsim:classes UP-TO-DATE
+> Task :tools:tank-shape-gen:compileJava UP-TO-DATE
+> Task :fishsim:jar UP-TO-DATE
+> Task :fishsim:assemble UP-TO-DATE
+> Task :tools:tank-shape-gen:processResources NO-SOURCE
+> Task :tools:tank-shape-gen:classes UP-TO-DATE
+> Task :tools:tank-shape-gen:jar UP-TO-DATE
+> Task :tools:tank-shape-gen:assemble UP-TO-DATE
+> Task :tools:compileJava NO-SOURCE
+> Task :tools:tank-shape-previewer:processResources NO-SOURCE
+> Task :fabric:processIncludeJars UP-TO-DATE
+> Task :tools:processResources NO-SOURCE
+> Task :tools:classes UP-TO-DATE
+> Task :tools:processIncludeJars UP-TO-DATE
+> Task :tools:jar UP-TO-DATE
+> Task :tools:sourcesJar UP-TO-DATE
+> Task :tools:assemble UP-TO-DATE
+> Task :tools:compileTestJava NO-SOURCE
+> Task :tools:idConstructionGuard NO-SOURCE
+> Task :tools:tank-shape-gen:compileTestJava UP-TO-DATE
+> Task :fishsim:compileTestJava UP-TO-DATE
+> Task :tools:java17ApiGuard NO-SOURCE
+> Task :tools:processTestResources NO-SOURCE
+> Task :tools:testClasses UP-TO-DATE
+> Task :fishsim:processTestResources UP-TO-DATE
+> Task :fishsim:testClasses UP-TO-DATE
+> Task :tools:test NO-SOURCE
+> Task :tools:validateAccessWidener NO-SOURCE
+> Task :tools:check UP-TO-DATE
+> Task :tools:build UP-TO-DATE
+> Task :tools:tank-shape-gen:processTestResources NO-SOURCE
+> Task :tools:tank-shape-gen:testClasses UP-TO-DATE
+> Task :tools:tank-shape-previewer:compileJava UP-TO-DATE
+> Task :tools:tank-shape-previewer:classes UP-TO-DATE
+> Task :tools:tank-shape-previewer:jar UP-TO-DATE
+> Task :tools:tank-shape-previewer:startScripts UP-TO-DATE
+> Task :tools:tank-shape-gen:test UP-TO-DATE
+> Task :fishsim:test UP-TO-DATE
+> Task :tools:tank-shape-previewer:distTar UP-TO-DATE
+> Task :tools:tank-shape-gen:check UP-TO-DATE
+> Task :fishsim:check UP-TO-DATE
+> Task :tools:tank-shape-gen:build UP-TO-DATE
+> Task :fishsim:build UP-TO-DATE
+> Task :tools:tank-shape-previewer:distZip UP-TO-DATE
+> Task :tools:tank-shape-previewer:assemble UP-TO-DATE
+> Task :tools:tank-shape-previewer:compileTestJava NO-SOURCE
+> Task :tools:tank-shape-previewer:processTestResources NO-SOURCE
+> Task :tools:tank-shape-previewer:testClasses UP-TO-DATE
+> Task :tools:tank-shape-previewer:test NO-SOURCE
+> Task :tools:tank-shape-previewer:check UP-TO-DATE
+> Task :tools:tank-shape-previewer:build UP-TO-DATE
+> Task :fabric:sourcesJar
+> Task :fabric:processTestResources NO-SOURCE
+> Task :fabric:validateAccessWidener NO-SOURCE
+> Task :common:processResources UP-TO-DATE
+> Task :common:compileJava UP-TO-DATE
+> Task :common:classes UP-TO-DATE
+> Task :common:processIncludeJars UP-TO-DATE
+> Task :common:jar UP-TO-DATE
+> Task :neoforge:processResources UP-TO-DATE
+> Task :neoforge:compileJava UP-TO-DATE
+> Task :neoforge:classes UP-TO-DATE
+> Task :neoforge:processIncludeJars UP-TO-DATE
+> Task :fabric:processResources UP-TO-DATE
+> Task :fabric:compileJava UP-TO-DATE
+> Task :fabric:classes UP-TO-DATE
+> Task :fabric:compileTestJava NO-SOURCE
+> Task :fabric:compileTestmodJava UP-TO-DATE
+> Task :fabric:idConstructionGuard UP-TO-DATE
+> Task :fabric:java17ApiGuard UP-TO-DATE
+> Task :fabric:testClasses UP-TO-DATE
+> Task :fabric:test NO-SOURCE
+> Task :common:sourcesJar
+> Task :common:assemble
+> Task :common:compileTestJava UP-TO-DATE
+> Task :fabric:jar
+> Task :fabric:check UP-TO-DATE
+> Task :neoforge:sourcesJar
+> Task :neoforge:compileTestJava NO-SOURCE
+> Task :neoforge:compileTestmodJava UP-TO-DATE
+> Task :neoforge:idConstructionGuard UP-TO-DATE
+> Task :neoforge:java17ApiGuard UP-TO-DATE
+> Task :neoforge:processTestResources NO-SOURCE
+> Task :neoforge:testClasses UP-TO-DATE
+> Task :neoforge:test NO-SOURCE
+> Task :neoforge:validateAccessWidener NO-SOURCE
+> Task :neoforge:check UP-TO-DATE
+> Task :neoforge:jar
+> Task :common:idConstructionGuard
+> Task :common:java17ApiGuard
+> Task :common:processTestResources NO-SOURCE
+> Task :common:testClasses UP-TO-DATE
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.joml.MemUtil$MemUtilUnsafe (file:/C:/Users/curre/.gradle/caches/modules-2/files-2.1/org.joml/joml/1.10.8/fc0a71dad90a2cf41d82a76156a0e700af8e4f8d/joml-1.10.8.jar)
+WARNING: Please consider reporting this to the maintainers of class org.joml.MemUtil$MemUtilUnsafe
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+> Task :common:test
+> Task :common:validateAccessWidener UP-TO-DATE
+> Task :common:check
+
+> Task :common:transformProductionFabric
+[Architectury Transformer] Read classpath in 1.277 s
+[Architectury Transformer] Transformed jar with 4 transformer(s) in 2.131 s
+
+> Task :common:transformProductionNeoForge
+[Architectury Transformer] Read classpath in 1.268 s
+[Architectury Transformer] Transformed jar with 5 transformer(s) in 2.671 s
+
+> Task :common:build
+> Task :fabric:shadowJar
+> Task :fabric:assemble
+> Task :fabric:build
+> Task :neoforge:shadowJar
+> Task :neoforge:assemble
+> Task :neoforge:build
+
+BUILD SUCCESSFUL in 1m 25s
+47 actionable tasks: 12 executed, 35 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.2.1/userguide/configuration_cache_enabling.html

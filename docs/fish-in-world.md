@@ -105,7 +105,10 @@ Preserve existing fish positions, headings, animation phases, and species while 
 
 Weight-only changes affect future spawning and gradual replacement. Hard eligibility changes retire invalid individuals promptly through a short fade or departure entirely within valid space. Never morph a fish into another species. Bound this transition so a newly excluded species does not remain a misleading long-lived sighting.
 
-Suggested targets: reflect equipment or environment eligibility changes within two seconds; shift weight-only population composition over roughly 15–30 seconds. Both require playtesting. A brief transition is the stated limit of the "current context" promise.
+Reflect equipment or environment eligibility changes within two seconds after accepting the
+updated context. Playtesting on 2026-10-13 requested more continuity: new fish now receive
+90–150-second lifetimes (two minutes on average), and weight-only composition changes follow
+that slower turnover. Invalid water or excluded species can still retire sooner.
 
 Cache populations and random state by world patch and equipment context for a bounded period. Equipping, unequipping, turning away, crossing the radius boundary, or briefly walking away must not give an immediate fresh rare-fish roll. Natural replacement continues over time; this is visual stability, not a gameplay cooldown. Teleports, dimension changes, disconnects, and resource/datapack changes invalidate the appropriate state.
 

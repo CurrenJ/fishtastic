@@ -139,6 +139,10 @@ public final class FishtasticNeoForgeClient {
         grill24.fishtastic.network.ReducedEffectsSyncPacket.registerClientHandler(
                 packet -> grill24.fishtastic.client.FishtasticClientConfig.setReducedCelebrationEffects(packet.reduced()));
 
+        // Register authoritative ambient context response handler (Fish in World, Phase 4)
+        grill24.fishtastic.network.AmbientContextResponsePacket.registerClientHandler(
+                grill24.fishtastic.client.ambient.AmbientContextClient::handle);
+
         // Install quest progress notification system
         QuestProgressNotificationManager.getInstance().install();
 
@@ -157,6 +161,9 @@ public final class FishtasticNeoForgeClient {
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onPlayerJoin);
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onPlayerLeave);
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onTagsUpdated);
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.client.event.RegisterClientCommandsEvent event) ->
+                grill24.fishtastic.client.ambient.AmbientClientCommands.register(event.getDispatcher(),
+                        (source, message) -> source.sendSuccess(() -> net.minecraft.network.chat.Component.literal(message), false)));
         // Mark every item usable as a tank cosmetic with a grey tooltip hint
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onItemTooltip);
 

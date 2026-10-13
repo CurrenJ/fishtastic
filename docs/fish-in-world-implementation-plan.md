@@ -1,7 +1,20 @@
 # Fish in World — implementation plan outline
 
 Session continuation checkpoint: [fish-in-world-handoff.md](fish-in-world-handoff.md).
-Status: Phase 0 complete (2026-10-12). Phase 1 implemented and regression-tested; final coordinator visual review and latest packaged JAR build remain pending. Work stopped at user usage-limit request. Resume from [Phase 1 handoff](fish-in-world-phase1.md). Baseline and integration findings: [fish-in-world-phase0.md](fish-in-world-phase0.md).
+Status: Phase 0 complete. **Phase 1 gate closed 2026-10-12** (visual review passed, packaged 2.0.1 jars
+verified). **Phase 2 gate closed 2026-10-13**: both loaders' `ambientwater` scene ran 55 checks with no
+failures, an independent review round resolved one blocker and four should-fixes, and the gate table in
+[fish-in-world-phase2.md](fish-in-world-phase2.md) is closed. **Phase 3 gate closed
+2026-10-13** (extraction only — nothing client-visible; an independent review round confirmed behavior
+identity and its should-fix is resolved; see [fish-in-world-phase3.md](fish-in-world-phase3.md)).
+**Phase 4 gate closed 2026-10-13** (authoritative context
+snapshots — all four gate clauses covered by unit tests, gametests, a solo scene and a real Fabric
+dedicated-server session; the review and fix rounds, including two extra defects the fix round
+found by its own verification, are recorded in
+[fish-in-world-phase4.md](fish-in-world-phase4.md)).
+**Phases 5–7 implemented and automated gates complete 2026-10-13.** See [Phase 5](fish-in-world-phase5.md), [Phase 6](fish-in-world-phase6.md), and [Phase 7](fish-in-world-phase7.md) for final behavior, measured CPU costs and acceptance limits. Human gameplay tuning remains recommended. Baseline and integration
+findings: [fish-in-world-phase0.md](fish-in-world-phase0.md); Phase 1 record:
+[fish-in-world-phase1.md](fish-in-world-phase1.md).
 
 Feature contract: [fish-in-world.md](fish-in-world.md). Follow the phases below in order, with a reviewable result and validation at each gate. Class names below describe responsibilities; finalize names during implementation rather than treating this outline as a prescribed class hierarchy.
 
@@ -40,7 +53,7 @@ Keep the server's fishing-context patches separate from the client's simulation 
 
 ## Phase 1 — shared tank visuals and a fixed-pool world prototype
 
-**Implementation present; gate pending review:** shared visuals/pose helpers, disabled-by-default dev fixture and both loader hooks exist. Common 778 passed / 1 skipped; fishsim 347 passed / 36 skipped. Both loaders completed previous 14-PASS capture scenes; final Fabric inward-camera refresh passed, final NeoForge refresh was running when work stopped. Latest capture-only snapshot additions compiled on both loaders but require an incremental packaged build. See the [Phase 1 handoff](fish-in-world-phase1.md) for exact remaining steps and evidence.
+**Gate closed 2026-10-12:** shared visuals/pose helpers, disabled-by-default dev fixture and both loader hooks exist. Common 778 passed / 1 skipped; fishsim 347 passed / 36 skipped. Both loaders completed their 14-PASS capture scenes; the refreshed all-species comparisons (including glide) were reviewed on both loaders with no defect found. The packaged 2.0.1 jars were rebuilt and verified to contain the ambient classes. Closing note: the gate is limited to the fixture domain — natural-water containment, discovery and performance remain Phase 2 work. See the [Phase 1 handoff](fish-in-world-phase1.md) for evidence.
 
 1. Extract the minimum shared descriptor and render helpers from `TankFlockAdapter`, `TankGroupFlock`, and `FishTankBlockEntityRenderer`; continue using `FishAnimator` directly.
 2. Build a thin ambient runtime around the existing multi-tank engine path. Give every ambient individual a stable identity and its own deferred render state.
@@ -59,7 +72,20 @@ Keep the server's fishing-context patches separate from the client's simulation 
 
 **Gate:** stable fixed-pool fish in river, ocean, shallow pond, irregular floor, and disconnected-pool fixtures. No dry-land crossing, surface clipping, recenter resets, or field-build spikes beyond the agreed budget. Domain rebuilds preserve valid individuals and safely retire invalid ones.
 
+**Gate closed 2026-10-13:** Fabric and NeoForge each completed the `ambientwater` scene with 55 checks and 0 failures (1 domain and 8 residents per fixture, 2 domains and 12 / 14 across the two pools; outsideWater 0; minSurfaceClearance 0.526-0.782 against 0.30; carry across rebuilds with no id, key or origin change; a pool taken through eviction and revival under its own key; peakBuild 0.97 / 0.72 ms, mean 0.13 ms over 271-277 rebuilds). The refreshed 28-image sets were visually reviewed on both loaders, and an independent code review reproduced and fixed one acceptance blocker plus four should-fixes before the final re-capture. Full table in the [Phase 2 record](fish-in-world-phase2.md). Scope: fixture domains only — arbitrary-water behaviour beyond the discovery window and release performance stay open for later phases.
+
 ## Phase 3 — one side-effect-free fishing pool resolver
+
+**Implemented and validated 2026-10-13:** `FishingPoolResolver` is the one RNG-free resolver used by
+real fishing, the Almanac preview and session capture; the pre/post-refactor characterization dump is
+SHA256-identical, 24 JUnit tests pin pool order, int weights, fingerprints (including a pool-weight
+sensitivity test and an exact-value pin) and seeded 12-draw replays of all 15 characterization
+scenarios, and 4 new GameTests per loader cover the session snapshot and the explicit diamond input.
+Existing catches are unchanged (same order, weights and RNG sequence). A read-only review fix round
+the same day carried the resolution origin out of `GeneratedTargets`, made `Inputs`' personal
+equipment explicitly non-null, and added two documented limitations (port-branch
+`getAdditionalWeight` visibility; tutorial-path / `snapshot.inputs()` gametest coverage gap). Full
+record: [fish-in-world-phase3.md](fish-in-world-phase3.md).
 
 1. Extract candidate filtering and effective species weights from the existing fishing/Almanac paths into a shared result: environment context plus species IDs and final raw weights.
 2. Preserve existing filter and weighting order, including zone gates, bait-exclusive pools, vanilla exclusion with bait, environment/charm multipliers, and existing bait flattening. Preserve candidate ordering and reward RNG usage in the real fishing path.
@@ -71,6 +97,27 @@ Keep the server's fishing-context patches separate from the client's simulation 
 **Gate:** resolver output matches pre-refactor fishing and Almanac behavior across representative contexts. Baseline matches standard-worms fishing; previews consume nothing, trigger no storms, and do not advance catch RNG. Existing catches retain their behavior.
 
 ## Phase 4 — authoritative context snapshots
+
+**Implemented, independently reviewed and fixed 2026-10-13:** bounded `ambientcontext`
+request/response payloads via the common packet abstraction (≤4 origins per dispatch, ≤4 entries,
+≤96 candidates per entry) with a four-level token scheme (session / geometry / context / request
+generation) so reconnects, water changes, equipment changes and reordering each discard what they
+must; server validation before any world read (dimension, 64-block distance, `isLoaded`, water)
+with a per-player token bucket (burst 4, 1/s) and no chunk loads; client refresh on
+patch-set/**geometry-signature** change (the fix round made an edit inside cached water
+re-request at once), equipment change, level change and a bounded 200-tick periodic re-check;
+session-snapshot precedence tightened to a near-exact match of the cast origin (4/8 blocks);
+pending/invalid states mean "no known pool" and "no response" is supported. Evidence, re-run on the
+fixed code: 24 JUnit rules tests (13 store / 5 server rules / 6 throttle), 9 world gametests + 6
+codec tests per loader (Fabric 347/347, NeoForge 341/341), a solo scene 9/9 PASS with in-process
+replay equality, and a real Fabric dedicated-server + client session (5/5 checks) where the
+client's fingerprints equal the server's logged answers both before and after an equipment switch,
+with the stale pre-switch response discarded. Dedicated JVM class-load log: zero Phase 4 client
+classes (one pre-existing `TankCosmeticMesh$Snapshot` record documented as out of the phase's
+scope). The review round's items and the two discovery fixes it produced (revalidation starvation;
+eviction window square vs sweep square — the latter made the new geometry watch loop on a
+motionless ocean) are recorded in the phase doc's fix-round table; NeoForge covered by gametests
+(client scenes ran on Fabric). Full record: [fish-in-world-phase4.md](fish-in-world-phase4.md).
 
 1. Add bounded patch-context requests and species-weight responses through the common packet abstraction and both loader registrars. The client requests water origins; the server derives equipment and environment from its own state.
 2. Validate dimension, nearby loaded water origin, request count/rate, and response size. Never load chunks to satisfy ambient requests. Resolve world/player state on the main thread.

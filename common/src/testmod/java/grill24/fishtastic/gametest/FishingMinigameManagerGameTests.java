@@ -1,5 +1,6 @@
 package grill24.fishtastic.gametest;
 
+import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItemTags;
@@ -8,7 +9,10 @@ import grill24.fishtastic.component.BaitEffect;
 import grill24.fishtastic.item.CopperFishingRod;
 import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.server.FishingMinigameManager;
+import grill24.fishtastic.server.FishingPoolResolver;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.ItemTags;
@@ -18,6 +22,7 @@ import net.minecraft.world.entity.projectile.FishingHook;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
 import java.util.Optional;
@@ -368,6 +373,110 @@ public final class FishingMinigameManagerGameTests {
         int cleanupGoalTotal = live.getCleanupGoalTotal();
         helper.assertTrue(cleanupGoalTotal > 0,
                 "trash caught with room in the inventory must still count toward the cleanup goal, got total=" + cleanupGoalTotal);
+        helper.succeed();
+    }
+
+    // -------------------------------------------------------------------------
+    // Phase 3 (Fish in World): the species snapshot a session captures at cast time
+    // -------------------------------------------------------------------------
+
+    /**
+     * A real cast must snapshot the species context its targets were rolled from: the hook origin it
+     * resolved at, a non-empty candidate list with positive weights, a re-resolvable environment,
+     * and the identity of the rod that was used.
+     */
+    public static void startSessionCapturesResolvedSpeciesSnapshot(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerPlayer player = mockPlayer.get();
+        player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(FishtasticItems.COPPER_FISHING_ROD.value()));
+        FishingHook hook = castLine(helper, player);
+        Vec3 hookPosition = hook.position();
+
+        FishingMinigameManager manager = FishingMinigameManager.get(helper.getLevel());
+        int sessionId = manager.startSession(player, 1.0f, false);
+        helper.assertTrue(sessionId != -1, "Sanity check: startSession must succeed");
+
+        FishingPoolResolver.SessionSnapshot snapshot = manager.getSessionSnapshot(player.getUUID());
+        helper.assertTrue(snapshot != null,
+                "A cast that generated targets must capture the species context those targets came from");
+        helper.assertTrue(snapshot.origin().equals(hookPosition),
+                "The snapshot origin must be the hook position the cast resolved at, got " + snapshot.origin());
+        helper.assertTrue(!snapshot.species().candidates().isEmpty(),
+                "A bare rod is NO_BAIT, which keeps vanilla fish in the pool — the candidate list must not be empty");
+        for (FishingPoolResolver.WeightedFish candidate : snapshot.species().candidates()) {
+            helper.assertTrue(candidate.weight() >= 1,
+                    "Every candidate weight is at least 1, got " + candidate.weight() + " for " + candidate.item());
+        }
+
+        FishingPoolResolver.EnvironmentContext expected = FishingPoolResolver.resolveEnvironment(
+                helper.getLevel(), BlockPos.containing(hookPosition), null);
+        helper.assertTrue(expected.equals(snapshot.species().environment()),
+                "The snapshot environment must match a fresh resolve at the hook: " + expected + " vs "
+                        + snapshot.species().environment());
+        helper.assertTrue(snapshot.species().fingerprint() == FishingPoolResolver.resolve(
+                        helper.getLevel().registryAccess().lookupOrThrow(Registries.ITEM),
+                        helper.getLevel().registryAccess().lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY),
+                        expected, snapshot.inputs()).fingerprint(),
+                "Re-resolving the same environment and inputs must reproduce the same fingerprint");
+        helper.assertTrue(snapshot.rodId() != null,
+                "The snapshot records which rod was cast: " + snapshot.rodId());
+        helper.succeed();
+    }
+
+    /**
+     * The diamond input is explicit now: the real path reads the hook owner's carried diamonds
+     * (the pre-Phase-3 behaviour via THIS_ENTITY), while the no-rod baseline is neutral equipment by
+     * construction and must stay neutral no matter what the player is carrying.
+     */
+    public static void personalEquipmentReadsCarriedDiamondsAndBaselineStaysNeutral(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerPlayer player = mockPlayer.get();
+        int carriedBefore = FishingPoolResolver.PersonalEquipment.fromInventory(player).inventoryDiamonds();
+        player.getInventory().add(new ItemStack(Items.DIAMOND, 7));
+        FishingHook hook = castLine(helper, player);
+
+        helper.assertTrue(FishingPoolResolver.PersonalEquipment.fromInventory(player).inventoryDiamonds() == carriedBefore + 7,
+                "fromInventory must count the player's carried diamonds, expected " + (carriedBefore + 7));
+        helper.assertTrue(FishingPoolResolver.PersonalEquipment.fromHookOwner(hook).inventoryDiamonds() == carriedBefore + 7,
+                "The real cast path reads the hook owner's diamonds, which is the casting player");
+        helper.assertTrue(FishingPoolResolver.PersonalEquipment.fromHookOwner(null).inventoryDiamonds() == 0,
+                "No hook means neutral personal equipment");
+        helper.assertTrue(FishingPoolResolver.Inputs.standardWormsBaseline().personalEquipment().inventoryDiamonds() == 0,
+                "The standard-worms baseline must ignore the " + (carriedBefore + 7) + " diamonds the player is carrying");
+        helper.succeed();
+    }
+
+    /**
+     * Known seam, pinned deliberately: the manager picks the main-hand rod first (`findFishtasticRod`),
+     * while an actual offhand cast is reported by vanilla with an explicit hand. The snapshot must
+     * record the rod the manager actually resolved with, so a later phase can reconcile the two.
+     */
+    public static void snapshotRecordsMainHandRodWhenBothHandsHoldRods(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerPlayer player = mockPlayer.get();
+        ItemStack mainHandRod = new ItemStack(FishtasticItems.COPPER_FISHING_ROD.value());
+        ItemStack offHandRod = new ItemStack(FishtasticItems.OBSIDIAN_FISHING_ROD.value());
+        player.setItemInHand(InteractionHand.MAIN_HAND, mainHandRod);
+        player.setItemInHand(InteractionHand.OFF_HAND, offHandRod);
+        castLine(helper, player);
+
+        FishingMinigameManager manager = FishingMinigameManager.get(helper.getLevel());
+        int sessionId = manager.startSession(player, 1.0f, false);
+        helper.assertTrue(sessionId != -1, "Sanity check: startSession must succeed");
+
+        FishingPoolResolver.SessionSnapshot snapshot = manager.getSessionSnapshot(player.getUUID());
+        helper.assertTrue(snapshot != null, "Sanity check: a real cast captures a snapshot");
+        helper.assertTrue(BuiltInRegistries.ITEM.getKey(mainHandRod.getItem()).equals(snapshot.rodId()),
+                "With rods in both hands the manager resolves the main-hand one, and the snapshot says so: "
+                        + snapshot.rodId());
+        helper.succeed();
+    }
+
+    /** Tutorial and test-seeded sessions hand out scripted targets and never resolve a pool. */
+    public static void testSeededSessionCapturesNoSpeciesSnapshot(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerPlayer player = mockPlayer.get();
+        FishingMinigameManager manager = FishingMinigameManager.get(helper.getLevel());
+        manager.seedSessionForTest(player, List.of(List.of(new ItemStack(Items.COD))));
+
+        helper.assertTrue(manager.getSessionSnapshot(player.getUUID()) == null,
+                "A seeded session never resolves a pool, so it must not claim a species snapshot");
         helper.succeed();
     }
 }

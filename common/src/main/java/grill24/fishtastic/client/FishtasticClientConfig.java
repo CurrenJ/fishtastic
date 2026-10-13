@@ -17,6 +17,10 @@ import java.util.Properties;
  */
 public final class FishtasticClientConfig {
     private static final String FILE_NAME = "fishtastic-client.properties";
+    public static final String AMBIENT_FISH_ENABLED_KEY = "ambientFishEnabled";
+    private static Boolean ambientFishEnabled;
+    private static Integer ambientFishDensity;
+    private static Integer ambientDensityTestOverride;
     private static final String TANK_WATER_FILL_KEY = "tankWaterFillEnabled";
     private static final String TANK_INTERIOR_LIGHT_KEY = "tankInteriorLight";
     private static final int DEFAULT_TANK_INTERIOR_LIGHT = 13;
@@ -37,6 +41,12 @@ public final class FishtasticClientConfig {
     private static final String DEFAULT_FILE_CONTENTS = """
             # Fishtastic client-side visual toggles.
             # Edit and restart the game to apply changes.
+
+            # Ambient fish in nearby water. Client commands apply these immediately:
+            # /fishtasticambient enabled <true|false>
+            # /fishtasticambient density <0-100> (0 also stops all ambient work).
+            ambientFishEnabled=true
+            ambientFishDensity=50
 
             # Draws an animated water fill behind fish tank glass. Toggled via
             # "/fishtastic tank waterfill <true|false>" in-game, which also rewrites this file.
@@ -100,6 +110,42 @@ public final class FishtasticClientConfig {
 
     public static void clearTestOverrides() {
         TEST_OVERRIDES.clear();
+        ambientDensityTestOverride = null;
+    }
+
+    public static void setAmbientDensityTestOverride(int density) {
+        ambientDensityTestOverride = Mth.clamp(density, 0, 100);
+    }
+
+    public static boolean isAmbientFishEnabled() {
+        Boolean override = TEST_OVERRIDES.get(AMBIENT_FISH_ENABLED_KEY);
+        if (override != null) return override;
+        if (ambientFishEnabled == null) {
+            ambientFishEnabled = Boolean.parseBoolean(load().getProperty(AMBIENT_FISH_ENABLED_KEY, "true"));
+        }
+        return ambientFishEnabled;
+    }
+
+    public static int getAmbientFishDensity() {
+        if (ambientDensityTestOverride != null) return ambientDensityTestOverride;
+        if (ambientFishDensity == null) {
+            try {
+                ambientFishDensity = Mth.clamp(Integer.parseInt(load().getProperty("ambientFishDensity", "50")), 0, 100);
+            } catch (NumberFormatException e) {
+                ambientFishDensity = 50;
+            }
+        }
+        return ambientFishDensity;
+    }
+
+    public static void setAmbientFishEnabled(boolean enabled) {
+        ambientFishEnabled = enabled;
+        persist();
+    }
+
+    public static void setAmbientFishDensity(int density) {
+        ambientFishDensity = Mth.clamp(density, 0, 100);
+        persist();
     }
 
     private FishtasticClientConfig() {}
@@ -264,6 +310,8 @@ public final class FishtasticClientConfig {
     private static void persist() {
         Path file = getConfigDirectory().resolve(FILE_NAME);
         Properties props = load();
+        props.setProperty(AMBIENT_FISH_ENABLED_KEY, String.valueOf(isAmbientFishEnabled()));
+        props.setProperty("ambientFishDensity", String.valueOf(getAmbientFishDensity()));
         props.setProperty(NOTIFICATION_VOLUME_KEY, String.valueOf(getNotificationVolume()));
         props.setProperty(TANK_WATER_FILL_KEY, String.valueOf(isTankWaterFillEnabled()));
         props.setProperty(TANK_INTERIOR_LIGHT_KEY, String.valueOf(getTankInteriorLight()));

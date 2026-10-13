@@ -1,7 +1,22 @@
 # Fish in World - Phase 1 handoff
 
 Session continuation checkpoint: [fish-in-world-handoff.md](fish-in-world-handoff.md).
-Status: implementation ready for coordinator review; final visual review and latest packaged-build gate remain pending. Stopping work at the user's usage-limit request on 2026-10-12. No commits or pushes.
+Status: **gate closed 2026-10-12.** Final visual review of all 22 curated images passed, and the
+packaged 2.0.1 jars were rebuilt and verified to contain the ambient classes. Phase 2 is next.
+
+## Gate closure (2026-10-12, after the stop)
+
+- Visual review: the reviewer inspected the refreshed glide/swim/drift close-up pairs and the
+  shore/submerged scenes on both loaders. Sprites, calibrated scale and poses read coherently in
+  world water against their tank counterparts; differences stayed in ordinary world light, fog and
+  glass, as expected. No defect found; no capture rerun needed.
+- Packaged build: `:fabric:build :neoforge:build` succeeded; `fishtastic-fabric-2.0.1+26.1.2.jar`
+  (23:39) and `fishtastic-neoforge-2.0.1+26.1.2.jar` (23:40) both contain `ClientAmbientFish`,
+  `FishVisuals` and `GroupFishPose`, and the embedded `TankFlockAdapter` references `FishVisuals`.
+  Note the old `2.0.2` jars in `build/libs` are Oct-4 leftovers of a different version epoch —
+  ignore them.
+- The gate remains explicitly limited: fixture-domain containment only, no natural-water or
+  release-performance claims. Phase 2 owns those.
 
 ## Implemented
 
@@ -31,14 +46,10 @@ Visual inspection established coherent species sprites, calibrated scale and pos
 
 ## Resume exactly here
 
-1. Review the final all-species comparisons in the curated screenshots directory, particularly glide. Capture completion and image copying are already done; do not rerun them merely to resume.
-2. Run an incremental final packaged build (no forced rerun):
-
-```powershell
-.\gradlew.bat :fabric:build :neoforge:build --console=plain --no-daemon '-Dorg.gradle.jvmargs=-Xmx768m -XX:ActiveProcessorCount=4'
-```
-
-3. Update this record/plan after coordinator review, then begin Phase 2 only under the next session's steering.
+Phase 1 is closed. Phase 2 (bounded natural-water domains) is implemented and captured on both
+loaders — see [fish-in-world-phase2.md](fish-in-world-phase2.md) — with its gate awaiting an owner
+look at the screenshots; phase 3 is next per the implementation plan. Keep the shared tank visuals
+and concurrent companion work intact.
 
 If a capture must be repeated, the reproducible isolated commands are:
 

@@ -1,6 +1,7 @@
 package grill24.fishtastic.neoforge.gametest;
 
 import com.mojang.serialization.MapCodec;
+import grill24.fishtastic.gametest.AmbientContextGameTests;
 import grill24.fishtastic.gametest.CapstoneRewardGameTests;
 import grill24.fishtastic.gametest.FishCatchBackupsGameTests;
 import grill24.fishtastic.gametest.CreativeTabGameTests;
@@ -508,6 +509,38 @@ public class NeoForgeGameTestRegistration {
             PacketRoundTripGameTests::companionFishingEventPacketRoundTrips);
         register(event, env, "companion_scene_packet_round_trips", 200,
             PacketRoundTripGameTests::companionScenePacketRoundTrips);
+        register(event, env, "ambient_context_request_packet_round_trips", 200,
+            PacketRoundTripGameTests::ambientContextRequestPacketRoundTrips);
+        register(event, env, "ambient_context_response_packet_round_trips", 200,
+            PacketRoundTripGameTests::ambientContextResponsePacketRoundTrips);
+        register(event, env, "oversized_origin_list_is_rejected_on_encode_and_decode", 200,
+            PacketRoundTripGameTests::oversizedOriginListIsRejectedOnEncodeAndDecode);
+        register(event, env, "oversized_entry_list_is_rejected_on_encode_and_decode", 200,
+            PacketRoundTripGameTests::oversizedEntryListIsRejectedOnEncodeAndDecode);
+        register(event, env, "oversized_candidate_list_is_rejected_on_encode_and_decode", 200,
+            PacketRoundTripGameTests::oversizedCandidateListIsRejectedOnEncodeAndDecode);
+        register(event, env, "unknown_status_id_decodes_to_a_rejection_not_an_error", 200,
+            PacketRoundTripGameTests::unknownStatusIdDecodesToARejectionNotAnError);
+
+        // ----- Ambient context exchange (Fish in World, Phase 4) -----
+        register(event, env, "authoritative_resolve_matches_server_state", 200,
+            helper -> AmbientContextGameTests.authoritativeResolveMatchesServerState(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "held_rod_lane_is_resolved_from_the_servers_own_inventory", 200,
+            helper -> AmbientContextGameTests.heldRodLaneIsResolvedFromTheServersOwnInventory(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "dimension_mismatch_is_rejected", 200,
+            helper -> AmbientContextGameTests.dimensionMismatchIsRejected(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "far_origin_is_rejected_before_the_unloaded_check", 200,
+            helper -> AmbientContextGameTests.farOriginIsRejectedBeforeTheUnloadedCheck(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "unloaded_origin_is_rejected_without_loading_the_chunk", 200,
+            helper -> AmbientContextGameTests.unloadedOriginIsRejectedWithoutLoadingTheChunk(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "rate_limit_drops_requests_past_the_burst", 200,
+            helper -> AmbientContextGameTests.rateLimitDropsRequestsPastTheBurst(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "session_snapshot_takes_precedence_over_a_fresh_resolve", 200,
+            helper -> AmbientContextGameTests.sessionSnapshotTakesPrecedenceOverAFreshResolve(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "a_different_pond_near_the_cast_falls_through_to_a_fresh_resolve", 200,
+            helper -> AmbientContextGameTests.aDifferentPondNearTheCastFallsThroughToAFreshResolve(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "an_empty_request_does_not_consume_a_throttle_token", 200,
+            helper -> AmbientContextGameTests.anEmptyRequestDoesNotConsumeAThrottleToken(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
 
         // ----- FishEncyclopediaEntry tests -----
         register(event, env, "empty_object_decodes_to_all_defaults", 200,
@@ -564,6 +597,14 @@ public class NeoForgeGameTestRegistration {
             helper -> FishingMinigameManagerGameTests.handleMinigameCompleteDropsRewardAtPlayerFeetWhenInventoryIsFull(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "handle_minigame_complete_drops_reward_when_inventory_is_full_and_auto_pile_fish_is_active", 200,
             helper -> FishingMinigameManagerGameTests.handleMinigameCompleteDropsRewardWhenInventoryIsFullAndAutoPileFishIsActive(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "start_session_captures_resolved_species_snapshot", 200,
+            helper -> FishingMinigameManagerGameTests.startSessionCapturesResolvedSpeciesSnapshot(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "personal_equipment_reads_carried_diamonds_and_baseline_stays_neutral", 200,
+            helper -> FishingMinigameManagerGameTests.personalEquipmentReadsCarriedDiamondsAndBaselineStaysNeutral(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "snapshot_records_main_hand_rod_when_both_hands_hold_rods", 200,
+            helper -> FishingMinigameManagerGameTests.snapshotRecordsMainHandRodWhenBothHandsHoldRods(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "test_seeded_session_captures_no_species_snapshot", 200,
+            helper -> FishingMinigameManagerGameTests.testSeededSessionCapturesNoSpeciesSnapshot(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
 
         // ----- ShopEntry tests -----
         register(event, env, "get_active_daily_shop_is_stable_per_day", 200,

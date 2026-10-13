@@ -1,0 +1,61 @@
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/C:/Users/curre/.gradle/wrapper/dists/gradle-9.2.1-bin/2t0n5ozlw9xmuyvbp7dnzaxug/gradle-9.2.1/lib/native-platform-0.22-milestone-29.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+
+> Configure project :
+Architect Plugin: 3.5.170
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :tools:tank-shape-gen:compileJava UP-TO-DATE
+> Task :fishsim:compileJava
+> Task :fishsim:processResources NO-SOURCE
+> Task :fishsim:classes
+> Task :common:processResources UP-TO-DATE
+> Task :fishsim:jar
+> Task :fishsim:compileTestJava
+> Task :fishsim:processTestResources UP-TO-DATE
+> Task :fishsim:testClasses
+
+> Task :common:compileJava FAILED
+D:\GitHub\fishtastic\common\src\main\java\grill24\fishtastic\client\selftest\RenderSelfTest.java:1395: error: cannot find symbol
+            grill24.fishtastic.client.companion.ClientCompanions.clear();
+                                                                ^
+  symbol:   method clear()
+  location: class ClientCompanions
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: D:\GitHub\fishtastic\common\src\main\java\grill24\fishtastic\client\selftest\RenderSelfTest.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+1 error
+
+> Task :fishsim:test
+
+Test result: SUCCESS — 441 tests, 405 passed, 0 failed, 36 skipped
+
+
+[Incubating] Problems report is available at: file:///D:/GitHub/fishtastic/build/reports/problems/problems-report.html
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':common:compileJava'.
+> Compilation failed; see the compiler output below.
+  Note: Recompile with -Xlint:deprecation for details.
+  Note: D:\GitHub\fishtastic\common\src\main\java\grill24\fishtastic\client\selftest\RenderSelfTest.java uses unchecked or unsafe operations.
+  Note: Recompile with -Xlint:unchecked for details.
+  Note: Some input files use or override a deprecated API.
+  D:\GitHub\fishtastic\common\src\main\java\grill24\fishtastic\client\selftest\RenderSelfTest.java:1395: error: cannot find symbol
+              grill24.fishtastic.client.companion.ClientCompanions.clear();
+                                                                  ^
+    symbol:   method clear()
+    location: class ClientCompanions
+  1 error
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to generate a Build Scan (powered by Develocity).
+
+BUILD FAILED in 1m 3s
+8 actionable tasks: 5 executed, 3 up-to-date

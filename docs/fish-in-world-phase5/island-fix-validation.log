@@ -1,0 +1,52 @@
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/C:/Users/curre/.gradle/wrapper/dists/gradle-9.2.1-bin/2t0n5ozlw9xmuyvbp7dnzaxug/gradle-9.2.1/lib/native-platform-0.22-milestone-29.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+
+> Configure project :
+Architect Plugin: 3.5.170
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :fabric:processIncludeJars UP-TO-DATE
+> Task :fishsim:compileJava UP-TO-DATE
+> Task :fishsim:processResources NO-SOURCE
+> Task :fishsim:classes UP-TO-DATE
+> Task :fishsim:jar UP-TO-DATE
+> Task :tools:tank-shape-gen:compileJava UP-TO-DATE
+> Task :common:processResources UP-TO-DATE
+> Task :neoforge:processResources UP-TO-DATE
+> Task :neoforge:processIncludeJars UP-TO-DATE
+> Task :common:compileJava UP-TO-DATE
+> Task :common:classes UP-TO-DATE
+> Task :common:processIncludeJars UP-TO-DATE
+> Task :neoforge:compileJava UP-TO-DATE
+> Task :neoforge:classes UP-TO-DATE
+> Task :neoforge:jar UP-TO-DATE
+> Task :fabric:processResources UP-TO-DATE
+> Task :fabric:compileJava UP-TO-DATE
+> Task :fabric:classes UP-TO-DATE
+> Task :fabric:jar UP-TO-DATE
+> Task :common:compileTestJava UP-TO-DATE
+> Task :common:idConstructionGuard UP-TO-DATE
+> Task :common:java17ApiGuard UP-TO-DATE
+> Task :common:processTestResources NO-SOURCE
+> Task :common:testClasses UP-TO-DATE
+> Task :common:test UP-TO-DATE
+> Task :common:jar
+
+> Task :common:transformProductionFabric
+[Architectury Transformer] Read classpath in 1.109 s
+[Architectury Transformer] Transformed jar with 4 transformer(s) in 1.752 s
+
+> Task :common:transformProductionNeoForge
+[Architectury Transformer] Read classpath in 1.016 s
+[Architectury Transformer] Transformed jar with 5 transformer(s) in 2.256 s
+
+> Task :fabric:shadowJar
+> Task :neoforge:shadowJar
+
+BUILD SUCCESSFUL in 10s
+23 actionable tasks: 5 executed, 18 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.2.1/userguide/configuration_cache_enabling.html

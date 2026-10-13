@@ -1,0 +1,7 @@
+Class-load census — dedicated Phase 4 server JVM (-Xlog:class+load=info), fix-round rerun 2026-10-13.
+Command: grep -a "grill24.fishtastic.client" green-dedicated-server.log
+Hits (all):
+[3.145s][info][class,load] grill24.fishtastic.client.compositemodel.TankCosmeticMesh$Snapshot source: file:/D:/GitHub/fishtastic/common/build/libs/fishtastic-common-2.0.1+26.1.2-dev.jar
+Total hits: 1
+Zero Phase 4 client classes (client.ambient.*, client.selftest.*, AmbientFishRuntime, AmbientContextClient/-Store, ClientAmbientFish, RenderSelfTest).
+The single hit is the pre-existing TankCosmeticMesh$Snapshot record (common FishTankCompositeModelData), documented in fish-in-world-phase4.md limitations.

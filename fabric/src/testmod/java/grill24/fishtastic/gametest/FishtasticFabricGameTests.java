@@ -1041,6 +1041,86 @@ public class FishtasticFabricGameTests {
         PacketRoundTripGameTests.companionScenePacketRoundTrips(helper);
     }
 
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void ambientContextRequestPacketRoundTrips(GameTestHelper helper) {
+        PacketRoundTripGameTests.ambientContextRequestPacketRoundTrips(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void ambientContextResponsePacketRoundTrips(GameTestHelper helper) {
+        PacketRoundTripGameTests.ambientContextResponsePacketRoundTrips(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void oversizedOriginListIsRejectedOnEncodeAndDecode(GameTestHelper helper) {
+        PacketRoundTripGameTests.oversizedOriginListIsRejectedOnEncodeAndDecode(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void oversizedEntryListIsRejectedOnEncodeAndDecode(GameTestHelper helper) {
+        PacketRoundTripGameTests.oversizedEntryListIsRejectedOnEncodeAndDecode(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void oversizedCandidateListIsRejectedOnEncodeAndDecode(GameTestHelper helper) {
+        PacketRoundTripGameTests.oversizedCandidateListIsRejectedOnEncodeAndDecode(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void unknownStatusIdDecodesToARejectionNotAnError(GameTestHelper helper) {
+        PacketRoundTripGameTests.unknownStatusIdDecodesToARejectionNotAnError(helper);
+    }
+
+    // -------------------------------------------------------------------------
+    // Ambient context exchange (Fish in World, Phase 4) — server-side validation, resolve
+    // equality, session-snapshot precedence and the per-player rate limit
+    // -------------------------------------------------------------------------
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void authoritativeResolveMatchesServerState(GameTestHelper helper) {
+        AmbientContextGameTests.authoritativeResolveMatchesServerState(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void heldRodLaneIsResolvedFromTheServersOwnInventory(GameTestHelper helper) {
+        AmbientContextGameTests.heldRodLaneIsResolvedFromTheServersOwnInventory(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void dimensionMismatchIsRejected(GameTestHelper helper) {
+        AmbientContextGameTests.dimensionMismatchIsRejected(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void farOriginIsRejectedBeforeTheUnloadedCheck(GameTestHelper helper) {
+        AmbientContextGameTests.farOriginIsRejectedBeforeTheUnloadedCheck(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void unloadedOriginIsRejectedWithoutLoadingTheChunk(GameTestHelper helper) {
+        AmbientContextGameTests.unloadedOriginIsRejectedWithoutLoadingTheChunk(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void rateLimitDropsRequestsPastTheBurst(GameTestHelper helper) {
+        AmbientContextGameTests.rateLimitDropsRequestsPastTheBurst(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void sessionSnapshotTakesPrecedenceOverAFreshResolve(GameTestHelper helper) {
+        AmbientContextGameTests.sessionSnapshotTakesPrecedenceOverAFreshResolve(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void aDifferentPondNearTheCastFallsThroughToAFreshResolve(GameTestHelper helper) {
+        AmbientContextGameTests.aDifferentPondNearTheCastFallsThroughToAFreshResolve(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void anEmptyRequestDoesNotConsumeAThrottleToken(GameTestHelper helper) {
+        AmbientContextGameTests.anEmptyRequestDoesNotConsumeAThrottleToken(helper, helper::makeMockServerPlayerInLevel);
+    }
+
     // -------------------------------------------------------------------------
     // FishEncyclopediaEntry tests  (pure Codec, no world state needed)
     // -------------------------------------------------------------------------
@@ -1175,6 +1255,28 @@ public class FishtasticFabricGameTests {
     @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void handleMinigameCompleteDropsRewardWhenInventoryIsFullAndAutoPileFishIsActive(GameTestHelper helper) {
         FishingMinigameManagerGameTests.handleMinigameCompleteDropsRewardWhenInventoryIsFullAndAutoPileFishIsActive(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    // Phase 3 (Fish in World) species snapshot tests.
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void startSessionCapturesResolvedSpeciesSnapshot(GameTestHelper helper) {
+        FishingMinigameManagerGameTests.startSessionCapturesResolvedSpeciesSnapshot(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void personalEquipmentReadsCarriedDiamondsAndBaselineStaysNeutral(GameTestHelper helper) {
+        FishingMinigameManagerGameTests.personalEquipmentReadsCarriedDiamondsAndBaselineStaysNeutral(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void snapshotRecordsMainHandRodWhenBothHandsHoldRods(GameTestHelper helper) {
+        FishingMinigameManagerGameTests.snapshotRecordsMainHandRodWhenBothHandsHoldRods(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void testSeededSessionCapturesNoSpeciesSnapshot(GameTestHelper helper) {
+        FishingMinigameManagerGameTests.testSeededSessionCapturesNoSpeciesSnapshot(helper, helper::makeMockServerPlayerInLevel);
     }
 
     // -------------------------------------------------------------------------

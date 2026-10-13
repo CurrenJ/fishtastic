@@ -1,62 +1,115 @@
 # Fish in World — continuation handoff
 
-Updated 2026-10-12 at the user's request to conserve remaining usage. This chat coordinates one phase implementation agent at a time. Finish documentation and already-running capture cleanup; do not start another phase in this session.
+Updated 2026-10-13. **Phases 0–7 implemented; automated gates complete.** The interrupted Phase 5
+population work was finished, then client settings, production activation, lifecycle cleanup,
+context boundaries, performance counters and final acceptance were completed. No publication,
+deployment or human gameplay sign-off occurred. The default 50% density remains provisional;
+measured cold CPU spikes deserve ordinary playtesting (see Phase 6).
 
 ## Start here
 
 1. [Feature contract](fish-in-world.md)
-2. [Implementation phases](fish-in-world-implementation-plan.md)
-3. [Phase 0 integration map and baseline](fish-in-world-phase0.md)
-4. [Phase 1 implementation, activation and evidence](fish-in-world-phase1.md)
+2. [Implementation plan](fish-in-world-implementation-plan.md)
+3. [Phase 5 population, transitions and final evidence](fish-in-world-phase5.md)
+4. [Phase 6 settings, lifecycle and measured performance](fish-in-world-phase6.md)
+5. [Phase 7 acceptance and dedicated verification](fish-in-world-phase7.md)
 
-## Current milestone
+Earlier closed records remain authoritative for their milestones:
+[Phase 0](fish-in-world-phase0.md), [Phase 1](fish-in-world-phase1.md),
+[Phase 2](fish-in-world-phase2.md), [Phase 3](fish-in-world-phase3.md),
+[Phase 4](fish-in-world-phase4.md). Phase 4's independent review/fix-round evidence is preserved.
 
-**Phase 0 complete. Phase 1 runtime prototype implemented and regression-tested; final coordinator visual review and latest packaged JAR build remain pending. Phases 2–7 have not started.** Implementation agent stopped after writing its checkpoint. No new work is running on behalf of this chat.
+## Current behavior
 
-Phase 1 extracts `FishVisuals` and `GroupFishPose`, preserving tank profile/size/locomotion mapping and planar pose arithmetic. Tank callers delegate to those helpers; a BER compatibility delegate preserves other existing callers. `ClientAmbientFish` provides an explicitly armed development fixture with a fixed world origin, four stable individuals, the existing group engine/domain, one render state per fish, world light, camera-depth ordering, culling, fixed tick stepping and lifecycle cleanup. Both loaders have tick/world-submit/reload/cleanup integration.
+Normal clients automatically show local ambient fish in nearby loaded water, using the server's
+fishing pool and final weights. No held rod uses the standard-worms visual baseline; held supported
+rods use their real setup. Active-session context precedence is preserved. No visible individual
+determines catches or grants progression. There are no saved/targetable fish entities.
 
-Normal play does not activate the fixture. There is no live pool selection, natural discovery, networking, equipment transition, production setting, or saved entity behavior yet. Do not describe this as the finished feature.
+Settings are in `fishtastic-client.properties`: `ambientFishEnabled=true`, `ambientFishDensity=50`.
+Both loaders offer local commands:
 
-## Validation already observed
+```
+/fishtasticambient enabled <true|false>
+/fishtasticambient density <0-100>
+/fishtasticambient debug
+```
 
-- Phase 0: fishsim 347 passed / 36 skipped; common 766 passed / 1 skipped; no failures. Four deterministic motion fixtures recorded, not Minecraft render proofs.
-- Phase 1: common 778 passed / 1 skipped, including 12 new mapping and pose/normal regression tests; no failures. Fishsim remained up-to-date at its Phase 0 counts because its sources were unchanged.
-- Both packaged builds passed before the later read-only camera snapshot and close-up harness additions. Latest helpers/harness compiled on both loaders. At checkpoint, final incremental packaging of those additions was still to be confirmed; consult the Phase 1 report/logs rather than assuming the older jars contain them.
-- Real Fabric and NeoForge shore/underwater/tank-interior scenes completed with ten checks passing each: four tank inserts, activation, count, submission, off-camera continuity, freeze, cleanup.
-- Fabric's species close-up run passed fourteen checks, adding calibrated lengths and declared tank locomotion checks. The coordinator inspected all four Fabric species comparisons; appearance/poses were coherent, with expected world/tank lighting and fog differences. One gliding tank shot was obscured by a frame, so an inward-camera refresh was added.
-- Closeout confirmed: refreshed Fabric and NeoForge captures both finished, with fourteen scene checks passing on each. All 22 screenshots were curated. The latest NeoForge log records self-test completion and clean shutdown; the coordinator has not yet reviewed every refreshed image. Do not launch more clients just to repeat established checks.
+Zero density/off stops all ambient work and releases state. Density bounds discovery, context
+origins, simulation and rendering together. The development harness remains explicit and
+suppresses ordinary activation in older fixture scenes.
 
-Evidence lives under `fish-in-world-phase1/screenshots/`; disposable runs live under ignored `fish-in-world-phase1/run-fabric/` and `run-neoforge/`. A curated screenshot is in-game evidence, but these controlled volumes do not establish arbitrary-water containment or release performance.
+## Important fixes from this continuation
 
-## Workspace and concurrent work
+- Authoritative `OK`/empty pools retire old fish; unknown states cannot spawn and have bounded grace.
+- Revival can cancel only domain departure, never eligibility or lifetime retirement.
+- Geometry changes rebuild visual representability, including a bounded whole-body fit probe.
+- Bounded per-slot choices preserve original expiry across re-entry/equipment toggling. RNG-position
+  retention alone was insufficient; choices are now retained too. No ineligible cached choice can spawn.
+- Water is partitioned by surface biome and shared fishing zones. Disconnected lower spans are
+  omitted rather than shown with the surface pool's possibly incorrect context.
+- Deep-water swimmers use the known band bottom without inventing a seabed; bottom species require
+  a known floor. Resource/tag reload, dimension, disconnect and teleport cleanup invalidate sessions.
+- Observable time/weather/moon and cast-session/hook changes request bounded context refreshes.
 
-Checkout: `D:/GitHub/fishtastic`, branch `26.1.2`. No commits or pushes were made for this feature. New feature files and documentation are currently untracked; do not accidentally omit them when later staging changes.
+Shared tank visuals and motion stay in use. The visual mixture is 75% raw / 25% square-root
+probability, lifetimes are 300–700 ticks for new choices, retirement is 40 ticks after acceptance,
+and retained state is bounded to 600 ticks / sixteen patches / four contexts × thirty-two slots.
 
-Another agent is working on fish-companion squid movement in this repository. Preserve its changes and other pre-existing docs/logs/assets. The ambient phase did not change fishsim core locomotion or companion movement sources. Check fresh status/diffs before editing shared files; shared rendering, loader entrypoints and the render self-test were changed by this phase.
+## Final validation
 
-Follow repository AGENTS.md and read the relevant canonical guide topic before changing a system. Do not reset the working tree or broadly clean untracked files. Existing self-test cleanup must stay confined to the checked, specifically named disposable world in its isolated run directory.
+- fishsim: 442 tests, 36 existing skips, zero failures/errors.
+- common: 854 tests, one existing skip, zero failures/errors.
+- Fabric GameTests 347/347; NeoForge 341/341.
+- Both loaders: 23/23 population checks and 15/15 lifecycle checks, plus the shader check.
+  NeoForge's final lifecycle-only rerun also passed fifteen checks with the final instrumentation.
+- Excluded fish disappeared 42 ticks after the accepted context; common identities survived rod,
+  bait/charm and quality-only switches. Both loaders restored retained state after brief re-entry.
+- Fresh Fabric dedicated pair: six context checks passed; client/server fingerprints matched,
+  old equipment responses were discarded, seven dispatches over 168 ticks stayed below eleven.
+  Zero ambient client classes loaded on the dedicated server. One pre-existing tank mesh snapshot
+  record remains the documented Phase 4 exception. The disposable server has been stopped.
+- `build` passed; new ambient classes verified in both packaged 2.0.1 jars. `git diff --check` passed.
+- Eight curated shore/underwater/coexistence images are under `fish-in-world-phase5/screenshots/`.
+  Underwater images were reviewed; shore water can obscure fish and is not sole appearance proof.
 
-## Important design decisions to retain
+CPU results are machine-specific. Reference host: Ryzen 9 5900X / RTX 3080 Ti, Java 25, 1536 MB
+client heap, four visible processors, 960×540, 30 FPS cap. Pond interval means: Fabric tick 0.061 ms
+/ submission 0.026 ms; final NeoForge lifecycle rerun 0.164 / 0.067 ms. Cold-session peaks reached
+16.4 / 7.5 ms on Fabric and 57.7 / 26.5 ms on NeoForge. Context-manager work is measured separately
+and must be added; these are CPU counters, not GPU or frametime-percentile benchmarks. Both larger
+fixtures reached 2401 columns / eight fish inside all work/count limits. See Phase 6 for details.
 
-- World fish should look nearly identical to tank fish; continue sharing the engine, descriptors and poses rather than introducing independently tuned motion.
-- No held rod uses the registered standard-worms pool with local environment and neutral personal equipment. A held supported rod uses its actual setup, including no bait. Ambient previews consume nothing and never trigger cast effects.
-- Future equipment transitions resolve context immediately, keep compatible identities/motion, retire excluded fish promptly and adjust weight-only abundance gradually. Repeated toggling/re-entry must not reroll rare sightings.
-- Proposed visual mixture is 75% actual species probability plus 25% square-root-flattened probability. This is visual-only and remains tunable.
-- Populations are client-local representations. Catch rewards and progression remain independent of visible individuals.
+## Workspace and future work
 
-## Known integration risks for later phases
+Checkout `D:/GitHub/fishtastic`, branch `26.1.2`. Changes remain uncommitted, including the earlier
+interrupted implementation's staged/unstaged files. Preserve staged state, companion work and
+unrelated logs. Never sweep `common/logs/latest.log` or broad untracked paths into a commit.
+Read AGENTS.md and relevant canonical modding-guide topics before changing systems.
 
-- `rebuildPreserving` carries local coordinates; moving origins need explicit world-preserving rebasing. It is not sufficient by itself for rolling water windows.
-- `VoxelDomain` has synchronous distance-field construction and full-block union assumptions. Natural water needs bounded loaded-only discovery, fractional fluid/collision handling, full animated body clearance, disconnected-region handling and a boundary strategy that avoids an invisible player-centered tank.
-- Existing fishing chooses a main-hand rod first, while actual offhand casting has an explicit hand. `ActiveSession` lacks complete species weights/origin/moon/casting-rod identity. Resolve those seams with tests in Phase 3 rather than guessing in the client.
-- Vanilla water and tank interiors have different light/fog/surroundings. Shared matrix regressions and visual inspection establish the limited Phase 1 parity claim; screenshots are not expected to be pixel-identical.
-- An initial uncapped isolated client crashed during world loading under host memory pressure. Bounded launches succeeded without stopping other work. Keep the capture init script's documented heap/resolution/render-distance settings; run one dev client at a time. Ordinary run directories and other agent processes were untouched.
+Evidence: final suite/build log and loader scene logs under `fish-in-world-phase5/`; fresh dedicated
+logs/init script under `fish-in-world-phase7/`. Disposable run directories are ignored. Run one
+client at a time; Windows locks the common dev jar while clients run, so package after they exit.
 
-## Resume sequence
+No implementation phase is waiting to be resumed. Next useful work is human gameplay tuning:
+watch density/crowding, rare-sighting expectations, conservative fit omissions, stacked-water
+omissions and cold CPU spikes. Do not call these short automated sessions a universal performance
+or human release sign-off.
 
-1. Read Phase 1 report and inspect the 22 curated images, especially the refreshed gliding close-ups. Both capture runs finished; no new capture is needed unless review finds a real defect.
-2. If final packaged artifacts still predate the read-only snapshot/harness additions, run one incremental `:fabric:build :neoforge:build` and record the result. No forced rerun of unchanged tests is needed.
-3. Coordinator closes the limited Phase 1 prototype gate with the available evidence, keeping release/natural-water limits explicit.
-4. On resumption, assign **Phase 2 only** to the next implementation agent: bounded loaded-water discovery and terrain/domain containment with a fixed pool. Preserve shared tank visuals and concurrent companion work. No fishing/networking changes belong in that phase.
+Post-playtest update: see [small-island visibility adjustment](fish-in-world-island-playtest.md).
+Ambient display now uses the upper four blocks of water and lets large connected patches use
+the existing global density budget. Earlier eight-fish performance captures are historical.
 
-No future phase or recurring automation has been started.
+Population cap tuning on 2026-10-13: caps are now 32 at default 50% and 64 at 100%.
+Discovery budgets, small-pool volume scaling and lifetimes are unchanged. See the island
+playtest record for validation of the increased cap.
+
+Further tuning: new-choice lifetimes are 90–150 seconds (two-minute mean); exclusions still
+retire promptly. Floor residents spawn at the actual bed. Retirement rendering holds the
+pose and shrinks around model centre, or a planted creature's base. Population long-run
+captures use 600 one-second polls to cover the longer turnover interval.
+
+Short-movement retirement fix: see [early retirement](fish-in-world-early-retirement.md).
+Patch selection uses nearest water and keeps nearby occupied patches; discovery merges
+keep the oldest key instead of sorting packed coordinates. New fragments no longer replace
+an established body's key during westward expansion.

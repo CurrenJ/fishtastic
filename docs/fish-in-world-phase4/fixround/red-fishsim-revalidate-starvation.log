@@ -1,0 +1,39 @@
+
+> Configure project :
+Architect Plugin: 3.5.170
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :fishsim:compileJava UP-TO-DATE
+> Task :fishsim:processResources NO-SOURCE
+> Task :fishsim:classes UP-TO-DATE
+> Task :fishsim:compileTestJava UP-TO-DATE
+> Task :fishsim:processTestResources UP-TO-DATE
+> Task :fishsim:testClasses UP-TO-DATE
+
+> Task :fishsim:test FAILED
+
+WaterDiscoveryTest > theDriverItselfNoticesAnEditWhileDryLandKeepsTheSweepBusy() FAILED
+    org.opentest4j.AssertionFailedError: the driver never re-read the drained column in 200 ticks; the old spare/band allowance was zero on 200 of them ==> expected: <true> but was: <false>
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+        at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
+        at app//org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
+        at app//org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:211)
+        at app//grill24.fishsim.ambient.WaterDiscoveryTest.theDriverItselfNoticesAnEditWhileDryLandKeepsTheSweepBusy(WaterDiscoveryTest.java:633)
+
+Test result: FAILURE — 1 tests, 0 passed, 1 failed, 0 skipped
+
+1 test completed, 1 failed
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':fishsim:test'.
+> There were failing tests. See the report at: file:///D:/GitHub/fishtastic/fishsim/build/reports/tests/test/index.html
+
+* Try:
+> Run with --scan to generate a Build Scan (powered by Develocity).
+
+BUILD FAILED in 2s
+4 actionable tasks: 1 executed, 3 up-to-date

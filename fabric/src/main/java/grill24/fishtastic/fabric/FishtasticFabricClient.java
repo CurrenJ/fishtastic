@@ -138,6 +138,9 @@ public final class FishtasticFabricClient implements ClientModInitializer {
 
         // Register network packets (client-side)
         FabricPacketRegistrar.registerClientReceiver();
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, buildContext) ->
+                grill24.fishtastic.client.ambient.AmbientClientCommands.register(dispatcher,
+                        (source, message) -> source.sendFeedback(net.minecraft.network.chat.Component.literal(message))));
 
         // Cool Cam camera-follow demo command — registered only when Cool Cam (an optional,
         // Fabric-only dependency) is present. isModLoaded() is checked before this class ever
@@ -196,6 +199,10 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         // Register reduced celebration effects sync packet client handler
         grill24.fishtastic.network.ReducedEffectsSyncPacket.registerClientHandler(
                 packet -> grill24.fishtastic.client.FishtasticClientConfig.setReducedCelebrationEffects(packet.reduced()));
+
+        // Register authoritative ambient context response handler (Fish in World, Phase 4)
+        grill24.fishtastic.network.AmbientContextResponsePacket.registerClientHandler(
+                grill24.fishtastic.client.ambient.AmbientContextClient::handle);
 
         // Install quest progress notification system
         QuestProgressNotificationManager.getInstance().install();

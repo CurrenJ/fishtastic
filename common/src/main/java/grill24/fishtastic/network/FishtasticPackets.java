@@ -39,6 +39,8 @@ public class FishtasticPackets {
     public static final Identifier COMPANION_TUTORIAL_ADVANCE_ID = Fishtastic.id("companion_tutorial_advance");
     public static final Identifier COMPANION_FISHING_EVENT_ID = Fishtastic.id("companion_fishing_event");
     public static final Identifier COMPANION_SCENE_ID = Fishtastic.id("companion_scene");
+    public static final Identifier AMBIENT_CONTEXT_REQUEST_ID = Fishtastic.id("ambient_context_request");
+    public static final Identifier AMBIENT_CONTEXT_RESPONSE_ID = Fishtastic.id("ambient_context_response");
 
     /**
      * Initialize packet registration. Called during mod initialization.
@@ -144,6 +146,11 @@ public class FishtasticPackets {
                 CompanionTutorialAdvancePacket.STREAM_CODEC,
                 CompanionTutorialAdvancePacket::handleClientToServer
         );
+        registrar.registerClientToServer(
+                AmbientContextRequestPacket.TYPE,
+                AmbientContextRequestPacket.STREAM_CODEC,
+                AmbientContextRequestPacket::handleClientToServer
+        );
     }
 
     /**
@@ -230,6 +237,11 @@ public class FishtasticPackets {
                 CompanionScenePacket.STREAM_CODEC,
                 CompanionScenePacket::handleServerToClient
         );
+        registrar.registerServerToClient(
+                AmbientContextResponsePacket.TYPE,
+                AmbientContextResponsePacket.STREAM_CODEC,
+                AmbientContextResponsePacket::handleServerToClient
+        );
     }
 
     /**
@@ -257,6 +269,7 @@ public class FishtasticPackets {
         registrar.accept(CompanionTutorialSyncPacket.TYPE, CompanionTutorialSyncPacket.STREAM_CODEC);
         registrar.accept(CompanionFishingEventPacket.TYPE, CompanionFishingEventPacket.STREAM_CODEC);
         registrar.accept(CompanionScenePacket.TYPE, CompanionScenePacket.STREAM_CODEC);
+        registrar.accept(AmbientContextResponsePacket.TYPE, AmbientContextResponsePacket.STREAM_CODEC);
     }
 
     /**

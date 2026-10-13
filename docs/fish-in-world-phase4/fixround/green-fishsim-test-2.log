@@ -1,0 +1,28 @@
+
+> Configure project :
+Architect Plugin: 3.5.170
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :fishsim:compileJava UP-TO-DATE
+> Task :fishsim:processResources NO-SOURCE
+> Task :fishsim:classes UP-TO-DATE
+> Task :fishsim:compileTestJava UP-TO-DATE
+> Task :fishsim:processTestResources UP-TO-DATE
+> Task :fishsim:testClasses UP-TO-DATE
+
+> Task :common:compileJava
+Note: D:\GitHub\fishtastic\common\src\main\java\grill24\fishtastic\client\selftest\RenderSelfTest.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: D:\GitHub\fishtastic\common\src\main\java\grill24\fishtastic\client\selftest\RenderSelfTest.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+> Task :fishsim:test
+
+Test result: SUCCESS — 439 tests, 403 passed, 0 failed, 36 skipped
+
+[Incubating] Problems report is available at: file:///D:/GitHub/fishtastic/build/reports/problems/problems-report.html
+
+BUILD SUCCESSFUL in 1m 17s
+5 actionable tasks: 2 executed, 3 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.2.1/userguide/configuration_cache_enabling.html

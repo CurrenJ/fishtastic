@@ -26,13 +26,30 @@ import net.minecraft.world.phys.Vec3;
 import java.util.Arrays;
 import java.util.Random;
 
-/** Phase 1 development fixture only. No discovery, catches, networking or release population. */
+/**
+ * Client entry point for the world's ambient fish, and the dev harness's handle on both modes.
+ *
+ * <p>Two mutually exclusive modes:
+ * <ul>
+ *   <li><b>Fixture</b> (Phase 1, {@link #startFixture}) — one fixed box of water at a chosen block,
+ *       four fixed individuals. Kept because it is the deterministic reference the
+ *       {@code ambientparity} scene compares the tank visuals against.</li>
+ *   <li><b>Natural</b> — discovered water around the player, driven by {@link AmbientFishRuntime}
+ *       and authoritative species snapshots. Normal play starts it through client settings;
+ *       {@link #startNatural} remains the explicit full-density development seam.</li>
+ * </ul>
+ */
 public final class ClientAmbientFish {
     private ClientAmbientFish() {}
     public static final String[] SPECIES = {"bluegill", "acute_iaspis", "portuguese_man_o_war", "plaice"};
     public static final float[] SIZE_CM = {30f, 45f, 40f, 35f};
     private static final int SX = 4, SY = 2, SZ = 3;
+    private static final AmbientFishRuntime RUNTIME = new AmbientFishRuntime();
     private static Fixture fixture;
+    private static boolean developmentMode;
+    private static boolean productionTest;
+    private static ClientLevel lastNaturalLevel;
+    private static Vec3 lastPlayerPosition;
     public static int worldSubmitsThisFrame;
 
     /** Explicit opt-in from the dev harness. Origin is the minimum water cell, never the player. */
@@ -40,6 +57,7 @@ public final class ClientAmbientFish {
         Minecraft mc = Minecraft.getInstance();
         if (!DevEnvironmentCheck.isDevelopmentEnvironment() || mc.level == null) return false;
         if (!waterPresent(mc.level, min)) return false;
+        RUNTIME.clear();
         fixture = new Fixture(mc.level, min.immutable());
         // A species that failed its locomotion gate must not silently become a hover specimen.
         for (int i = 0; i < fixture.engine.count(); i++) {
@@ -51,7 +69,40 @@ public final class ClientAmbientFish {
         return true;
     }
 
-    public static void clear() { fixture = null; worldSubmitsThisFrame = 0; }
+    /** Arms the natural population for the current level. Development environments only. */
+    public static boolean startNatural() {
+        Minecraft mc = Minecraft.getInstance();
+        if (!DevEnvironmentCheck.isDevelopmentEnvironment() || mc.level == null) return false;
+        fixture = null;
+        developmentMode = true;
+        return RUNTIME.start(mc.level);
+    }
+
+    /** Harness seam: exercise automatic release activation using config overrides only. */
+    public static void productionTest(boolean enabled) {
+        clear();
+        productionTest = enabled;
+    }
+
+    public static void settingsChanged() {
+        clear();
+    }
+
+    public static boolean naturalArmed() { return RUNTIME.armed(); }
+    public static AmbientFishRuntime natural() { return RUNTIME; }
+    public static long naturalSteps() { return RUNTIME.steps(); }
+
+    public static void clear() {
+        fixture = null;
+        developmentMode = false;
+        lastNaturalLevel = null;
+        lastPlayerPosition = null;
+        RUNTIME.clear();
+        worldSubmitsThisFrame = 0;
+        // A disconnected/reloaded world invalidates every in-flight context answer: mint a new
+        // session so any late response is discarded rather than applied.
+        AmbientContextClient.resetSession();
+    }
     /** Resource/model reload discards deferred states; the harness must explicitly re-arm. */
     public static void invalidate() { clear(); }
     public static int count() { return fixture == null ? 0 : fixture.ids.length; }
@@ -74,7 +125,33 @@ public final class ClientAmbientFish {
     public static void tick() {
         Minecraft mc = Minecraft.getInstance();
         Fixture f = fixture;
-        if (f == null) return;
+        if (f == null) {
+            boolean automatic = productionTest || !grill24.fishtastic.client.selftest.RenderSelfTest.isArmed();
+            if (!developmentMode && automatic) {
+                int density = grill24.fishtastic.client.FishtasticClientConfig.getAmbientFishDensity();
+                boolean enabled = grill24.fishtastic.client.FishtasticClientConfig.isAmbientFishEnabled() && density > 0;
+                if (!enabled || mc.level == null || mc.player == null) {
+                    if (RUNTIME.armed()) clear();
+                    return;
+                }
+                AmbientBudget budget = AmbientBudget.forDensity(density);
+                if (!RUNTIME.armed()) RUNTIME.start(mc.level, budget);
+                else RUNTIME.configure(budget);
+            }
+            if (RUNTIME.armed() && mc.player != null && mc.level != null) {
+                Vec3 position = mc.player.position();
+                if (lastNaturalLevel != mc.level || (lastPlayerPosition != null
+                        && lastPlayerPosition.distanceToSqr(position) > 64 * 64)) {
+                    RUNTIME.start(mc.level, RUNTIME.budget());
+                    AmbientContextClient.resetSession();
+                }
+                lastNaturalLevel = mc.level;
+                lastPlayerPosition = position;
+            }
+            RUNTIME.tick(mc);
+            AmbientContextClient.tick(mc, RUNTIME);
+            return;
+        }
         if (mc.level != f.level || !waterPresent(f.level, f.min)) { clear(); return; }
         if (mc.isPaused() || !f.level.tickRateManager().runsNormally()) return;
         long time = f.level.getGameTime();
@@ -91,10 +168,15 @@ public final class ClientAmbientFish {
 
     /** Uses ordinary world depth/fog pipelines. Rendering only changes interpolation scratch. */
     public static void submitWorld(PoseStack poses, SubmitNodeCollector nodes, float partialTick) {
+        Fixture f = fixture;
+        if (f == null) {
+            RUNTIME.submitWorld(poses, nodes, partialTick);
+            worldSubmitsThisFrame = RUNTIME.submitsThisFrame();
+            return;
+        }
         worldSubmitsThisFrame = 0;
         Minecraft mc = Minecraft.getInstance();
-        Fixture f = fixture;
-        if (f == null || mc.level != f.level) return;
+        if (mc.level != f.level) return;
         var camera = mc.gameRenderer.getMainCamera();
         Vec3 cam = camera.position();
         var forward = camera.forwardVector();
