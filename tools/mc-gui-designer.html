@@ -157,7 +157,6 @@ function javaLayout(project) {
  return `// Generated from ${project.name}.json. Coordinates are panel-relative.\n// Choose each slot's container (companion / inventory / inputs) before using this code.\nthis.imageWidth = ${panel?.w||176};\nthis.imageHeight = ${panel?.h||166};\n\n`+slots(project).map(s=>`addSlot(new Slot(/* ${s.name.replaceAll('*/','')} container */ container, ${s.index}, ${s.x-(panel?.x||0)}, ${s.y-(panel?.y||0)}));`).join('\n');
 }
 
-import {THEME,TYPES,preset,element,bounds,validate,rasterize,slots,javaLayout} from './renderer.mjs';
 const $=id=>document.getElementById(id), storageKey='fishtastic.gui-workbench.v1';
 let project=preset(), selected=null, zoom=3, undo=[], redo=[], drag=null, pendingPreset=null, dirty=false;
 try{const saved=localStorage.getItem(storageKey);if(saved)project=validate(JSON.parse(saved));}catch{}
