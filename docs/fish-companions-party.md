@@ -1,7 +1,9 @@
 # Fish companions: the party (three slots), design spec
 
 Status: **draft, 2026-10-13.** Owner request: "three open companion slots that can be mixed and
-matched between any three species." All decisions D1–D8 are answered (§10). Phase 1 in progress.
+matched between any three species." Phase 1 is done. Phase 2 was re-scoped by the evidence review
+of 2026-10-14 ([`fish-companions-party-phase2-review.md`](fish-companions-party-phase2-review.md);
+decisions D13–D14 in §10).
 
 This replaces the single slot in [`fish-companions.md`](fish-companions.md) §8.1 and the
 automatic trio and group rules in §2 and in `companion_group`. It changes how the sim plan's
@@ -17,9 +19,9 @@ A player has **three companion slots**. Each holds one bonded fish item, and **e
 body**. Fish of the same species in the party **form a group**: three bluegill are a school,
 three starfish are a line, two nudibranchs are a pair. This is the new, and only, way to get a
 trio. The old rules that turned one small fish or one starfish into three bodies are retired.
-Different species stay separate members, and the party layer shares out the space round the
-owner. Slot 1 is the **lead**: the fishing buddy, first claim on your view, and the leader of its
-group.
+**Free swimmers of different species school together too (D13): a mixed shoal.** Other classes of
+different species stay separate members, and the party layer shares out the owner's perches and
+space. Slot 1 is the **lead**: the fishing buddy and first claim on your view.
 
 ---
 
@@ -49,11 +51,11 @@ group.
    **Mitigation: the lead (§4).**
 3. **The owner's body is shared.** Perch slots are two shoulders, the head, the back and
    transient hands. Three bodies against four fixed perches mostly fits, but ANCHORED needs the
-   back or head, and fades "land on the perch" (owner preference). **Mitigation: a party perch
-   allocator (§6.2).**
-4. **The space round the owner is shared.** Three different-species minds aim for the same
-   escort station, peek path and view pass. **Mitigation: station allocation, separation and an
-   attention budget (§6).** None of this exists today. Formations work only within one group.
+   back or head, and fades "land on the perch" (owner preference). **Mitigation: party-wide
+   perch homes and leases (§6.1).**
+4. **The space round the owner is shared.** Measured (2026-10-14): different classes already keep
+   apart, but same-class units collide. **Mitigation: the mixed shoal (D13) for swimmers, and
+   §6.2 for ground benthics.**
 5. **Groups of mixed fish.** Group members used to be clones of one stack. Now each member has
    its own size, quality, name and seed. Formation spacing and pace must handle a 9 cm and a
    24 cm bluegill in one school. That reads natural for a real school, but it's untested in the
@@ -79,9 +81,18 @@ storage change.
 |---|---|---|
 | 3 × same FREE_SWIM | 3 | Trio school (today's `CompanionGroup` formation) |
 | 2 × same FREE_SWIM | 2 | Pair: leader plus one follower in the same formation |
+| 2–3 FREE_SWIM of **different** species | 2–3 | **Mixed shoal (D13):** the same `CompanionGroup` formation. Every free swimmer in the party joins one school |
 | 3 / 2 × same ground BENTHIC | 3 / 2 | `BenthicGroup` line or crowd, style from the species profile |
 | 2–3 × same of another class (GLIDE, DRIFT, ANCHORED, pure percher) | 2–3 | Separate party members, no group formation (D7) |
-| Different species | 1 each | Separate party members (§6) |
+| Different species, not both FREE_SWIM | 1 each | Separate party members (§6) |
+
+- **Mixed shoal (D13).**
+  - Measured: three different free swimmers (25/30/40 cm) overlap 0.42% of the time as one school
+    (worst 4.5%), against 6.34% (worst 44%) as independent members. The leader's seen % is
+    unchanged (review §4 B).
+  - The smallest fish leads (D9), whatever its species.
+  - **Accepted cost:** the leader's mind decides for the whole shoal. Followers keep their own
+    bodies, sizes and looks, but not their own decisions or temperament.
 
 - **The group leader is picked by size (D9): the smallest fish leads.** Ties go to the lowest
   slot, so identical members keep today's leader. The group paces to its slowest member (D10).
@@ -105,11 +116,9 @@ Slot 1 is the **lead** (owner answer D4).
 | Thing | Lead | Others |
 |---|---|---|
 | Fishing dock / reactions (deferred, spec §5) | Docks | Watch from their stations |
-| Group leadership | Leads any group it's in | Follow |
-| Hand hop for a first-person look (perchers) | First claim | Only if the lead isn't using a hand |
-| In-view beats and peeks | Priority (§6.3) | Round-robin turns |
+| Group leadership | None: the smallest fish leads (D9), so the lead may be a follower | — |
+| Hand hop for a first-person look (perchers) | First claim (§6.1 leases) | Only if the lead isn't using a hand |
 | Emote key (spec §7, F3) | Plays its trick | Answer with a short reaction |
-| Escort station | Best station (§6.1) | The remaining ones |
 | Name shown on sneak | Above itself | Above itself (D6) |
 
 ---
@@ -135,9 +144,9 @@ Slot 1 is the **lead** (owner answer D4).
 ### 5.3 Menu and the hold-to-bond key
 - `CompanionMenu` gets three companion slots in a row, with the lead marked on slot 1. Rename and
   the pile strip act on the **selected** slot. Moving a fish between slots reorders the party.
-- A small preview line under the slots says what the party makes: "Bluegill school" or "Starfish
-  line + Clownfish". **This is the only place a player learns that matching species group up.
-  Don't cut it.**
+- A small preview line under the slots says what the party makes: "Bluegill school", "Starfish
+  line + Clownfish", or "Mixed shoal" (D13). **This is the only place a player learns that
+  matching species, and free swimmers, group up. Don't cut it.**
 - Holding **B** over an eligible fish:
   - fills the first empty slot;
   - if the party is full, it opens the menu with the fish highlighted. It never replaces a slot
@@ -189,44 +198,56 @@ The hidden "selected slot" mode goes. Every action names its own slot.
 
 ## 6. The party layer (sim)
 
-New in `:fishsim`: `CompanionParty`, which owns one owner's members. It forms the groups (§3) and
-arbitrates only what the owner's body and space force them to share. Each mind stays its own.
+Re-scoped 2026-10-14 by the evidence review
+([`fish-companions-party-phase2-review.md`](fish-companions-party-phase2-review.md)). Each rule
+below fixes a problem measured by `PartyBaselineProbe`, which runs a party as the game does with
+no party layer. What the probe showed already works is kept, not rebuilt:
+- different classes keep apart through their class stations (crab + drifter + glider overlap
+  1.2%);
+- no member is starved of view time (seen % within 1.5 points of solo);
+- following quality doesn't suffer (leash fades unchanged).
 
-**Hard contract:** a one-member party is **bitwise identical** to today's solo, and a
-three-identical-member group to today's trio and benthic group. All existing fingerprints
-(`FingerprintProbe -PfpAll=1`) are unchanged. Every party rule has an on/off switch for
-equal-ground A/B.
+New in `:fishsim`: `PartyLayer`, which owns one owner's units. The name `CompanionParty` is taken
+by the common storage record. It acts on **units** (a solo, a school or a ground formation),
+never inside a formation. Units read each other's state from the previous tick only, so the step
+order can't change results.
 
-### 6.1 Stations and separation
-- **Escort stations allocated per party:** the lead (or its group) takes its class's natural
-  station, and the others take offsets (the other shoulder side, higher, behind). A class keeps
-  its station character (GLIDE wide and high, DRIFT behind a shoulder, ground benthics behind
-  the feet).
-- **Mutual separation between party bodies**, as a steering term inside the existing
-  heading-constrained swim (never a push or a lerp: *companions always swim*).
-- **Different-species ground benthics share the foot trail** as one queue, so they don't fight
-  for the spot behind your heels.
+**Hard contract:** a one-member party is **bitwise identical** to today's solo, and an
+identical-member group to today's trio and benthic group. All existing fingerprints
+(`FingerprintProbe -PfpAll=1`, `GroupFingerprintProbe`) are unchanged, except the intended
+ANCHORED change (D5). Every party rule has an on/off switch for equal-ground A/B.
 
-### 6.2 Perch allocation
-- One allocator owns RIGHT_SHOULDER, LEFT_SHOULDER, HEAD, BACK and the hands. Each body *asks*;
-  the allocator *grants* in priority order:
-  1. ANCHORED: HEAD, then the shoulders (D5; the back is retired for anchored fish);
-  2. pure perchers;
-  3. the lead's hand hop;
-  4. ground benthics climbing on.
-- **Fades:** a ground benthic's fade lands on a free perch as today. If none is free, it fades
-  in at its ground station. **This changes the owner's "fades land on the perch" rule when the
-  body is full; flag it at the gate.**
-- **D5 (owner):** several ANCHORED fish take, in priority order, the head, then the shoulders.
-  Three garden eels sit on the head and both shoulders.
+### 6.1 Perch homes and leases
+- **Homes:** when the party is built, each percher gets its own home perch, once. This is
+  `BenthicGroup`'s `groupSlot` pattern (zero shared perches in every group run), extended across
+  units.
+  - ANCHORED fish choose first: HEAD, then the shoulders (D5; the back is retired for anchored
+    fish).
+  - Formation members keep their formation's homes.
+  - The rest take what's left: left shoulder, right shoulder, head, back.
+  - There are 4 perches for at most 3 bodies, so homes never run out.
+- **Measured** (homes only, as a test hook):
+  - three anchored fish overlap 97% → 0.4%, with zero clashes;
+  - ground clash ticks drop 42–77%.
+- **Leases:** the remaining clashes come from transient moves: solo shoulder-wander, hand hops
+  and cover. A transient move takes a free perch for its duration, or doesn't happen. The lead
+  has first claim on a hand. Cover falls back to the next free perch when the head is a home.
+- **Fades** still land on the fish's own home perch, which is always free. The old "perch full"
+  fade question goes away.
 
-### 6.3 Attention budget
-- At most **one in-view beat or peek at a time** across the party. The lead has priority, and
-  the others take round-robin turns with a gap. A group beats as one unit, as today. Held-item
-  reactions stay on for everyone, with look-at targets spread so they don't stack.
+### 6.2 Different-species ground benthics
+- With homes they still overlap 4.8–12.6% on the ground. Candidates are a shared foot-trail
+  queue or a mixed-species `BenthicGroup` line. **Measure both before choosing.** Mixed-size
+  lines of one species already measure well (1b/2a).
 
-### 6.4 Shared perception
-- One `LocalVoxels` window and one `CompanionWorld` per owner per tick, shared by the party.
+### Not built (evidence says no)
+- **Attention budget** (formerly §6.3). All three in view happens 3–6.5% of the time, and nobody
+  is starved. The owner agrees it works (D14). Watch it in the viewer; build only if crowding
+  shows.
+- **Station allocation and separation for swimmers** (formerly §6.1). Different classes keep
+  apart by station, and same-class swimmers become a mixed shoal (D13).
+- **Shared perception** (formerly §6.4). It's performance only and unprofiled, so it's deferred
+  to performance work.
 
 ---
 
@@ -241,6 +262,9 @@ equal-ground A/B.
   predator does a smug lap is the best solo payoff. Keep intra-party scenes rare (per-pair
   cooldown). G1 (same species) no longer applies inside a party, because same species is a
   group.
+- **Open for Phase 4 (from D13):** a free-swimming predator and its free-swimming prey in one
+  party now share a shoal. Decide in Phase 4 whether such a pair schools anyway, or splits out
+  of the shoal.
 - **Scene scheduling becomes per member:** `BUSY_UNTIL` is keyed by (owner, slot), and a group
   counts as one member. One scene per owner pair at a time; the pairing is picked by the
   existing priority order across the cross-party pairs.
@@ -254,9 +278,9 @@ The party layer gets new guard-rail metrics, each a level paired with a rate:
 | Metric | Why |
 |---|---|
 | Member-to-member min separation, contact ticks | Overlap inside the party |
-| Simultaneous in-view bodies, beat overlaps | Attention crowding (§6.3) |
-| Perch grant churn per minute, refused asks | Allocator thrash |
-| Fades per minute by cause (incl. "perch full") | §6.2's changed fade rule |
+| Simultaneous in-view units (watch only) | Attention crowding (no budget, D14) |
+| Perch clash ticks, refused leases per minute | §6.1 homes and leases |
+| Mutual INSPECT % vs solo | §7 familiarity |
 | Per-member seen % vs the same species solo | Does the party starve a member? |
 | Mixed-size group: spacing, overtakes, follower lag | §3's new formations |
 
@@ -278,7 +302,7 @@ own companion in first person" applies to the whole party.
 | Phase | Builds | Gate |
 |---|---|---|
 | 1 | Storage + migration, (owner, slot) identity, packets, menu with 3 slots and the party preview, hold-B rules, commands, game tests. In game: same-species slots form a group (§3), and different species run **independently** (no party layer yet; overlap expected). Retire the size and count group rules | Game tests on both loaders; trio and group fingerprints bitwise; owner tries the menu and a school |
-| 2 | Headless `CompanionParty`: mixed-size groups, stations, separation, perch allocator, attention budget, shared perception, party-mate familiarity; metrics; party scripts in the viewer | Solo and identical-group fingerprints bitwise; owner viewer |
+| 2 | Re-scoped (§6, review §6). **2b** `PartyBaselineProbe` as the metric suite, plus multi-unit parties in the viewer. **2c** mixed shoal (D13). **2d** perch homes + leases (§6.1, with D5's intended ANCHORED change). **2e** party-mate familiarity tuning (§7). **2f** measure ground benthic candidates (§6.2), then build the winner | Solo and identical-group fingerprints bitwise; owner viewer |
 | 3 | In game: party wiring, per-slot overlay, self-test scene, changelog note on lost trios | Owner solo playtest |
 | 4 | Folded into sim Phase 4: social drive across and within parties | Owner viewer, then in game |
 
@@ -323,6 +347,13 @@ Answered 2026-10-13 (after 1b's measurements):
 
 The party lead (slot 1) is unchanged: it is the party's buddy (§4). Inside a group, the size
 rule picks the formation leader.
+
+Answered 2026-10-14 (after the Phase 2 evidence review):
+
+| # | Question | Answer |
+|---|---|---|
+| D13 | Different-species free swimmers: a mixed shoal or separate members with separation steering? | **Mixed shoal** (§3): 15× less overlap, built on the accepted trio formation |
+| D14 | Attention budget? | **Not now.** View time is shared fairly already; watch it, change nothing |
 
 ---
 
