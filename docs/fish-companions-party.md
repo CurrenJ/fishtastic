@@ -413,3 +413,33 @@ Full record: [`fish-companions-party-2a-asbuilt.md`](fish-companions-party-2a-as
   worktree `agent-a47b5047676c4a41b` (`build/2a2/party-2a2-fishsim.patch`,
   `docs/fish-companions-party-2a2-asbuilt.md`). Untried idea: keep smallest-first and widen the
   crowd's side spacing when sizes are mixed.
+
+## 15. Phase 1d as built (pencil tabs, pile strip to cursor, refusals)
+
+- **Pencil tabs (D12):** a 12x8 tab, drawn in code, hangs under each party frame and is greyed out
+  for an empty slot. Clicking it opens the name row for that slot and outlines its frame. ✓ or
+  Enter saves (`RenameCompanionPacket(slot, name)`); Esc or the same pencil cancels. If the slot's
+  fish changes while the row is open, the row closes without saving. The hidden "selected slot"
+  is gone.
+- **Pile strip → cursor:** `TakePileFishPacket(fish)` describes the fish only. The server
+  (`CompanionMenu.takeFromPile`) needs an empty cursor and takes the fish from a pile only, never
+  an identical loose fish (`Companions.takeOneFromPiles`, the pile half of `takeOneMatching`,
+  including the one-fish-left rule). A stale description answers `NOT_CARRIED`.
+- **Refusals (owner feedback, 2026-10-13):** the tooltip alone was easy to miss.
+  - Holding a fish that isn't bonded over a party slot tints that slot red before the click.
+  - A refused click, number-key swap, shift-click or pile-strip click flashes the target slot red
+    twice over 0.6 s, along with the fish's own slot or strip cell when it has one. A low note
+    plays.
+  - The status line names what's missing: "Catch N more <species> to bond." (the same sum the
+    encyclopedia shows; the screen requests fresh catch counts on open), or "<species> bonds
+    through its quest." for unlisted species, then "See encyclopedia."
+  - All of this is client-side. The server's gate is unchanged.
+- **Layout:** Piles moved to the title row, so the status line has the full width; the preview
+  moved down under the tabs.
+- **Verified:**
+  - Fabric game tests 365/365, NeoForge 359/359 (5 new `CompanionMenuGameTests`: pile to cursor,
+    pile left with one fish, busy cursor, stale description, rename slot 2 with slot 1 filled);
+  - `:common:test`;
+  - self-test `companionbond` 15/15 on both loaders. It adds editor open/close-on-move, pile to
+    cursor and the refusal flash, with shots `pencil_open`, `pile_strip`, `pile_cursor`,
+    `locked_flash`, `locked_flash_quest`.

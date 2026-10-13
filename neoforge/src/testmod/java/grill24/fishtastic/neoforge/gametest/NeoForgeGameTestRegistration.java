@@ -711,6 +711,16 @@ public class NeoForgeGameTestRegistration {
             helper -> CompanionMenuGameTests.clickAfterAnOutsideBondSeesTheNewCompanion(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "companion_menu_outside_rename_reaches_the_slot", 200,
             helper -> CompanionMenuGameTests.outsideRenameReachesTheSlot(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_menu_pile_fish_goes_to_the_cursor", 200,
+            helper -> CompanionMenuGameTests.pileFishGoesToTheCursor(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_menu_pile_left_with_one_fish_becomes_that_fish", 200,
+            helper -> CompanionMenuGameTests.pileLeftWithOneFishBecomesThatFish(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_menu_pile_take_needs_an_empty_cursor", 200,
+            helper -> CompanionMenuGameTests.pileTakeNeedsAnEmptyCursor(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_menu_pile_take_refuses_a_stale_description", 200,
+            helper -> CompanionMenuGameTests.pileTakeRefusesAStaleDescription(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_menu_rename_second_slot_leaves_the_lead", 200,
+            helper -> CompanionMenuGameTests.renameSecondSlotLeavesTheLead(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "companion_picker_groups_identical_fish", 200,
             CarriedFishGameTests::identicalFishCollapseWithTheirTotalCount);
         register(event, env, "companion_picker_splits_any_component_difference", 200,

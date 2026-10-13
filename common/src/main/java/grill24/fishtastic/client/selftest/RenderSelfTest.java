@@ -4631,8 +4631,12 @@ public final class RenderSelfTest {
                 player.getInventory().setItem(1, fish("bluegill", 31f));
                 ItemStack pile = new ItemStack(FishtasticItems.PILE_OF_FISH.value());
                 FishtasticItemData.setBundleContents(pile, new BundleContents(List.of(
-                        net.minecraft.world.item.ItemStackTemplate.fromNonEmptyStack(fish("bluegill", 40f)))));
+                        net.minecraft.world.item.ItemStackTemplate.fromNonEmptyStack(fish("bluegill", 40f)),
+                        net.minecraft.world.item.ItemStackTemplate.fromNonEmptyStack(fish("bluegill", 45f)))));
                 player.getInventory().setItem(2, pile);
+                // Never unlocked here: the refusal flash (1d) for a catch-gated and a quest-only species.
+                player.getInventory().setItem(4, fish("oscar", 30f));
+                player.getInventory().setItem(5, fish("molten_moorish_idol", 30f));
             }
         }));
         queue(15, mc -> grill24.fishtastic.client.CompanionScreen.open(fish("bluegill", 25f)));
@@ -4661,6 +4665,60 @@ public final class RenderSelfTest {
             check("bond.renamed", grill24.fishtastic.companion.CompanionStorage.get(mc.player, 0).getHoverName().getString().equals("Bubbles"), "");
             screenshot(mc, "companionbond", "renamed");
         });
+        // Party 1d (§5.5): the pencil under slot 2 opens its name row; moving that fish closes it unsaved.
+        queue(1, mc -> {
+            if (mc.screen instanceof grill24.fishtastic.client.CompanionScreen screen) screen.openEditor(1);
+        });
+        queue(5, mc -> {
+            check("bond.editorOpens", mc.screen instanceof grill24.fishtastic.client.CompanionScreen screen && screen.editingSlot() == 1,
+                    "screen=" + mc.screen);
+            screenshot(mc, "companionbond", "pencil_open");
+        });
+        queue(1, mc -> mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, 1, 0,
+                net.minecraft.world.inventory.ContainerInput.QUICK_MOVE, mc.player));
+        queue(15, mc -> check("bond.editorClosesOnMove", mc.screen instanceof grill24.fishtastic.client.CompanionScreen screen
+                && screen.editingSlot() == -1 && grill24.fishtastic.companion.CompanionStorage.get(mc.player, 1).isEmpty(), ""));
+        // The pile strip puts the chosen fish on the cursor; the pile keeps its other fish.
+        queue(1, mc -> {
+            if (mc.screen instanceof grill24.fishtastic.client.CompanionScreen screen) screen.showPiles(true);
+        });
+        queue(5, mc -> {
+            screenshot(mc, "companionbond", "pile_strip");
+            if (mc.screen instanceof grill24.fishtastic.client.CompanionScreen screen) screen.clickPile(0);
+        });
+        queue(15, mc -> {
+            ItemStack carried = mc.player.containerMenu.getCarried();
+            check("bond.pileToCursor", carried.is(FishtasticItems.BLUEGILL.value()) && carried.getCount() == 1, "carried=" + carried);
+            check("bond.pileKeepsRest", mc.player.getInventory().getItem(2).is(FishtasticItems.BLUEGILL.value()),
+                    "slot2=" + mc.player.getInventory().getItem(2));
+            screenshot(mc, "companionbond", "pile_cursor");
+        });
+        // Put it down in an empty inventory slot (menu slot 3 is inventory row 1, column 1).
+        queue(1, mc -> mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, 3, 0,
+                net.minecraft.world.inventory.ContainerInput.PICKUP, mc.player));
+        // A fish that isn't bonded: shift-click flashes its own slot and the party slot it was headed for.
+        queue(10, mc -> {
+            check("bond.lockedPrecondition", !grill24.fishtastic.client.QuestClientCache.isBondUnlocked(Ids.of("fishtastic", "oscar"))
+                    && !grill24.fishtastic.client.QuestClientCache.isBondUnlocked(Ids.of("fishtastic", "molten_moorish_idol")), "");
+            if (mc.screen instanceof grill24.fishtastic.client.CompanionScreen screen) {
+                screen.showPiles(false);
+                screen.clickSlot(34, 0, net.minecraft.world.inventory.ContainerInput.QUICK_MOVE);
+            }
+        });
+        queue(3, mc -> {
+            boolean flashing = mc.screen instanceof grill24.fishtastic.client.CompanionScreen screen
+                    && screen.isFlashing(1) && screen.isFlashing(34);
+            check("bond.lockedFlashes", flashing, "screen=" + mc.screen);
+            screenshot(mc, "companionbond", "locked_flash");
+        });
+        queue(15, mc -> {
+            check("bond.lockedRefused", grill24.fishtastic.companion.CompanionStorage.get(mc.player, 1).isEmpty()
+                    && mc.player.getInventory().getItem(4).getCount() == 1, "");
+            if (mc.screen instanceof grill24.fishtastic.client.CompanionScreen screen) {
+                screen.clickSlot(35, 0, net.minecraft.world.inventory.ContainerInput.QUICK_MOVE);
+            }
+        });
+        queue(3, mc -> screenshot(mc, "companionbond", "locked_flash_quest"));
         queue(1, mc -> mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, 0, 0,
                 net.minecraft.world.inventory.ContainerInput.QUICK_MOVE, mc.player));
         queue(1, mc -> mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, 1, 0,

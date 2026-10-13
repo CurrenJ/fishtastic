@@ -146,6 +146,12 @@ public final class Companions {
                 return one;
             }
         }
+        return takeOneFromPiles(player, wanted);
+    }
+
+    /** {@link #takeOneMatching}'s pile half: only fish inside a Pile of Fish, never a loose one. */
+    public static ItemStack takeOneFromPiles(ServerPlayer player, ItemStack wanted) {
+        Inventory inventory = player.getInventory();
         for (int i = 0; i < inventory.getContainerSize(); i++) {
             ItemStack pile = inventory.getItem(i);
             if (!pile.is(FishtasticItems.PILE_OF_FISH.value())) continue;

@@ -1438,6 +1438,31 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionMenuPileFishGoesToTheCursor(GameTestHelper helper) {
+        CompanionMenuGameTests.pileFishGoesToTheCursor(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionMenuPileLeftWithOneFishBecomesThatFish(GameTestHelper helper) {
+        CompanionMenuGameTests.pileLeftWithOneFishBecomesThatFish(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionMenuPileTakeNeedsAnEmptyCursor(GameTestHelper helper) {
+        CompanionMenuGameTests.pileTakeNeedsAnEmptyCursor(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionMenuPileTakeRefusesAStaleDescription(GameTestHelper helper) {
+        CompanionMenuGameTests.pileTakeRefusesAStaleDescription(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionMenuRenameSecondSlotLeavesTheLead(GameTestHelper helper) {
+        CompanionMenuGameTests.renameSecondSlotLeavesTheLead(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void bondTakesTheFishFromTheInventory(GameTestHelper helper) {
         CompanionGameTests.bondTakesTheFishFromTheInventory(helper, helper::makeMockServerPlayerInLevel);
     }

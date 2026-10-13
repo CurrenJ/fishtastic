@@ -361,4 +361,97 @@ public final class CompanionMenuGameTests {
         helper.assertTrue(ItemStack.matches(CompanionStorage.lead(player), shown), "storage and slot must agree");
         helper.succeed();
     }
+
+    private static ItemStack pileOf(ItemStack... fish) {
+        ItemStack pile = new ItemStack(FishtasticItems.PILE_OF_FISH.value());
+        java.util.List<net.minecraft.world.item.ItemStackTemplate> contents = new java.util.ArrayList<>();
+        for (ItemStack f : fish) contents.add(net.minecraft.world.item.ItemStackTemplate.fromNonEmptyStack(f));
+        grill24.fishtastic.FishtasticItemData.setBundleContents(pile, new net.minecraft.world.item.component.BundleContents(contents));
+        return pile;
+    }
+
+    /**
+     * The pile strip (§5.5) puts the chosen fish on the cursor, taken out of the pile — never the
+     * identical loose fish beside it — and from there it's ordinary vanilla handling.
+     */
+    public static void pileFishGoesToTheCursor(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerPlayer player = setUp(helper, mockPlayer);
+        ItemStack wanted = bluegill(25f);
+        player.getInventory().setItem(0, pileOf(bluegill(20f), wanted.copy(), bluegill(30f)));
+        player.getInventory().setItem(1, wanted.copy());
+        CompanionMenu menu = open(player);
+
+        helper.assertTrue(menu.takeFromPile(player, wanted.copy()) == CompanionMenu.PileTake.TAKEN, "the take must succeed");
+        helper.assertTrue(ItemStack.matches(menu.getCarried(), wanted), "cursor " + menu.getCarried());
+        helper.assertTrue(piled(player.getInventory().getItem(0)) == 2, "two fish left in the pile, got " + piled(player.getInventory().getItem(0)));
+        helper.assertTrue(ItemStack.matches(player.getInventory().getItem(1), wanted), "the loose fish must stay put");
+
+        pickup(menu, player, 1);
+        helper.assertTrue(ItemStack.matches(CompanionStorage.get(player, 1), wanted), "slot 1 " + CompanionStorage.get(player, 1));
+        helper.assertTrue(bluegills(player, menu) == 4, "fish count " + bluegills(player, menu));
+        helper.succeed();
+    }
+
+    /** Taking the second-to-last fish out of a pile leaves the last one loose, as the pile item does. */
+    public static void pileLeftWithOneFishBecomesThatFish(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerPlayer player = setUp(helper, mockPlayer);
+        ItemStack wanted = bluegill(25f), other = bluegill(30f);
+        player.getInventory().setItem(0, pileOf(wanted.copy(), other.copy()));
+        CompanionMenu menu = open(player);
+
+        helper.assertTrue(menu.takeFromPile(player, wanted.copy()) == CompanionMenu.PileTake.TAKEN, "the take must succeed");
+        helper.assertTrue(ItemStack.matches(menu.getCarried(), wanted), "cursor " + menu.getCarried());
+        helper.assertTrue(ItemStack.matches(player.getInventory().getItem(0), other), "the pile must become its last fish, got "
+                + player.getInventory().getItem(0));
+        helper.assertTrue(bluegills(player, menu) == 2, "fish count " + bluegills(player, menu));
+        helper.succeed();
+    }
+
+    /** Only with an empty cursor: the server rechecks, and nothing moves. */
+    public static void pileTakeNeedsAnEmptyCursor(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerPlayer player = setUp(helper, mockPlayer);
+        ItemStack wanted = bluegill(25f), held = bluegill(40f);
+        player.getInventory().setItem(0, pileOf(wanted.copy(), bluegill(30f)));
+        player.getInventory().setItem(1, held.copy());
+        CompanionMenu menu = open(player);
+        pickup(menu, player, hotbar(1));
+
+        helper.assertTrue(menu.takeFromPile(player, wanted.copy()) == CompanionMenu.PileTake.CURSOR_BUSY, "a busy cursor must refuse");
+        helper.assertTrue(ItemStack.matches(menu.getCarried(), held), "the cursor must keep its fish, got " + menu.getCarried());
+        helper.assertTrue(piled(player.getInventory().getItem(0)) == 2, "the pile must be untouched");
+        helper.succeed();
+    }
+
+    /** A description that matches nothing in a pile (the fish left while the screen was open) changes nothing. */
+    public static void pileTakeRefusesAStaleDescription(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerPlayer player = setUp(helper, mockPlayer);
+        ItemStack stale = bluegill(25f);
+        player.getInventory().setItem(0, pileOf(bluegill(20f), bluegill(30f)));
+        player.getInventory().setItem(1, stale.copy());
+        CompanionMenu menu = open(player);
+
+        helper.assertTrue(menu.takeFromPile(player, stale.copy()) == CompanionMenu.PileTake.NOT_CARRIED, "a stale description must refuse");
+        helper.assertTrue(menu.getCarried().isEmpty(), "cursor " + menu.getCarried());
+        helper.assertTrue(piled(player.getInventory().getItem(0)) == 2 && ItemStack.matches(player.getInventory().getItem(1), stale),
+                "nothing may move, even the identical loose fish");
+        helper.succeed();
+    }
+
+    /** Each pencil names its own slot: renaming the second slot leaves the lead's fish alone. */
+    public static void renameSecondSlotLeavesTheLead(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerPlayer player = setUp(helper, mockPlayer);
+        ItemStack lead = bluegill(20f);
+        Companions.equip(player, 0, lead.copy());
+        Companions.equip(player, 1, bluegill(25f));
+        CompanionMenu menu = open(player);
+
+        helper.assertTrue(Companions.rename(player, 1, "Finn"), "the rename must apply");
+        menu.broadcastChanges();
+
+        helper.assertTrue(Component.literal("Finn").equals(CompanionStorage.get(player, 1).get(DataComponents.CUSTOM_NAME)),
+                "slot 1 " + CompanionStorage.get(player, 1));
+        helper.assertTrue(ItemStack.matches(CompanionStorage.get(player, 0), lead), "the lead must be untouched, got " + CompanionStorage.get(player, 0));
+        helper.assertTrue(ItemStack.matches(menu.getSlot(1).getItem(), CompanionStorage.get(player, 1)), "storage and slot must agree");
+        helper.succeed();
+    }
 }

@@ -35,6 +35,7 @@ public class FishtasticPackets {
     public static final Identifier BOND_COMPANION_ID = Fishtastic.id("bond_companion");
     public static final Identifier UNEQUIP_COMPANION_ID = Fishtastic.id("unequip_companion");
     public static final Identifier RENAME_COMPANION_ID = Fishtastic.id("rename_companion");
+    public static final Identifier TAKE_PILE_FISH_ID = Fishtastic.id("take_pile_fish");
     public static final Identifier COMPANION_FEEDBACK_ID = Fishtastic.id("companion_feedback");
     public static final Identifier COMPANION_TUTORIAL_ADVANCE_ID = Fishtastic.id("companion_tutorial_advance");
     public static final Identifier COMPANION_FISHING_EVENT_ID = Fishtastic.id("companion_fishing_event");
@@ -140,6 +141,11 @@ public class FishtasticPackets {
                 RenameCompanionPacket.TYPE,
                 RenameCompanionPacket.STREAM_CODEC,
                 RenameCompanionPacket::handleClientToServer
+        );
+        registrar.registerClientToServer(
+                TakePileFishPacket.TYPE,
+                TakePileFishPacket.STREAM_CODEC,
+                TakePileFishPacket::handleClientToServer
         );
         registrar.registerClientToServer(
                 CompanionTutorialAdvancePacket.TYPE,

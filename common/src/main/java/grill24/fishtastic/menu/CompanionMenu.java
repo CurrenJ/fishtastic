@@ -147,6 +147,22 @@ public final class CompanionMenu extends AbstractContainerMenu {
         slot.setChanged();
     }
 
+    public enum PileTake { TAKEN, CURSOR_BUSY, NOT_A_FISH, NOT_CARRIED }
+
+    /**
+     * The pile strip (§5.5): takes one fish described by {@code wanted} out of a Pile of Fish in the
+     * inventory and puts it on this menu's cursor. Like bonding, the client only describes the fish;
+     * the server finds an identical one itself. Only with an empty cursor, rechecked here.
+     */
+    public PileTake takeFromPile(ServerPlayer player, ItemStack wanted) {
+        if (!getCarried().isEmpty()) return PileTake.CURSOR_BUSY;
+        if (wanted.isEmpty() || !wanted.is(FishtasticItemTags.FISH)) return PileTake.NOT_A_FISH;
+        ItemStack taken = Companions.takeOneFromPiles(player, wanted);
+        if (taken.isEmpty()) return PileTake.NOT_CARRIED;
+        setCarried(taken);
+        return PileTake.TAKEN;
+    }
+
     /** Double-click collecting a stack must not quietly pull a companion out with it. */
     @Override public boolean canTakeItemForPickAll(ItemStack carried, Slot target) {
         return !isPartySlot(target.index);
