@@ -108,6 +108,7 @@ public final class PartyLayer {
     private final List<Unit> units;
     /** The party's perches (§6.1), or null: one unit, under two perchers, or leases off. */
     private final PerchLeases leases;
+    private final HandClock handClock;
 
     /**
      * @param groups      the party's units, from {@link PartyGrouping#group}
@@ -123,6 +124,19 @@ public final class PartyLayer {
         }
         units = List.copyOf(out);
         leases = units.size() > 1 ? perches(t, world.owner()) : null;
+        handClock = units.size() > 1 && t.handClock && t.partyHandClock ? sharedHandClock() : null;
+    }
+
+    /** The party's one hand clock (HandClock), or null with under two perchers that can visit a hand. */
+    private HandClock sharedHandClock() {
+        List<PerchBody> bodies = new ArrayList<>();
+        for (Unit u : units) {
+            for (CompanionAgent a : u.agents()) {
+                PerchBody p = a.perchBody();
+                if (p != null && a.locomotion() != grill24.fishsim.core.Locomotion.ANCHORED) bodies.add(p);
+            }
+        }
+        return bodies.size() < 2 ? null : HandClock.shared(bodies);
     }
 
     /** Where anchored fish look for a home (D5), and the order everyone else takes what's left in. */
@@ -204,6 +218,7 @@ public final class PartyLayer {
             return;
         }
         if (leases != null) leases.snapshot();
+        if (handClock != null) handClock.tick();
         PointOfInterest[] mates = new PointOfInterest[n];
         for (int i = 0; i < n; i++) mates[i] = units.get(i).asPoint(pointId(units.get(i).group()));
         for (int i = 0; i < n; i++) {

@@ -302,7 +302,7 @@ own companion in first person" applies to the whole party.
 | Phase | Builds | Gate |
 |---|---|---|
 | 1 | Storage + migration, (owner, slot) identity, packets, menu with 3 slots and the party preview, hold-B rules, commands, game tests. In game: same-species slots form a group (§3), and different species run **independently** (no party layer yet; overlap expected). Retire the size and count group rules | Game tests on both loaders; trio and group fingerprints bitwise; owner tries the menu and a school |
-| 2 | Re-scoped (§6, review §6). **2b** (done, §16) `PartyBaselineProbe` as the metric suite, plus multi-unit parties in the viewer. **2c** (done, §17) mixed shoal (D13). **2d** (built, §18) perch homes + leases (§6.1, with D5's intended ANCHORED change). **2e** party-mate familiarity tuning (§7). **2f** measure ground benthic candidates (§6.2), then build the winner | Solo and identical-group fingerprints bitwise; owner viewer |
+| 2 | Re-scoped (§6, review §6). **2b** (done, §16) `PartyBaselineProbe` as the metric suite, plus multi-unit parties in the viewer. **2c** (done, §17) mixed shoal (D13). **2d** (done, §18) perch homes + leases (§6.1, with D5's intended ANCHORED change). **Hand visits** (done, §19) the hand clock, round-robin turns, the shoulder peek and more ground beats (D15–D19). **2e** party-mate familiarity tuning (§7). **2f** measure ground benthic candidates (§6.2), then build the winner | Solo and identical-group fingerprints bitwise; owner viewer |
 | 3 | In game: party wiring, per-slot overlay, self-test scene, changelog note on lost trios | Owner solo playtest |
 | 4 | Folded into sim Phase 4: social drive across and within parties | Owner viewer, then in game |
 
@@ -354,6 +354,16 @@ Answered 2026-10-14 (after the Phase 2 evidence review):
 |---|---|---|
 | D13 | Different-species free swimmers: a mixed shoal or separate members with separation steering? | **Mixed shoal** (§3): 15× less overlap, built on the accepted trio formation |
 | D14 | Attention budget? | **Not now.** View time is shared fairly already; watch it, change nothing |
+
+Answered 2026-10-14 (hand visits, after measuring them, §19):
+
+| # | Question | Answer |
+|---|---|---|
+| D15 | How often may a percher come to the owner's hand? | **About once a minute, solo or party.** It was every ~20 s each, so 8 a minute for three ground fish |
+| D16 | Who goes when a party's hand comes free? | **Round-robin:** the fish longest since its own last visit, seen lately or not |
+| D17 | A ground walker left behind in the corridor's about-face (it used to ride the hand back)? | **Accept the lag**, and widen the test |
+| D18 | How do fish get seen without the hand? | **The shoulder peek and more ground beats.** "Settle in view when the owner stops" was tried at three distances and lost every time, so it's off |
+| D19 | Slow ground walkers (crab, slug) are seen less while the owner walks | **Accept the cost:** a 3% seen floor for them under the clock |
 
 ---
 
@@ -623,3 +633,80 @@ Owner decisions before building (2026-10-14):
 - **Gate:** owner viewer, e.g. `-PsimArgs="--party anchored --owner walk"` and `--party octopus
   --owner walk_turns`, toggling `partyHomes` / `partyLeases` / `anchoredHead`. Then 2e
   (familiarity).
+
+## 19. Hand visits as built (the hand clock, D15–D19)
+
+Owner feedback 2026-10-14, before 2e: the hand visit came too often, and it would get annoying.
+
+- **Measured first** (`HandVisitProbe`: 30 scripts × 4 seeds, about 4 simulated hours per row):
+  - a solo percher came to the hand about 2.7 times a minute (median gap 19 s, about 3.5 s each);
+  - 93–97% of visits came from the unseen timer (7–20 s unseen; 0.6× that on the ground), not
+    from the owner looking down or holding something;
+  - each fish had its own timer, so crab + octopus + slug made 7.9 visits a minute, with a fish
+    on the hand 40% of the time and 10% of gaps under a second;
+  - the hand was 70–89% of a percher's on-screen time.
+- **Hand clock** (`HandClock`, switches `handClock`, `partyHandClock`):
+  - after any landing on a hand, the unseen timer can't call a fish there for 45–75 s
+    (`handGapMinSeconds`/`MaxSeconds`); looking down or a held item still brings it at once;
+  - a party shares one clock; nobody is called while a fish is on a hand or on its way there
+    (else a turn could pass mid-crouch and two would go);
+  - turns go round (D16): when the clock frees, the percher longest since its own last visit
+    comes, seen lately or not, the lower party slot on a tie; it is picked before anyone steps, so
+    step order can't change results.
+- **Shoulder peek** (switch `shoulderPeek`, D18): a fish riding a shoulder or the head, due to show
+  itself while the clock blocks the hand, leans into the bottom corner of the view for 1.5–2.5 s
+  (eased in and out, then 7–20 s before the next). The corner is 0.5 to the side and 0.34 down at
+  0.6 ahead, about 40° off centre (the hand is about 27°). Ground fish peek too: idle, they rest on
+  the shoulder about 65% of the time. Group members don't (it broke formation tests). In game, a
+  peek is drawn like the hand in first person, attached to the view at frame rate
+  (`CompanionAgent.viewAttached()`/`viewPoint()`, used by `ClientCompanion`).
+- **More ground beats** (switch `moreGroundBeats`, `groundBeatSooner` 2.0, D18): overtake and
+  roadside beats come twice as soon after going unseen, and the wait after one is halved. Not for
+  group members (it broke a mixed-formation test). It helps only fish that can get ahead of a
+  walking owner within 5 s: the crab and slug can't, so their beats barely change.
+- **Settle in view** (switch `idleInView`, **off**, D18): a ground fish due to show itself takes an
+  in-view idle spot when the owner stops. Measured at three distances (before the beat boost), it
+  never beat leaving it off:
+
+  | Spot | Crab seen % | `long_idle_then_walk` seen % | Leash |
+  |---|---|---|---|
+  | off | **14.2** | **27.1** | none |
+  | 3–4 blocks ahead | 14.6 | about the same | `doorway`, `forest` |
+  | 1–2 blocks ahead | 13.3 | 21.5 | `forest` |
+  | 2.3–2.8 blocks ahead | 13.9 | 23.7 | `forest` |
+  | 1–2 blocks, 30–45° to the side (left in the code) | 13.4 | 21.3 | — |
+
+  A level 70° view meets the floor about 2.3 blocks ahead, whatever the side angle, so a closer
+  spot is off screen; a farther one is left behind when the owner walks off the other way.
+- **The corridor** (D17): the old run's crab hopped onto the hand while the owner waited at the
+  corridor's end, then rode it back. With the clock it stays down and lags (13 s far, up to 3
+  fades). Tried and reverted, as each broke other ground tests: walking up alongside when the hand
+  is blocked, a hitch onto the hand or shoulder as the owner walks back past, and a shoulder climb
+  when the owner stops.
+- **Measured** (equal grounds, all switches on vs `handClock` off):
+
+  | | Visits/min | Seen % | Peeks/min |
+  |---|---|---|---|
+  | crab solo | 2.7 → 1.1 | 22.2 → 14.3 | 0.4 |
+  | starfish solo | 2.7 → 1.1 | 24.5 → 18.0 | 0.4 |
+  | seahorse solo | 2.7 → 1.1 | 16.1 → 10.9 | 1.7 |
+  | crab + octopus + slug | 7.9 → 1.3 | 22 / 24 / 17 → 11.0 / 12.6 / 9.1 | 2.0 |
+  | school pair + percher | 2.8 → 1.1 | percher 18.5 → 11.8 | 1.8 |
+
+  - Ordinary scripts run at 1.0 a minute everywhere; a party goes above that only when the owner
+    looks down or holds bait (two fish can come, one per hand).
+  - Starfish while walking (`walk_flat`): 17.7 → 28.8% with more beats.
+- **Tests changed** (owner accepted the cost, D17 and D19):
+  - the percher unseen bound is `handGapMaxSeconds` + 15 = 90 s (was 30);
+  - the seen floor is 3% for ground fish and perchers under the clock (measured low 4%), 5% for
+    the rest;
+  - a ground walker in `corridor` may need the leash 3 times and be 15 s far;
+  - one fade is allowed on `stairs_up_down` under the clock (the spider);
+  - `BenthicVisibilityTest` asserts ground-vs-perched with the clock off only and prints clock on;
+  - new contract `PartyLayerTest.partySharesOneHandClock`: no unseen call within the gap of any
+    landing, and every member reaches the hand on `walk_turns`.
+- **Verified:**
+  - `handClock` off: all 930 `FingerprintProbe -PfpAll=1` + `GroupFingerprintProbe` lines bitwise
+    against 2d; on, only the BENTHIC, PERCHER and ground-group rows change;
+  - `:fishsim:test` 484 tests, 0 failed; Fabric game tests 366/366; common and NeoForge compile.
+- **Gate:** the owner's in-game look at the peek (first person, a seahorse or a resting crab).

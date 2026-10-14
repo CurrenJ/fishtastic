@@ -535,6 +535,23 @@ public final class CompanionAgent {
     /** Whether a percher is on its owner: riding, or pushing off or touching down in a hop. */
     public boolean onOwner() { return perch != null && perch.onOwner(); }
     public int hops() { return perch == null ? 0 : perch.hops; }
+    /** Diagnostic: landings on a hand by {@link PerchBody.HandWhy}, and ticks sat on a hand. */
+    public int[] handVisits() { return perch == null ? new int[PerchBody.HandWhy.values().length] : perch.handVisits.clone(); }
+    public int handTicks() { return perch == null ? 0 : perch.handPerchedTicks; }
+    /** Diagnostic: peeks into view from the shoulder (HandClock's idea 4). */
+    public int peeks() { return perch == null ? 0 : perch.peeks; }
+    /** 0..1: how far a pure percher leans from its shoulder into view. */
+    public float peek() { return perch == null ? 0f : perch.peek(); }
+
+    /** Riding where its owner's own view shows it: the hand, or leant into view in a peek. */
+    public boolean viewAttached() {
+        return riding() && (perch.slot.hand() || perch.peek() > 0f);
+    }
+
+    /** Where it rides as its owner's view shows it, for {@code o} (a frame's camera): see {@link #viewAttached}. */
+    public Vec viewPoint(OwnerState o) {
+        return PerchBody.viewPoint(o, perch.slot, perch.peek());
+    }
     public int goalTicks() { return mind.goalTicks; }
     public int goalSwitches() { return mind.goalSwitches; }
     public int showOffs() { return mind.showOffs; }

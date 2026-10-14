@@ -325,6 +325,21 @@ public final class CompanionTunables {
     /** A transient move (wander, hand, cover, climb) takes a free perch or doesn't happen. */
     public boolean partyLeases = true;
 
+    // Hand visits (owner feedback 2026-10-14: about one a minute, solo or party). HandClock.
+    /** After any landing on a hand, the unseen timer waits this long before calling a fish there again. */
+    public boolean handClock = true;
+    public float handGapMinSeconds = 45f;
+    public float handGapMaxSeconds = 75f;
+    /** A party's perchers share one hand clock; turns go round, longest since its own last visit first. */
+    public boolean partyHandClock = true;
+    /** With the clock on: a ground fish due to show itself, its owner stopped, settles 1-2 blocks out to the side (idea 2). Off: it measured a loss (§19). */
+    public boolean idleInView = false;
+    /** With the clock on: a percher riding a shoulder or the head, due to show itself, peeks into the view's corner (idea 4). */
+    public boolean shoulderPeek = true;
+    /** With the clock on: ground beats (overtake, roadside) come {@link #groundBeatSooner} times as soon, and as often. */
+    public boolean moreGroundBeats = true;
+    public double groundBeatSooner = 2.0;
+
     public static CompanionTunables defaults() {
         return new CompanionTunables();
     }

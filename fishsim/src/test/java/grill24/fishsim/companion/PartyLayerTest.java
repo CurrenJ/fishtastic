@@ -163,6 +163,50 @@ class PartyLayerTest {
         }
     }
 
+    /**
+     * HandClock (owner feedback 2026-10-14): a party's perchers share one clock, so the unseen
+     * timer never calls a fish to the hand within handGapMinSeconds of any landing there, and the
+     * turn goes round: every member that can visit the hand gets there.
+     */
+    @Test
+    void partySharesOneHandClock() {
+        CompanionTunables t = CompanionTunables.defaults();
+        int minGap = Math.round(t.handGapMinSeconds * 20);
+        int unseen = PerchBody.HandWhy.UNSEEN.ordinal();
+        for (String name : List.of("crab + octopus + slug", "starfish pair + crab")) {
+            for (String script : List.of("walk_turns", "walk_flat", "idle_fixed", "forest")) {
+                for (long seed = 1; seed <= 2; seed++) {
+                    PartyRun.Party p = party(name);
+                    OwnerScript os = OwnerScript.named(script, seed);
+                    PartyLayer layer = p.build(t, Temperament.BASELINE, seed, os.nextWorld());
+                    List<CompanionAgent> agents = new ArrayList<>();
+                    for (PartyLayer.Unit u : layer.units()) agents.add(u.leader());
+                    int[] total = new int[agents.size()], byUnseen = new int[agents.size()];
+                    int lastLanding = Integer.MIN_VALUE / 2;
+                    for (int k = 0; k < 4800; k++) {
+                        layer.step(os.nextWorld());
+                        for (int i = 0; i < agents.size(); i++) {
+                            int[] v = agents.get(i).handVisits();
+                            int all = java.util.Arrays.stream(v).sum();
+                            if (v[unseen] > byUnseen[i]) {
+                                assertTrue(k - lastLanding >= minGap, name + " " + script + "#" + seed
+                                        + ": unseen hand call " + (k - lastLanding) + " ticks after the last landing");
+                            }
+                            if (all > total[i]) lastLanding = k;
+                            total[i] = all;
+                            byUnseen[i] = v[unseen];
+                        }
+                    }
+                    if (script.equals("walk_turns")) {
+                        for (int i = 0; i < agents.size(); i++) {
+                            assertTrue(total[i] > 0, name + " " + script + "#" + seed + ": unit " + i + " never on the hand");
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private static PartyLayer layer(PartyRun.Party p, CompanionTunables t, List<PartyGrouping.Group> groups,
                                     CompanionWorld w) {
         return new PartyLayer(t, groups, m -> Temperament.BASELINE, m -> p.members().get(m.slot()).drift(), w);

@@ -242,7 +242,11 @@ class BenthicGroundInvariantTest {
         all((k, r) -> {
             String s = script(k);
             long fades = r.g().fades();
-            if (NO_FADE.contains(s) || (s.equals("sprint_away") && FAST_ENOUGH_FOR_SPRINT.contains(config(k)))) {
+            // With hand visits rare (HandClock) a walker on the stairs rides up less; the owner
+            // accepted one fade there (2026-10-14).
+            if (s.equals("stairs_up_down") && CompanionTunables.defaults().handClock) {
+                assertTrue(fades <= 1, k + " faded more than once where it could follow " + why(k, r));
+            } else if (NO_FADE.contains(s) || (s.equals("sprint_away") && FAST_ENOUGH_FOR_SPRINT.contains(config(k)))) {
                 assertEquals(0, fades, k + " faded where it could follow " + why(k, r));
             } else if (MUST_FADE.contains(s)) {
                 assertTrue(fades >= 1, k + " should have faded onto its perch " + why(k, r));
@@ -285,8 +289,9 @@ class BenthicGroundInvariantTest {
     @Test
     void ownerSeesItRegularly() {
         all((k, r) -> {
-            assertTrue(r.m().longestUnseenSeconds() <= 30, k + " unseen " + why(k, r));
-            assertTrue(r.m().seenFraction() >= 0.05, k + " barely seen " + why(k, r));
+            assertTrue(r.m().longestUnseenSeconds() <= CompanionInvariantTest.PERCHER_UNSEEN_SECONDS,
+                    k + " unseen " + why(k, r));
+            assertTrue(r.m().seenFraction() >= CompanionInvariantTest.PERCHER_SEEN_FLOOR, k + " barely seen " + why(k, r));
         });
     }
 

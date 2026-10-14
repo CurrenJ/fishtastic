@@ -137,6 +137,19 @@ final class GroundMind {
     private Vec spotOwner;
     private int spotDwell;
     private boolean nextInView = true;
+    /** Whether its idle spot is one out ahead in view. */
+    private boolean spotInView;
+    /**
+     * Set by its percher: due to show itself, with hand visits rare (HandClock). Idle, it settles
+     * out ahead in view rather than somewhere beside or behind (owner, 2026-10-14, idea 2).
+     */
+    boolean showDue;
+    /** How far out ahead a spot picked to show itself is, blocks. */
+    static final double SHOW_SPOT_NEAR = 1.0, SHOW_SPOT_FAR = 2.0;
+    /** Degrees off the owner's facing for such a spot: out to the side. */
+    static final double SHOW_SPOT_ANGLE_MIN = 30, SHOW_SPOT_ANGLE_MAX = 45;
+    /** Scales the wait after a beat (HandClock's "more ground beats": under 1 is more often). */
+    double beatCooldownScale = 1;
     private float spotFace = Float.NaN;
 
     GroundMind(Breadcrumbs trail, GroundBody g, long seed) {
@@ -474,6 +487,7 @@ final class GroundMind {
                     spot = g.standing();
                     spotOwner = ownerFloor;
                     spotDwell = (int) Math.round((1.5 + beatUnit() * 2.0) * TPS);
+                    spotInView = true;
                     nextInView = false;
                     Vec toOwner = ownerFloor.sub(spot).horizontal();
                     spotFace = toOwner.lengthSqr() > 1e-6 ? (float) toOwner.yawDeg() : Float.NaN;
@@ -496,7 +510,7 @@ final class GroundMind {
 
     void endBeat() {
         if (beat == null) return;
-        beatCooldown = raceAhead ? 100 : 240;
+        beatCooldown = (int) Math.round((raceAhead ? 100 : 240) * beatCooldownScale);
         sinceBeat = 0;
         beat = null;
         beatArrived = false;
@@ -688,6 +702,11 @@ final class GroundMind {
     // ── Pottering ──────────────────────────────────────────────────────────────────────────────
 
     private void potter(OwnerState o, LocalVoxels v, Drives drives) {
+        if (showDue && !spotInView && (spot != null || spotDwell > 0)) {
+            spot = null;
+            spotDwell = 0;
+            nextInView = true;
+        }
         if (spot != null && spotOwner != null && horizontal(ownerFloor, spotOwner) > 1.5) spot = null;
         if (spot != null && horizontal(g.pos, spot) < 0.15) {
             if (spotDwell-- > 0) return;
@@ -705,8 +724,12 @@ final class GroundMind {
             if (nextInView) {
                 // Far enough out to be in a level view (the floor at the owner's feet only comes
                 // into a 70-degree view about 2.7 blocks out), and off the very middle of it.
-                double ang = Math.toRadians((unit() < 0.5 ? -1 : 1) * (6 + unit() * 18));
-                double dist = 2.9 + unit() * 1.0;
+                // Due to show itself (HandClock): closer in and out to the side, where a held item
+                // sits, so it isn't left out ahead when the owner sets off the other way (owner,
+                // 2026-10-14: 1-2 blocks, to the side).
+                double ang = Math.toRadians((unit() < 0.5 ? -1 : 1)
+                        * (showDue ? SHOW_SPOT_ANGLE_MIN + unit() * (SHOW_SPOT_ANGLE_MAX - SHOW_SPOT_ANGLE_MIN) : 6 + unit() * 18));
+                double dist = showDue ? SHOW_SPOT_NEAR + unit() * (SHOW_SPOT_FAR - SHOW_SPOT_NEAR) : 2.9 + unit() * 1.0;
                 Vec dir = f.scale(Math.cos(ang)).add(r.scale(Math.sin(ang)));
                 cand = ownerFloor.add(dir.scale(dist));
             } else {
@@ -722,6 +745,7 @@ final class GroundMind {
             if (!walkable(v, g.pos, cand)) continue;
             spot = cand;
             spotOwner = ownerFloor;
+            spotInView = nextInView;
             nextInView = !nextInView;
             spotDwell = (int) Math.round((1.5 + unit() * 3.5) * restK * TPS);
             // Settle facing the owner, more or less.

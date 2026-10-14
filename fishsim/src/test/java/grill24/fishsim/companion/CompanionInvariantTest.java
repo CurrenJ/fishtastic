@@ -203,6 +203,23 @@ class CompanionInvariantTest {
 
     private static final double ENVELOPE_MARGIN = 1.5;
 
+    /**
+     * A percher shows itself on the hand at most once per HandClock gap (owner, 2026-10-14: about
+     * once a minute), so its longest unseen spell is that gap's top plus time to come up and hop.
+     */
+    /** The corridor allowance for a ground walker (see keepsUpWithoutTheLeash): measured worst 3 fades, 13 s far. */
+    static final long CORRIDOR_WALKER_LEASH = 3;
+    static final double CORRIDOR_WALKER_FAR_SECONDS = 15;
+
+    static final double PERCHER_UNSEEN_SECONDS = CompanionTunables.defaults().handGapMaxSeconds + 15;
+
+    /**
+     * A percher's seen floor with hand visits rare: the owner accepted the cost (2026-10-14).
+     * Slow ground walkers (crab, slug, plaice) can't overtake a walking owner to show themselves,
+     * and measured as low as 4% on walking scripts; 5% for everything else.
+     */
+    static final double PERCHER_SEEN_FLOOR = CompanionTunables.defaults().handClock ? 0.03 : 0.05;
+
     private static String script(String key) {
         return key.substring(key.indexOf('/') + 1, key.indexOf('#'));
     }
@@ -297,8 +314,10 @@ class CompanionInvariantTest {
             // Spec §3: an anchored companion pokes out of its owner's back and never leaves it in
             // air, so first person never shows it (plan §9.4, for the owner's look).
             if (locomotion(key) == Locomotion.ANCHORED) return;
-            assertTrue(m.longestUnseenSeconds() <= bound(key, 30, Envelope::unseen), key + " unseen too long " + m.summary());
-            double seenFloor = tempered(key) ? Math.min(0.05, envelope(key).seen() / ENVELOPE_MARGIN) : 0.05;
+            double unseen = locomotion(key) == Locomotion.BENTHIC ? PERCHER_UNSEEN_SECONDS : 30;
+            assertTrue(m.longestUnseenSeconds() <= bound(key, unseen, Envelope::unseen), key + " unseen too long " + m.summary());
+            double floor = locomotion(key) == Locomotion.BENTHIC ? PERCHER_SEEN_FLOOR : 0.05;
+            double seenFloor = tempered(key) ? Math.min(floor, envelope(key).seen() / ENVELOPE_MARGIN) : floor;
             assertTrue(m.seenFraction() >= seenFloor, key + " barely seen " + m.summary());
         });
     }
@@ -315,9 +334,16 @@ class CompanionInvariantTest {
             if (LEASH_ALLOWED.contains(script(key)) || tightGlide(key)) return;
             // A count, so a temperament may need one more than the baseline's worst, never more.
             long leashBound = TUNNEL_SCRIPTS.contains(script(key)) ? 1 : 0;
+            double farBound = 8;
+            // A ground walker in the corridor's about-face used to ride the hand back; with hand
+            // visits rare (HandClock) it walks, and the owner accepted the lag (2026-10-14).
+            if (locomotion(key) == Locomotion.BENTHIC && script(key).equals("corridor")) {
+                leashBound = CORRIDOR_WALKER_LEASH;
+                farBound = CORRIDOR_WALKER_FAR_SECONDS;
+            }
             if (tempered(key)) leashBound = Math.max(leashBound, envelope(key).leash() + 1);
             assertTrue(m.leashEvents() <= leashBound, key + " needed the leash " + m.summary());
-            assertTrue(m.longestFarSeconds() <= bound(key, 8, Envelope::far), key + " left behind " + m.summary());
+            assertTrue(m.longestFarSeconds() <= bound(key, farBound, Envelope::far), key + " left behind " + m.summary());
         });
     }
 

@@ -298,7 +298,7 @@ public final class ClientCompanion {
                 // Riding the hand in first person: attached to the view at frame rate (the parrot
                 // pattern), so a mouse flick doesn't leave it a tick behind the camera.
                 OwnerState o = frameOwner(partialTick);
-                pos = PerchBody.slotPoint(o, a.perchSlot());
+                pos = a.viewPoint(o);
                 yaw = face = o.yawDeg();
                 pitch = 0f;
             } else if (walksOnGround(a)) {
@@ -339,7 +339,7 @@ public final class ClientCompanion {
             float appear;
             if (i < agentCount()) {
                 CompanionAgent a = member(i);
-                pos = handAttached(a) ? PerchBody.slotPoint(frameOwner(partialTick), a.perchSlot()) : a.renderPos();
+                pos = handAttached(a) ? a.viewPoint(frameOwner(partialTick)) : a.renderPos();
                 radius = a.radius();
                 appear = a.renderAppear();
             } else {
@@ -396,9 +396,9 @@ public final class ClientCompanion {
         return benthic != null ? benthic.member(i) : agent;
     }
 
-    /** A percher riding its owner's hand, seen by that owner in first person. */
+    /** A percher riding its owner's hand (or peeking from its shoulder), seen by that owner in first person. */
     private boolean handAttached(CompanionAgent a) {
-        return a.riding() && a.perchSlot().hand() && isLocal()
+        return a.viewAttached() && isLocal()
                 && Minecraft.getInstance().options.getCameraType().isFirstPerson();
     }
 
@@ -413,7 +413,7 @@ public final class ClientCompanion {
     boolean drawsOnPerch(int i) {
         if (agent == null || owner == null || owner.isInvisible()) return false;
         CompanionAgent a = member(i);
-        return a.riding() && !a.perchSlot().hand();
+        return a.riding() && !a.perchSlot().hand() && !handAttached(a);
     }
 
     /** True while the player render layer draws any member on its owner's body. */

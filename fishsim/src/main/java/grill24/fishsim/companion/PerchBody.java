@@ -39,6 +39,11 @@ public final class PerchBody extends Motor {
         public boolean hand() {
             return this == RIGHT_HAND || this == LEFT_HAND;
         }
+
+        /** A perch it can peek into view from: the shoulders and the head (not the back). */
+        public boolean peeks() {
+            return this == RIGHT_SHOULDER || this == LEFT_SHOULDER || this == HEAD;
+        }
     }
 
     private static final int TPS = 20;
@@ -123,6 +128,23 @@ public final class PerchBody extends Motor {
     /** Transient moves the party refused, counted once per blocked spell. */
     int leaseRefusals;
     private boolean refusedNow, refusedWas;
+    /** When the unseen timer may next call it to the hand: its own, or the party's (HandClock). */
+    HandClock handClock = new HandClock();
+    /** Ticks since it last landed on a hand: a party's hand turns go round by this (HandClock). */
+    int sinceHand;
+    /**
+     * A pure percher's peek (owner, 2026-10-14, idea 4): with the hand not due, it leans from its
+     * shoulder into the bottom corner of the view for a moment instead. Ticks left, its length, and
+     * the wait before the next. Diagnostic count in {@link #peeks}.
+     */
+    private int peekTicks, peekLen, peekCooldown;
+    int peeks;
+    private static final int PEEK_EASE = 8;
+    /** Diagnostic only (HandVisitProbe): landings on a hand by why it went, and ticks sat there. */
+    public enum HandWhy { LOOK_DOWN, HELD_ITEM, UNSEEN, OTHER }
+    final int[] handVisits = new int[HandWhy.values().length];
+    int handPerchedTicks;
+    private HandWhy handWhy = HandWhy.OTHER;
     private final Vec[] travel = new Vec[80];
     private int travelIndex, travelCount;
     private double netTravel;
@@ -329,6 +351,12 @@ public final class PerchBody extends Motor {
         wetTicks = o.inWater() ? wetTicks + 1 : 0;
         dryTicks = o.inWater() ? 0 : dryTicks + 1;
         if (slot.hand() && mode == Mode.PERCHED) handTicks++;
+        if (!handClock.shared() && handClock.wait > 0) handClock.wait--;
+        sinceHand++;
+        if (peekTicks > 0 && (mode != Mode.PERCHED || !slot.peeks())) peekTicks = 0;
+        if (peekTicks > 0) peekTicks--;
+        else if (peekCooldown > 0) peekCooldown--;
+        if (slot.hand() && attached()) handPerchedTicks++;
         if (wanderTicks > 0) wanderTicks--;
     }
 
@@ -339,6 +367,7 @@ public final class PerchBody extends Motor {
             return null;
         }
         if (locomotion == Locomotion.ANCHORED || modeTicks < 10) return null;
+        if (peekTicks > 0) return null;
         // Something alarming: over to cover, and stay there until it's passed.
         Slot cover = coverSlot(o);
         if (cover != null) return slot == cover ? null : cover;
@@ -375,8 +404,23 @@ public final class PerchBody extends Motor {
         }
         // In a group only the leader shows itself on the hand, as from the ground: a follower's
         // hand is another member's (the right shoulder's and the head's are both the right hand).
-        if (!groupFollower && (lookingDown || heldInterest)) return hand();
-        if (!groupFollower && unseenTicks >= attentionThreshold) return hand();
+        if (!groupFollower && (lookingDown || heldInterest)) {
+            handWhy = lookingDown ? HandWhy.LOOK_DOWN : HandWhy.HELD_ITEM;
+            return hand();
+        }
+        // Unseen a while with the hand not due: it peeks into view from where it rides (a ground
+        // fish too: idle, it rests up here most of the time).
+        if (t.handClock && t.shoulderPeek && !groupMember && slot.peeks() && peekCooldown == 0
+                && unseenTicks >= attentionThreshold && !handDue() && !handTurn()) {
+            peekLen = peekTicks = drawTicks(1.5, 2.5);
+            peekCooldown = drawTicks(t.attentionMinSeconds, t.attentionMaxSeconds);
+            peeks++;
+            return null;
+        }
+        if (!groupFollower && (unseenTicks >= attentionThreshold && handDue() || handTurn())) {
+            handWhy = HandWhy.UNSEEN;
+            return hand();
+        }
         // Resting, it stays on its shoulder rather than changing sides (it still shows itself now and then).
         if (wanderTicks == 0 && !drives.resting && !groupMember) {
             Temperament tm = drives.temperament();
@@ -444,6 +488,21 @@ public final class PerchBody extends Motor {
     }
 
     private int handStay = -1;
+
+    /** Whether the unseen timer may call it to the hand now (always, with the clock off). */
+    private boolean handDue() {
+        return !t.handClock || handClock.ready(this);
+    }
+
+    /** In a party, whether its turn on the hand has come round (HandClock): it goes, seen or not. */
+    private boolean handTurn() {
+        return t.handClock && handClock.shared() && handClock.ready(this);
+    }
+
+    /** Whether a party's hand turn can go to it: a percher that can lead, on the owner or the ground. */
+    boolean mayTakeHandTurn() {
+        return locomotion != Locomotion.ANCHORED && !groupFollower && (attached() || onGround());
+    }
 
     /** The hand on the side it perches: a short step down, not a leap across the owner's face. */
     private Slot hand() {
@@ -599,7 +658,13 @@ public final class PerchBody extends Motor {
                 }
                 handTicks = 0;
                 handStay = -1;
-                if (slot.hand()) unseenTicks = 0;
+                if (slot.hand()) {
+                    unseenTicks = 0;
+                    sinceHand = 0;
+                    if (t.handClock) handClock.wait = drawTicks(t.handGapMinSeconds, t.handGapMaxSeconds);
+                    handVisits[handWhy.ordinal()]++;
+                    handWhy = HandWhy.OTHER;
+                }
                 if (!slot.hand() && unseenTicks >= attentionThreshold) {
                     attentionThreshold = drawTicks(t.attentionMinSeconds, t.attentionMaxSeconds);
                 }
@@ -679,11 +744,15 @@ public final class PerchBody extends Motor {
             boolean heldInterest = it != null && it.isHeld() && drives.curiosity >= HAND_CURIOSITY;
             boolean climbWant = (drives.resting || devClimb) && allowGroupClimb && o.horizontalSpeed() < 0.3
                     && !o.riding() && !o.gliding();
+            boolean showDue = !groupFollower && drives.wariness < COVER_WARINESS && unseenTicks >= groundAttention();
             Slot up = cover != null ? cover
                     : !groupFollower && drives.wariness < COVER_WARINESS
-                            && (lookingDown || heldInterest || unseenTicks >= groundAttention()) ? hand()
+                            && (lookingDown || heldInterest || showDue && handDue() || handTurn()) ? hand()
                     : climbWant ? home : null;
             if (up != null && !leased(up)) up = null;
+            if (up != null && up.hand()) {
+                handWhy = lookingDown ? HandWhy.LOOK_DOWN : heldInterest ? HandWhy.HELD_ITEM : HandWhy.UNSEEN;
+            }
             // Only from somewhere a hop up is clear (not from behind them, through their body).
             arcMargin = GROUND_LEAP_MARGIN;
             boolean clear = up != null && slotPoint(o, up).distanceTo(pos) <= CLOSE_RANGE
@@ -703,8 +772,12 @@ public final class PerchBody extends Motor {
         }
         // The in-view beats go first: well before it would come up to the hand, and sooner for a racer.
         gmind.unseen = unseenTicks;
+        gmind.showDue = t.handClock && t.idleInView && !groupMember && unseenTicks >= groundAttention();
         gmind.raceAhead = drives.temperament().raceAhead();
-        gmind.beatAfter = groundAttention() / (gmind.raceAhead ? 4 : 2);
+        // More ground beats with hand visits rare (HandClock): sooner after going unseen, and again sooner.
+        boolean boost = t.handClock && t.moreGroundBeats && !groupMember;
+        gmind.beatAfter = (int) (groundAttention() / (gmind.raceAhead ? 4 : 2) / (boost ? t.groundBeatSooner : 1));
+        gmind.beatCooldownScale = boost ? 1 / t.groundBeatSooner : 1;
         gmind.step(o, v, drives, length);
         if (gmind.wantsFade) wantsFade = true;
         copyFromGround();
@@ -950,9 +1023,32 @@ public final class PerchBody extends Motor {
         };
     }
 
+    /** 0..1: how far into its peek it leans, eased in and out. */
+    float peek() {
+        if (peekTicks <= 0) return 0f;
+        double k = Math.min(1, Math.min(peekLen - peekTicks, peekTicks) / (double) PEEK_EASE);
+        return (float) (k * k * (3 - 2 * k));
+    }
+
+    /**
+     * Where it rides on the owner, seen from their view: its slot, leant {@code peek} of the way to
+     * the bottom corner of the view on its side (outside the hand, which sits nearer the middle).
+     */
+    public static Vec viewPoint(OwnerState o, Slot s, float peek) {
+        Vec p = slotPoint(o, s);
+        if (peek <= 0f || !s.peeks()) return p;
+        Vec look = o.look();
+        Vec right = look.cross(Vec.UP).normalize();
+        if (right.lengthSqr() < 1e-9) right = o.flatRight();
+        Vec up = right.cross(look);
+        double side = s == Slot.LEFT_SHOULDER ? -0.5 : 0.5;
+        Vec corner = o.eye().add(look.scale(0.6)).add(right.scale(side)).add(up.scale(-0.34));
+        return p.add(corner.sub(p).scale(peek));
+    }
+
     /** Rides the slot: position, velocity and facing are the owner's. */
     private void attach(OwnerState o) {
-        Vec p = slotPoint(o, slot);
+        Vec p = viewPoint(o, slot, peek());
         vel = o.velocity();
         pos = p;
         speed = vel.length();
