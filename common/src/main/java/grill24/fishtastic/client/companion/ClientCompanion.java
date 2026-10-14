@@ -103,6 +103,8 @@ public final class ClientCompanion {
     private boolean devHurt;
     /** Nanoseconds the party's last sim step took (every unit of it), for the debug overlay. */
     long stepNanos;
+    /** Ticks since its party's sim was built, for the overlay's per-minute rates. */
+    long ageTicks;
 
     /**
      * @param group  how this unit's members group, from {@link PartyGrouping#group}
@@ -241,6 +243,7 @@ public final class ClientCompanion {
     /** After the party layer stepped (or built) this unit: every member's pose hints follow the leader's mind. */
     void afterStep(long partyStepNanos) {
         stepNanos = partyStepNanos;
+        ageTicks++;
         for (CompanionRender render : renders) render.tick(agent);
     }
 
@@ -530,6 +533,64 @@ public final class ClientCompanion {
                 + displayClassName();
     }
 
+    // ── Party overlay (party spec §6, §19; Phase 3b) ──────────────────────────
+
+    /**
+     * The overlay header's line for this unit: who it is, each member's home perch and where it is
+     * now, and a mark when the party's hand clock has given it the next turn.
+     */
+    String partyStateLine() {
+        StringBuilder out = new StringBuilder(partyLine());
+        if (agent == null) return out.toString();
+        boolean turn = false;
+        StringBuilder homes = new StringBuilder(), now = new StringBuilder();
+        for (int i = 0; i < agentCount(); i++) {
+            CompanionAgent m = member(i);
+            String sep = i == 0 ? "" : "/";
+            homes.append(sep).append(m.perchHome() == null ? "-" : slotName(m.perchHome()));
+            now.append(sep).append(whereNow(m));
+            turn |= m.handClockShared() && m.handClockReady();
+        }
+        if (agent.perchHome() == null) out.append("  · ").append(now);
+        else out.append("  home ").append(homes).append(" · ").append(now);
+        if (turn) out.append("  [hand turn]");
+        return out.toString();
+    }
+
+    /** The selected unit's party lines: its lead fish's perch and leases, then hand visits and ground push. */
+    private List<String> partyDetailLines(CompanionAgent a) {
+        if (a.perchHome() == null) return List.of("party: a swimmer (no perch, no hand clock)");
+        double minutes = Math.max(ageTicks, 1) / (20.0 * 60.0);
+        double push = a.partyPushStrength();
+        return List.of(
+                String.format(Locale.ROOT, "party: home %s · %s  lease refusals %d (%.1f/min)",
+                        slotName(a.perchHome()), whereNow(a), a.leaseRefusals(), a.leaseRefusals() / minutes),
+                String.format(Locale.ROOT, "hand: last visit %s  %s  ground push %s",
+                        a.sinceHandTicks() < 0 ? "-" : a.sinceHandTicks() / 20 + " s ago",
+                        a.handClockReady() ? "may come now" : a.handClockShared() ? "waits its turn" : "waits",
+                        push < 0 ? "-" : String.format(Locale.ROOT, "%.1f", push)));
+    }
+
+    /** Where a member is now, for the overlay: on a perch, on the ground, or swimming. */
+    private static String whereNow(CompanionAgent m) {
+        if (m.riding()) return "on " + slotName(m.perchSlot());
+        if (m.onGround()) return "on ground";
+        if (m.perchMode() == null || m.perchMode() == PerchBody.Mode.SWIM) return "swimming";
+        return m.perchMode().name().toLowerCase(Locale.ROOT) + " to " + slotName(m.perchSlot());
+    }
+
+    /** A perch's short name, from the owner's point of view. */
+    static String slotName(PerchBody.Slot s) {
+        return switch (s) {
+            case RIGHT_SHOULDER -> "R shoulder";
+            case LEFT_SHOULDER -> "L shoulder";
+            case RIGHT_HAND -> "R hand";
+            case LEFT_HAND -> "L hand";
+            case HEAD -> "head";
+            case BACK -> "back";
+        };
+    }
+
     /** The debug overlay's lines (goal, drives, pose hint, temperament). */
     List<String> debugLines() {
         if (agent == null) return List.of("companion: not stepped yet");
@@ -554,6 +615,7 @@ public final class ClientCompanion {
                         renders[0].retract(0f)),
                 String.format(Locale.ROOT, "held %s  points %d  owner %.1f blocks  party step %d us",
                         lastHeld, lastPoints, a.ownerDistance(), stepNanos / 1000)));
+        lines.addAll(partyDetailLines(a));
         if (gait != null) {
             lines.add(String.format(Locale.ROOT, "ground gait %s  group %d %s  beat %s (overtakes %d roadsides %d)"
                             + "  climbs %d dismounts %d tumbles %d",
@@ -563,8 +625,9 @@ public final class ClientCompanion {
             StringBuilder members = new StringBuilder("members");
             for (int i = 0; i < agentCount(); i++) {
                 CompanionAgent m = member(i);
-                members.append(String.format(Locale.ROOT, "  #%d %s lag %.1f%s", i, m.landMode(), m.groundLag(),
-                        m.riding() ? " on " + m.perchSlot().name().toLowerCase(Locale.ROOT) : ""));
+                members.append(String.format(Locale.ROOT, "  #%d %s lag %.1f home %s%s", i, m.landMode(), m.groundLag(),
+                        m.perchHome() == null ? "-" : slotName(m.perchHome()),
+                        m.riding() ? " on " + slotName(m.perchSlot()) : ""));
             }
             lines.add(members.toString());
         }

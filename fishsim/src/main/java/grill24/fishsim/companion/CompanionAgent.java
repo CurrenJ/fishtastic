@@ -484,6 +484,20 @@ public final class CompanionAgent {
     /** Its own home perch, or null for a swimmer. */
     public PerchBody.Slot perchHome() { return perch == null ? null : perch.home; }
 
+    // Party state for overlays (party spec §6, §19). Read-only.
+    /** Ticks until its hand clock lets the unseen timer call a fish again; -1 for a swimmer. */
+    public int handClockWait() { return perch == null ? -1 : perch.handClock.wait; }
+    /** Whether it shares its party's hand clock (else it keeps its own). */
+    public boolean handClockShared() { return perch != null && perch.handClock.shared(); }
+    /** Whether the hand clock would let the unseen timer call it to the hand now (in a party: its turn). */
+    public boolean handClockReady() { return perch != null && perch.handClock.ready(perch); }
+    /** Ticks since it last landed on a hand; -1 for a swimmer. */
+    public int sinceHandTicks() { return perch == null ? -1 : perch.sinceHand; }
+    /** The party's ground push on it this tick (§6.2), blocks/s², or -1 when nothing pushes. */
+    public double partyPushStrength() {
+        return perch == null || perch.gmind == null || perch.gmind.partyPush == null ? -1 : perch.gmind.partyPush.length();
+    }
+
     void groupSlot(PerchBody.Slot slot, boolean follower, int phase) {
         perch.home = slot;
         perch.slot = slot;

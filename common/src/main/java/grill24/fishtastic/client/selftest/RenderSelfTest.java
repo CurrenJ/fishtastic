@@ -4798,9 +4798,12 @@ public final class RenderSelfTest {
         queue(1, mc -> grill24.fishtastic.client.companion.ClientCompanions.devOverlay(true));
         String[][] parties = {
                 {"school", "bluegill 9", "bluegill 16", "bluegill 24"},
-                {"mixed", "bluegill 12", "starfish 40", "garden_eel 40"}};
+                {"mixed", "bluegill 12", "starfish 40", "garden_eel 40"},
+                // Three ground walkers of different species: leases, the shared hand clock and the
+                // ground push all at work, for the party overlay (Phase 3b).
+                {"ground", "japanese_spider_crab 30", "common_octopus 40", "willans_chromodoris 6"}};
         // groups and bodies each party makes
-        String[][] expect = {{"1", "3"}, {"3", "3"}};
+        String[][] expect = {{"1", "3"}, {"3", "3"}, {"3", "3"}};
         for (int p = 0; p < parties.length; p++) {
             String[] party = parties[p];
             String[] want = expect[p];
@@ -4824,6 +4827,11 @@ public final class RenderSelfTest {
                         ? companions.size() == 1 && companions.get(0).displayClassName().equals("school of 3")
                         : companions.stream().allMatch(c -> c.bodyCount() == 1);
                 check("companionparty." + name + ".kinds", kinds, lines);
+                if (name.equals("ground")) {
+                    String state = grill24.fishtastic.client.companion.ClientCompanions.debugState();
+                    check("companionparty.ground.overlay_clock", state.contains("hand clock: shared"), state);
+                    check("companionparty.ground.overlay_homes", state.split(" home ", -1).length > 3, state);
+                }
                 if (name.equals("mixed")) {
                     // The party layer (spec §6.1, Phase 3): the eel's home is the head (D5), and
                     // no two riders share a perch.
@@ -4895,6 +4903,17 @@ public final class RenderSelfTest {
             check("companioneel.three.homes", homes.equals(new java.util.TreeSet<>(
                     java.util.List.of("HEAD", "LEFT_SHOULDER", "RIGHT_SHOULDER"))), state.toString());
             check("companioneel.three.riding_home", allRiding, state.toString());
+            // Which side of the player the sim holds each shoulder eel on, by Minecraft's own
+            // right vector (facing +z, the right hand is -x): the perch layer must draw it there.
+            net.minecraft.world.phys.Vec3 look = mc.player.getLookAngle();
+            double rx = -look.z, rz = look.x;
+            for (var c : companions) {
+                var a = c.agent();
+                if (a == null || !a.riding() || a.perchSlot() == grill24.fishsim.companion.PerchBody.Slot.HEAD) continue;
+                double side = (a.position().x() - mc.player.getX()) * rx + (a.position().z() - mc.player.getZ()) * rz;
+                Fishtastic.LOGGER.info("[selftest] eel side {} sim offset to the player's right {}", a.perchSlot(),
+                        String.format(Locale.ROOT, "%.2f", side));
+            }
             // Zoomed in, against a dark wall behind the player (it faces -z): pale eels on sky
             // are unreadable at the default field of view.
             savedFov = mc.options.fov().get();
@@ -4916,6 +4935,24 @@ public final class RenderSelfTest {
             // Shoulder bases sit on the arm's centre, which differs for slim and wide arms.
             Fishtastic.LOGGER.info("[selftest] eel skin model {}", mc.player.getSkin().model());
             mc.options.fov().set(savedFov);
+        });
+        // Two eels: the second takes RIGHT_SHOULDER alone, so the shot shows which arm the perch
+        // layer draws it on (the sim holds it on the player's right).
+        queue(1, mc -> server(mc, s -> {
+            clearParties(s);
+            run(s, "fishtastic companion give @p fishtastic:garden_eel 40 1");
+            run(s, "fishtastic companion give @p fishtastic:garden_eel 35 2");
+            run(s, eelWall(3, "black_concrete"));
+        }));
+        queue(160, mc -> {
+            savedFov = mc.options.fov().get();
+            mc.options.fov().set(30);
+            mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT);
+        });
+        queue(20, mc -> screenshot(mc, "companioneel", "two_front"));
+        queue(1, mc -> {
+            mc.options.fov().set(savedFov);
+            server(mc, s -> run(s, eelWall(3, "air")));
         });
         queue(1, mc -> server(mc, s -> {
             clearParties(s);

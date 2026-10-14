@@ -59,9 +59,13 @@ public final class CompanionPerchLayer extends RenderLayer<AvatarRenderState, Pl
     private void submitMember(PoseStack poseStack, SubmitNodeCollector collector, int lightCoords,
                               AvatarRenderState state, ClientCompanion companion, int i, float partialTick) {
         PerchBody.Slot slot = companion.perchSlot(i);
+        // In this frame +x is the player's left arm (vanilla's ParrotOnShoulderLayer puts the left
+        // parrot at +0.4), and the sim holds LEFT_SHOULDER on its owner's left (-flatRight). These
+        // signs were once the other way round, so a fish landing on a shoulder popped across to
+        // the other one, and its name hung over the wrong arm (found 2026-10-14).
         float side = switch (slot) {
-            case RIGHT_SHOULDER -> 0.42f;
-            case LEFT_SHOULDER -> -0.42f;
+            case RIGHT_SHOULDER -> -0.42f;
+            case LEFT_SHOULDER -> 0.42f;
             case BACK -> 0.05f;
             default -> 0f;       // crown of the head
         };
@@ -74,10 +78,10 @@ public final class CompanionPerchLayer extends RenderLayer<AvatarRenderState, Pl
             side = Math.signum(side) * (state.skin.model() == PlayerModelType.SLIM ? 5.5f : 6f) / 16f;
             // Its art leans away from its base; turn it so the lean points away from the head
             // (owner feedback 2026-10-14: the left-shoulder eel curved into the head). Art leaning
-            // right (base on the left) already leans outward on the sim's LEFT_SHOULDER, which the
-            // frame flip puts on the player's right; on the other shoulder it turns round.
+            // right (base on the left) already leans outward on the right shoulder, as drawn here
+            // (the stack's x is mirrored); on the left shoulder it turns round.
             float baseX = companion.perchBaseX(i);
-            if (baseX != 0f && (slot == PerchBody.Slot.RIGHT_SHOULDER) == (baseX < 0f)) yaw = 0f;
+            if (baseX != 0f && (slot == PerchBody.Slot.LEFT_SHOULDER) == (baseX < 0f)) yaw = 0f;
         }
         poseStack.pushPose();
         if (slot == PerchBody.Slot.HEAD) {

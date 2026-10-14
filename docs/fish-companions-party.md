@@ -807,3 +807,26 @@ while following can fix half of it at most.
     the lean points away from the head; the other shoulder's eel had curved into it. The sim's
     `LEFT_SHOULDER` is the player's right after the layer's frame flip. Other perchers keep 0.42
     and their facing. 15/15 on both loaders.
+
+## 22. Phase 3b as built (the party overlay)
+
+- **Header** (`/fishtastic companion debug on`): one line per unit, the debug slot marked with
+  `>`. Each line shows its home perch (every member's, for a formation), where each member is now
+  (on a perch, on the ground, swimming, or hopping to a perch), and `[hand turn]` when the shared
+  clock has picked it. Then one line for the party: the hand clock (shared and how long until the
+  next call, or each percher's own, or none) and the party's lease refusals, as a count and per
+  minute.
+- **Selected slot**, two more lines: `party:` home, where it is now, and its own lease refusals
+  per minute; `hand:` time since its last hand visit (or since the party was built), whether the
+  clock lets it come now, and the ground push from other species (`-` when nothing pushes). The
+  formation members line shows each member's home.
+- **Sim:** read-only getters on `CompanionAgent` (`handClockWait`, `handClockShared`,
+  `handClockReady`, `sinceHandTicks`, `partyPushStrength`). All 930 fingerprints identical.
+- **Fixed on the way: shoulders were drawn on the wrong arm.** The perch layer drew
+  `RIGHT_SHOULDER` at +0.42 in a frame where +x is the player's left arm (vanilla's parrot sits at
+  +0.4 for the left shoulder), while the sim holds it on the owner's right. So a fish landing on a
+  shoulder popped across to the other one, and its sneak name hung over the wrong arm. The signs are
+  swapped, and the eel facing rule with them; the `companioneel` scene logs each shoulder eel's
+  sim side, and a two-eel shot shows `RIGHT_SHOULDER` on the player's right.
+- **Self-test:** `companionparty` gains a third party, crab + octopus + slug, and checks that the
+  overlay shows the shared clock and the homes. 33/33 on Fabric and on NeoForge.

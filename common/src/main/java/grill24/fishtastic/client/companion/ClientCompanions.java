@@ -388,14 +388,46 @@ public final class ClientCompanions {
         }
     }
 
-    /** The overlay's party header: one line per group, the selected one marked. */
+    /**
+     * The overlay's party header (party spec Phase 3b): one line per unit, the selected one marked,
+     * with each one's home perch, where it is and the hand turn; then the party's hand clock and
+     * its lease refusals.
+     */
     private static List<String> partyLines() {
         List<ClientCompanion> companions = localCompanions();
         if (companions.isEmpty()) return List.of("party: empty");
         List<String> lines = new ArrayList<>();
         lines.add("party (debug slot " + (devSlot + 1) + ")");
-        for (ClientCompanion c : companions) lines.add((c.holdsSlot(devSlot) ? "> " : "  ") + c.partyLine());
+        for (ClientCompanion c : companions) lines.add((c.holdsSlot(devSlot) ? "> " : "  ") + c.partyStateLine());
+        lines.add(partyClockLine(companions));
         return lines;
+    }
+
+    /** The party's hand clock (shared, or each percher's own) and its lease refusals, with their rate. */
+    private static String partyClockLine(List<ClientCompanion> companions) {
+        int refusals = 0, perchers = 0, sharedWait = -1;
+        long ageTicks = 0;
+        String turn = null;
+        for (ClientCompanion c : companions) {
+            ageTicks = Math.max(ageTicks, c.ageTicks);
+            for (int i = 0; i < c.memberCount(); i++) {
+                var m = c.agent() == null ? null : c.member(i);
+                if (m == null || m.perchHome() == null) continue;
+                perchers++;
+                refusals += m.leaseRefusals();
+                if (m.handClockShared()) {
+                    sharedWait = m.handClockWait();
+                    if (m.handClockReady()) turn = c.partyLine().substring(0, c.partyLine().indexOf(':'));
+                }
+            }
+        }
+        if (perchers == 0) return "  hand clock: none (no perchers)";
+        String clock = sharedWait < 0 ? "each percher's own"
+                : sharedWait > 0 ? "shared, next call in " + (sharedWait + 19) / 20 + " s"
+                : "shared, ready" + (turn == null ? " (nobody's turn: someone is on or going to a hand)" : ", turn: " + turn);
+        double minutes = Math.max(ageTicks, 1) / (20.0 * 60.0);
+        return String.format(Locale.ROOT, "  hand clock: %s  lease refusals %d (%.1f/min)", clock, refusals,
+                refusals / minutes);
     }
 
     /** The sim's cost over the last second: block samples, their time, and the whole step (plan §7 risk 3). */
