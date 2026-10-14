@@ -69,12 +69,22 @@ public final class PartyRun {
         }
 
         public List<PartyGrouping.Group> groups(long seed) {
-            return PartyGrouping.group(sim(seed));
+            return groups(seed, true);
+        }
+
+        /** {@code mixedShoal} off is the pre-D13 grouping, for A/B. */
+        public List<PartyGrouping.Group> groups(long seed, boolean mixedShoal) {
+            return PartyGrouping.group(sim(seed), mixedShoal);
         }
 
         /** Builds the party's layer; drift styles come from each unit leader's spec. */
         public PartyLayer build(CompanionTunables t, Temperament temperament, long seed, CompanionWorld world) {
-            return layer(t, temperament, groups(seed), world);
+            return build(t, temperament, seed, world, true);
+        }
+
+        public PartyLayer build(CompanionTunables t, Temperament temperament, long seed, CompanionWorld world,
+                                boolean mixedShoal) {
+            return layer(t, temperament, groups(seed, mixedShoal), world);
         }
 
         PartyLayer layer(CompanionTunables t, Temperament temperament, List<PartyGrouping.Group> groups,
@@ -144,31 +154,43 @@ public final class PartyRun {
     }
 
     /**
-     * One party run's measures. Percentages are of the run's ticks except the overlap pair, which is
-     * of the ticks every body is fully there; rates are episodes (false-to-true starts) per minute.
+     * One party run's measures. Percentages are of the run's ticks except the overlap measures, which
+     * are of the ticks every body is fully there; rates are episodes (false-to-true starts) per minute.
+     * {@code drawnOverlapPct} counts body pairs of different units only; {@code allOverlapPct} counts
+     * every pair of bodies in the party, inside a school too, so it compares fairly across groupings
+     * (a mixed shoal against the same fish as separate units). {@code seenBySlot} is each body's seen
+     * %, indexed by party slot (NaN for an empty slot): a follower is judged with its leader's voxels.
      */
     public record Result(double[] seenParty, double[] seenSolo, double[] inspParty, double[] inspSolo,
                          double[] catchParty, double[] catchSolo, double drawnOverlapPct, double drawnPerMin,
                          double nearPct, double minSep, double twoInViewPct, double threeInViewPct,
                          int perchClashTicks, double clashPerMin, int unitFadesParty, int unitFadesSolo,
-                         double partyInspectOfMates) {
+                         double partyInspectOfMates, double allOverlapPct, double allPerMin, double[] seenBySlot) {
         public int units() { return seenParty.length; }
     }
 
     /** Runs {@code p} on {@code script}; {@code afterBuild} (may be null) is a test hook on the fresh layer. */
     public static Result measure(Party p, String script, long seed, int ticks, CompanionTunables t,
                                  Temperament temperament, Consumer<PartyLayer> afterBuild) {
+        return measure(p, script, seed, ticks, t, temperament, true, afterBuild);
+    }
+
+    /** As above; {@code mixedShoal} off groups the party by the pre-D13 rule, for A/B. */
+    public static Result measure(Party p, String script, long seed, int ticks, CompanionTunables t,
+                                 Temperament temperament, boolean mixedShoal, Consumer<PartyLayer> afterBuild) {
         OwnerScript os = OwnerScript.named(script, seed);
         CompanionWorld base = os.nextWorld();
-        List<PartyGrouping.Group> groups = p.groups(seed);
+        List<PartyGrouping.Group> groups = p.groups(seed, mixedShoal);
         PartyLayer layer = p.layer(t, temperament, groups, base);
         if (afterBuild != null) afterBuild.accept(layer);
         int n = layer.size();
         Tally[] party = new Tally[n];
         for (int i = 0; i < n; i++) party[i] = new Tally();
         long together = 0, drawn = 0, near = 0, two = 0, three = 0, mateInspect = 0;
-        int clash = 0, drawnEpisodes = 0, clashEpisodes = 0;
-        boolean wasDrawn = false, wasClash = false;
+        long bodiesIn = 0, allDrawn = 0;
+        long[] slotSeen = new long[PartyGrouping.SLOTS];
+        int clash = 0, drawnEpisodes = 0, clashEpisodes = 0, allEpisodes = 0;
+        boolean wasDrawn = false, wasClash = false, wasAll = false;
         double minSep = Double.MAX_VALUE;
         for (int k = 0; k < ticks; k++) {
             base = os.nextWorld();
@@ -234,6 +256,36 @@ public final class PartyRun {
             }
             if (anyDrawn && !wasDrawn) drawnEpisodes++;
             wasDrawn = anyDrawn;
+            for (int i = 0; i < n; i++) {
+                PartyLayer.Unit u = layer.unit(i);
+                int[] slots = u.group().slots();
+                List<double[]> bs = bodies.get(i);
+                for (int b = 0; b < bs.size(); b++) {
+                    double[] body = bs.get(b);
+                    CompanionAgent eye = u.ground() != null ? u.ground().member(b) : u.leader();
+                    if (body[7] >= 1f && Visibility.visible(o, new Vec(body[8], body[9], body[10]), eye.voxels()))
+                        slotSeen[slots[b]]++;
+                }
+            }
+            // Every pair of bodies, whichever units they belong to.
+            List<double[]> flat = new ArrayList<>();
+            for (List<double[]> bs : bodies) flat.addAll(bs);
+            boolean anyAll = false;
+            if (allIn && flat.size() > 1) {
+                bodiesIn++;
+                for (int i = 0; i < flat.size() && !anyAll; i++) {
+                    for (int j = i + 1; j < flat.size(); j++) {
+                        double[] a = flat.get(i), b = flat.get(j);
+                        if (segDist(a, b) < BODY_HALF_WIDTH * (a[6] + b[6])) {
+                            anyAll = true;
+                            break;
+                        }
+                    }
+                }
+                if (anyAll) allDrawn++;
+            }
+            if (anyAll && !wasAll) allEpisodes++;
+            wasAll = anyAll;
         }
 
         // Each unit alone, same script and seed, no party-mates.
@@ -267,10 +319,18 @@ public final class PartyRun {
                 together == 0 ? 0 : 100.0 * drawn / together, drawnEpisodes / minutes,
                 together == 0 ? 0 : 100.0 * near / together, minSep == Double.MAX_VALUE ? -1 : minSep,
                 100.0 * two / ticks, 100.0 * three / ticks, clash, clashEpisodes / minutes, fadesParty, fadesSolo,
-                100.0 * mateInspect / (ticks * (double) n));
+                100.0 * mateInspect / (ticks * (double) n), bodiesIn == 0 ? 0 : 100.0 * allDrawn / bodiesIn,
+                allEpisodes / minutes, seenBySlot(groups, slotSeen, ticks));
     }
 
-    /** Every body of a unit as a drawn segment: ends, length, appear, centre. */
+    private static double[] seenBySlot(List<PartyGrouping.Group> groups, long[] seen, int ticks) {
+        double[] out = new double[PartyGrouping.SLOTS];
+        java.util.Arrays.fill(out, Double.NaN);
+        for (PartyGrouping.Group g : groups) for (int s : g.slots()) out[s] = 100.0 * seen[s] / ticks;
+        return out;
+    }
+
+    /** Every body of a unit as a drawn segment: ends, length, appear, centre (slot order of {@code group().slots()}). */
     static List<double[]> bodies(PartyLayer.Unit u) {
         List<double[]> out = new ArrayList<>();
         CompanionAgent l = u.leader();

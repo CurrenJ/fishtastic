@@ -373,12 +373,21 @@ public final class CompanionScreen extends AbstractContainerScreen<CompanionMenu
         return new CompanionParty(slots);
     }
 
-    /** What the party makes, e.g. "Bluegill school + Clownfish" (§5.3: how a player learns that matching species group up). */
+    /**
+     * What the party makes, e.g. "Bluegill school + Starfish" or "Clownfish, Bluegill shoal" (§5.3:
+     * how a player learns what groups up).
+     */
     private String preview(CompanionParty party) {
         if (minecraft.level == null || party.isEmpty()) return "";
         List<String> parts = new ArrayList<>();
         for (CompanionGroups.Group group : CompanionGroups.of(party, minecraft.level.registryAccess())) {
             String species = party.get(group.leader()).getItem().getName(party.get(group.leader())).getString();
+            if (group.kind() == CompanionGroups.Kind.SHOAL) {
+                // Every species in it, in formation order, each once: "Clownfish, Bluegill shoal".
+                java.util.LinkedHashSet<String> names = new java.util.LinkedHashSet<>();
+                for (int slot : group.slots()) names.add(party.get(slot).getItem().getName(party.get(slot)).getString());
+                species = String.join(", ", names);
+            }
             String key = "screen.fishtastic.companion.preview." + group.kind().name().toLowerCase(java.util.Locale.ROOT);
             parts.add(Component.translatable(key, species, group.count()).getString());
         }

@@ -1602,6 +1602,11 @@ public class FishtasticFabricGameTests {
         CompanionGroupsGameTests.mixedPartyIsAllSolos(helper);
     }
 
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionGroupsMixedFreeSwimmersShoal(GameTestHelper helper) {
+        CompanionGroupsGameTests.mixedFreeSwimmersShoal(helper);
+    }
+
     // ----- Companion pet-to-pet scenes (Phase 6) -----
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")

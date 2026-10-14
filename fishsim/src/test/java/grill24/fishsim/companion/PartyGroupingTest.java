@@ -32,11 +32,32 @@ class PartyGroupingTest {
         assertArrayEquals(new int[]{0, 1, 2}, g.get(0).slots());
     }
 
+    /** D13: every free swimmer in the party joins one school, whatever its species. */
     @Test
-    void twoOfASpeciesPairAndTheOtherIsSolo() {
+    void freeSwimmersOfAnySpeciesFormOneMixedShoal() {
+        List<PartyGrouping.Group> g = PartyGrouping.group(List.of(
+                sized("bluegill", Locomotion.FREE_SWIM, 0.30f, 0), sized("clownfish", Locomotion.FREE_SWIM, 0.10f, 1),
+                sized("tang", Locomotion.FREE_SWIM, 0.20f, 2)));
+        assertEquals(1, g.size());
+        assertEquals(PartyGrouping.Kind.SCHOOL, g.get(0).kind());
+        // The smallest leads whatever its species (D9).
+        assertArrayEquals(new int[]{1, 2, 0}, g.get(0).slots());
+        assertEquals("clownfish", g.get(0).leader().species());
+        // A ground benthic of another species stays out; two free swimmers still shoal.
+        List<PartyGrouping.Group> h = PartyGrouping.group(List.of(m("a", Locomotion.FREE_SWIM, 0),
+                m("crab", Locomotion.BENTHIC, 1), m("b", Locomotion.FREE_SWIM, 2)));
+        assertEquals(2, h.size());
+        assertEquals(PartyGrouping.Kind.SCHOOL, h.get(0).kind());
+        assertArrayEquals(new int[]{0, 2}, h.get(0).slots());
+        assertEquals(PartyGrouping.Kind.SOLO, h.get(1).kind());
+    }
+
+    /** With the mixed shoal off (the A/B switch), schools are one species, as before D13. */
+    @Test
+    void mixedShoalOffKeepsSchoolsToOneSpecies() {
         List<PartyGrouping.Group> g = PartyGrouping.group(List.of(
                 m("bluegill", Locomotion.FREE_SWIM, 0), m("clownfish", Locomotion.FREE_SWIM, 1),
-                m("bluegill", Locomotion.FREE_SWIM, 2)));
+                m("bluegill", Locomotion.FREE_SWIM, 2)), false);
         assertEquals(2, g.size());
         assertEquals(PartyGrouping.Kind.SCHOOL, g.get(0).kind());
         assertArrayEquals(new int[]{0, 2}, g.get(0).slots());
@@ -74,12 +95,17 @@ class PartyGroupingTest {
         for (PartyGrouping.Group group : perchers) assertEquals(PartyGrouping.Kind.SOLO, group.kind());
     }
 
+    /** Only free swimmers mix: other classes of different species never group. */
     @Test
-    void differentSpeciesNeverGroupEvenOfOneClass() {
-        List<PartyGrouping.Group> g = PartyGrouping.group(List.of(m("a", Locomotion.FREE_SWIM, 0),
-                m("b", Locomotion.FREE_SWIM, 1), m("c", Locomotion.BENTHIC, 2)));
+    void differentSpeciesOfOtherClassesNeverGroup() {
+        List<PartyGrouping.Group> g = PartyGrouping.group(List.of(m("crab", Locomotion.BENTHIC, 0),
+                m("star", Locomotion.BENTHIC, 1), m("eel", Locomotion.ANCHORED, 2)));
         assertEquals(3, g.size());
         for (PartyGrouping.Group group : g) assertEquals(PartyGrouping.Kind.SOLO, group.kind());
+        List<PartyGrouping.Group> off = PartyGrouping.group(List.of(m("a", Locomotion.FREE_SWIM, 0),
+                m("b", Locomotion.FREE_SWIM, 1), m("c", Locomotion.BENTHIC, 2)), false);
+        assertEquals(3, off.size());
+        for (PartyGrouping.Group group : off) assertEquals(PartyGrouping.Kind.SOLO, group.kind());
     }
 
     /** Equal sizes: the leader is the member in the lowest slot, whatever order the party arrives in; groups come out by lowest slot. */

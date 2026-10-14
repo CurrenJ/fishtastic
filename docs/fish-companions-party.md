@@ -302,7 +302,7 @@ own companion in first person" applies to the whole party.
 | Phase | Builds | Gate |
 |---|---|---|
 | 1 | Storage + migration, (owner, slot) identity, packets, menu with 3 slots and the party preview, hold-B rules, commands, game tests. In game: same-species slots form a group (§3), and different species run **independently** (no party layer yet; overlap expected). Retire the size and count group rules | Game tests on both loaders; trio and group fingerprints bitwise; owner tries the menu and a school |
-| 2 | Re-scoped (§6, review §6). **2b** (done, §16) `PartyBaselineProbe` as the metric suite, plus multi-unit parties in the viewer. **2c** mixed shoal (D13). **2d** perch homes + leases (§6.1, with D5's intended ANCHORED change). **2e** party-mate familiarity tuning (§7). **2f** measure ground benthic candidates (§6.2), then build the winner | Solo and identical-group fingerprints bitwise; owner viewer |
+| 2 | Re-scoped (§6, review §6). **2b** (done, §16) `PartyBaselineProbe` as the metric suite, plus multi-unit parties in the viewer. **2c** (built, §17) mixed shoal (D13). **2d** perch homes + leases (§6.1, with D5's intended ANCHORED change). **2e** party-mate familiarity tuning (§7). **2f** measure ground benthic candidates (§6.2), then build the winner | Solo and identical-group fingerprints bitwise; owner viewer |
 | 3 | In game: party wiring, per-slot overlay, self-test scene, changelog note on lost trios | Owner solo playtest |
 | 4 | Folded into sim Phase 4: social drive across and within parties | Owner viewer, then in game |
 
@@ -505,3 +505,41 @@ Full record: [`fish-companions-party-2a-asbuilt.md`](fish-companions-party-2a-as
 - **Verified:** `:fishsim:test` 476 tests, 0 failed; all 930 `FingerprintProbe -PfpAll=1` +
   `GroupFingerprintProbe` lines bitwise against `09e026c7`.
 - **Next:** 2c, the mixed shoal (D13).
+
+## 17. Phase 2c as built (mixed shoal, D13)
+
+- **Rule:** `PartyGrouping` puts every FREE_SWIM member into one school, whatever its species.
+  Other classes are unchanged: different-species benthics, gliders, drifters and anchored fish
+  stay separate. The smallest fish leads (D9), and the shoal runs on the leader's mind and
+  temperament (the accepted cost, §3). Switch: `PartyGrouping.group(party, false)` is the pre-D13
+  rule; the suite takes `-PtweakA=noShoal`, and the viewer has a "mixed shoal (PARTY)" checkbox.
+- **Measured** (equal grounds: 30 scripts × 4 seeds, switch on vs off). Switch off reproduces the
+  2b baseline line for line.
+  - The suite gained two measures that compare across groupings: party-wide overlap over every
+    pair of bodies (inside a school too), and seen % per slot.
+
+  | Party | Party-wide overlap % mean / worst | Overlap episodes /min | Seen % by slot (1/2/3) |
+  |---|---|---|---|
+  | 3 free swimmers 40/30/25, separate | 6.34 / 44.4 | 6.00 | 22.8 / 25.1 / 24.2 |
+  | 3 free swimmers, **shoal** | **0.47 / 3.3** | **1.87** | 22.2 / 23.6 / 25.6 |
+  | school pair + free swimmer, separate | 3.04 / 36.1 | 4.18 | 24.0 / 23.0 / 25.6 |
+  | school pair + free swimmer, **shoal** | **0.44 / 5.2** | **1.85** | 24.0 / 23.6 / 22.0 |
+
+  - Every other party is unchanged.
+  - **Watch in the viewer:** the 40 cm swimmer that joins the bluegill pair as a follower drops
+    from 25.6 to 22.0 seen %. Followers trail their leader, as trio followers already do.
+- **Game side** (`PartyGrouping` is shared, so the game shoals too):
+  - `CompanionGroups.Kind.SHOAL` for a school of more than one species, two or three fish. The
+    menu preview reads e.g. "Clownfish, Bluegill shoal" (each species once, formation order; lang
+    `screen.fishtastic.companion.preview.shoal`).
+  - `CompanionGroups.of` now ranks leaders by true rendered length (size × the species' render
+    calibration, `CompanionGroups.renderedLength`), the same sum the client uses. Raw size only
+    ranked fish alike within one species. The preview and the client agree on a shoal's leader.
+  - Scenes: two shoals never play G1 (same species), even when their leaders match; they take G2.
+  - The client needed no change: each body already renders its own stack.
+- **Verified:** `:fishsim:test` 477, 0 failed; `:common:test`; Fabric game tests 366/366, with
+  the new `companion_groups_mixed_free_swimmers_shoal` (an 8 cm bridle shiner draws bigger than
+  a 10 cm bluegill, so the bluegill leads); NeoForge testmod compiles (its game-test JVM never
+  exits, so it wasn't run). All 930 fingerprint lines bitwise against `b5b67c95`.
+- **Gate:** owner viewer (`-PsimArgs="--party free --owner walk_turns"`, toggle the checkbox).
+  Then 2d, perch homes and leases.

@@ -9,14 +9,18 @@ import java.util.Objects;
 
 /**
  * Which of an owner's party members form a group (docs/fish-companions-party.md §3). The party is up
- * to {@link #SLOTS} bonded fish, each one body; same-species duplicates group up:
+ * to {@link #SLOTS} bonded fish, each one body:
  *
  * <ul>
- *   <li>2–3 of one FREE_SWIM species: a {@link Kind#SCHOOL} ({@link CompanionGroup}).</li>
+ *   <li>2–3 FREE_SWIM fish, of any species: a {@link Kind#SCHOOL} ({@link CompanionGroup}). Every
+ *       free swimmer in the party joins it; different species make a mixed shoal (D13), which runs
+ *       on its leader's mind. {@link #group(List, boolean)} with {@code mixedShoal} off keeps
+ *       schools to one species, for A/B.</li>
  *   <li>2–3 of one ground-walking BENTHIC species (a ground gait): a {@link Kind#GROUND} formation
  *       ({@link BenthicGroup}), line or crowd from the species.</li>
- *   <li>Everything else is a {@link Kind#SOLO}: different species, and duplicates of GLIDE, DRIFT,
- *       ANCHORED or a benthic with no ground gait (a pure percher) (D7).</li>
+ *   <li>Everything else is a {@link Kind#SOLO}: one of its kind, a ground benthic of another
+ *       species, and duplicates of GLIDE, DRIFT, ANCHORED or a benthic with no ground gait (a pure
+ *       percher) (D7).</li>
  * </ul>
  *
  * <p>Size never decides grouping (D8): the old trio rule ({@link CompanionGroup#isTrio}) and a
@@ -125,10 +129,16 @@ public final class PartyGrouping {
     }
 
     /**
-     * Groups a party. Members may arrive in any order and with empty slots missing; the result is
-     * ordered by each group's lowest slot, and each group's members are in formation order (D9).
+     * Groups a party with the mixed shoal on (D13). Members may arrive in any order and with empty
+     * slots missing; the result is ordered by each group's lowest slot, and each group's members are
+     * in formation order (D9).
      */
     public static List<Group> group(List<Member> party) {
+        return group(party, true);
+    }
+
+    /** As {@link #group(List)}; {@code mixedShoal} off is the pre-D13 rule (schools of one species only). */
+    public static List<Group> group(List<Member> party, boolean mixedShoal) {
         if (party.size() > SLOTS) throw new IllegalArgumentException("a party has at most " + SLOTS + " members");
         List<Member> sorted = new ArrayList<>(party);
         sorted.sort(Comparator.comparingInt(Member::slot));
@@ -148,7 +158,7 @@ public final class PartyGrouping {
             members.add(lead);
             if (kind != Kind.SOLO) {
                 for (int j = i + 1; j < sorted.size(); j++) {
-                    if (!used[j] && sameKind(lead, sorted.get(j))) {
+                    if (!used[j] && groupsWith(lead, sorted.get(j), mixedShoal)) {
                         members.add(sorted.get(j));
                         used[j] = true;
                     }
@@ -164,8 +174,13 @@ public final class PartyGrouping {
     static final Comparator<Member> FORMATION_ORDER =
             Comparator.comparingDouble(Member::length).thenComparingInt(Member::slot);
 
-    /** Same species, and both of the grouping class (a species' class and gait never differ in practice). */
-    private static boolean sameKind(Member a, Member b) {
+    /**
+     * Whether {@code b} joins {@code a}'s group: any two free swimmers with the mixed shoal on (D13),
+     * otherwise the same species of the same grouping class (a species' class and gait never differ
+     * in practice).
+     */
+    private static boolean groupsWith(Member a, Member b, boolean mixedShoal) {
+        if (mixedShoal && a.locomotion() == Locomotion.FREE_SWIM) return b.locomotion() == Locomotion.FREE_SWIM;
         return a.species().equals(b.species()) && a.locomotion() == b.locomotion()
                 && a.groundWalker() == b.groundWalker();
     }

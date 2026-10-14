@@ -38,6 +38,8 @@ public final class CompanionGroups {
         PAIR,
         /** Three FREE_SWIM fish of one species. */
         SCHOOL,
+        /** Two or three FREE_SWIM fish of more than one species: a mixed shoal (D13). */
+        SHOAL,
         /** Three ground-walking BENTHIC fish whose profile walks them in a line. */
         LINE,
         /** Three ground-walking BENTHIC fish whose profile walks them as a crowd. */
@@ -47,10 +49,11 @@ public final class CompanionGroups {
     }
 
     /**
-     * One species' share of the party. {@code slots} are in formation order: the first is the
-     * group's leader (its smallest fish, ties to the lower slot, D9), so the party lead may follow
-     * in its own school. A {@link Kind#SEPARATE} entry gathers same-species fish that each swim on
-     * their own, in slot order, for the preview's sake.
+     * One species' share of the party, or a mixed shoal's ({@code species} is then its leader's).
+     * {@code slots} are in formation order: the first is the group's leader (its smallest fish, ties
+     * to the lower slot, D9), so the party lead may follow in its own school. A {@link Kind#SEPARATE}
+     * entry gathers same-species fish that each swim on their own, in slot order, for the preview's
+     * sake.
      */
     public record Group(Item species, Kind kind, Locomotion locomotion, List<Integer> slots) {
         public int leader() { return slots.get(0); }
@@ -59,12 +62,10 @@ public final class CompanionGroups {
 
     /** The party's groups, ordered by their first slot. Empty slots are skipped. */
     public static List<Group> of(CompanionParty party, RegistryAccess registries) {
-        // Seed never decides grouping. Length can pick a group's leader, so pass a length that
-        // orders same-species fish the way the client's rendered length does: their size (within
-        // a species the render calibration is shared, so size and rendered length rank alike).
+        // Seed never decides grouping. Length picks a group's leader, and a mixed shoal ranks
+        // different species, so pass the client's own true rendered length.
         List<PartyGrouping.Group> grouped = PartyGrouping.group(members(party, registries,
-                s -> grill24.fishtastic.util.ItemSizeHelper.hasSize(s) ? grill24.fishtastic.util.ItemSizeHelper.getSize(s) / 100.0 : 1.0,
-                s -> 0L));
+                s -> renderedLength(registries, s), s -> 0L));
         List<Group> out = new ArrayList<>();
         boolean[] used = new boolean[grouped.size()];
         for (int i = 0; i < grouped.size(); i++) {
@@ -85,16 +86,33 @@ public final class CompanionGroups {
                     }
                 }
                 kind = slots.size() == 1 ? Kind.SOLO : Kind.SEPARATE;
-            } else if (g.members().size() == 2) {
+            } else if (g.members().size() == 2 && !mixed(g)) {
                 kind = Kind.PAIR;
             } else if (g.kind() == PartyGrouping.Kind.SCHOOL) {
-                kind = Kind.SCHOOL;
+                kind = mixed(g) ? Kind.SHOAL : Kind.SCHOOL;
             } else {
                 kind = g.formation() == BenthicGroup.Formation.CROWD ? Kind.CROWD : Kind.LINE;
             }
             out.add(new Group(lead.getItem(), kind, g.leader().locomotion(), List.copyOf(slots)));
         }
         return out;
+    }
+
+    private static boolean mixed(PartyGrouping.Group g) {
+        for (PartyGrouping.Member m : g.members()) if (!m.species().equals(g.leader().species())) return true;
+        return false;
+    }
+
+    /**
+     * A fish's true-to-scale rendered length, blocks: its size times its species' render
+     * calibration, 0.5 when unrolled. The same sum as {@code FishVisuals.renderedLength}, which the
+     * client ranks its groups by; kept here so the server never touches the client renderer.
+     */
+    public static float renderedLength(RegistryAccess registries, ItemStack fish) {
+        if (!grill24.fishtastic.util.ItemSizeHelper.hasSize(fish)) return 0.5f;
+        float calibration = profileOf(registries, fish).map(FishProfile::renderCalibration)
+                .orElse(FishProfile.DEFAULT_RENDER_CALIBRATION);
+        return grill24.fishtastic.util.ItemSizeHelper.getSize(fish) / 100f * calibration;
     }
 
     /**

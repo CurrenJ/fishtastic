@@ -159,7 +159,9 @@ public final class CompanionSceneManager {
     @Nullable
     private static CompanionSceneType choose(Candidate a, Candidate b, long now) {
         if (isBusy(a.member(), now) || isBusy(b.member(), now)) return null;
-        if (a.group().species() == b.group().species()) return CompanionSceneType.G1_SAME_SPECIES;
+        // A mixed shoal is no one species: two shoals take the free-swimmer scene below.
+        if (a.group().species() == b.group().species() && a.group().kind() != CompanionGroups.Kind.SHOAL
+                && b.group().kind() != CompanionGroups.Kind.SHOAL) return CompanionSceneType.G1_SAME_SPECIES;
         if (a.group().locomotion() == Locomotion.FREE_SWIM && b.group().locomotion() == Locomotion.FREE_SWIM) {
             return CompanionSceneType.G2_FREE_SWIM_EIGHT;
         }

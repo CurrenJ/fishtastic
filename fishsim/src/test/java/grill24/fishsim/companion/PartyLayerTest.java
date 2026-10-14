@@ -66,7 +66,7 @@ class PartyLayerTest {
 
     @Test
     void stepOrderDoesNotChangeResults() {
-        for (String name : List.of("3 free swimmers (40/30/25)", "crab + drifter + glider", "starfish pair + crab")) {
+        for (String name : List.of("crab + octopus + slug", "crab + drifter + glider", "starfish pair + crab")) {
             PartyRun.Party p = party(name);
             CompanionTunables t = CompanionTunables.defaults();
             OwnerScript a = OwnerScript.named("walk_turns", 2), b = OwnerScript.named("walk_turns", 2);
@@ -90,7 +90,7 @@ class PartyLayerTest {
         PartyRun.Party p = party("3 free swimmers (40/30/25)");
         CompanionTunables t = CompanionTunables.defaults();
         OwnerScript a = OwnerScript.named("idle_looking", 1), b = OwnerScript.named("idle_looking", 1);
-        List<PartyGrouping.Group> groups = p.groups(1);
+        List<PartyGrouping.Group> groups = p.groups(1, false); // three separate swimmers (pre-D13)
         PartyLayer party = layer(p, t, groups, a.nextWorld());
         PartyLayer alone = layer(p, t, List.of(groups.get(0)), b.nextWorld());
         boolean differs = false;

@@ -68,6 +68,7 @@ import java.util.Set;
  *   benthic_park) and the ground owner scripts are in the dropdowns.
  *   The "PARTY ..." classes run a whole party (docs/fish-companions-party.md §6, PartyRun.PARTIES):
  *   the overlay and dev keys follow the lead's unit, the others are drawn too (teal on the map).
+ *   "mixed shoal" off groups them by the pre-D13 rule, on the same seed, for A/B.
  * </pre>
  *
  * The "owner" dropdown switches between manual control and any headless owner script (played
@@ -136,6 +137,8 @@ public final class CompanionViewer {
     private float[] memberLengths;
     /** The chosen "PARTY ..." class's party, or null for a single unit. */
     private PartyRun.Party partyChoice;
+    /** D13's switch for the PARTY classes: off keeps different-species free swimmers apart (A/B). */
+    private boolean mixedShoal = true;
     /** The running party; {@link #agent}, {@link #group} and {@link #benthicGroup} are its lead unit's. */
     private grill24.fishsim.companion.PartyLayer party;
     private float lookYaw, lookPitch;
@@ -311,7 +314,7 @@ public final class CompanionViewer {
         benthicGroup = null;
         party = null;
         if (partyChoice != null) {
-            party = partyChoice.build(tunables, temperament, seed, world());
+            party = partyChoice.build(tunables, temperament, seed, world(), mixedShoal);
             // Unit 0 holds slot 1, the party lead (spec §4).
             grill24.fishsim.companion.PartyLayer.Unit lead = party.unit(0);
             group = lead.school();
@@ -615,6 +618,12 @@ public final class CompanionViewer {
         panel.add(row(new JLabel("temper"), temperBox));
         panel.add(row(new JLabel("scene"), sceneBox));
         panel.add(row(new JLabel("owner"), ownerBox));
+        JCheckBox shoalBox = new JCheckBox("mixed shoal (PARTY)", mixedShoal);
+        shoalBox.addActionListener(e -> {
+            mixedShoal = shoalBox.isSelected();
+            apply.run();
+        });
+        panel.add(row(shoalBox));
         for (int i = 0; i + 1 < launchArgs.length; i++) {
             if (launchArgs[i].equals("--owner")) ownerBox.setSelectedItem(launchArgs[i + 1]);
             if (!launchArgs[i].equals("--party")) continue;

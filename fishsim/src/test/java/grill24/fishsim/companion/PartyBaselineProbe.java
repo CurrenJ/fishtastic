@@ -16,7 +16,8 @@ import java.util.Locale;
  * on the same script and seed, so each measure is "in the party" against "alone".
  *
  * <p>Answers, per party: do units overlap, fight for a perch, crowd the view, starve one another
- * of view time, or inspect each other? Run with -PsimStdout; -PsweepSeeds=N changes the seed count.
+ * of view time, or inspect each other? Run with -PsimStdout; -PsweepSeeds=N changes the seed count;
+ * -PtweakA=noShoal groups by the pre-D13 rule (different-species free swimmers stay separate).
  * The parties, the stepping ({@link PartyLayer}) and the measures live in {@link PartyRun}, the
  * Phase 2b metric suite; this prints them.
  */
@@ -31,6 +32,7 @@ class PartyBaselineProbe {
 
     static PartyRun.Result run(PartyRun.Party p, String script, long seed) {
         return PartyRun.measure(p, script, seed, TICKS, CompanionTunables.defaults(), Temperament.BASELINE,
+                !"noShoal".equals(System.getProperty("tweakA")),
                 "homes".equals(System.getProperty("tweakB")) ? PartyBaselineProbe::assignHomes : null);
     }
 
@@ -117,7 +119,8 @@ class PartyBaselineProbe {
         for (PartyRun.Party p : PartyRun.PARTIES) {
             if (only != null && !p.name().contains(only)) continue;
             int runs = 0, clashRuns = 0, clashTicks = 0, fadesP = 0, fadesS = 0;
-            double drawnRate = 0, clashRate = 0, drawn = 0, drawnWorst = 0, near = 0, two = 0, three = 0, threeWorst = 0, mates = 0, matesWorst = 0;
+            double[] slotSeen = new double[PartyGrouping.SLOTS];
+            double allPct = 0, allWorst = 0, allRate = 0, drawnRate = 0, clashRate = 0, drawn = 0, drawnWorst = 0, near = 0, two = 0, three = 0, threeWorst = 0, mates = 0, matesWorst = 0;
             double minSep = Double.MAX_VALUE;
             String drawnWorstKey = "", threeWorstKey = "", matesWorstKey = "";
             int units = -1;
@@ -137,6 +140,10 @@ class PartyBaselineProbe {
                     runs++;
                     drawn += r.drawnOverlapPct();
                     if (r.drawnOverlapPct() > drawnWorst) { drawnWorst = r.drawnOverlapPct(); drawnWorstKey = key; }
+                    for (int sl = 0; sl < slotSeen.length; sl++) slotSeen[sl] += r.seenBySlot()[sl];
+                    allPct += r.allOverlapPct();
+                    allWorst = Math.max(allWorst, r.allOverlapPct());
+                    allRate += r.allPerMin();
                     drawnRate += r.drawnPerMin();
                     clashRate += r.clashPerMin();
                     near += r.nearPct();
@@ -161,10 +168,18 @@ class PartyBaselineProbe {
             }
             System.out.printf(Locale.ROOT, "%nPARTY %s  (%d units, %d runs)%n", p.name(), units, runs);
             System.out.printf(Locale.ROOT,
-                    "  inter-unit drawn overlap %%: mean %.2f | worst %.2f (%s); within 0.25 b %%: %.2f; min sep %.3f b%n",
-                    drawn / runs, drawnWorst, drawnWorstKey, near / runs, minSep);
+                    "  inter-unit drawn overlap %%: mean %.2f | worst %.2f (%s); within 0.25 b %%: %.2f; min sep %s b%n",
+                    drawn / runs, drawnWorst, drawnWorstKey, near / runs,
+                    minSep == Double.MAX_VALUE ? "-" : String.format(Locale.ROOT, "%.3f", minSep));
             System.out.printf(Locale.ROOT, "  rates /min: drawn overlap episodes %.2f; perch clash episodes %.2f%n",
                     drawnRate / runs, clashRate / runs);
+            System.out.printf(Locale.ROOT, "  party-wide overlap (every body pair) %%: mean %.2f | worst %.2f; episodes /min %.2f%n",
+                    allPct / runs, allWorst, allRate / runs);
+            StringBuilder bySlot = new StringBuilder();
+            for (int sl = 0; sl < slotSeen.length; sl++) {
+                if (!Double.isNaN(slotSeen[sl])) bySlot.append(String.format(Locale.ROOT, " slot %d %.1f", sl + 1, slotSeen[sl] / runs));
+            }
+            System.out.printf(Locale.ROOT, "  seen %% by slot:%s%n", bySlot);
             System.out.printf(Locale.ROOT, "  >=2 units in view %%: %.1f; all 3 in view %%: %.1f | worst %.1f (%s)%n",
                     two / runs, three / runs, threeWorst, threeWorstKey);
             System.out.printf(Locale.ROOT, "  perch clash: %d runs, %d ticks; leash fades party %d vs solo %d%n",

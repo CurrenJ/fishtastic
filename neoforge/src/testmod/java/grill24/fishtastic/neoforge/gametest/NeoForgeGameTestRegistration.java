@@ -741,6 +741,8 @@ public class NeoForgeGameTestRegistration {
             CompanionGroupsGameTests::nonGroupingDuplicatesStaySeparate);
         register(event, env, "companion_groups_mixed_party_is_all_solos", 100,
             CompanionGroupsGameTests::mixedPartyIsAllSolos);
+        register(event, env, "companion_groups_mixed_free_swimmers_shoal", 100,
+            CompanionGroupsGameTests::mixedFreeSwimmersShoal);
 
         // ----- Companion pet-to-pet scenes (Phase 6) -----
         register(event, env, "companion_scene_same_species_pair_plays_g1", 200,

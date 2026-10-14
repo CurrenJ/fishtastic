@@ -33,6 +33,7 @@ public final class CompanionGroupsGameTests {
     private static Holder nudibranch() { return new Holder(FishtasticItems.TRAPANIA_SCURRA.value()); }
     private static Holder gardenEel() { return new Holder(FishtasticItems.GARDEN_EEL.value()); }
     private static Holder glassSquid() { return new Holder(FishtasticItems.GLASS_SQUID.value()); }
+    private static Holder bridleShiner() { return new Holder(FishtasticItems.BRIDLE_SHINER.value()); }
 
     private static List<CompanionGroups.Group> groups(GameTestHelper helper, ItemStack... party) {
         List<ItemStack> slots = new ArrayList<>(List.of(party));
@@ -86,7 +87,24 @@ public final class CompanionGroupsGameTests {
         helper.succeed();
     }
 
-    /** Different species never group: a mixed party is one solo each, in slot order. */
+    /**
+     * D13: free swimmers of different species form one mixed shoal, led by the smallest by true
+     * rendered length (size times render calibration), not by raw size: an 8 cm bridle shiner
+     * (calibration 1.18) draws bigger than a 10 cm bluegill (0.89).
+     */
+    public static void mixedFreeSwimmersShoal(GameTestHelper helper) {
+        List<CompanionGroups.Group> shoal = groups(helper, fish(bridleShiner(), 8f), fish(bluegill(), 10f));
+        expect(helper, shoal, "shiner + bluegill", CompanionGroups.Kind.SHOAL);
+        helper.assertTrue(shoal.get(0).slots().equals(List.of(1, 0)),
+                "the bluegill draws smaller and leads, got " + shoal);
+        List<CompanionGroups.Group> three = groups(helper, fish(bluegill(), 12f), fish(starfish(), 40f),
+                fish(bridleShiner(), 9f));
+        expect(helper, three, "bluegill + starfish + shiner", CompanionGroups.Kind.SHOAL, CompanionGroups.Kind.SOLO);
+        helper.assertTrue(three.get(0).count() == 2 && three.get(1).leader() == 1, "shoal of slots 0 and 2, got " + three);
+        helper.succeed();
+    }
+
+    /** Only one free swimmer: different species of other classes never group, one solo each, in slot order. */
     public static void mixedPartyIsAllSolos(GameTestHelper helper) {
         List<CompanionGroups.Group> mixed = groups(helper, fish(bluegill(), 12f), fish(starfish(), 40f), fish(gardenEel(), 40f));
         expect(helper, mixed, "bluegill + starfish + eel",
