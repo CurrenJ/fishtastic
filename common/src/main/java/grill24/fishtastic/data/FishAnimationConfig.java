@@ -175,8 +175,18 @@ public sealed interface FishAnimationConfig
             float plantDepth,
             float wiggleAmplitude,
             float wiggleHertz,
-            float retractFraction
+            float retractFraction,
+            float baseX
     ) implements FishAnimationConfig {
+        /**
+         * Where the art's base (the point buried in the sand) sits across the sprite, as a fraction
+         * of its width from the centre: negative is left. Measured per species, as
+         * {@code UprightSit.pivotFraction} is. A tank doesn't need it (the sand is wide), but a
+         * companion planted on its owner's shoulder or head is drawn with this point on the perch,
+         * or art whose base is off to one side hangs past the shoulder and reads as floating.
+         */
+        public static final float DEFAULT_BASE_X = 0f;
+
         /**
          * How much of its height the creature loses at a full retract — the withdrawal into the
          * burrow, driven by the engine's own startle envelope
@@ -191,13 +201,14 @@ public sealed interface FishAnimationConfig
         public static final float DEFAULT_RETRACT_FRACTION = 0.9f;
 
         public static final Planted DEFAULT =
-                new Planted(1f / 16f, 3.0f, 0.018f, DEFAULT_RETRACT_FRACTION);
+                new Planted(1f / 16f, 3.0f, 0.018f, DEFAULT_RETRACT_FRACTION, DEFAULT_BASE_X);
 
         static final MapCodec<Planted> MAP_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
                 Codec.FLOAT.optionalFieldOf("plant_depth",      1f / 16f).forGetter(Planted::plantDepth),
                 Codec.FLOAT.optionalFieldOf("wiggle_amplitude", 3.0f  ).forGetter(Planted::wiggleAmplitude),
                 Codec.FLOAT.optionalFieldOf("wiggle_hertz",     0.018f).forGetter(Planted::wiggleHertz),
-                Codec.FLOAT.optionalFieldOf("retract_fraction", DEFAULT_RETRACT_FRACTION).forGetter(Planted::retractFraction)
+                Codec.FLOAT.optionalFieldOf("retract_fraction", DEFAULT_RETRACT_FRACTION).forGetter(Planted::retractFraction),
+                Codec.FLOAT.optionalFieldOf("base_x", DEFAULT_BASE_X).forGetter(Planted::baseX)
         ).apply(i, Planted::new));
 
         @Override public String modeName() { return "planted"; }

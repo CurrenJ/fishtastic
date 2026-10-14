@@ -11,7 +11,8 @@
   ],
   "temperament": "fishtastic:metronome",
   "animation": {
-    "mode": "planted"
+    "mode": "planted",
+    "base_x": -0.3125
   },
   "swarm": {
     "count": 5,

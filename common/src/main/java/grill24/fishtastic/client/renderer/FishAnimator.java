@@ -30,7 +30,7 @@ public final class FishAnimator {
             case FishAnimationConfig.HorizontalSwim cfg -> applyHorizontalSwim(poseStack, cfg, random, t, baseRotation, mirrored, 1f, 0f, Float.POSITIVE_INFINITY);
             case FishAnimationConfig.UprightFloat   cfg -> applyUprightFloat(poseStack, cfg, random, t, baseRotation, mirrored, 0f);
             case FishAnimationConfig.FloorSit       cfg -> applyFloorSit(poseStack, cfg, random, t, mirrored);
-            case FishAnimationConfig.Planted        cfg -> applyPlanted(poseStack, cfg, random, t, baseRotation, scale, mirrored, 0f);
+            case FishAnimationConfig.Planted        cfg -> applyPlanted(poseStack, cfg, random, t, baseRotation, scale, mirrored, 0f, 0f);
             case FishAnimationConfig.BellyDown      cfg -> applyBellyDown(poseStack, cfg, random, t, baseRotation, mirrored);
             case FishAnimationConfig.UprightSit     cfg -> applyUprightSit(poseStack, cfg, random, t, baseRotation, mirrored);
         }
@@ -101,9 +101,21 @@ public final class FishAnimator {
     public static void applyAnchored(PoseStack poseStack, FishAnimationConfig config, Random random,
                                      float t, float baseRotation, float scale, boolean mirrored,
                                      float retract) {
+        applyAnchored(poseStack, config, random, t, baseRotation, scale, mirrored, retract, false);
+    }
+
+    /**
+     * @param onBase put the art's base ({@link FishAnimationConfig.Planted#baseX}) on the origin
+     *               rather than the sprite's centre line, and sway about it: a companion planted
+     *               on its owner's shoulder or head. Tanks pass false.
+     */
+    public static void applyAnchored(PoseStack poseStack, FishAnimationConfig config, Random random,
+                                     float t, float baseRotation, float scale, boolean mirrored,
+                                     float retract, boolean onBase) {
         switch (config) {
             case FishAnimationConfig.Planted cfg ->
-                    applyPlanted(poseStack, cfg, random, t, baseRotation, scale, mirrored, retract);
+                    applyPlanted(poseStack, cfg, random, t, baseRotation, scale, mirrored, retract,
+                            onBase ? cfg.baseX() * scale : 0f);
             default -> apply(poseStack, config, random, t, baseRotation, scale, mirrored);
         }
     }
@@ -293,9 +305,10 @@ public final class FishAnimator {
      * @param retract the engine's startle envelope in [0, 1] — 0 fully out, 1 withdrawn — or 0 for
      *                a creature nothing is stepping.
      */
+    /** @param baseX where the base sits across the art, world blocks; it lands on the origin (0 for a tank) */
     private static void applyPlanted(PoseStack poseStack, FishAnimationConfig.Planted cfg,
                                       Random random, float t, float baseRotation, float scale,
-                                      boolean mirrored, float retract) {
+                                      boolean mirrored, float retract, float baseX) {
         poseStack.mulPose(Axis.YP.rotationDegrees(baseRotation + (mirrored ? 180f : 0f)));
         float randomPhaseRad = random.nextFloat() * (float) (2 * Math.PI);
         float wiggle = (float) (Math.sin(t * cfg.wiggleHertz() * 2 * Math.PI + randomPhaseRad)
@@ -317,7 +330,10 @@ public final class FishAnimator {
         // Not volume-preserving, unlike the squash-and-stretch of §3.6: an eel going into its
         // burrow gets shorter without getting fatter.
         if (height != 1f && height > 0f) poseStack.scale(1f, height, 1f);
-        poseStack.translate(0f, pivot, 0f);
+        // With a base off the centre line, (0, −p) · R · S · (−b, +p) keeps the base point (b, −p)
+        // fixed under the sway and the retract, and lands it on (0, −p). The item's fixed display
+        // turns it round, so the texture's left (negative baseX) is +x here: b = −baseX.
+        poseStack.translate(baseX, pivot, 0f);
     }
 
     private static void applyBellyDown(PoseStack poseStack, FishAnimationConfig.BellyDown cfg,

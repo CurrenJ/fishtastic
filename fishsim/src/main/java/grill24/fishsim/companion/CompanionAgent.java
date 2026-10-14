@@ -27,6 +27,7 @@ public final class CompanionAgent {
     private static final double REAPPEAR_SPEED = 0.5;
     private static final int REAPPEAR_TICKS = 10;
 
+    private static final int TPS = 20;
     private final CompanionTunables t;
     private final Motor body;
     private final Mind mind;
@@ -34,6 +35,8 @@ public final class CompanionAgent {
     private final Drives drives;
     private final Temperament temperament;
     private PoseHint pose = PoseHint.NONE;
+    /** Ticks a perched anchored fish has been startled by a predator in its owner's hand alone (tunable anchoredPredatorDuckSeconds). */
+    private int predatorDuckTicks;
     private Vec lookTarget;
     /** A percher's body (BENTHIC, ANCHORED), else null; its swim body is the one the mind steers. */
     private final PerchBody perch;
@@ -281,11 +284,17 @@ public final class CompanionAgent {
             return;
         }
         if (locomotion == Locomotion.ANCHORED && (drives.hostileClose || drives.wariness >= PerchBody.COVER_WARINESS)) {
-            // An aggressive eel leans out at it, puffed; any other ducks in.
-            pose = guard ? PoseHint.PUFF : PoseHint.DUCK;
+            // An aggressive eel leans out at it, puffed; any other ducks in. A predator in the
+            // owner's hand only startles it: a brief duck, then it comes up and watches the fish.
+            boolean predatorOnly = drives.threat == Drives.Threat.PREDATOR && !drives.hostileClose;
+            predatorDuckTicks = predatorOnly ? predatorDuckTicks + 1 : 0;
+            float limit = t.anchoredPredatorDuckSeconds;
+            pose = guard ? PoseHint.PUFF
+                    : predatorOnly && limit > 0 && predatorDuckTicks > limit * TPS ? PoseHint.WATCH : PoseHint.DUCK;
             lookTarget = drives.threatPos;
             return;
         }
+        predatorDuckTicks = 0;
         if (drives.wariness >= PerchBody.COVER_WARINESS && drives.threatPos != null) {
             pose = guard ? PoseHint.PUFF : PoseHint.HIDE;
             lookTarget = drives.threatPos;
@@ -581,6 +590,8 @@ public final class CompanionAgent {
     public boolean resting() { return drives.resting; }
     /** Where the thing it's wary of is, or null. */
     public Vec threat() { return drives.threatPos; }
+    /** What it's wary of (NONE, HOSTILE, CAT, PREDATOR), and whether a hostile is close: for overlays. */
+    public String threatKind() { return drives.threat.name() + (drives.hostileClose ? " close" : ""); }
     public int hides() { return mind.hides; }
     public int nuzzles() { return mind.nuzzles; }
     public int inspections() { return mind.inspections; }

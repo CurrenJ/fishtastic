@@ -2,6 +2,7 @@ package grill24.fishtastic.client.companion;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import grill24.fishsim.companion.PerchBody;
+import grill24.fishsim.core.Locomotion;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.player.PlayerModel;
 import net.minecraft.client.renderer.SubmitNodeCollector;
@@ -10,6 +11,7 @@ import net.minecraft.client.renderer.entity.layers.RenderLayer;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.player.PlayerModelType;
 
 /**
  * Draws a perched companion fish on its owner's body (docs/fish-companions.md §3, §11): a benthic
@@ -43,9 +45,8 @@ public final class CompanionPerchLayer extends RenderLayer<AvatarRenderState, Pl
         // layer passes -1.5 here only because its own model pose hoists it back down again.)
         // The slot is the sim's: where the companion decided to ride (plan §3.4). A benthic group
         // rides up to three at once, one per slot (left shoulder, right shoulder, head), and every
-        // companion of the party draws its own riders. Party perch homes and leases (party spec
-        // §6.1) live in the sim's PartyLayer, which the game adopts in Phase 3; until then two
-        // different species can share a slot and overlap.
+        // companion of the party draws its own riders. The party's PartyLayer gives each percher
+        // its own home perch and leases the rest (party spec §6.1), so two never share a slot.
         float partialTick = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
         for (ClientCompanion companion : ClientCompanions.companionsOf(player)) {
             if (!ClientCompanions.shouldDrawOnPerch(companion)) continue;
@@ -64,6 +65,20 @@ public final class CompanionPerchLayer extends RenderLayer<AvatarRenderState, Pl
             case BACK -> 0.05f;
             default -> 0f;       // crown of the head
         };
+        float yaw = 180f;
+        boolean shoulder = slot == PerchBody.Slot.LEFT_SHOULDER || slot == PerchBody.Slot.RIGHT_SHOULDER;
+        if (shoulder && companion.locomotion() == Locomotion.ANCHORED) {
+            // A planted fish stands on its base (FishAnimationConfig.Planted.baseX), so the base
+            // goes on the middle of the arm's top, not the 0.42 that keeps wide sprites clear of
+            // the head: vanilla's arm box is 4..8 px out, 4..7 for slim arms.
+            side = Math.signum(side) * (state.skin.model() == PlayerModelType.SLIM ? 5.5f : 6f) / 16f;
+            // Its art leans away from its base; turn it so the lean points away from the head
+            // (owner feedback 2026-10-14: the left-shoulder eel curved into the head). Art leaning
+            // right (base on the left) already leans outward on the sim's LEFT_SHOULDER, which the
+            // frame flip puts on the player's right; on the other shoulder it turns round.
+            float baseX = companion.perchBaseX(i);
+            if (baseX != 0f && (slot == PerchBody.Slot.RIGHT_SHOULDER) == (baseX < 0f)) yaw = 0f;
+        }
         poseStack.pushPose();
         if (slot == PerchBody.Slot.HEAD) {
             // Anchor before applying the offset: the crown rotates about the head's actual
@@ -83,7 +98,7 @@ public final class CompanionPerchLayer extends RenderLayer<AvatarRenderState, Pl
             poseStack.translate(0f, companion.perchFloorLift(i), 0f);
         }
         ClientCompanions.perchSubmits++;
-        companion.submitPerched(i, poseStack, collector, lightCoords, partialTick, 180f);
+        companion.submitPerched(i, poseStack, collector, lightCoords, partialTick, yaw);
         poseStack.popPose();
     }
 }

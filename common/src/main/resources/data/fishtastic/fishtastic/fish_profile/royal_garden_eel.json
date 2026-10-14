@@ -13,7 +13,8 @@
   ],
   "temperament": "fishtastic:ambusher",
   "animation": {
-    "mode": "planted"
+    "mode": "planted",
+    "base_x": -0.3125
   },
   "swarm": {
     "count": 4,

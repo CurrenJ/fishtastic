@@ -761,3 +761,49 @@ while following can fix half of it at most.
   identically on and off. `:fishsim:test` 441 passed, 0 failed (`stepOrderDoesNotChangeResults`
   caught an index tie-break, now keyed by slot).
 - **Gate:** the owner's viewer look (`-PsimArgs="--party octopus"`, toggle partyGroundSeparation).
+
+## 21. Phase 3a as built (the game runs each party through `PartyLayer`)
+
+- **Wiring:** `ClientCompanions` keeps one `OwnerParty` per player: its synced party, one
+  `ClientCompanion` per group, and a `PartyLayer` built on the party's first tick (dev phantoms
+  are parties of one). Each tick every companion builds its own world (`ClientCompanion.world`),
+  and the layer steps all units together. So the game now has perch homes and leases (§6.1, D5),
+  one shared hand clock with round-robin turns (§19), and ground separation (§20). The mixed
+  shoal (§17) was already in game through `PartyGrouping`.
+- **Sim changes, for the game's sake:** `PartyLayer.step(Function<Unit, CompanionWorld>)` gives
+  each unit its own base world, because what the owner holds reads per species (`SAME_SPECIES`)
+  and dev triggers act on one unit. A new constructor takes the mate point id from the caller, so
+  in game it is keyed by owner and slot as before (§5.2). `step(base)` delegates with the same
+  world for every unit.
+- **Party-mates as points:** `othersNear` now lists only other parties' companions, and the layer
+  appends the party-mates. The overlay's `points` count no longer includes party-mates.
+- **Unchanged:** a one-unit party steps exactly as before (the layer passes its world straight
+  through). The 0-length guard moved into `ClientCompanion.trueLength`, so the layer's solos get
+  the same clamp.
+- **Verified:**
+  - `FingerprintProbe` + `GroupFingerprintProbe` (`-PfpAll=1`): all 930 lines identical to
+    `5b89c24d`;
+  - `:fishsim:test` 485 tests, 441 passed, 0 failed;
+  - render self-tests `companionparty` + `companionsim`: 23/23 on Fabric and on NeoForge. The mixed party gained
+    two checks: `eel_home_head` (the garden eel's home is HEAD and it rides there) and
+    `no_shared_perch`.
+- **Garden eel fixes from the owner's look (2026-10-14):**
+  - *Squashed on equip.* The owner held a lionfish (`predator_fish`), so the eel ducked for the
+    whole predator fear, about 14 s (`EelDuckProbe`). Now a perched anchored fish ducks for only
+    `CompanionTunables.anchoredPredatorDuckSeconds` (2 s), then comes up and watches the fish
+    (`WATCH`). Hostiles and cats are unchanged: a hostile within about 4 blocks still keeps it
+    ducked until it leaves. Setting it to 0 restores the old duck. Fingerprints are unchanged
+    (930/930): no script holds a predator near a perched anchored fish.
+  - *Floating on the shoulder.* The eel art's base is a third of the sprite's width left of its
+    centre, so a shoulder eel's base hung past the arm. The planted config gains `base_x`, measured
+    per species (−0.3125 for both garden eels), and the companion perch pose puts that point on the
+    perch, with the sway pivoting about it. Tanks don't use it.
+  - *Debugging:* the overlay shows `threat`, `wariness` and `retract`. The `companioneel`
+    self-test checks three eels on head, right shoulder and left shoulder, and the brief predator
+    duck. Its shots are zoomed, with a dark backdrop. 15/15 pass on Fabric and on NeoForge.
+  - *Shoulder eels face out, centred (owner look, same day; accepted: "looks great").* A planted
+    fish on a shoulder stands its base on the arm box's centre: 6 px for classic arms, 5.5 for
+    slim (`PlayerModelType` from the render state). Its art turns, from the sign of `base_x`, so
+    the lean points away from the head; the other shoulder's eel had curved into it. The sim's
+    `LEFT_SHOULDER` is the player's right after the layer's frame flip. Other perchers keep 0.42
+    and their facing. 15/15 on both loaders.

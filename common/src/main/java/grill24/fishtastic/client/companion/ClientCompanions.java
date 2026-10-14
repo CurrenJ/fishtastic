@@ -1,7 +1,9 @@
 package grill24.fishtastic.client.companion;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import grill24.fishsim.companion.CompanionWorld;
 import grill24.fishsim.companion.PartyGrouping;
+import grill24.fishsim.companion.PartyLayer;
 import grill24.fishsim.companion.PointOfInterest;
 import grill24.fishsim.companion.Temperament;
 import grill24.fishtastic.client.FishtasticClientConfig;
@@ -39,7 +41,9 @@ import java.util.UUID;
  * client level ({@link CompanionStorage#party}), groups it ({@link PartyGrouping}, via
  * {@link CompanionGroups#members}) and keeps one {@link ClientCompanion} per group — created when a
  * player with a party comes into view, all rebuilt when their party changes, dropped when they leave
- * or empty it — then steps each one's sim from the world the {@link CompanionWorldAdapter} builds.
+ * or empty it — then steps the party's {@link PartyLayer} (party spec §6, Phase 3: perch homes and
+ * leases, one shared hand clock, ground separation) from the worlds the {@link CompanionWorldAdapter}
+ * builds. A one-unit party steps exactly as a lone companion did.
  * A companion is identified by its owner and its group's lowest slot; the party lead is found by
  * slot ({@link ClientCompanion#holdsSlot}), since it may follow in its own school (D9).
  *
@@ -53,12 +57,58 @@ import java.util.UUID;
 public final class ClientCompanions {
     private ClientCompanions() {}
 
-    /** One player's party as this client runs it: the synced party and one companion per group. */
-    private record OwnerParty(Player owner, CompanionParty party, List<ClientCompanion> companions) {}
+    /**
+     * One player's party as this client runs it: the synced party, one companion per group, and the
+     * party layer that steps them together (built on the first tick, when there's a world to build
+     * it in). A dev phantom is a party of one with no owner.
+     */
+    private static final class OwnerParty {
+        @Nullable private final Player owner;
+        @Nullable private final CompanionParty party;
+        private final List<ClientCompanion> companions;
+        @Nullable private PartyLayer layer;
+
+        OwnerParty(@Nullable Player owner, @Nullable CompanionParty party, List<ClientCompanion> companions) {
+            this.owner = owner;
+            this.party = party;
+            this.companions = companions;
+        }
+
+        @Nullable Player owner() { return owner; }
+        @Nullable CompanionParty party() { return party; }
+        List<ClientCompanion> companions() { return companions; }
+
+        /** Builds (first tick) or steps the party's sim; returns the time it took, ns. */
+        long tick(ClientLevel level, CompanionWorldAdapter.LevelBlocks blocks, List<PointOfInterest> devPoints) {
+            int n = companions.size();
+            CompanionWorld[] worlds = new CompanionWorld[n];
+            for (int i = 0; i < n; i++) {
+                worlds[i] = companions.get(i).world(level, blocks, othersNear(this, companions.get(i)), devPoints);
+            }
+            long start = System.nanoTime();
+            if (layer == null) {
+                List<PartyGrouping.Group> groups = new ArrayList<>(n);
+                Map<PartyGrouping.Member, ClientCompanion> byLeader = new HashMap<>();
+                for (ClientCompanion c : companions) {
+                    groups.add(c.group());
+                    byLeader.put(c.group().leader(), c);
+                }
+                layer = new PartyLayer(ClientCompanion.TUNABLES, groups, m -> byLeader.get(m).temperament(),
+                        m -> byLeader.get(m).driftStyle(), worlds[0], slot -> pointId(owner, slot, 0));
+                for (int i = 0; i < n; i++) companions.get(i).attach(layer.unit(i));
+            } else {
+                PartyLayer l = layer;
+                l.step(u -> worlds[l.units().indexOf(u)]);
+            }
+            long nanos = System.nanoTime() - start;
+            for (ClientCompanion c : companions) c.afterStep(nanos);
+            return nanos;
+        }
+    }
 
     private static final Map<UUID, OwnerParty> PARTIES = new HashMap<>();
     /** Dev-only companions with no owner, round an imaginary still owner — a stand-in for another player's. */
-    private static final Map<UUID, ClientCompanion> PHANTOMS = new HashMap<>();
+    private static final Map<UUID, OwnerParty> PHANTOMS = new HashMap<>();
     @Nullable private static ClientLevel trackedLevel;
     @Nullable private static CompanionWorldAdapter.LevelBlocks blocks;
     /** Another companion counts as a point of interest within this range of an owner, blocks. */
@@ -120,10 +170,7 @@ public final class ClientCompanions {
         CompanionDevPoints.tick(level);
         List<PointOfInterest> devPoints = CompanionDevPoints.points();
         long step = 0;
-        for (ClientCompanion companion : all()) {
-            companion.tick(level, blocks, othersNear(companion), devPoints);
-            step += companion.stepNanos;
-        }
+        for (OwnerParty party : parties()) step += party.tick(level, blocks, devPoints);
         recordCost(step);
     }
 
@@ -145,27 +192,33 @@ public final class ClientCompanions {
         return new OwnerParty(player, party, List.copyOf(companions));
     }
 
-    /** Every companion this client runs, phantoms included. */
-    private static List<ClientCompanion> all() {
-        List<ClientCompanion> all = new ArrayList<>();
-        for (OwnerParty party : PARTIES.values()) all.addAll(party.companions());
+    /** Every party this client runs, phantoms included. */
+    private static List<OwnerParty> parties() {
+        List<OwnerParty> all = new ArrayList<>(PARTIES.values());
         all.addAll(PHANTOMS.values());
         return all;
     }
 
+    /** Every companion this client runs, phantoms included. */
+    private static List<ClientCompanion> all() {
+        List<ClientCompanion> all = new ArrayList<>();
+        for (OwnerParty party : parties()) all.addAll(party.companions());
+        return all;
+    }
+
     /**
-     * The other companions near {@code self}'s fish, as its points of interest (from this client's
-     * own sims) — party-mates included; Phase 2 makes them familiar (party spec §7).
+     * Other parties' companions near {@code self}'s fish, as its points of interest (from this
+     * client's own sims). Its own party-mates are left out: its party layer adds them.
      */
-    private static List<PointOfInterest> othersNear(ClientCompanion self) {
+    private static List<PointOfInterest> othersNear(OwnerParty own, ClientCompanion self) {
         if (self.agent() == null || count() < 2) return List.of();
         List<PointOfInterest> out = new ArrayList<>();
         int i = 0;
         for (ClientCompanion other : all()) {
             i++;
-            if (other == self || other.agent() == null) continue;
+            if (own.companions().contains(other) || other.agent() == null) continue;
             if (other.agent().position().distanceTo(self.agent().position()) > COMPANION_RANGE) continue;
-            PointOfInterest p = other.asPoint(pointId(other, i));
+            PointOfInterest p = other.asPoint(pointId(other.owner(), other.lowestSlot(), i));
             if (p != null) out.add(p);
         }
         return out;
@@ -176,9 +229,8 @@ public final class ClientCompanions {
      * entity id and its group's lowest slot (its identity; the formation leader can change with
      * sizes), negated. Phantoms have no owner; they take an index below every real id.
      */
-    static int pointId(ClientCompanion companion, int index) {
-        Player owner = companion.owner();
-        return owner != null ? -1 - (owner.getId() * CompanionParty.SIZE + companion.lowestSlot())
+    static int pointId(@Nullable Player owner, int lowestSlot, int index) {
+        return owner != null ? -1 - (owner.getId() * CompanionParty.SIZE + lowestSlot)
                 : Integer.MIN_VALUE + index;
     }
 
@@ -255,8 +307,8 @@ public final class ClientCompanions {
 
     /** How many companions the client is currently tracking (one per group), phantoms included. */
     public static int count() {
-        int n = PHANTOMS.size();
-        for (OwnerParty party : PARTIES.values()) n += party.companions().size();
+        int n = 0;
+        for (OwnerParty party : parties()) n += party.companions().size();
         return n;
     }
 
@@ -284,8 +336,10 @@ public final class ClientCompanions {
             }
         }
         if (FishtasticClientConfig.hideOtherCompanions()) return;
-        for (ClientCompanion phantom : PHANTOMS.values()) {
-            if (phantom.submitWorld(poseStack, nodes, cam, partialTick)) worldSubmitsThisFrame++;
+        for (OwnerParty phantom : PHANTOMS.values()) {
+            for (ClientCompanion c : phantom.companions()) {
+                if (c.submitWorld(poseStack, nodes, cam, partialTick)) worldSubmitsThisFrame++;
+            }
         }
     }
 
@@ -381,7 +435,9 @@ public final class ClientCompanions {
     public static UUID addPhantom(ItemStack fish, Vec3 eye, float yaw) {
         Minecraft mc = Minecraft.getInstance();
         UUID id = UUID.randomUUID();
-        if (mc.level != null) PHANTOMS.put(id, ClientCompanion.phantom(eye, yaw, fish, mc.level));
+        if (mc.level != null) {
+            PHANTOMS.put(id, new OwnerParty(null, null, List.of(ClientCompanion.phantom(eye, yaw, fish, mc.level))));
+        }
         return id;
     }
 

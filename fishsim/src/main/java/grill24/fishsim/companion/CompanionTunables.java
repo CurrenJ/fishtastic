@@ -346,6 +346,13 @@ public final class CompanionTunables {
     public boolean moreGroundBeats = true;
     public double groundBeatSooner = 2.0;
 
+    /**
+     * A perched anchored fish ducks only this long at a predator fish in its owner's hand, then
+     * comes back up and watches it (owner feedback 2026-10-14: a lionfish in hand kept a garden eel
+     * squashed ~14 s). Hostiles and cats still keep it ducked. 0 = duck for as long as it's wary.
+     */
+    public float anchoredPredatorDuckSeconds = 2f;
+
     public static CompanionTunables defaults() {
         return new CompanionTunables();
     }

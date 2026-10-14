@@ -3,6 +3,7 @@ package grill24.fishsim.companion;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.IntUnaryOperator;
 
 /**
  * One owner's party as the sim steps it (docs/fish-companions-party.md §6): the units {@link
@@ -114,6 +115,8 @@ public final class PartyLayer {
     private final CompanionTunables t;
     /** Units of ground walkers, for ground separation (§6.2; empty under two). */
     private final List<Unit> groundUnits;
+    /** A unit's point id as its party-mates see it, from its lowest slot. */
+    private final IntUnaryOperator mateId;
 
     /**
      * @param groups      the party's units, from {@link PartyGrouping#group}
@@ -123,6 +126,17 @@ public final class PartyLayer {
     public PartyLayer(CompanionTunables t, List<PartyGrouping.Group> groups,
                       Function<PartyGrouping.Member, Temperament> temperament,
                       Function<PartyGrouping.Member, DriftStyle> drift, CompanionWorld world) {
+        this(t, groups, temperament, drift, world, PartyLayer::pointId);
+    }
+
+    /**
+     * As above, with the point id each unit shows its party-mates, from its lowest slot. The game
+     * keys it by owner too, so it can't collide with another party's ids (spec §5.2).
+     */
+    public PartyLayer(CompanionTunables t, List<PartyGrouping.Group> groups,
+                      Function<PartyGrouping.Member, Temperament> temperament,
+                      Function<PartyGrouping.Member, DriftStyle> drift, CompanionWorld world, IntUnaryOperator mateId) {
+        this.mateId = mateId;
         List<Unit> out = new ArrayList<>(groups.size());
         for (PartyGrouping.Group g : groups) {
             out.add(new Unit(g, t, temperament.apply(g.leader()), drift.apply(g.leader()), world));
@@ -221,17 +235,26 @@ public final class PartyLayer {
      * that leader stood at the end of the last tick, within {@link #MATE_RANGE}.
      */
     public void step(CompanionWorld base) {
+        step(u -> base);
+    }
+
+    /**
+     * As {@link #step(CompanionWorld)}, with each unit's own base world: in game, what the owner
+     * holds reads differently per species ({@code SAME_SPECIES}), and dev triggers act on one unit.
+     */
+    public void step(Function<Unit, CompanionWorld> worldOf) {
         int n = units.size();
         if (n == 1) {
-            units.get(0).step(base);
+            units.get(0).step(worldOf.apply(units.get(0)));
             return;
         }
         if (leases != null) leases.snapshot();
         if (handClock != null) handClock.tick();
         if (!groundUnits.isEmpty()) separateGround();
         PointOfInterest[] mates = new PointOfInterest[n];
-        for (int i = 0; i < n; i++) mates[i] = units.get(i).asPoint(pointId(units.get(i).group()));
+        for (int i = 0; i < n; i++) mates[i] = units.get(i).asPoint(mateId.applyAsInt(units.get(i).group().lowestSlot()));
         for (int i = 0; i < n; i++) {
+            CompanionWorld base = worldOf.apply(units.get(i));
             Vec self = units.get(i).leader().position();
             List<PointOfInterest> pts = null;
             for (int j = 0; j < n; j++) {
@@ -295,7 +318,7 @@ public final class PartyLayer {
      * A party-mate's point id, from its unit's identity (its lowest slot), as ClientCompanions keys
      * it: negative, so it never collides with an entity's (spec §5.2).
      */
-    static int pointId(PartyGrouping.Group g) {
-        return -1 - g.lowestSlot();
+    static int pointId(int lowestSlot) {
+        return -1 - lowestSlot;
     }
 }

@@ -114,7 +114,7 @@ class FishAnimatorFloorLiftTest {
         // The plant depth is an absolute burial, not a fraction of the creature: a deeper value
         // sinks any size of eel by exactly that much.
         assertEquals(FishAnimator.PLANTED_PIVOT_Y * 0.3f - 0.25f,
-                FishAnimator.floorPoseLift(new FishAnimationConfig.Planted(0.25f, 3f, 0.018f, 0.9f), 0.3f),
+                FishAnimator.floorPoseLift(new FishAnimationConfig.Planted(0.25f, 3f, 0.018f, 0.9f, 0f), 0.3f),
                 EPSILON);
     }
 }

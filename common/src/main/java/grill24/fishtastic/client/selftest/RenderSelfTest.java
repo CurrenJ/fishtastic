@@ -147,7 +147,7 @@ public final class RenderSelfTest {
     /** Scenes that run only when the marker names them (they need something the default run lacks). */
     private static final List<String> OPT_IN_SCENES = List.of("matte", "matteclip", "fourwaters", "cathedral",
             "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench",
-            "companionbond", "companionsim", "companionparty", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk");
+            "companionbond", "companionsim", "companionparty", "companioneel", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk");
 
     private static Boolean armed;
     /** Keep ordinary automatic features from interfering with explicitly armed fixture scenes. */
@@ -382,6 +382,7 @@ public final class RenderSelfTest {
             case "companionbond" -> queueCompanionBondScene();
             case "companionsim" -> queueCompanionSimScene();
             case "companionparty" -> queueCompanionPartyScene();
+            case "companioneel" -> queueCompanionEelScene();
             case "ambientparity" -> queueAmbientParityScene();
             case "ambientwater" -> queueAmbientWaterScene();
             case "ambientcontext" -> queueAmbientContextScene();
@@ -4823,6 +4824,24 @@ public final class RenderSelfTest {
                         ? companions.size() == 1 && companions.get(0).displayClassName().equals("school of 3")
                         : companions.stream().allMatch(c -> c.bodyCount() == 1);
                 check("companionparty." + name + ".kinds", kinds, lines);
+                if (name.equals("mixed")) {
+                    // The party layer (spec §6.1, Phase 3): the eel's home is the head (D5), and
+                    // no two riders share a perch.
+                    java.util.Set<grill24.fishsim.companion.PerchBody.Slot> taken = new java.util.HashSet<>();
+                    boolean shared = false;
+                    String eelHome = "none";
+                    StringBuilder perches = new StringBuilder();
+                    for (var c : companions) {
+                        var a = c.agent();
+                        if (a == null) continue;
+                        if (c.locomotion() == grill24.fishsim.core.Locomotion.ANCHORED) eelHome = String.valueOf(a.perchHome());
+                        perches.append(c.partyLine()).append(" home ").append(a.perchHome())
+                                .append(a.riding() ? " on " + a.perchSlot() : " off").append("; ");
+                        if (a.riding() && !a.perchSlot().hand() && !taken.add(a.perchSlot())) shared = true;
+                    }
+                    check("companionparty.mixed.eel_home_head", eelHome.equals("HEAD"), perches.toString());
+                    check("companionparty.mixed.no_shared_perch", !shared, perches.toString());
+                }
                 companionLog(name + " first person");
                 screenshot(mc, "companionparty", name + "_fp");
                 mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
@@ -4843,6 +4862,111 @@ public final class RenderSelfTest {
             grill24.fishtastic.client.companion.ClientCompanions.devOverlay(false);
             server(mc, RenderSelfTest::clearParties);
         });
+    }
+
+    /**
+     * Garden eels on their owner (D5, party spec §6.1): three of them settle on the head and both
+     * shoulders, each with its art's base on the perch (Planted.baseX), photographed from the front
+     * and behind; then a lone eel while its owner holds a predator fish, which ducks only briefly
+     * (CompanionTunables.anchoredPredatorDuckSeconds) and comes back up to watch it.
+     */
+    private static void queueCompanionEelScene() {
+        queue(1, RenderSelfTest::paradeSetup);
+        queue(1, mc -> server(mc, s -> {
+            clearParties(s);
+            run(s, "item replace entity @p weapon.mainhand with minecraft:air");
+            run(s, "fishtastic companion give @p fishtastic:garden_eel 40 1");
+            run(s, "fishtastic companion give @p fishtastic:garden_eel 35 2");
+            run(s, "fishtastic companion give @p fishtastic:garden_eel 45 3");
+        }));
+        queue(160, mc -> {
+            var companions = grill24.fishtastic.client.companion.ClientCompanions.localCompanions();
+            java.util.Set<String> homes = new java.util.TreeSet<>();
+            boolean allRiding = true;
+            StringBuilder state = new StringBuilder();
+            for (var c : companions) {
+                var a = c.agent();
+                if (a == null) { allRiding = false; continue; }
+                homes.add(String.valueOf(a.perchHome()));
+                allRiding &= a.riding() && a.perchSlot() == a.perchHome();
+                state.append(c.partyLine()).append(" home ").append(a.perchHome())
+                        .append(a.riding() ? " on " + a.perchSlot() : " off").append("; ");
+            }
+            check("companioneel.three.homes", homes.equals(new java.util.TreeSet<>(
+                    java.util.List.of("HEAD", "LEFT_SHOULDER", "RIGHT_SHOULDER"))), state.toString());
+            check("companioneel.three.riding_home", allRiding, state.toString());
+            // Zoomed in, against a dark wall behind the player (it faces -z): pale eels on sky
+            // are unreadable at the default field of view.
+            savedFov = mc.options.fov().get();
+            mc.options.fov().set(30);
+            server(mc, s -> run(s, eelWall(3, "black_concrete")));
+            mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT);
+        });
+        queue(20, mc -> screenshot(mc, "companioneel", "three_front"));
+        queue(1, mc -> {
+            server(mc, s -> {
+                run(s, eelWall(3, "air"));
+                run(s, eelWall(-3, "black_concrete"));
+            });
+            mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
+        });
+        queue(20, mc -> screenshot(mc, "companioneel", "three_back"));
+        queue(1, mc -> {
+            server(mc, s -> run(s, eelWall(-3, "air")));
+            // Shoulder bases sit on the arm's centre, which differs for slim and wide arms.
+            Fishtastic.LOGGER.info("[selftest] eel skin model {}", mc.player.getSkin().model());
+            mc.options.fov().set(savedFov);
+        });
+        queue(1, mc -> server(mc, s -> {
+            clearParties(s);
+            run(s, "fishtastic companion give @p fishtastic:garden_eel 40 1");
+        }));
+        queue(120, mc -> {
+            grill24.fishtastic.client.companion.ClientCompanions.devOverlay(true);
+            mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT);
+            eelLog("calm");
+            server(mc, s -> run(s, "item replace entity @p weapon.mainhand with fishtastic:lionfish"));
+        });
+        int[] ducked = new int[1];
+        for (int k = 0; k < 100; k++) {
+            int tick = k;
+            queue(1, mc -> {
+                var lead = grill24.fishtastic.client.companion.ClientCompanions.local();
+                if (lead != null && lead.agent() != null && lead.agent().poseHint() == grill24.fishsim.companion.PoseHint.DUCK) ducked[0]++;
+                if (tick == 20) screenshot(mc, "companioneel", "predator_1s_front");
+                if (tick == 80) screenshot(mc, "companioneel", "predator_4s_front");
+                if (tick % 20 == 0) eelLog("predator t=" + tick / 20);
+            });
+        }
+        queue(1, mc -> {
+            var lead = grill24.fishtastic.client.companion.ClientCompanions.local();
+            String pose = lead == null || lead.agent() == null ? "none" : lead.agent().poseHint().name();
+            check("companioneel.predator.brief_duck", ducked[0] > 10 && ducked[0] <= 50,
+                    "ducked " + ducked[0] + " of 100 ticks");
+            check("companioneel.predator.back_up", !pose.equals("DUCK"), "pose " + pose + " after 5 s");
+            server(mc, s -> run(s, "item replace entity @p weapon.mainhand with minecraft:air"));
+        });
+        queue(20, mc -> {
+            mc.options.setCameraType(CameraType.FIRST_PERSON);
+            grill24.fishtastic.client.companion.ClientCompanions.devOverlay(false);
+            server(mc, RenderSelfTest::clearParties);
+        });
+    }
+
+    private static int savedFov = 70;
+
+    /** A 7×5 wall {@code dz} blocks from the scene origin, for a backdrop. */
+    private static String eelWall(int dz, String block) {
+        return String.format(Locale.ROOT, "fill %d %d %d %d %d %d minecraft:%s", origin.getX() - 3, origin.getY(),
+                origin.getZ() + dz, origin.getX() + 3, origin.getY() + 4, origin.getZ() + dz, block);
+    }
+
+    private static void eelLog(String label) {
+        String state = grill24.fishtastic.client.companion.ClientCompanions.debugState();
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("goal \\S+|pose \\S+|threat [^|]*?retract [0-9.]+").matcher(state);
+        StringBuilder out = new StringBuilder();
+        while (m.find()) out.append(m.group()).append("  ");
+        Fishtastic.LOGGER.info("[selftest] eel {}: {}", label, out);
     }
 
     /**

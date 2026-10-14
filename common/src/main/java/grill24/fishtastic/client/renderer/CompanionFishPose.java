@@ -50,6 +50,9 @@ public final class CompanionFishPose {
     /** Centre height above its supporting surface, including the species' measured foot pivot. */
     public float floorLift() { return FishAnimator.floorPoseLift(anim, length); }
 
+    /** A planted fish's base across its art (FishAnimationConfig.Planted.baseX), else 0. */
+    public float baseX() { return anim instanceof FishAnimationConfig.Planted p ? p.baseX() : 0f; }
+
     /** The length it is drawn at, blocks. */
     public float length() { return length; }
 
@@ -74,8 +77,9 @@ public final class CompanionFishPose {
         // the camera (owner feedback 2026-10-10).
         float t = gameTimeTicks * CompanionRender.IDLE_CLOCK_RATE;
         if (locomotion == Locomotion.ANCHORED) {
-            // Planted: the sway is game time, the withdrawal is the caller's envelope.
-            FishAnimator.applyAnchored(poseStack, anim, random, t, 0f, scale, false, retract);
+            // Planted: the sway is game time, the withdrawal is the caller's envelope, and the
+            // art's base (not its centre line) sits on the perch.
+            FishAnimator.applyAnchored(poseStack, anim, random, t, 0f, scale, false, retract, true);
         } else if (locomotion == Locomotion.DRIFT) {
             FishAnimator.applyDrifting(poseStack, anim, random, t, 0f, scale, false, 0f);
         } else {

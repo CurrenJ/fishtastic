@@ -12,6 +12,7 @@ import grill24.fishsim.companion.CompanionWorld;
 import grill24.fishsim.companion.DriftStyle;
 import grill24.fishsim.companion.OwnerState;
 import grill24.fishsim.companion.PartyGrouping;
+import grill24.fishsim.companion.PartyLayer;
 import grill24.fishsim.companion.PerchBody;
 import grill24.fishsim.companion.PointOfInterest;
 import grill24.fishsim.companion.Temperament;
@@ -53,8 +54,10 @@ import java.util.UUID;
  * per group.
  *
  * <p>All motion and behaviour is the {@code :fishsim} companion sim — a {@link CompanionAgent}, a
- * {@link CompanionGroup} for a school or a {@link BenthicGroup} for a ground formation — stepped once
- * per client tick from the snapshot {@link CompanionWorldAdapter} builds, and interpolated per frame.
+ * {@link CompanionGroup} for a school or a {@link BenthicGroup} for a ground formation — held as one
+ * {@link PartyLayer.Unit} of its owner's party layer (party spec §6, Phase 3). The layer steps every
+ * unit of the party together once per client tick, each from the snapshot this class builds with
+ * {@link CompanionWorldAdapter}, and each is interpolated per frame.
  * This class only owns what the sim can't know: each member's bonded stack, its render data, and
  * drawing. Every member is its own fish: its own size, quality, name and render calibration.
  *
@@ -69,7 +72,7 @@ public final class ClientCompanion {
      * pose of small fish; it is gone. Only a degenerate zero length is guarded.
      */
     private static final float MIN_SIM_LENGTH = 1e-3f;
-    private static final CompanionTunables TUNABLES = CompanionTunables.defaults();
+    static final CompanionTunables TUNABLES = CompanionTunables.defaults();
 
     /** The owner, or null for a dev phantom: an imaginary still owner standing at {@link #phantomEye}. */
     @Nullable private final Player owner;
@@ -98,7 +101,7 @@ public final class ClientCompanion {
     private int lastPoints;
     /** Dev trigger: report the owner hurt on the next tick. */
     private boolean devHurt;
-    /** Nanoseconds the last sim step took, for the debug overlay. */
+    /** Nanoseconds the party's last sim step took (every unit of it), for the debug overlay. */
     long stepNanos;
 
     /**
@@ -143,9 +146,10 @@ public final class ClientCompanion {
         return new ClientCompanion(null, eye, yaw, PartyGrouping.group(member).get(0), List.of(fish), level, null);
     }
 
-    /** A fish's true-to-scale rendered length, blocks: what grouping ranks members by. */
+    /** A fish's true-to-scale rendered length, blocks: what grouping ranks members by and the sim sizes them to. */
     static float trueLength(ItemStack fish, Level level) {
-        return FishVisuals.renderedLength(fish, FishVisuals.resolve(fish, level).renderCalibration());
+        return Math.max(FishVisuals.renderedLength(fish, FishVisuals.resolve(fish, level).renderCalibration()),
+                MIN_SIM_LENGTH);
     }
 
     /**
@@ -190,12 +194,13 @@ public final class ClientCompanion {
     // ── Tick ───────────────────────────────────────────────────────────────────
 
     /**
-     * Client tick (20 Hz): builds this companion's view of the world and steps the sim.
+     * Client tick (20 Hz): this unit's view of the world, for its party layer to step it in. Its own
+     * party-mates are not in {@code companions}: the layer adds them.
      *
-     * @param companions every other companion near enough to matter, as points of interest
+     * @param companions every other party's companion near enough to matter, as points of interest
      */
-    void tick(ClientLevel level, CompanionWorldAdapter.LevelBlocks blocks, List<PointOfInterest> companions,
-              List<PointOfInterest> devPoints) {
+    CompanionWorld world(ClientLevel level, CompanionWorldAdapter.LevelBlocks blocks, List<PointOfInterest> companions,
+                         List<PointOfInterest> devPoints) {
         OwnerState ownerState;
         boolean hurt;
         CompanionWorld.Held held;
@@ -220,35 +225,22 @@ public final class ClientCompanion {
         }
         hurt |= devHurt;
         devHurt = false;
-        CompanionWorld world = new CompanionWorld(ownerState, blocks, points, held, hurt);
         lastOwner = ownerState;
         lastHeld = held;
         lastPoints = points.size();
+        return new CompanionWorld(ownerState, blocks, points, held, hurt);
+    }
 
-        long start = System.nanoTime();
-        if (agent == null) {
-            switch (group.kind()) {
-                case SCHOOL -> {
-                    school = group.school(TUNABLES, temperament, world);
-                    agent = school.leader();
-                }
-                case GROUND -> {
-                    benthic = group.ground(TUNABLES, temperament, world);
-                    agent = benthic.leader();
-                }
-                // A null gait is the old constructor's path: every non-benthic class is unchanged.
-                default -> agent = new CompanionAgent(TUNABLES, group.seed(), locomotion, lengths[0], temperament,
-                        gait, driftStyle, world);
-            }
-        } else if (school != null) {
-            school.step(world);
-        } else if (benthic != null) {
-            benthic.step(world);
-        } else {
-            agent.step(world);
-        }
-        stepNanos = System.nanoTime() - start;
-        // Every member's pose hints follow the leader's mind (a group thinks as one).
+    /** The party layer built this unit's sim (on the party's first tick). */
+    void attach(PartyLayer.Unit unit) {
+        school = unit.school();
+        benthic = unit.ground();
+        agent = unit.leader();
+    }
+
+    /** After the party layer stepped (or built) this unit: every member's pose hints follow the leader's mind. */
+    void afterStep(long partyStepNanos) {
+        stepNanos = partyStepNanos;
         for (CompanionRender render : renders) render.tick(agent);
     }
 
@@ -427,7 +419,10 @@ public final class ClientCompanion {
         return member(i).perchSlot();
     }
 
-    Locomotion locomotion() { return locomotion; }
+    public Locomotion locomotion() { return locomotion; }
+
+    /** Where member {@code i}'s planted art has its base across the sprite (FishAnimationConfig.Planted.baseX), else 0. */
+    float perchBaseX(int i) { return perchPoses[i].baseX(); }
 
     /** Height of member {@code i}'s perched sprite centre above the surface its feet rest on. */
     float perchFloorLift(int i) { return perchPoses[i].floorLift(); }
@@ -480,6 +475,8 @@ public final class ClientCompanion {
     @Nullable public CompanionAgent agent() { return agent; }
 
     public Temperament temperament() { return temperament; }
+
+    DriftStyle driftStyle() { return driftStyle; }
 
     void devHurt() { devHurt = true; }
 
@@ -553,7 +550,9 @@ public final class ClientCompanion {
                         + "  rest " + bar(a.rest()) + (a.resting() ? " settled" : ""),
                 "proximity " + bar(a.proximity()) + "  attention " + bar(a.attention())
                         + "  seen " + (a.seen() ? "yes" : "no (" + a.unseenTicks() / 20 + " s)"),
-                String.format(Locale.ROOT, "held %s  points %d  owner %.1f blocks  step %d us",
+                String.format(Locale.ROOT, "threat %s  wariness %.2f  retract %.2f", a.threatKind(), a.wariness(),
+                        renders[0].retract(0f)),
+                String.format(Locale.ROOT, "held %s  points %d  owner %.1f blocks  party step %d us",
                         lastHeld, lastPoints, a.ownerDistance(), stepNanos / 1000)));
         if (gait != null) {
             lines.add(String.format(Locale.ROOT, "ground gait %s  group %d %s  beat %s (overtakes %d roadsides %d)"
