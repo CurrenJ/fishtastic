@@ -302,7 +302,7 @@ own companion in first person" applies to the whole party.
 | Phase | Builds | Gate |
 |---|---|---|
 | 1 | Storage + migration, (owner, slot) identity, packets, menu with 3 slots and the party preview, hold-B rules, commands, game tests. In game: same-species slots form a group (§3), and different species run **independently** (no party layer yet; overlap expected). Retire the size and count group rules | Game tests on both loaders; trio and group fingerprints bitwise; owner tries the menu and a school |
-| 2 | Re-scoped (§6, review §6). **2b** `PartyBaselineProbe` as the metric suite, plus multi-unit parties in the viewer. **2c** mixed shoal (D13). **2d** perch homes + leases (§6.1, with D5's intended ANCHORED change). **2e** party-mate familiarity tuning (§7). **2f** measure ground benthic candidates (§6.2), then build the winner | Solo and identical-group fingerprints bitwise; owner viewer |
+| 2 | Re-scoped (§6, review §6). **2b** (done, §16) `PartyBaselineProbe` as the metric suite, plus multi-unit parties in the viewer. **2c** mixed shoal (D13). **2d** perch homes + leases (§6.1, with D5's intended ANCHORED change). **2e** party-mate familiarity tuning (§7). **2f** measure ground benthic candidates (§6.2), then build the winner | Solo and identical-group fingerprints bitwise; owner viewer |
 | 3 | In game: party wiring, per-slot overlay, self-test scene, changelog note on lost trios | Owner solo playtest |
 | 4 | Folded into sim Phase 4: social drive across and within parties | Owner viewer, then in game |
 
@@ -474,3 +474,34 @@ Full record: [`fish-companions-party-2a-asbuilt.md`](fish-companions-party-2a-as
   - self-test `companionbond` 15/15 on both loaders. It adds editor open/close-on-move, pile to
     cursor and the refusal flash, with shots `pencil_open`, `pile_strip`, `pile_cursor`,
     `locked_flash`, `locked_flash_quest`.
+
+## 16. Phase 2b as built (metric suite, parties in the viewer)
+
+- **`PartyLayer`** (`:fishsim` companion package) owns one owner's units (solo, school, ground
+  formation) and steps them together, with no party rules yet: it is the measured baseline that
+  2c–2f add switches to. Each unit sees the other leaders as `COMPANION` points within 16 blocks,
+  read from the end of the previous tick.
+  - A mate's point id comes from its unit's lowest slot, as `ClientCompanions.pointId` keys it,
+    not from its list position. Curiosity remembers points by id, so this matters: it moves 3 of
+    the review's rows by at most 0.1 point (e.g. starfish pair + crab overlap 12.34 → 12.40).
+    These are the new baseline figures for A/Bs.
+  - `PartyLayerTest` (always on) pins the contract: a one-unit party is bitwise a bare solo (one
+    per class) and a bare school, reversing the step order changes nothing, and a party-mate does
+    change what the lead does. The order test was mutation-checked: index-keyed ids fail it.
+- **`PartyRun`** (harness) is the §8 metric suite: the representative `PARTIES`, the script list,
+  and `measure(...)`, each unit against itself alone on the same script and seed, with a test hook
+  on the fresh layer. New rates pair the levels: drawn-overlap and perch-clash episodes per minute.
+  `PartyBaselineProbe` now only prints it (`-PtweakB=homes` is still the reflection test hook).
+  - Before the point-id change, the refactor reproduced every line of the review's tables byte
+    for byte (baseline and homes, 4 seeds).
+  - New party: "school pair + percher" (a non-walking benthic). Overlap 0.03%, no clashes.
+  - Rates (baseline → homes): crab + octopus + slug clash episodes 2.52 → 1.91/min, starfish pair
+    + crab 1.17 → 0.31, three anchored 0.63 → 0; three free swimmers overlap 6.0 episodes/min.
+- **Viewer:** a `PARTY <name>` class per suite party. The overlay and dev keys follow the lead's
+  unit. The other units are drawn in first person, every body but the followed one is a labelled
+  teal mark on the map, and a status line per unit shows slots, kind, goal, seen and perch.
+  `./gradlew :fishsim:runCompanionViewer -PsimArgs="--party anchored --owner walk"` opens
+  straight into a party. "3 anchored" shows the review's defect directly: all three on `BACK`.
+- **Verified:** `:fishsim:test` 476 tests, 0 failed; all 930 `FingerprintProbe -PfpAll=1` +
+  `GroupFingerprintProbe` lines bitwise against `09e026c7`.
+- **Next:** 2c, the mixed shoal (D13).

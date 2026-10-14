@@ -339,6 +339,44 @@ public final class CompanionRenderer {
         g.dispose();
     }
 
+    /** Whole agents (a party's other units, docs/fish-companions-party.md §6), each with the solo renderer. */
+    public static void drawAgents(BufferedImage img, OwnerState owner, LocalVoxels voxels, List<CompanionAgent> agents) {
+        Graphics2D g = img.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        Cam cam = Cam.of(owner, img.getWidth(), img.getHeight());
+        for (CompanionAgent a : agents) {
+            if (a.renderAppear() > 0.01f && voxels.segmentClear(cam.pos(), a.renderPos(), 0)) drawFish(g, cam, a);
+        }
+        g.dispose();
+    }
+
+    /** A fish on the top view that isn't the one the view follows: where it is, its heading and length. */
+    public record Mark(Vec pos, float yaw, float length, String label) {}
+
+    /** Party-mates on a {@link #topView} drawn at the same scale: a teal triangle each, labelled. */
+    public static void drawTopMarks(BufferedImage img, OwnerState o, double pxPerBlock, List<Mark> marks) {
+        Graphics2D g = img.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 10));
+        double cx = img.getWidth() / 2.0, cy = img.getHeight() / 2.0;
+        for (Mark m : marks) {
+            double fx = cx + (m.pos().x() - o.eye().x()) * pxPerBlock, fy = cy + (m.pos().z() - o.eye().z()) * pxPerBlock;
+            Vec dir = Vec.fromYawPitch(m.yaw(), 0);
+            Vec side = dir.cross(Vec.UP);
+            double L = Math.max(6, m.length() * pxPerBlock);
+            Polygon tri = new Polygon();
+            tri.addPoint((int) (fx + dir.x() * L * 0.6), (int) (fy + dir.z() * L * 0.6));
+            tri.addPoint((int) (fx - dir.x() * L * 0.4 + side.x() * L * 0.3), (int) (fy - dir.z() * L * 0.4 + side.z() * L * 0.3));
+            tri.addPoint((int) (fx - dir.x() * L * 0.4 - side.x() * L * 0.3), (int) (fy - dir.z() * L * 0.4 - side.z() * L * 0.3));
+            g.setColor(OTHER_COMPANION);
+            g.fillPolygon(tri);
+            g.setColor(Color.DARK_GRAY);
+            g.drawPolygon(tri);
+            if (m.label() != null) g.drawString(m.label(), (int) fx + 6, (int) fy - 4);
+        }
+        g.dispose();
+    }
+
     private static void drawFishAt(Graphics2D g, Cam cam, double len, Vec c, float yaw, float pitch, float bankDeg,
                                    float tailPhase, Color body) {
         Vec[] fr = frame(yaw, pitch, bankDeg);

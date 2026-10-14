@@ -12,6 +12,7 @@ import grill24.fishsim.companion.Vec;
 import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.harness.companion.CompanionRun;
 import grill24.fishsim.harness.companion.OwnerScript;
+import grill24.fishsim.harness.companion.PartyRun;
 import grill24.fishsim.harness.companion.VoxelScene;
 import grill24.fishsim.render.CompanionRenderer;
 
@@ -65,6 +66,8 @@ import java.util.Set;
  *   G ground · P climb · B tumble · K hurt
  *   The terrain scenes (half_stairs, slab_path, terraces, trench, cliff, door_wall,
  *   benthic_park) and the ground owner scripts are in the dropdowns.
+ *   The "PARTY ..." classes run a whole party (docs/fish-companions-party.md §6, PartyRun.PARTIES):
+ *   the overlay and dev keys follow the lead's unit, the others are drawn too (teal on the map).
  * </pre>
  *
  * The "owner" dropdown switches between manual control and any headless owner script (played
@@ -131,11 +134,17 @@ public final class CompanionViewer {
      * for the old identical-member trio and benthic groups.
      */
     private float[] memberLengths;
+    /** The chosen "PARTY ..." class's party, or null for a single unit. */
+    private PartyRun.Party partyChoice;
+    /** The running party; {@link #agent}, {@link #group} and {@link #benthicGroup} are its lead unit's. */
+    private grill24.fishsim.companion.PartyLayer party;
     private float lookYaw, lookPitch;
     private boolean paused, stepOnce, teleportNext;
     private long lastNanos = System.nanoTime();
     private double accumulator;
     private int dragX, dragY;
+
+    private String[] launchArgs = new String[0];
 
     private final JPanel canvas = new JPanel() {
         @Override
@@ -146,10 +155,15 @@ public final class CompanionViewer {
     };
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new CompanionViewer().open());
+        SwingUtilities.invokeLater(() -> new CompanionViewer().open(args));
     }
 
-    private void open() {
+    /**
+     * Launch args (-PsimArgs): {@code --party <name part>} opens on the first PARTY class whose name
+     * contains it, {@code --owner <script>} on that owner script.
+     */
+    private void open(String[] args) {
+        launchArgs = args;
         reset("open", MANUAL);
 
         JFrame frame = new JFrame("Fish companion — playground");
@@ -295,6 +309,15 @@ public final class CompanionViewer {
 
     private CompanionAgent newAgent() {
         benthicGroup = null;
+        party = null;
+        if (partyChoice != null) {
+            party = partyChoice.build(tunables, temperament, seed, world());
+            // Unit 0 holds slot 1, the party lead (spec §4).
+            grill24.fishsim.companion.PartyLayer.Unit lead = party.unit(0);
+            group = lead.school();
+            benthicGroup = lead.ground();
+            return lead.leader();
+        }
         if (trio) {
             group = memberLengths != null
                     ? new grill24.fishsim.companion.CompanionGroup(tunables, seed, memberLengths, temperament, world())
@@ -347,7 +370,8 @@ public final class CompanionViewer {
     }
 
     private void interpolate(float alpha) {
-        if (benthicGroup != null) benthicGroup.interpolate(alpha);
+        if (party != null) party.interpolate(alpha);
+        else if (benthicGroup != null) benthicGroup.interpolate(alpha);
         else if (group != null) group.interpolate(alpha); else agent.interpolate(alpha);
     }
 
@@ -385,9 +409,7 @@ public final class CompanionViewer {
         hurtNext = false;
         // A scripted door shuts once the fish isn't in the doorway.
         scene.applyDoor(d -> {
-            int count = benthicGroup == null ? 1 : benthicGroup.count();
-            for (int i = 0; i < count; i++) {
-                CompanionAgent member = benthicGroup == null ? agent : benthicGroup.member(i);
+            for (CompanionAgent member : allAgents()) {
                 Vec p = member.position();
                 double r = member.radius();
                 boolean clear = p.x() + r < d[0] || p.x() - r > d[3] || p.y() + r < d[1] || p.y() - r > d[4]
@@ -398,12 +420,14 @@ public final class CompanionViewer {
         });
         if (scene.version() != sceneVersion) {
             sceneVersion = scene.version();
-            if (benthicGroup != null) benthicGroup.invalidateBlocks();
+            if (party != null) party.invalidateBlocks();
+            else if (benthicGroup != null) benthicGroup.invalidateBlocks();
             else if (group != null) group.invalidateBlocks();
             else agent.voxels().invalidate();
             renderCache.invalidate();
         }
-        if (benthicGroup != null) benthicGroup.step(world());
+        if (party != null) party.step(world());
+        else if (benthicGroup != null) benthicGroup.step(world());
         else if (group != null) group.step(world()); else agent.step(world());
         trail.addLast(agent.position());
         if (trail.size() > TRAIL) trail.removeFirst();
@@ -414,7 +438,9 @@ public final class CompanionViewer {
         BufferedImage fp = CompanionRenderer.firstPerson(FP_W, FP_H, owner, renderCache, agent, true, world());
         if (group != null) CompanionRenderer.drawFollowers(fp, owner, renderCache, group);
         if (benthicGroup != null) CompanionRenderer.drawBenthicFollowers(fp, owner, renderCache, benthicGroup);
+        if (party != null) drawPartyMates(fp);
         BufferedImage top = CompanionRenderer.topView(TOP_W, FP_H, owner, renderCache, agent, tunables, trail, 30, world());
+        if (party != null) CompanionRenderer.drawTopMarks(top, owner, 30, partyMarks());
         g.drawImage(fp, 0, 0, null);
         g.drawImage(top, FP_W, 0, null);
         if (agent.landMode() != null) {
@@ -432,10 +458,83 @@ public final class CompanionViewer {
                 + " · P climb · B tumble · K hurt · Space pause · N step · R reseed" + (paused ? "   [PAUSED]" : ""), 8, FP_H - 7);
     }
 
+    /** Every full agent the viewer runs: the whole party's, a ground formation's, or the one fish. */
+    private List<CompanionAgent> allAgents() {
+        if (party != null) {
+            List<CompanionAgent> out = new ArrayList<>();
+            for (var u : party.units()) out.addAll(u.agents());
+            return out;
+        }
+        if (benthicGroup != null) {
+            List<CompanionAgent> out = new ArrayList<>();
+            for (int i = 0; i < benthicGroup.count(); i++) out.add(benthicGroup.member(i));
+            return out;
+        }
+        return List.of(agent);
+    }
+
+    /** The party's other units in first person, and a line per unit (slots, kind, goal, seen). */
+    private void drawPartyMates(BufferedImage fp) {
+        for (int u = 1; u < party.size(); u++) {
+            var unit = party.unit(u);
+            CompanionRenderer.drawAgents(fp, owner, renderCache, unit.agents());
+            if (unit.school() != null) CompanionRenderer.drawFollowers(fp, owner, renderCache, unit.school());
+        }
+        Graphics2D g = fp.createGraphics();
+        g.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 11));
+        int x = FP_W - 330, y = 18;
+        g.setColor(new Color(0, 0, 0, 120));
+        g.fillRect(x - 4, 4, 326, 14 * party.size() + 8);
+        g.setColor(Color.WHITE);
+        for (int u = 0; u < party.size(); u++, y += 14) {
+            var unit = party.unit(u);
+            CompanionAgent l = unit.leader();
+            int[] slots = unit.group().slots();
+            StringBuilder names = new StringBuilder();
+            for (int sl : slots) names.append(names.length() == 0 ? "" : ",").append(sl + 1);
+            String state = l.perchState() != null && l.goal().equals("PERCH") ? l.perchState() : l.goal();
+            g.drawString(String.format("%s %-6s %-6s %-9s %s%s", u == 0 ? ">" : " ", names,
+                    unit.group().kind(), state, l.seen() ? "seen" : "unseen",
+                    l.riding() ? " on " + l.perchSlot() : ""), x, y);
+        }
+        g.dispose();
+    }
+
+    /**
+     * Every party body on the map but the one the view follows (the lead unit's leader), labelled by
+     * slot (1-based, as the menu shows).
+     */
+    private List<CompanionRenderer.Mark> partyMarks() {
+        List<CompanionRenderer.Mark> out = new ArrayList<>();
+        for (int u = 0; u < party.size(); u++) {
+            var unit = party.unit(u);
+            int[] slots = unit.group().slots();
+            if (unit.school() != null) {
+                var s = unit.school();
+                if (u > 0) out.add(new CompanionRenderer.Mark(s.leader().renderPos(), s.leader().renderYaw(), s.leaderLength(),
+                        String.valueOf(slots[0] + 1)));
+                for (int i = 0; i < s.followerCount(); i++) {
+                    var f = s.follower(i);
+                    out.add(new CompanionRenderer.Mark(f.renderPos(), f.renderYaw(), f.length(),
+                            String.valueOf(slots[i + 1] + 1)));
+                }
+            } else {
+                List<CompanionAgent> agents = unit.agents();
+                for (int i = u == 0 ? 1 : 0; i < agents.size(); i++) {
+                    CompanionAgent a = agents.get(i);
+                    out.add(new CompanionRenderer.Mark(a.renderPos(), a.renderYaw(), a.length(),
+                            String.valueOf(slots[i] + 1)));
+                }
+            }
+        }
+        return out;
+    }
+
     /** Party-built groups (docs/fish-companions-party.md §3): same-species members of different sizes. */
     private static final String SCHOOL_MIXED = "SCHOOL bluegill 9/16/24 cm", SCHOOL_PAIR = "SCHOOL pair 16/24 cm",
             SCHOOL_BIG = "SCHOOL big 25/40/60 cm", STARFISH_PAIR = "BENTHIC starfish pair 30/45 cm",
             SLUG_CROWD_MIXED = "BENTHIC slug crowd 8/12/18 cm";
+    private static final String PARTY_PREFIX = "PARTY ";
 
     /** Member lengths, leader first, for a party-built group class, or null for every other class. */
     private static float[] partyLengths(String c) {
@@ -469,8 +568,17 @@ public final class CompanionViewer {
                 "BENTHIC", "BENTHIC plaice", "BENTHIC slug", "BENTHIC spider crab",
                 "BENTHIC starfish line", "BENTHIC slug crowd", "ANCHORED",
                 SCHOOL_MIXED, SCHOOL_PAIR, SCHOOL_BIG, STARFISH_PAIR, SLUG_CROWD_MIXED});
+        for (PartyRun.Party p : PartyRun.PARTIES) classBox.addItem(PARTY_PREFIX + p.name());
         classBox.addActionListener(e -> {
             String c = (String) classBox.getSelectedItem();
+            partyChoice = null;
+            if (c.startsWith(PARTY_PREFIX)) {
+                for (PartyRun.Party p : PartyRun.PARTIES) if (c.equals(PARTY_PREFIX + p.name())) partyChoice = p;
+                trio = false;
+                memberLengths = null;
+                apply.run();
+                return;
+            }
             memberLengths = partyLengths(c);
             trio = c.equals("TRIO") || c.startsWith("SCHOOL");
             gait = c.equals("BENTHIC plaice") ? GroundGait.RIPPLE : GroundGait.CRAWL;
@@ -507,6 +615,16 @@ public final class CompanionViewer {
         panel.add(row(new JLabel("temper"), temperBox));
         panel.add(row(new JLabel("scene"), sceneBox));
         panel.add(row(new JLabel("owner"), ownerBox));
+        for (int i = 0; i + 1 < launchArgs.length; i++) {
+            if (launchArgs[i].equals("--owner")) ownerBox.setSelectedItem(launchArgs[i + 1]);
+            if (!launchArgs[i].equals("--party")) continue;
+            for (PartyRun.Party p : PartyRun.PARTIES) {
+                if (p.name().contains(launchArgs[i + 1])) {
+                    classBox.setSelectedItem(PARTY_PREFIX + p.name());
+                    break;
+                }
+            }
+        }
 
         JButton defaults = new JButton("defaults");
         defaults.addActionListener(e -> {

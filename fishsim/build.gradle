@@ -72,6 +72,10 @@ tasks.register('runCompanionViewer', JavaExec) {
     description = 'Companion playground: walk the owner with WASD + mouse, watch drives and goals, tune live'
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'grill24.fishsim.viewer.CompanionViewer'
+    // -PsimArgs="--party anchored --owner walk" opens on a party class and owner script.
+    if (project.hasProperty('simArgs')) {
+        args project.property('simArgs').toString().split(' ')
+    }
 }
 
 tasks.register('runWallTurnAnalysis', JavaExec) {
