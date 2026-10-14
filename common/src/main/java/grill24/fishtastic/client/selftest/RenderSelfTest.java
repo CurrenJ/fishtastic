@@ -4936,6 +4936,20 @@ public final class RenderSelfTest {
             Fishtastic.LOGGER.info("[selftest] eel skin model {}", mc.player.getSkin().model());
             mc.options.fov().set(savedFov);
         });
+        // The party switches (Phase 3c), through the real command: homes off rebuilds the party and
+        // the three eels no longer split head and shoulders; reset brings that back.
+        queue(1, mc -> server(mc, s -> run(s, "fishtastic companion switch partyHomes off")));
+        queue(120, mc -> {
+            String state = grill24.fishtastic.client.companion.ClientCompanions.debugState();
+            check("companioneel.switch.homes_off", !eelHomes().equals(EEL_SPLIT), eelHomes() + " | " + state);
+            check("companioneel.switch.overlay", state.contains("switches: partyHomes OFF"), state);
+            server(mc, s -> run(s, "fishtastic companion switch reset"));
+        });
+        queue(160, mc -> {
+            String state = grill24.fishtastic.client.companion.ClientCompanions.debugState();
+            check("companioneel.switch.reset", eelHomes().equals(EEL_SPLIT) && !state.contains("switches:"),
+                    eelHomes() + " | " + state);
+        });
         // Two eels: the second takes RIGHT_SHOULDER alone, so the shot shows which arm the perch
         // layer draws it on (the sim holds it on the player's right).
         queue(1, mc -> server(mc, s -> {
@@ -4991,6 +5005,19 @@ public final class RenderSelfTest {
     }
 
     private static int savedFov = 70;
+
+    /** Three eels' homes with party homes on (D5): head, then both shoulders. */
+    private static final java.util.Set<String> EEL_SPLIT = new java.util.TreeSet<>(
+            java.util.List.of("HEAD", "LEFT_SHOULDER", "RIGHT_SHOULDER"));
+
+    /** The local party's home perches, as a sorted set of names. */
+    private static java.util.Set<String> eelHomes() {
+        java.util.Set<String> homes = new java.util.TreeSet<>();
+        for (var c : grill24.fishtastic.client.companion.ClientCompanions.localCompanions()) {
+            if (c.agent() != null) homes.add(String.valueOf(c.agent().perchHome()));
+        }
+        return homes;
+    }
 
     /** A 7×5 wall {@code dz} blocks from the scene origin, for a backdrop. */
     private static String eelWall(int dz, String block) {

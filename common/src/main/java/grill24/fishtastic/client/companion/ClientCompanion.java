@@ -235,6 +235,7 @@ public final class ClientCompanion {
 
     /** The party layer built this unit's sim (on the party's first tick). */
     void attach(PartyLayer.Unit unit) {
+        ageTicks = 0;
         school = unit.school();
         benthic = unit.ground();
         agent = unit.leader();

@@ -37,6 +37,7 @@ import java.util.Optional;
  *   /fishtastic companion off                             — unequip; the fish comes back
  *   /fishtastic companion give &lt;player&gt; &lt;species&gt; [size] — equip a conjured fish directly
  *   /fishtastic companion debug &lt;bool&gt;                  — overlay: goal, drives, pose hint, temperament, sim cost
+ *   /fishtastic companion switch [reset|&lt;name&gt; &lt;value&gt;] — list, set or reset the party switches (rebuilds when needed)
  *   /fishtastic companion temperament &lt;id&gt;|species      — force a temperament on your companion (or its own)
  *   /fishtastic companion fake hostile|cat|item|companion — a scripted thing for it to react to (clear removes them)
  *   /fishtastic companion hurt                            — it sees you hurt (an aggressive fish bites)
@@ -100,6 +101,22 @@ public class CompanionCommand {
                         .then(Commands.argument("value", BoolArgumentType.bool()).executes(ctx -> client(ctx,
                                 () -> grill24.fishtastic.client.companion.ClientCompanions.devOverlay(
                                         BoolArgumentType.getBool(ctx, "value"))))))
+                // Party switches, live (party spec Phase 3c): list, set one, or reset them all.
+                .then(Commands.literal("switch")
+                        .executes(ctx -> client(ctx, grill24.fishtastic.client.companion.ClientCompanions::devSwitchList))
+                        .then(Commands.literal("reset").executes(ctx -> client(ctx,
+                                grill24.fishtastic.client.companion.ClientCompanions::devSwitchReset)))
+                        .then(Commands.argument("name", StringArgumentType.word())
+                                .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                                        grill24.fishsim.companion.CompanionTunables.DEV_SWITCHES, builder))
+                                .then(Commands.argument("value", StringArgumentType.word())
+                                        .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                                                "anchoredPredatorDuckSeconds".equals(StringArgumentType.getString(ctx, "name"))
+                                                        ? java.util.List.of("0", "2") : java.util.List.of("on", "off"), builder))
+                                        .executes(ctx -> client(ctx,
+                                                () -> grill24.fishtastic.client.companion.ClientCompanions.devSwitch(
+                                                        StringArgumentType.getString(ctx, "name"),
+                                                        StringArgumentType.getString(ctx, "value")))))))
                 .then(Commands.literal("temperament")
                         .then(Commands.literal("species").executes(ctx -> client(ctx,
                                 () -> grill24.fishtastic.client.companion.ClientCompanions.devTemperament(null))))

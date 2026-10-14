@@ -1,6 +1,7 @@
 package grill24.fishtastic.client.companion;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import grill24.fishsim.companion.CompanionTunables;
 import grill24.fishsim.companion.CompanionWorld;
 import grill24.fishsim.companion.PartyGrouping;
 import grill24.fishsim.companion.PartyLayer;
@@ -77,6 +78,9 @@ public final class ClientCompanions {
         @Nullable Player owner() { return owner; }
         @Nullable CompanionParty party() { return party; }
         List<ClientCompanion> companions() { return companions; }
+
+        /** Drops the party's sim; the next tick builds it afresh beside its owner (a build-time switch changed). */
+        void rebuild() { layer = null; }
 
         /** Builds (first tick) or steps the party's sim; returns the time it took, ns. */
         long tick(ClientLevel level, CompanionWorldAdapter.LevelBlocks blocks, List<PointOfInterest> devPoints) {
@@ -374,6 +378,8 @@ public final class ClientCompanions {
         Minecraft mc = Minecraft.getInstance();
         Font font = mc.font;
         List<String> lines = new ArrayList<>(partyLines());
+        String switches = switchesLine();
+        if (switches != null) lines.add(switches);
         ClientCompanion selected = selected();
         if (selected == null) lines.add("slot " + (devSlot + 1) + ": empty");
         else lines.addAll(selected.debugLines());
@@ -640,11 +646,115 @@ public final class ClientCompanions {
         return "No active target to catch";
     }
 
+    // ---------------------------------------------------------------- party switches (Phase 3c)
+
+    private static final CompanionTunables DEFAULTS = CompanionTunables.defaults();
+
+    /** Dev-only (`/fishtastic companion switch`): every party switch, those changed from the default marked. */
+    public static String devSwitchList() {
+        StringBuilder out = new StringBuilder("Companion switches:");
+        for (String name : CompanionTunables.DEV_SWITCHES) {
+            Object value = switchValue(ClientCompanion.TUNABLES, name);
+            boolean changed = !value.equals(switchValue(DEFAULTS, name));
+            out.append("\n  ").append(name).append(" ").append(show(value))
+                    .append(changed ? "  (changed; default " + show(switchValue(DEFAULTS, name)) + ")" : "")
+                    .append(CompanionTunables.BUILD_TIME_SWITCHES.contains(name) ? "  [rebuilds]" : "");
+        }
+        return out.toString();
+    }
+
+    /**
+     * Dev-only (`/fishtastic companion switch <name> <value>`): sets one switch for every party this
+     * client runs. A switch read only when a party is built rebuilds every party's sim.
+     *
+     * @param value {@code on}/{@code off} (or true/false), or seconds for anchoredPredatorDuckSeconds
+     */
+    public static String devSwitch(String name, String value) {
+        if (!CompanionTunables.DEV_SWITCHES.contains(name)) return "Unknown switch " + name + " — /fishtastic companion switch lists them";
+        java.lang.reflect.Field f = switchField(name);
+        try {
+            if (f.getType() == boolean.class) {
+                Boolean on = switch (value.toLowerCase(Locale.ROOT)) {
+                    case "on", "true" -> Boolean.TRUE;
+                    case "off", "false" -> Boolean.FALSE;
+                    default -> null;
+                };
+                if (on == null) return name + " takes on or off";
+                f.setBoolean(ClientCompanion.TUNABLES, on);
+            } else {
+                float seconds = Float.parseFloat(value);
+                if (seconds < 0) return name + " takes seconds, 0 or more";
+                f.setFloat(ClientCompanion.TUNABLES, seconds);
+            }
+        } catch (NumberFormatException e) {
+            return name + " takes a number of seconds";
+        } catch (IllegalAccessException e) {
+            throw new IllegalStateException(e);
+        }
+        boolean rebuilt = CompanionTunables.BUILD_TIME_SWITCHES.contains(name);
+        if (rebuilt) rebuildAll();
+        return name + " " + show(switchValue(ClientCompanion.TUNABLES, name)) + (rebuilt ? " (parties rebuilt)" : " (live)");
+    }
+
+    /** Dev-only (`/fishtastic companion switch reset`): every party switch back to its default. */
+    public static String devSwitchReset() {
+        boolean rebuild = false;
+        for (String name : CompanionTunables.DEV_SWITCHES) {
+            Object def = switchValue(DEFAULTS, name);
+            if (def.equals(switchValue(ClientCompanion.TUNABLES, name))) continue;
+            try {
+                switchField(name).set(ClientCompanion.TUNABLES, def);
+            } catch (IllegalAccessException e) {
+                throw new IllegalStateException(e);
+            }
+            rebuild |= CompanionTunables.BUILD_TIME_SWITCHES.contains(name);
+        }
+        if (rebuild) rebuildAll();
+        return "Companion switches back to their defaults" + (rebuild ? " (parties rebuilt)" : "");
+    }
+
+    /** The overlay's line naming every switch changed from its default, or null when none is. */
+    @Nullable
+    private static String switchesLine() {
+        List<String> changed = new ArrayList<>();
+        for (String name : CompanionTunables.DEV_SWITCHES) {
+            Object value = switchValue(ClientCompanion.TUNABLES, name);
+            if (!value.equals(switchValue(DEFAULTS, name))) changed.add(name + " " + show(value).toUpperCase(Locale.ROOT));
+        }
+        return changed.isEmpty() ? null : "switches: " + String.join(", ", changed);
+    }
+
+    private static void rebuildAll() {
+        for (OwnerParty party : parties()) party.rebuild();
+    }
+
+    private static java.lang.reflect.Field switchField(String name) {
+        try {
+            return CompanionTunables.class.getField(name);
+        } catch (NoSuchFieldException e) {
+            throw new IllegalStateException("DEV_SWITCHES names a missing field: " + name, e);
+        }
+    }
+
+    private static Object switchValue(CompanionTunables t, String name) {
+        try {
+            return switchField(name).get(t);
+        } catch (IllegalAccessException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private static String show(Object value) {
+        return value instanceof Boolean b ? (b ? "on" : "off") : value + " s";
+    }
+
     /** Dev diagnostics for the local player's party: every group, then the selected one in detail. */
     public static String debugState() {
         ClientCompanion local = selected();
+        String switches = switchesLine();
         return "tracked=" + count() + " bodies=" + bodyCount() + " perchLayer=" + perchLayerCalls + "/" + perchSubmits
                 + " | " + String.join(" | ", partyLines())
+                + (switches == null ? "" : " | " + switches)
                 + " | " + (local == null ? "no companion in debug slot " + (devSlot + 1) : String.join(" | ", local.debugLines()))
                 + " | " + costLine();
     }

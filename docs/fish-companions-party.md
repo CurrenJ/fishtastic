@@ -830,3 +830,21 @@ while following can fix half of it at most.
   sim side, and a two-eel shot shows `RIGHT_SHOULDER` on the player's right.
 - **Self-test:** `companionparty` gains a third party, crab + octopus + slug, and checks that the
   overlay shows the shared clock and the homes. 33/33 on Fabric and on NeoForge.
+
+## 23. Phase 3c as built (the party switch command)
+
+- **Command** (dev builds only: the whole `companion` tree sits behind `DevEnvironmentCheck`):
+  - `/fishtastic companion switch` lists the ten switches, with changed ones and their defaults
+    marked, and `[rebuilds]` on those read only when a party is built;
+  - `/fishtastic companion switch <name> on|off` (or seconds, for `anchoredPredatorDuckSeconds`);
+  - `/fishtastic companion switch reset`.
+- **Switches** (`CompanionTunables.DEV_SWITCHES`): `partyHomes`, `partyLeases`, `partyHandClock`,
+  `partyGroundSeparation`, `handClock`, `shoulderPeek`, `moreGroundBeats`, `idleInView`,
+  `anchoredHead`, `anchoredPredatorDuckSeconds`. Five of them (`BUILD_TIME_SWITCHES`: homes,
+  leases, both clocks, anchoredHead) rebuild every party's sim, which then fades in beside its
+  owner. The rest act at once.
+- They are one setting on the client, so they apply to every party it runs, and they aren't saved.
+  The overlay adds `switches: …` whenever one differs from its default.
+- **Verified:** fingerprints identical (930). `companioneel` turns `partyHomes` off through the
+  command (all three eels go home to the head, stacked: the pre-2d behaviour), checks the overlay
+  line, then resets (head + both shoulders again). 24/24 on Fabric and on NeoForge.

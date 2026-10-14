@@ -353,6 +353,19 @@ public final class CompanionTunables {
      */
     public float anchoredPredatorDuckSeconds = 2f;
 
+    /**
+     * The party and hand-visit switches the game's dev command flips live (party spec Phase 3c), in
+     * the order it lists them. Each is a public field of this class.
+     */
+    public static final java.util.List<String> DEV_SWITCHES = java.util.List.of(
+            "partyHomes", "partyLeases", "partyHandClock", "partyGroundSeparation",
+            "handClock", "shoulderPeek", "moreGroundBeats", "idleInView",
+            "anchoredHead", "anchoredPredatorDuckSeconds");
+
+    /** Of {@link #DEV_SWITCHES}, those read only when a party's sim is built: flipping one needs a rebuild. */
+    public static final java.util.Set<String> BUILD_TIME_SWITCHES = java.util.Set.of(
+            "partyHomes", "partyLeases", "partyHandClock", "handClock", "anchoredHead");
+
     public static CompanionTunables defaults() {
         return new CompanionTunables();
     }
