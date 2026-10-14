@@ -16,6 +16,8 @@ import java.util.function.Function;
  *   <li>Phase 2d ({@link CompanionTunables#partyHomes}, {@link CompanionTunables#partyLeases}):
  *       every percher gets its own home perch when the party is built, and a transient move takes
  *       a free perch or doesn't happen ({@link PerchLeases}).</li>
+ *   <li>Phase 2f ({@link CompanionTunables#partyGroundSeparation}): ground walkers of different
+ *       units push apart on the ground.</li>
  * </ul>
  *
  * <p>Determinism: every unit reads its party-mates as they were at the end of the previous tick, so
@@ -109,6 +111,9 @@ public final class PartyLayer {
     /** The party's perches (§6.1), or null: one unit, under two perchers, or leases off. */
     private final PerchLeases leases;
     private final HandClock handClock;
+    private final CompanionTunables t;
+    /** Units of ground walkers, for ground separation (§6.2; empty under two). */
+    private final List<Unit> groundUnits;
 
     /**
      * @param groups      the party's units, from {@link PartyGrouping#group}
@@ -125,6 +130,10 @@ public final class PartyLayer {
         units = List.copyOf(out);
         leases = units.size() > 1 ? perches(t, world.owner()) : null;
         handClock = units.size() > 1 && t.handClock && t.partyHandClock ? sharedHandClock() : null;
+        this.t = t;
+        List<Unit> ground = new ArrayList<>();
+        for (Unit u : units) if (u.leader().groundWalker()) ground.add(u);
+        groundUnits = ground.size() > 1 ? List.copyOf(ground) : List.of();
     }
 
     /** The party's one hand clock (HandClock), or null with under two perchers that can visit a hand. */
@@ -219,6 +228,7 @@ public final class PartyLayer {
         }
         if (leases != null) leases.snapshot();
         if (handClock != null) handClock.tick();
+        if (!groundUnits.isEmpty()) separateGround();
         PointOfInterest[] mates = new PointOfInterest[n];
         for (int i = 0; i < n; i++) mates[i] = units.get(i).asPoint(pointId(units.get(i).group()));
         for (int i = 0; i < n; i++) {
@@ -232,6 +242,45 @@ public final class PartyLayer {
             units.get(i).step(pts == null ? base
                     : new CompanionWorld(base.owner(), base.blocks(), pts, base.held(), base.hurt()));
         }
+    }
+
+    /**
+     * Ground separation (§6.2, {@link CompanionTunables#partyGroundSeparation}): every ground walker
+     * is pushed away from other units' ground walkers within crowd range, as a BenthicGroup crowd's
+     * members are, from where they stood at the end of the last tick. Each keeps its own mind; a
+     * shared trail queue and a mixed-species line were measured and lost (§20).
+     */
+    private void separateGround() {
+        List<CompanionAgent> all = new ArrayList<>();
+        List<Integer> unitOf = new ArrayList<>(), slotOf = new ArrayList<>();
+        for (int u = 0; u < groundUnits.size(); u++) {
+            List<CompanionAgent> agents = groundUnits.get(u).agents();
+            for (int k = 0; k < agents.size(); k++) {
+                all.add(agents.get(k));
+                unitOf.add(u);
+                slotOf.add(groundUnits.get(u).group().members().get(k).slot());
+            }
+        }
+        // Every push from last tick's positions first, then applied: the order can't matter.
+        Vec[] pushes = new Vec[all.size()];
+        for (int i = 0; i < all.size(); i++) {
+            CompanionAgent a = all.get(i);
+            if (!a.onGround()) continue;
+            for (int j = 0; j < all.size(); j++) {
+                CompanionAgent b = all.get(j);
+                if (unitOf.get(j).equals(unitOf.get(i)) || !b.onGround()
+                        || Math.abs(a.position().y() - b.position().y()) > 0.5) continue;
+                double range = Math.max(0.6 * (a.length() + b.length()), a.radius() + b.radius() + 0.04);
+                Vec away = a.position().sub(b.position()).horizontal();
+                double d = away.length();
+                if (d >= range) continue;
+                // Exactly on top of each other (they all start beside the owner): split by party slot.
+                Vec dir = d < 1e-6 ? new Vec(slotOf.get(i) < slotOf.get(j) ? -1 : 1, 0, 0) : away.scale(1 / d);
+                Vec p = dir.scale(4 * (1 - d / range));
+                pushes[i] = pushes[i] == null ? p : pushes[i].add(p);
+            }
+        }
+        for (int i = 0; i < all.size(); i++) all.get(i).partyPush(t.partyGroundSeparation ? pushes[i] : null);
     }
 
     public void interpolate(float alpha) {

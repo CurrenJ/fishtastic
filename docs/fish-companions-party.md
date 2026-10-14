@@ -239,6 +239,9 @@ ANCHORED change (D5). Every party rule has an on/off switch for equal-ground A/B
 - With homes they still overlap 4.8–12.6% on the ground. Candidates are a shared foot-trail
   queue or a mixed-species `BenthicGroup` line. **Measure both before choosing.** Mixed-size
   lines of one species already measure well (1b/2a).
+- **Built (2f, §20):** neither. A third candidate won: ground walkers of different units push
+  apart, as a crowd's members do, and each keeps its own mind. The queue raised leash fades by a
+  third, and the mixed line hid its followers.
 
 ### Not built (evidence says no)
 - **Attention budget** (formerly §6.3). All three in view happens 3–6.5% of the time, and nobody
@@ -253,6 +256,8 @@ ANCHORED change (D5). Every party rule has an on/off switch for equal-ground A/B
 
 ## 7. Party-mates and other companions
 
+- **Deferred (D20):** the owner playtested parties on 2026-10-14 and wants the mutual curiosity
+  kept as it is. The bullet below is the old plan, kept for reference.
 - **Party-mates are familiar:** a lower curiosity weight and fast habituation. A new arrival
   gets one greeting inspect (it reads like an introduction), then settles. Today a `COMPANION`
   point of interest has curiosity weight 0.8 (`Drives`), which would mean constant mutual
@@ -302,7 +307,7 @@ own companion in first person" applies to the whole party.
 | Phase | Builds | Gate |
 |---|---|---|
 | 1 | Storage + migration, (owner, slot) identity, packets, menu with 3 slots and the party preview, hold-B rules, commands, game tests. In game: same-species slots form a group (§3), and different species run **independently** (no party layer yet; overlap expected). Retire the size and count group rules | Game tests on both loaders; trio and group fingerprints bitwise; owner tries the menu and a school |
-| 2 | Re-scoped (§6, review §6). **2b** (done, §16) `PartyBaselineProbe` as the metric suite, plus multi-unit parties in the viewer. **2c** (done, §17) mixed shoal (D13). **2d** (done, §18) perch homes + leases (§6.1, with D5's intended ANCHORED change). **Hand visits** (done, §19) the hand clock, round-robin turns, the shoulder peek and more ground beats (D15–D19). **2e** party-mate familiarity tuning (§7). **2f** measure ground benthic candidates (§6.2), then build the winner | Solo and identical-group fingerprints bitwise; owner viewer |
+| 2 | Re-scoped (§6, review §6). **2b** (done, §16) `PartyBaselineProbe` as the metric suite, plus multi-unit parties in the viewer. **2c** (done, §17) mixed shoal (D13). **2d** (done, §18) perch homes + leases (§6.1, with D5's intended ANCHORED change). **Hand visits** (done, §19) the hand clock, round-robin turns, the shoulder peek and more ground beats (D15–D19). **2e** party-mate familiarity tuning (§7): deferred (D20). **2f** (built, §20) ground separation between different-species ground walkers (§6.2) | Solo and identical-group fingerprints bitwise; owner viewer |
 | 3 | In game: party wiring, per-slot overlay, self-test scene, changelog note on lost trios | Owner solo playtest |
 | 4 | Folded into sim Phase 4: social drive across and within parties | Owner viewer, then in game |
 
@@ -364,6 +369,12 @@ Answered 2026-10-14 (hand visits, after measuring them, §19):
 | D17 | A ground walker left behind in the corridor's about-face (it used to ride the hand back)? | **Accept the lag**, and widen the test |
 | D18 | How do fish get seen without the hand? | **The shoulder peek and more ground beats.** "Settle in view when the owner stops" was tried at three distances and lost every time, so it's off |
 | D19 | Slow ground walkers (crab, slug) are seen less while the owner walks | **Accept the cost:** a 3% seen floor for them under the clock |
+
+Answered 2026-10-14 (after the owner's party playtest):
+
+| # | Question | Answer |
+|---|---|---|
+| D20 | Make party-mates familiar (2e, §7)? | **Deferred.** Mutual curiosity is intentional and balanced as is (INSPECT 5–9% vs ~1.3% solo). Don't tune it unless a playtest shows a problem |
 
 ---
 
@@ -710,3 +721,43 @@ Owner feedback 2026-10-14, before 2e: the hand visit came too often, and it woul
     against 2d; on, only the BENTHIC, PERCHER and ground-group rows change;
   - `:fishsim:test` 484 tests, 0 failed; Fabric game tests 366/366; common and NeoForge compile.
 - **Gate:** the owner's in-game look at the peek (first person, a seahorse or a resting crab).
+
+---
+
+## 20. Phase 2f as built (ground separation, §6.2)
+
+**Where the overlap was** (`GroundOverlapProbe`, 2d + hand clock, 8 seeds × every script): about
+half while the owner walks (both fish in GROUND_FOLLOW or CATCH_UP, escorting or showing off),
+and half while they stand (both GROUND_IDLE: loiter, show off, hide). A queue that acts only
+while following can fix half of it at most.
+
+**Three candidates, measured** (`PartyBaselineProbe`, 240 runs a party, same seeds and scripts):
+
+| starfish pair + crab / crab + octopus + slug | inter-unit overlap % (worst) | leash fades | seen % by slot |
+|---|---|---|---|
+| 2d baseline | 4.59 (29.5) / 9.25 (32.1) | 357 / 685 | 9.9·5.0·11.5 / 11.4·12.9·9.3 |
+| **separation (built)** | **1.07 (8.5) / 2.16 (12.3)** | 359 / 691 | 10.0·5.1·11.7 / 11.6·12.8·9.3 |
+| shared trail queue | 4.20 (19.6) / 5.20 (26.0) | **526 / 909** | ≈ baseline |
+| separation + queue | 2.62 (14.1) / 2.06 (12.0) | **662 / 931** | ≈ baseline |
+| mixed-species line | party-wide 11.52 / 8.10 (vs 9.52 / 9.25) | 192 / 355 (one unit) | followers **4.5–6** |
+
+- **The queue** sets the following fish's station on the trail of the unit ahead. It barely
+  cuts overlap and adds a third more leash fades: a slow crawler queued behind another loses
+  ground. It was rejected and removed.
+- **The mixed line** runs one mind on the smallest fish. Overlap hardly moves, and the followers'
+  seen % halves, because only a formation's leader shows itself. It was rejected and removed.
+- **Separation** (`CompanionTunables.partyGroundSeparation`, on): in `PartyLayer`, each ground
+  walker on the ground is pushed away from other units' ground walkers. The range is
+  max(0.6 × summed lengths, summed radii + 0.04) at the same height (±0.5 b), with strength
+  4 × (1 − d/range), as a `BenthicGroup` crowd's members are. It works from last tick's positions,
+  and fish exactly on top of each other split by party slot, so step order can't change results.
+  `GroundMind` adds the push on top of its own (`partyPush`), except while dodging feet or dazed.
+  Every fish keeps its own mind, beats and hand turns.
+- What stays: a starfish pair's own overlap inside its line (party-wide 6.51 vs inter-unit 1.07)
+  is the same-species formation, untouched. The worst runs are hostile_approach (8.5–12.3%).
+- **Scope:** the sim only. The game adopts `PartyLayer` in Phase 3.
+- **Verified:** with no second ground unit nothing runs, so all 928 `FingerprintProbe -PfpAll=1`
+  + `GroupFingerprintProbe` lines are bitwise against `fd329779`. The 7 other parties print
+  identically on and off. `:fishsim:test` 441 passed, 0 failed (`stepOrderDoesNotChangeResults`
+  caught an index tie-break, now keyed by slot).
+- **Gate:** the owner's viewer look (`-PsimArgs="--party octopus"`, toggle partyGroundSeparation).

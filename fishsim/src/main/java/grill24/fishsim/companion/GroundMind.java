@@ -93,6 +93,8 @@ final class GroundMind {
     double formationSpeed;
     float formationFace = Float.NaN;
     boolean formationMember;
+    /** Party-mates of other units standing too close, pushing it away (§6.2 candidate), or null. */
+    Vec partyPush;
     java.util.List<PointOfInterest> playerPoints = java.util.List.of();
     Mind.GroundIntent intent;
 
@@ -379,6 +381,7 @@ final class GroundMind {
             }
         }
         if (!feetApproaching && formationPush != null && push != null) push = push.add(formationPush);
+        if (partyPush != null && !feetApproaching && daze == 0) push = push == null ? partyPush : push.add(partyPush);
         g.walk(target, want, rhythm, push, face, v);
     }
 

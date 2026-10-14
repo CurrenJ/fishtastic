@@ -502,6 +502,12 @@ public final class CompanionAgent {
         formationSwim = target == null ? Vec.ZERO : target.sub(position()).scale(2).clampLength(t.catchUpSpeed);
     }
 
+    /** A push away from other units' ground walkers (§6.2 candidate), or null; ground walkers only. */
+    void partyPush(Vec push) { if (perch != null && perch.gmind != null) perch.gmind.partyPush = push; }
+
+    /** Whether it walks the ground and can take a formation station (a ground walker). */
+    boolean groundWalker() { return perch != null && perch.gmind != null; }
+
     void formationTurn(float yaw) { perch.gmind.formationFace = yaw; }
     /** A ground body's own walking pace (its size's), or NaN for a body that doesn't walk. */
     double groundPace() { return perch == null || perch.ground == null ? Double.NaN : perch.ground.pace; }

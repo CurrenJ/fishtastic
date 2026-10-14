@@ -325,6 +325,12 @@ public final class CompanionTunables {
     /** A transient move (wander, hand, cover, climb) takes a free perch or doesn't happen. */
     public boolean partyLeases = true;
 
+    /**
+     * Ground walkers of different units push apart on the ground, as a crowd's members do
+     * (docs/fish-companions-party.md §6.2, Phase 2f): overlap 9.25 → 2.16% for crab + octopus + slug.
+     */
+    public boolean partyGroundSeparation = true;
+
     // Hand visits (owner feedback 2026-10-14: about one a minute, solo or party). HandClock.
     /** After any landing on a hand, the unseen timer waits this long before calling a fish there again. */
     public boolean handClock = true;
