@@ -12,7 +12,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * PartyLayer's contract (docs/fish-companions-party.md §6): a one-unit party is bitwise the unit
- * stepped on its own, and the step order can't change results.
+ * stepped on its own, and the step order can't change results. Phase 2d (§6.1): every percher has
+ * its own home, anchored fish first on the head (D5), and with leases no two units ride one perch.
  */
 class PartyLayerTest {
 
@@ -100,6 +101,66 @@ class PartyLayerTest {
             differs = !party.unit(0).leader().position().equals(alone.unit(0).leader().position());
         }
         assertTrue(differs, "a party-mate should change what the lead does");
+    }
+
+    @Test
+    void anchoredFishTakeHeadThenShoulders() {
+        PartyLayer layer = party("3 anchored").build(CompanionTunables.defaults(), Temperament.BASELINE, 1,
+                OwnerScript.named("walk", 1).nextWorld());
+        List<PerchBody.Slot> homes = new ArrayList<>();
+        for (PartyLayer.Unit u : layer.units()) homes.add(u.leader().perchHome());
+        assertEquals(List.of(PerchBody.Slot.HEAD, PerchBody.Slot.RIGHT_SHOULDER, PerchBody.Slot.LEFT_SHOULDER), homes);
+    }
+
+    @Test
+    void loneAnchoredHomesOnTheHeadUnlessSwitchedOff() {
+        PartyRun.Party p = new PartyRun.Party("eel", List.of(
+                PartyRun.Spec.of("eel", grill24.fishsim.core.Locomotion.ANCHORED, 0.45f)));
+        CompanionTunables t = CompanionTunables.defaults();
+        assertEquals(PerchBody.Slot.HEAD, p.build(t, Temperament.BASELINE, 1,
+                OwnerScript.named("walk", 1).nextWorld()).unit(0).leader().perchHome());
+        t.anchoredHead = false;
+        assertEquals(PerchBody.Slot.BACK, p.build(t, Temperament.BASELINE, 1,
+                OwnerScript.named("walk", 1).nextWorld()).unit(0).leader().perchHome());
+    }
+
+    @Test
+    void perchersKeepTheirOwnHomeWhenFree() {
+        // The school pair has no perches, so the percher keeps the home it has alone, on every seed.
+        PartyRun.Party p = party("school pair + percher");
+        CompanionTunables t = CompanionTunables.defaults();
+        for (long seed = 1; seed <= 6; seed++) {
+            List<PartyGrouping.Group> groups = p.groups(seed);
+            PartyLayer party = layer(p, t, groups, OwnerScript.named("walk", seed).nextWorld());
+            PartyLayer alone = layer(p, t, List.of(groups.get(1)), OwnerScript.named("walk", seed).nextWorld());
+            assertEquals(alone.unit(0).leader().perchHome(), party.unit(1).leader().perchHome(), "seed " + seed);
+        }
+    }
+
+    @Test
+    void homesAreDistinctAndLeasesStopClashes() {
+        for (String name : List.of("crab + octopus + slug", "starfish pair + crab", "3 anchored")) {
+            for (String script : List.of("walk_turns", "held_items", "hostile_approach", "cat_lounging")) {
+                for (long seed = 1; seed <= 2; seed++) {
+                    PartyRun.Party p = party(name);
+                    PartyRun.Result r = PartyRun.measure(p, script, seed, TICKS, CompanionTunables.defaults(),
+                            Temperament.BASELINE, null);
+                    assertEquals(0, r.perchClashTicks(), name + " " + script + "#" + seed);
+                    PartyLayer layer = p.build(CompanionTunables.defaults(), Temperament.BASELINE, seed,
+                            OwnerScript.named(script, seed).nextWorld());
+                    java.util.Set<PerchBody.Slot> homes = new java.util.HashSet<>();
+                    int perchers = 0;
+                    for (PartyLayer.Unit u : layer.units()) {
+                        for (CompanionAgent a : u.agents()) {
+                            if (a.perchHome() == null) continue;
+                            perchers++;
+                            homes.add(a.perchHome());
+                        }
+                    }
+                    assertEquals(perchers, homes.size(), name + " homes " + homes);
+                }
+            }
+        }
     }
 
     private static PartyLayer layer(PartyRun.Party p, CompanionTunables t, List<PartyGrouping.Group> groups,

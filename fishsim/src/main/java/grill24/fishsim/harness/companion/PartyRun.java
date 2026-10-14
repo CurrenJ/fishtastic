@@ -165,7 +165,8 @@ public final class PartyRun {
                          double[] catchParty, double[] catchSolo, double drawnOverlapPct, double drawnPerMin,
                          double nearPct, double minSep, double twoInViewPct, double threeInViewPct,
                          int perchClashTicks, double clashPerMin, int unitFadesParty, int unitFadesSolo,
-                         double partyInspectOfMates, double allOverlapPct, double allPerMin, double[] seenBySlot) {
+                         double partyInspectOfMates, double allOverlapPct, double allPerMin, double[] seenBySlot,
+                         double refusedPerMin) {
         public int units() { return seenParty.length; }
     }
 
@@ -315,12 +316,14 @@ public final class PartyRun {
             fadesParty += party[i].fades;
         }
         double minutes = ticks / (20.0 * 60.0);
+        int refused = 0;
+        for (PartyLayer.Unit u : layer.units()) for (CompanionAgent a : u.agents()) refused += a.leaseRefusals();
         return new Result(seenParty, seenSolo, inspParty, inspSolo, catchParty, catchSolo,
                 together == 0 ? 0 : 100.0 * drawn / together, drawnEpisodes / minutes,
                 together == 0 ? 0 : 100.0 * near / together, minSep == Double.MAX_VALUE ? -1 : minSep,
                 100.0 * two / ticks, 100.0 * three / ticks, clash, clashEpisodes / minutes, fadesParty, fadesSolo,
                 100.0 * mateInspect / (ticks * (double) n), bodiesIn == 0 ? 0 : 100.0 * allDrawn / bodiesIn,
-                allEpisodes / minutes, seenBySlot(groups, slotSeen, ticks));
+                allEpisodes / minutes, seenBySlot(groups, slotSeen, ticks), refused / minutes);
     }
 
     private static double[] seenBySlot(List<PartyGrouping.Group> groups, long[] seen, int ticks) {

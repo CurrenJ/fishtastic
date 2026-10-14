@@ -316,6 +316,15 @@ public final class CompanionTunables {
      */
     public boolean groupPaceCap = false;
 
+    // Party perches (docs/fish-companions-party.md §6.1, Phase 2d). Each its own switch for
+    // equal-ground A/B against the 2c baseline; a one-unit party never consults the first two.
+    /** An anchored fish's home is the head, not the back (D5): solo or in a party. */
+    public boolean anchoredHead = true;
+    /** The party gives every percher its own home perch, once, when it is built. */
+    public boolean partyHomes = true;
+    /** A transient move (wander, hand, cover, climb) takes a free perch or doesn't happen. */
+    public boolean partyLeases = true;
+
     public static CompanionTunables defaults() {
         return new CompanionTunables();
     }

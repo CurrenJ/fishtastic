@@ -45,7 +45,7 @@ public final class CompanionRun {
                          boolean impulse, double impulseSize, boolean onGround, boolean feetDown, double lag,
                          boolean reachable, boolean doorClosed, boolean tumbling, String land,
                          Vec asked, boolean strokeStart, float flare, float tilt, float tiltRate, Vec propulsion,
-                         double mantleThrust) {}
+                         double mantleThrust, boolean bodyPerch) {}
 
     public final VoxelScene scene;
     public final OwnerScript script;
@@ -207,7 +207,8 @@ public final class CompanionRun {
                     agent.poseHint().name(), agent.curiosity(), agent.impulse(), agent.lastImpulse(),
                     agent.onGround(), agent.feetDown(), agent.groundLag(), agent.groundReachable(), scene.doorClosed(),
                     agent.tumbling(), agent.landMode(), agent.driftAsked(), agent.driftStrokeStart(),
-                    agent.flare(), agent.driftTilt(), agent.driftTiltRate(), agent.driftPropulsion(), agent.mantleThrust()));
+                    agent.flare(), agent.driftTilt(), agent.driftTiltRate(), agent.driftPropulsion(), agent.mantleThrust(),
+                    agent.riding() && !agent.perchSlot().hand()));
         }
     }
 
@@ -529,7 +530,9 @@ public final class CompanionRun {
             } else {
                 longestUnseen = Math.max(longestUnseen, ++unseenRun);
             }
-            boolean centred = s.pos().distanceTo(s.owner().camera()) < 2.5
+            // Riding a shoulder, the head or the back it is drawn on the player model, which first
+            // person never draws: an anchored fish on the head (D5) is above the lens, not in view.
+            boolean centred = !s.bodyPerch() && s.pos().distanceTo(s.owner().camera()) < 2.5
                     && Visibility.angleFromCenterDeg(s.owner(), s.pos()) < 8;
             centreRun = centred ? centreRun + 1 : 0;
             longestCentre = Math.max(longestCentre, centreRun);

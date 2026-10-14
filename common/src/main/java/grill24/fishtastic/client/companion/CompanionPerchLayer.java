@@ -13,7 +13,7 @@ import net.minecraft.world.entity.player.Player;
 
 /**
  * Draws a perched companion fish on its owner's body (docs/fish-companions.md §3, §11): a benthic
- * fish on a shoulder or the head, an anchored one poking out of the back. The same shape as
+ * fish on a shoulder or the head, an anchored one rising from the head (party spec D5). The same shape as
  * vanilla's {@code ParrotOnShoulderLayer} — a player render layer, not the world hook — because a
  * world-hook fish would keep its place in the world while the body it sits on turns and walks.
  *
@@ -43,8 +43,9 @@ public final class CompanionPerchLayer extends RenderLayer<AvatarRenderState, Pl
         // layer passes -1.5 here only because its own model pose hoists it back down again.)
         // The slot is the sim's: where the companion decided to ride (plan §3.4). A benthic group
         // rides up to three at once, one per slot (left shoulder, right shoulder, head), and every
-        // companion of the party draws its own riders. Phase 1 has no perch allocator (party spec
-        // §6.2), so two different species can share a slot and overlap.
+        // companion of the party draws its own riders. Party perch homes and leases (party spec
+        // §6.1) live in the sim's PartyLayer, which the game adopts in Phase 3; until then two
+        // different species can share a slot and overlap.
         float partialTick = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
         for (ClientCompanion companion : ClientCompanions.companionsOf(player)) {
             if (!ClientCompanions.shouldDrawOnPerch(companion)) continue;

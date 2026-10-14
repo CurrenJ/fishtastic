@@ -460,6 +460,21 @@ public final class CompanionAgent {
     /** Dev trigger: a benthic riding its perch goes back down to the ground. */
     public void devGround() { if (perch != null) perch.devGround(); }
 
+    /** Its percher's body, or null for a swimmer: the party's perch bookkeeping works on it. */
+    PerchBody perchBody() { return perch; }
+
+    /** The party gives it its own home perch (§6.1): it starts there if it starts riding. */
+    void partyHome(PerchBody.Slot slot, OwnerState owner) {
+        perch.rehome(slot, owner);
+        if (perch.attached()) prevPos = renderPos = perch.pos;
+    }
+
+    /** Transient perch moves the party refused it (§6.1), once per blocked spell; 0 for a swimmer or alone. */
+    public int leaseRefusals() { return perch == null ? 0 : perch.leaseRefusals; }
+
+    /** Its own home perch, or null for a swimmer. */
+    public PerchBody.Slot perchHome() { return perch == null ? null : perch.home; }
+
     void groupSlot(PerchBody.Slot slot, boolean follower, int phase) {
         perch.home = slot;
         perch.slot = slot;

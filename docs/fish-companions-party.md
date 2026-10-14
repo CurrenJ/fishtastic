@@ -302,7 +302,7 @@ own companion in first person" applies to the whole party.
 | Phase | Builds | Gate |
 |---|---|---|
 | 1 | Storage + migration, (owner, slot) identity, packets, menu with 3 slots and the party preview, hold-B rules, commands, game tests. In game: same-species slots form a group (§3), and different species run **independently** (no party layer yet; overlap expected). Retire the size and count group rules | Game tests on both loaders; trio and group fingerprints bitwise; owner tries the menu and a school |
-| 2 | Re-scoped (§6, review §6). **2b** (done, §16) `PartyBaselineProbe` as the metric suite, plus multi-unit parties in the viewer. **2c** (built, §17) mixed shoal (D13). **2d** perch homes + leases (§6.1, with D5's intended ANCHORED change). **2e** party-mate familiarity tuning (§7). **2f** measure ground benthic candidates (§6.2), then build the winner | Solo and identical-group fingerprints bitwise; owner viewer |
+| 2 | Re-scoped (§6, review §6). **2b** (done, §16) `PartyBaselineProbe` as the metric suite, plus multi-unit parties in the viewer. **2c** (done, §17) mixed shoal (D13). **2d** (built, §18) perch homes + leases (§6.1, with D5's intended ANCHORED change). **2e** party-mate familiarity tuning (§7). **2f** measure ground benthic candidates (§6.2), then build the winner | Solo and identical-group fingerprints bitwise; owner viewer |
 | 3 | In game: party wiring, per-slot overlay, self-test scene, changelog note on lost trios | Owner solo playtest |
 | 4 | Folded into sim Phase 4: social drive across and within parties | Owner viewer, then in game |
 
@@ -542,4 +542,84 @@ Full record: [`fish-companions-party-2a-asbuilt.md`](fish-companions-party-2a-as
   a 10 cm bluegill, so the bluegill leads); NeoForge testmod compiles (its game-test JVM never
   exits, so it wasn't run). All 930 fingerprint lines bitwise against `b5b67c95`.
 - **Gate:** owner viewer (`-PsimArgs="--party free --owner walk_turns"`, toggle the checkbox).
-  Then 2d, perch homes and leases.
+  **Passed 2026-10-14:** "the mixed shoals look good". Then 2d, perch homes and leases.
+
+## 18. Phase 2d as built (perch homes and leases, D5)
+
+Owner decisions before building (2026-10-14):
+- Fix the head render for D5 now, not in Phase 3.
+- A percher keeps the home it would have alone when that perch is free.
+- No "lead first on the hands" rule unless the numbers show hand fights. The lead still wins a
+  same-tick tie (below).
+
+- **Homes** (`PartyLayer`, switch `partyHomes`):
+  - Built once, for a party of more than one unit with at least two perchers.
+  - A ground formation keeps its members' homes.
+  - Then anchored fish choose: head, right shoulder, left shoulder.
+  - Then the others: their own seeded home if free, else left shoulder, right shoulder, head,
+    back.
+  - Within each group the lower party slot chooses first, whatever order the units are listed in.
+- **Leases** (`PerchLeases`, switch `partyLeases`):
+  - Each tick, before anyone steps, the layer snapshots every percher's home, the perch it sits on
+    and the perch it is heading for.
+  - A transient move (shoulder-wander, a hand, cover, a climb from the ground) may go only to a
+    perch no mate calls home, sits on or heads for; otherwise it doesn't happen. A fish's own home
+    is always allowed, so fades and returns always land.
+  - Cover falls back to the head, then the back, then its own home.
+  - Two fish that crouch for one free perch on the same tick both see it the next tick, still
+    crouching (every crouch lasts at least 2 ticks). A fish sitting there keeps it; otherwise the
+    lower party slot goes and the other stays.
+  - A hop already in the air can't be recalled. It can't conflict, because it only started from a
+    free perch.
+- **D5** (switch `anchoredHead`, default on): an anchored fish's home is the head, solo too. This
+  is the one intended fingerprint change: with it on, exactly the 69 ANCHORED rows change. With it
+  off, all 930 `FingerprintProbe -PfpAll=1` + `GroupFingerprintProbe` lines are bitwise against
+  `e6cc5e8a`.
+- **Harness:**
+  - `CompanionRun`'s centre dwell no longer counts ticks riding a shoulder, the head or the back.
+    That's drawn on the player model, which first person never draws, as `seen` already knew. An
+    eel on the head under a looking-up script had counted as "parked on screen centre" (325 ticks).
+  - `PartyRun` reports refused leases per minute.
+  - `PartyBaselineProbe -PtweakB=off|homes|noAnchoredHead` replaces the reflection hook.
+  - In the viewer the three switches are checkboxes that rebuild on the same seed.
+- **Measured** (equal grounds: 30 scripts × 4 seeds; `off` reproduces the 2c line for line):
+
+  | Party | Overlap % mean / worst | Clash ticks | Refused /min | Seen % by slot | Leash fades (party vs solo) |
+  |---|---|---|---|---|---|
+  | 3 anchored, off | 96.69 / 100 | 830,569 | — | 0.8 / 0.7 / 0.7 | 0 / 0 |
+  | 3 anchored, homes (+ leases, identical) | **0.38 / 7.8** | **0** | 0 | 0.8 / 1.4 / 1.4 | 0 / 0 |
+  | starfish pair + crab, off | 12.40 / 68.6 | 26,641 | — | 22.1 / 3.9 / 23.0 | 172 / 171 |
+  | starfish pair + crab, homes | 4.83 / 33.4 | 6,125 | — | 22.1 / 3.9 / 23.1 | 171 / 171 |
+  | starfish pair + crab, **homes + leases** | **2.61 / 16.1** | **0** | 0.27 | 22.1 / 3.9 / 23.0 | 175 / 171 |
+  | crab + octopus + slug, off | 18.39 / 64.2 | 43,840 | — | 22.7 / 25.5 / 19.5 | 316 / 310 |
+  | crab + octopus + slug, homes | 14.25 / 57.6 | 28,928 | — | 22.7 / 25.5 / 19.5 | 317 / 310 |
+  | crab + octopus + slug, **homes + leases** | **4.06 / 25.1** | **0** | 5.29 | 22.0 / 24.1 / **16.5** | 330 / 310 |
+
+  - Every other party is unchanged.
+  - Homes alone on crab + octopus + slug measure worse than the review's strict-order hook (14.25
+    vs 12.57), because seeded homes are kept. With leases the shipped figure is 4.06.
+  - **The cost (owner look):** with leases, the slug (slot 3) in crab + octopus + slug drops from
+    19.5 to 16.5 seen %, and leash fades rise 316 → 330. Homes alone don't do this, so it comes
+    from refused hand visits: the right shoulder, the head and the back all share the right hand.
+  - Two fixes were A/B'd and **rejected**, since neither was a clear win:
+    - from the ground, use the other hand when yours is taken: 17.0 seen %, 319 fades;
+    - keep walking up alongside while refused: 16.4.
+  - Refusals counted here include wander that would land on a mate's home, which is harmless.
+- **Game side:**
+  - D5 applies in game now (party homes and leases wait for Phase 3's wiring).
+  - Self-test `companionsim` on Fabric, 13/13: the lone garden eel rides the head and stands
+    upright out of the crown (shot `anchored_tp`). The 2c run of the same shot shows it on the
+    back.
+  - First person doesn't draw it (`anchored_fp`).
+  - No render change was needed: the head path's up-flip and floor lift suit the planted pose.
+  - A side-on view wasn't captured: third person turns the camera with the player.
+- **Verified:**
+  - `:fishsim:test` 481 tests, 0 failed. Four new `PartyLayerTest` contracts: anchored head then
+    shoulders; lone anchored on the head unless switched off; seeded home kept when free;
+    distinct homes and zero clashes over 3 parties × 4 scripts × 2 seeds (mutation-checked:
+    leases off gives 6 clash ticks).
+  - `:common:test`; Fabric game tests 366/366; NeoForge compiles (its game-test JVM never exits,
+    so not run).
+- **Gate:** owner viewer, e.g. `-PsimArgs="--party anchored --owner walk"` and `--party octopus
+  --owner walk_turns`, toggling `partyHomes` / `partyLeases` / `anchoredHead`. Then 2e
+  (familiarity).

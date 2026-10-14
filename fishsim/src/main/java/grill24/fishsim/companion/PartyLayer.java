@@ -10,8 +10,13 @@ import java.util.function.Function;
  * the others' leaders as {@link PointOfInterest.Kind#COMPANION} points within {@link #MATE_RANGE},
  * the way ClientCompanions feeds them in game.
  *
- * <p>Phase 2b: no party rules yet, so this is the measured baseline. Later rules act on units, never
- * inside a formation, and each has an on/off switch.
+ * <p>Party rules act on units, never inside a formation, and each has an on/off switch:
+ * <ul>
+ *   <li>Phase 2c: the mixed shoal (D13) is in {@link PartyGrouping}.</li>
+ *   <li>Phase 2d ({@link CompanionTunables#partyHomes}, {@link CompanionTunables#partyLeases}):
+ *       every percher gets its own home perch when the party is built, and a transient move takes
+ *       a free perch or doesn't happen ({@link PerchLeases}).</li>
+ * </ul>
  *
  * <p>Determinism: every unit reads its party-mates as they were at the end of the previous tick, so
  * the step order can't change results. A one-unit party adds no points, so it is bitwise a solo, a
@@ -101,6 +106,8 @@ public final class PartyLayer {
     }
 
     private final List<Unit> units;
+    /** The party's perches (§6.1), or null: one unit, under two perchers, or leases off. */
+    private final PerchLeases leases;
 
     /**
      * @param groups      the party's units, from {@link PartyGrouping#group}
@@ -115,6 +122,62 @@ public final class PartyLayer {
             out.add(new Unit(g, t, temperament.apply(g.leader()), drift.apply(g.leader()), world));
         }
         units = List.copyOf(out);
+        leases = units.size() > 1 ? perches(t, world.owner()) : null;
+    }
+
+    /** Where anchored fish look for a home (D5), and the order everyone else takes what's left in. */
+    private static final List<PerchBody.Slot> ANCHORED_ORDER = List.of(PerchBody.Slot.HEAD,
+            PerchBody.Slot.RIGHT_SHOULDER, PerchBody.Slot.LEFT_SHOULDER, PerchBody.Slot.BACK);
+    private static final List<PerchBody.Slot> OTHER_ORDER = List.of(PerchBody.Slot.LEFT_SHOULDER,
+            PerchBody.Slot.RIGHT_SHOULDER, PerchBody.Slot.HEAD, PerchBody.Slot.BACK);
+
+    /**
+     * Homes and leases for a party of more than one unit (§6.1). A formation keeps its members'
+     * homes; then anchored fish choose (D5: head, then the shoulders), then the other perchers. A
+     * fish keeps the home it would have alone if it is still free, and otherwise takes the next free
+     * one in its order. Within each, the lower party slot chooses first. Four perches for at most three bodies, so homes never run out.
+     *
+     * @return the leases, or null when off or there's nothing to share
+     */
+    private PerchLeases perches(CompanionTunables t, OwnerState owner) {
+        List<PerchBody> bodies = new ArrayList<>();
+        List<CompanionAgent> anchored = new ArrayList<>(), others = new ArrayList<>();
+        java.util.EnumSet<PerchBody.Slot> free = java.util.EnumSet.of(PerchBody.Slot.RIGHT_SHOULDER,
+                PerchBody.Slot.LEFT_SHOULDER, PerchBody.Slot.HEAD, PerchBody.Slot.BACK);
+        for (Unit u : units) {
+            List<CompanionAgent> agents = u.agents();
+            for (int i = 0; i < agents.size(); i++) {
+                CompanionAgent a = agents.get(i);
+                PerchBody p = a.perchBody();
+                if (p == null) continue;
+                p.partySlot = u.group().members().get(i).slot();
+                bodies.add(p);
+                if (u.ground() != null) free.remove(p.home);
+                else (a.locomotion() == grill24.fishsim.core.Locomotion.ANCHORED ? anchored : others).add(a);
+            }
+        }
+        if (bodies.size() < 2) return null;
+        if (t.partyHomes) {
+            // Party slot order, lead first, whatever order the units are listed in.
+            java.util.Comparator<CompanionAgent> bySlot = java.util.Comparator.comparingInt(a -> a.perchBody().partySlot);
+            anchored.sort(bySlot);
+            others.sort(bySlot);
+            for (CompanionAgent a : anchored) home(a, free, ANCHORED_ORDER, owner);
+            for (CompanionAgent a : others) home(a, free, OTHER_ORDER, owner);
+        }
+        return t.partyLeases ? new PerchLeases(bodies) : null;
+    }
+
+    private static void home(CompanionAgent a, java.util.Set<PerchBody.Slot> free, List<PerchBody.Slot> order,
+                             OwnerState owner) {
+        PerchBody.Slot own = a.perchHome();
+        if (free.remove(own)) return;
+        for (PerchBody.Slot s : order) {
+            if (free.remove(s)) {
+                a.partyHome(s, owner);
+                return;
+            }
+        }
     }
 
     public List<Unit> units() { return units; }
@@ -140,6 +203,7 @@ public final class PartyLayer {
             units.get(0).step(base);
             return;
         }
+        if (leases != null) leases.snapshot();
         PointOfInterest[] mates = new PointOfInterest[n];
         for (int i = 0; i < n; i++) mates[i] = units.get(i).asPoint(pointId(units.get(i).group()));
         for (int i = 0; i < n; i++) {

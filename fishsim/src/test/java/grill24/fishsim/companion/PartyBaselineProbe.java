@@ -17,7 +17,8 @@ import java.util.Locale;
  *
  * <p>Answers, per party: do units overlap, fight for a perch, crowd the view, starve one another
  * of view time, or inspect each other? Run with -PsimStdout; -PsweepSeeds=N changes the seed count;
- * -PtweakA=noShoal groups by the pre-D13 rule (different-species free swimmers stay separate).
+ * -PtweakA=noShoal groups by the pre-D13 rule (different-species free swimmers stay separate);
+ * -PtweakB switches Phase 2d's perch rules ({@link #tunables}).
  * The parties, the stepping ({@link PartyLayer}) and the measures live in {@link PartyRun}, the
  * Phase 2b metric suite; this prints them.
  */
@@ -31,55 +32,25 @@ class PartyBaselineProbe {
     }
 
     static PartyRun.Result run(PartyRun.Party p, String script, long seed) {
-        return PartyRun.measure(p, script, seed, TICKS, CompanionTunables.defaults(), Temperament.BASELINE,
-                !"noShoal".equals(System.getProperty("tweakA")),
-                "homes".equals(System.getProperty("tweakB")) ? PartyBaselineProbe::assignHomes : null);
+        return PartyRun.measure(p, script, seed, TICKS, tunables(), Temperament.BASELINE,
+                !"noShoal".equals(System.getProperty("tweakA")), null);
     }
 
     /**
-     * Candidate (-PtweakB=homes): the party gives every percher its own home perch, once, the way
-     * BenthicGroup already does inside a formation. Anchored fish ask first (D5: head, then the
-     * shoulders); the rest take what's left, left shoulder, right shoulder, head, back. Solo
-     * shoulder-wander is left as it is, so this measures homes alone.
+     * Phase 2d's switches (§6.1) from -PtweakB: {@code off} is the 2c baseline (no homes, no leases,
+     * anchored on the back), {@code homes} homes and D5 without leases (the review's candidate A),
+     * {@code noAnchoredHead} homes and leases with anchored fish still homed on the back.
+     * Unset, all on.
      */
-    static void assignHomes(PartyLayer layer) {
-        java.util.EnumSet<PerchBody.Slot> free = java.util.EnumSet.of(PerchBody.Slot.HEAD,
-                PerchBody.Slot.RIGHT_SHOULDER, PerchBody.Slot.LEFT_SHOULDER, PerchBody.Slot.BACK);
-        List<CompanionAgent> anchored = new ArrayList<>(), others = new ArrayList<>();
-        for (PartyLayer.Unit u : layer.units()) {
-            if (u.ground() != null) {
-                // A formation's members already hold distinct homes: take them out of the pool.
-                for (CompanionAgent a : u.agents()) free.remove(a.perchSlot());
-                continue;
-            }
-            CompanionAgent a = u.leader();
-            if (a.perchSlot() == null) continue;
-            (a.locomotion() == Locomotion.ANCHORED ? anchored : others).add(a);
+    static CompanionTunables tunables() {
+        CompanionTunables t = CompanionTunables.defaults();
+        switch (System.getProperty("tweakB", "")) {
+            case "off" -> { t.partyHomes = false; t.partyLeases = false; t.anchoredHead = false; }
+            case "homes" -> t.partyLeases = false;
+            case "noAnchoredHead" -> t.anchoredHead = false;
+            default -> { }
         }
-        List<PerchBody.Slot> anchoredOrder = List.of(PerchBody.Slot.HEAD, PerchBody.Slot.RIGHT_SHOULDER,
-                PerchBody.Slot.LEFT_SHOULDER, PerchBody.Slot.BACK);
-        List<PerchBody.Slot> otherOrder = List.of(PerchBody.Slot.LEFT_SHOULDER, PerchBody.Slot.RIGHT_SHOULDER,
-                PerchBody.Slot.HEAD, PerchBody.Slot.BACK);
-        for (CompanionAgent a : anchored) setHome(a, take(free, anchoredOrder));
-        for (CompanionAgent a : others) setHome(a, take(free, otherOrder));
-    }
-
-    private static PerchBody.Slot take(java.util.Set<PerchBody.Slot> free, List<PerchBody.Slot> order) {
-        for (PerchBody.Slot s : order) if (free.remove(s)) return s;
-        return null;
-    }
-
-    private static void setHome(CompanionAgent a, PerchBody.Slot s) {
-        if (s == null) return;
-        try {
-            var f = CompanionAgent.class.getDeclaredField("perch");
-            f.setAccessible(true);
-            PerchBody p = (PerchBody) f.get(a);
-            p.home = s;
-            p.slot = s;
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException(e);
-        }
+        return t;
     }
 
     /**
@@ -120,7 +91,7 @@ class PartyBaselineProbe {
             if (only != null && !p.name().contains(only)) continue;
             int runs = 0, clashRuns = 0, clashTicks = 0, fadesP = 0, fadesS = 0;
             double[] slotSeen = new double[PartyGrouping.SLOTS];
-            double allPct = 0, allWorst = 0, allRate = 0, drawnRate = 0, clashRate = 0, drawn = 0, drawnWorst = 0, near = 0, two = 0, three = 0, threeWorst = 0, mates = 0, matesWorst = 0;
+            double refusedRate = 0, allPct = 0, allWorst = 0, allRate = 0, drawnRate = 0, clashRate = 0, drawn = 0, drawnWorst = 0, near = 0, two = 0, three = 0, threeWorst = 0, mates = 0, matesWorst = 0;
             double minSep = Double.MAX_VALUE;
             String drawnWorstKey = "", threeWorstKey = "", matesWorstKey = "";
             int units = -1;
@@ -146,6 +117,7 @@ class PartyBaselineProbe {
                     allRate += r.allPerMin();
                     drawnRate += r.drawnPerMin();
                     clashRate += r.clashPerMin();
+                    refusedRate += r.refusedPerMin();
                     near += r.nearPct();
                     if (r.minSep() >= 0) minSep = Math.min(minSep, r.minSep());
                     two += r.twoInViewPct();
@@ -171,8 +143,8 @@ class PartyBaselineProbe {
                     "  inter-unit drawn overlap %%: mean %.2f | worst %.2f (%s); within 0.25 b %%: %.2f; min sep %s b%n",
                     drawn / runs, drawnWorst, drawnWorstKey, near / runs,
                     minSep == Double.MAX_VALUE ? "-" : String.format(Locale.ROOT, "%.3f", minSep));
-            System.out.printf(Locale.ROOT, "  rates /min: drawn overlap episodes %.2f; perch clash episodes %.2f%n",
-                    drawnRate / runs, clashRate / runs);
+            System.out.printf(Locale.ROOT, "  rates /min: drawn overlap episodes %.2f; perch clash episodes %.2f; refused leases %.2f%n",
+                    drawnRate / runs, clashRate / runs, refusedRate / runs);
             System.out.printf(Locale.ROOT, "  party-wide overlap (every body pair) %%: mean %.2f | worst %.2f; episodes /min %.2f%n",
                     allPct / runs, allWorst, allRate / runs);
             StringBuilder bySlot = new StringBuilder();

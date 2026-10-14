@@ -10,7 +10,7 @@ import java.util.function.Supplier;
  *
  * <ul>
  *   <li><b>Perched</b> is a real attachment, the parrot pattern: the body sits at a slot on the
- *       owner (a shoulder or the head, or for an anchored fish the back) and goes wherever they
+ *       owner (a shoulder or the head; an anchored fish the head, D5) and goes wherever they
  *       go, teleports included. This is the one placement the plan allows that isn't a swim.</li>
  *   <li><b>Hops</b> are ballistic: a crouch, a launch solved to land where the target will be
  *       when it comes down, bounded air control to correct for the owner changing course, and a
@@ -20,6 +20,8 @@ import java.util.function.Supplier;
  *       planted.</li>
  *   <li><b>In water</b> both hop off and swim with the free-swim body under the {@link Mind}
  *       (spec E1), then hop back on once the owner is out.</li>
+ *   <li><b>In a party</b> each percher has its own home perch, and a transient move takes only a
+ *       perch no party-mate calls home, holds or is heading for ({@link PerchLeases}).</li>
  *   <li><b>On the ground</b> (BENTHIC, docs/fish-companions-benthic-follow.md): on land a benthic
  *       lives on the ground, walking with a {@link GroundBody} that a {@link GroundMind} steers,
  *       and hops up to the owner only to show itself on the hand, to take cover, or when the
@@ -114,6 +116,13 @@ public final class PerchBody extends Motor {
     private boolean devClimb, devTumble;
     boolean groupMember, groupFollower;
     boolean allowGroupClimb = true;
+    /** The party's perch bookkeeping (docs/fish-companions-party.md §6.1), or null alone: every move is allowed. */
+    PerchLeases leases;
+    /** Its party slot: the lower claims a contested perch first, so the lead has first claim on a hand. */
+    int partySlot;
+    /** Transient moves the party refused, counted once per blocked spell. */
+    int leaseRefusals;
+    private boolean refusedNow, refusedWas;
     private final Vec[] travel = new Vec[80];
     private int travelIndex, travelCount;
     private double netTravel;
@@ -135,7 +144,7 @@ public final class PerchBody extends Motor {
         this.rng = seed * 0x9E3779B97F4A7C15L + 0x2545F4914F6CDD1DL;
         if (rng == 0) rng = 1;
         this.pace = Math.sqrt(Math.max(0.15, length) / 0.3);
-        this.home = locomotion == Locomotion.ANCHORED ? Slot.BACK
+        this.home = locomotion == Locomotion.ANCHORED ? (t.anchoredHead ? Slot.HEAD : Slot.BACK)
                 : switch ((int) Math.floorMod(seed, 3L)) {
                     case 0 -> Slot.RIGHT_SHOULDER;
                     case 1 -> Slot.LEFT_SHOULDER;
@@ -186,6 +195,9 @@ public final class PerchBody extends Motor {
     void step(OwnerState o, LocalVoxels v, boolean seen, Supplier<Vec> swimIntent, Supplier<Vec> ownerAvoid,
               Runnable onSwimStart) {
         modeTicks++;
+        if (refusedNow && !refusedWas) leaseRefusals++;
+        refusedWas = refusedNow;
+        refusedNow = false;
         Vec before = vel;
         Mode was = mode;
         impulse = false;
@@ -232,9 +244,16 @@ public final class PerchBody extends Motor {
                 attach(o);
                 crouch = Math.max(0f, crouch - 0.15f);
                 Slot next = wantedSlot(o, v);
-                if (next != null) startCrouch(next);
+                if (next != null && leased(next)) startCrouch(next);
             }
             case CROUCH -> {
+                if (hopTarget != null && outranked(hopTarget)) {
+                    // A party-mate already holds the perch, or claimed it first: stay.
+                    enter(Mode.PERCHED);
+                    wanderTicks = drawTicks(5, 10);
+                    attach(o);
+                    break;
+                }
                 attach(o);
                 crouch = Math.min(1f, crouch + 1f / crouchTicks());
                 if (modeTicks >= crouchTicks()) launch(o, v);
@@ -381,11 +400,47 @@ public final class PerchBody extends Motor {
         // A group shares one set of slots: each member's cover is its own (up on the owner),
         // never the one slot all three would otherwise pile onto.
         if (groupMember) return home;
-        if (drives.threat == Drives.Threat.CAT) return Slot.HEAD;
-        boolean threatRight = drives.threatPos.sub(o.chest()).dot(o.flatRight()) > 0;
-        // An aggressive percher squares up on the near shoulder instead.
-        if (drives.temperament().guard() && drives.threat == Drives.Threat.HOSTILE) threatRight = !threatRight;
-        return threatRight ? Slot.LEFT_SHOULDER : Slot.RIGHT_SHOULDER;
+        Slot wanted;
+        if (drives.threat == Drives.Threat.CAT) {
+            wanted = Slot.HEAD;
+        } else {
+            boolean threatRight = drives.threatPos.sub(o.chest()).dot(o.flatRight()) > 0;
+            // An aggressive percher squares up on the near shoulder instead.
+            if (drives.temperament().guard() && drives.threat == Drives.Threat.HOSTILE) threatRight = !threatRight;
+            wanted = threatRight ? Slot.LEFT_SHOULDER : Slot.RIGHT_SHOULDER;
+        }
+        if (leases == null || wanted == home || leases.free(this, wanted)) return wanted;
+        // In a party the cover may be a mate's home: the next free perch, else its own.
+        for (Slot s : new Slot[]{Slot.HEAD, Slot.BACK}) {
+            if (s == home || leases.free(this, s)) return s;
+        }
+        return home;
+    }
+
+    /**
+     * Whether it may go to {@code s} now: always alone, and always to its own home; in a party only
+     * to a perch no mate calls home or holds or is heading for (§6.1 leases).
+     */
+    private boolean leased(Slot s) {
+        if (leases == null || s == home || leases.free(this, s)) return true;
+        refusedNow = true;
+        return false;
+    }
+
+    /** Whether a party-mate sits on {@code s}, or heads for it with the earlier claim: then it yields. */
+    private boolean outranked(Slot s) {
+        if (leases == null || s == home || !leases.outranked(this, s)) return false;
+        refusedNow = true;
+        return true;
+    }
+
+    /** The perch it is heading for, or null: what a party-mate sees it claim besides the one it sits on. */
+    Slot heading() {
+        return switch (mode) {
+            case CROUCH, HOP -> hopTarget;
+            case GROUND_CROUCH -> crouchSlot;
+            default -> null;
+        };
     }
 
     private int handStay = -1;
@@ -628,6 +683,7 @@ public final class PerchBody extends Motor {
                     : !groupFollower && drives.wariness < COVER_WARINESS
                             && (lookingDown || heldInterest || unseenTicks >= groundAttention()) ? hand()
                     : climbWant ? home : null;
+            if (up != null && !leased(up)) up = null;
             // Only from somewhere a hop up is clear (not from behind them, through their body).
             arcMargin = GROUND_LEAP_MARGIN;
             boolean clear = up != null && slotPoint(o, up).distanceTo(pos) <= CLOSE_RANGE
@@ -667,6 +723,10 @@ public final class PerchBody extends Motor {
 
     /** Brakes, turns to face where it's going, crouches, and goes, if the way is clear. */
     private void groundCrouch(OwnerState o, LocalVoxels v) {
+        if (crouchSlot != null && outranked(crouchSlot)) {
+            abortGroundHop();
+            return;
+        }
         Vec to = crouchSlot != null ? slotPoint(o, crouchSlot) : waterTarget;
         Vec d = to.sub(pos).horizontal();
         float face = d.lengthSqr() > 1e-6 ? (float) d.yawDeg() : ground.yaw;
@@ -936,6 +996,13 @@ public final class PerchBody extends Motor {
     void placeAt(Vec p, float facingYaw) {
         super.placeAt(p, facingYaw);
         swim.placeAt(p, facingYaw);
+    }
+
+    /** The party gives it its own home perch (§6.1): from now on it rides there, starting now if it rides. */
+    void rehome(Slot s, OwnerState o) {
+        home = s;
+        slot = s;
+        if (attached()) attach(o);
     }
 
     /** Back on its perch after a fade (the owner teleported while it was swimming). */
