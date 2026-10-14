@@ -4866,10 +4866,61 @@ public final class RenderSelfTest {
                 mc.options.setCameraType(CameraType.FIRST_PERSON);
             });
         }
+        queueSharedClockWatch();
         queue(20, mc -> {
             grill24.fishtastic.client.companion.ClientCompanions.devOverlay(false);
             server(mc, RenderSelfTest::clearParties);
         });
+    }
+
+    /**
+     * The shared hand clock live (party spec §19, Phase 3d), on the ground party still equipped: the
+     * owner stands still, looking level with an empty hand, so only the clock calls fish to the
+     * hand. With the gap cut to 4-6 s for the test, over 60 s the turns must go round all three
+     * units, and no two may be on a hand at once.
+     */
+    private static void queueSharedClockWatch() {
+        java.util.Map<String, Integer> before = new java.util.HashMap<>();
+        java.util.Map<String, Integer> landed = new java.util.TreeMap<>();
+        int[] maxOnHand = new int[1];
+        queue(1, mc -> {
+            grill24.fishtastic.client.companion.ClientCompanions.devHandGap(4f, 6f);
+            server(mc, s -> run(s, "item replace entity @p weapon.mainhand with minecraft:air"));
+            for (var c : grill24.fishtastic.client.companion.ClientCompanions.localCompanions()) {
+                if (c.agent() != null) before.put(c.partyLine(), handVisitTotal(c.agent()));
+            }
+        });
+        for (int k = 0; k < 1200; k++) {
+            int tick = k;
+            queue(1, mc -> {
+                int onHand = 0;
+                for (var c : grill24.fishtastic.client.companion.ClientCompanions.localCompanions()) {
+                    var a = c.agent();
+                    if (a != null && a.riding() && a.perchSlot().hand()) onHand++;
+                }
+                maxOnHand[0] = Math.max(maxOnHand[0], onHand);
+                if (tick % 200 == 0) companionLog("clock t=" + tick / 20);
+                if (tick == 600) screenshot(mc, "companionparty", "clock_30s");
+            });
+        }
+        queue(1, mc -> {
+            for (var c : grill24.fishtastic.client.companion.ClientCompanions.localCompanions()) {
+                if (c.agent() != null) landed.put(c.partyLine(),
+                        handVisitTotal(c.agent()) - before.getOrDefault(c.partyLine(), 0));
+            }
+            long visitors = landed.values().stream().filter(n -> n > 0).count();
+            String state = grill24.fishtastic.client.companion.ClientCompanions.debugState();
+            check("companionparty.clock.shared", state.contains("hand clock: shared"), state);
+            check("companionparty.clock.turns_go_round", visitors == 3, "hand landings in 60 s " + landed);
+            check("companionparty.clock.one_at_a_time", maxOnHand[0] <= 1, "most on a hand at once " + maxOnHand[0]);
+            grill24.fishtastic.client.companion.ClientCompanions.devHandGapReset();
+        });
+    }
+
+    private static int handVisitTotal(grill24.fishsim.companion.CompanionAgent a) {
+        int total = 0;
+        for (int n : a.handVisits()) total += n;
+        return total;
     }
 
     /**
@@ -4903,6 +4954,9 @@ public final class RenderSelfTest {
             check("companioneel.three.homes", homes.equals(new java.util.TreeSet<>(
                     java.util.List.of("HEAD", "LEFT_SHOULDER", "RIGHT_SHOULDER"))), state.toString());
             check("companioneel.three.riding_home", allRiding, state.toString());
+            // Eels never visit a hand, so three of them share no hand clock (Phase 3d).
+            String overlay = grill24.fishtastic.client.companion.ClientCompanions.debugState();
+            check("companioneel.three.no_shared_clock", overlay.contains("hand clock: each percher's own"), overlay);
             // Which side of the player the sim holds each shoulder eel on, by Minecraft's own
             // right vector (facing +z, the right hand is -x): the perch layer must draw it there.
             net.minecraft.world.phys.Vec3 look = mc.player.getLookAngle();

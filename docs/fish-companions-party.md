@@ -308,7 +308,7 @@ own companion in first person" applies to the whole party.
 |---|---|---|
 | 1 | Storage + migration, (owner, slot) identity, packets, menu with 3 slots and the party preview, hold-B rules, commands, game tests. In game: same-species slots form a group (§3), and different species run **independently** (no party layer yet; overlap expected). Retire the size and count group rules | Game tests on both loaders; trio and group fingerprints bitwise; owner tries the menu and a school |
 | 2 | Re-scoped (§6, review §6). **2b** (done, §16) `PartyBaselineProbe` as the metric suite, plus multi-unit parties in the viewer. **2c** (done, §17) mixed shoal (D13). **2d** (done, §18) perch homes + leases (§6.1, with D5's intended ANCHORED change). **Hand visits** (done, §19) the hand clock, round-robin turns, the shoulder peek and more ground beats (D15–D19). **2e** party-mate familiarity tuning (§7): deferred (D20). **2f** (built, §20) ground separation between different-species ground walkers (§6.2) | Solo and identical-group fingerprints bitwise; owner viewer |
-| 3 | In game: party wiring, per-slot overlay, self-test scene, changelog note on lost trios | Owner solo playtest |
+| 3 | In game: **3a** (done, §21) party wiring. **3b** (done, §22) per-slot overlay. **3c** (done, §23) dev switch command. **3d** (done, §24) self-test scene. **3e** (done, §25) changelog note on lost trios | Owner solo playtest |
 | 4 | Folded into sim Phase 4: social drive across and within parties | Owner viewer, then in game |
 
 Phase 1 is mechanical and low risk. Phase 2 is the real work. Don't let Phase 1's "it works with
@@ -848,3 +848,25 @@ while following can fix half of it at most.
 - **Verified:** fingerprints identical (930). `companioneel` turns `partyHomes` off through the
   command (all three eels go home to the head, stacked: the pre-2d behaviour), checks the overlay
   line, then resets (head + both shoulders again). 24/24 on Fabric and on NeoForge.
+
+## 24. Phase 3d as built (the self-test scene)
+
+- **Shared hand clock, live** (`companionparty`, after its three parties): the crab + octopus +
+  slug party stays equipped. The owner stands still, looking level, with an empty hand, so only
+  the clock calls a fish to the hand. For the test the gap after a landing is cut to 4–6 s
+  (`ClientCompanions.devHandGap`; it is put back after, and it isn't a switch). Over 60 s:
+  - `clock.shared`: the overlay shows `hand clock: shared`;
+  - `clock.turns_go_round`: every unit lands on a hand (measured 4 / 5 / 4 landings);
+  - `clock.one_at_a_time`: never two on a hand at once (measured: at most 1).
+  A `clock_30s` shot shows the overlay mid-rotation.
+- **Three eels** (`companioneel`): already head + both shoulders (§21, §23). Added
+  `three.no_shared_clock`: eels never visit a hand, so an all-eel party keeps each percher's own
+  clock and nothing is ever called.
+- **Verified:** `companionparty` + `companioneel`, 28/28 on Fabric and on NeoForge.
+
+## 25. Phase 3e (the changelog note on lost trios)
+
+- `CHANGELOG.md` (the file the publish task posts) gains an Unreleased entry: the three slots, and
+  the cost from §2, risk 1. Small free swimmers, starfish and sea slugs no longer bring copies of
+  themselves; worlds from test builds see one fish where they saw a group, and the copies can't be
+  handed back. Companions came after the 2.0.1 release, so only test-build worlds are affected.

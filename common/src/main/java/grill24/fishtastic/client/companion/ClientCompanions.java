@@ -713,6 +713,21 @@ public final class ClientCompanions {
         return "Companion switches back to their defaults" + (rebuild ? " (parties rebuilt)" : "");
     }
 
+    /**
+     * Self-test only: the hand clock's gap after a hand landing, so a scene sees turns go round in
+     * seconds rather than minutes. Read at each landing, so it acts from the next one. Not a switch:
+     * {@link #devSwitchReset} leaves it alone, and the caller puts the default back.
+     */
+    public static void devHandGap(float minSeconds, float maxSeconds) {
+        ClientCompanion.TUNABLES.handGapMinSeconds = minSeconds;
+        ClientCompanion.TUNABLES.handGapMaxSeconds = maxSeconds;
+    }
+
+    /** Self-test only: {@link #devHandGap} back to the defaults. */
+    public static void devHandGapReset() {
+        devHandGap(DEFAULTS.handGapMinSeconds, DEFAULTS.handGapMaxSeconds);
+    }
+
     /** The overlay's line naming every switch changed from its default, or null when none is. */
     @Nullable
     private static String switchesLine() {
