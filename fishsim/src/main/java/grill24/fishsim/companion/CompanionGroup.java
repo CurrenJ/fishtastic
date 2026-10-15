@@ -106,8 +106,12 @@ public final class CompanionGroup {
         if (owner.teleported() || leader.fade() == CompanionAgent.Fade.HIDDEN) leaderTrail.clear();
         leaderTrail.record(leader.position());
         Capsule ownerBody = Capsule.ownerBody(owner);
+        players = world.points();
         for (Follower f : followers) f.step(owner, ownerBody);
     }
+
+    /** This tick's points, for the followers' clearance from other players. */
+    private java.util.List<PointOfInterest> players = java.util.List.of();
 
     public void interpolate(float alpha) {
         leader.interpolate(alpha);
@@ -234,7 +238,9 @@ public final class CompanionGroup {
             Vec pull = dest.sub(body.pos).scale(STATION_GAIN).clampLength(pullCap);
             Vec desired = leader.velocity().add(pull).add(separation());
             if (partyPush != null) desired = desired.add(partyPush);
-            body.step(desired, 0.6, ownerAvoidance(owner), voxels, ownerBody);
+            Vec avoid = ownerAvoidance(owner);
+            if (!players.isEmpty()) avoid = avoid.add(Mind.playerAvoidance(t, players, body.pos, body.radius, body.speed));
+            body.step(desired, 0.6, avoid, voxels, ownerBody);
         }
 
         /** Open water round {@code p}: a clear swim of {@link #OPEN_REACH} blocks every way, at its own height. */

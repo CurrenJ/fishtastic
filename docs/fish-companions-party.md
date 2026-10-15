@@ -1100,3 +1100,64 @@ checked with two real views, not only the ghost owner.
   2 blocks, G2 at 3). `differentFreeSwimmersPlayG2` and `oneScenePerOwnerPairAtATime` now stand
   their owners 3 blocks apart (the latter's bluegill + betta parties are mixed shoals, so they play
   G2). Fabric 369/369, NeoForge 363/363.
+
+### 28.8 Step 3a-2 as built: the scene goals, and owner clearance
+
+- **Owner clearance** (`otherPlayerClearance`, on, a dev switch): swimmers, and a school's
+  followers, are pushed off other players' bodies (`PLAYER` points) with the soft room and gain they
+  give their own owner (`Mind.playerAvoidance`). Fish inside the other player at 1.5 blocks: two
+  solos 6.2 → 0.25%, school vs solo 14 → 1.3%, predator party 15 → 1.8%, mixed vs mixed 21 → 8.2%
+  (what's left there is the mixed party's crab, a ground walker, at the other player's feet while it
+  inspects, ~2.3%, and the one-wide corridor). Seen % and cross-party overlap unchanged. The 930
+  fingerprints are identical (no single-owner script has a `PLAYER` point a swimmer meets); 63 of
+  the 108 two-owner fingerprints moved, and `docs/fish-companions-party-two-owner-fp.txt` now holds
+  the new ones.
+- **`CrossScene`** (one per side): kind (`RING` G1 240 ticks, `EIGHT` G2 320), role (0 = the
+  packet's first), the shared clock, both owners' feet in packet order. All geometry comes from
+  those (D29), never from the partner fish:
+  - **Greeting** (D27), the first 2.5 s: both fish go to the meeting point (the ring's centre, the
+    eight's crossing) and wait on the side their path sets out from, so they meet facing each other
+    and leave forwards. The path's clock starts as it ends.
+  - **G1** (D22): a horizontal ring about head height + 0.6 round the owners' midpoint, radius 1.1,
+    moved inside (≥ 0.9) or outside so it never passes within 0.5 of an owner's axis; roles half a
+    lap apart; the last second back to the centre.
+  - **G2** (D23, D24): tangent lobes round each owner at eye height − 0.25, radius half the gap
+    (floor 0.85); both leave the crossing together, one round each owner, one 0.35 above and one
+    below, eased out over a quarter lobe. It runs one whole eight (up to 30 s), its length set from
+    where the owners stand when the greeting ends (the server starts scenes as a player walks in).
+  - **Path speed** 1.43 blocks/s for both roles; a fish aims 0.4 s ahead of its clock point, 0.7× to
+    1.6× cruise.
+  - **Ends** (D30): time up, an owner walking 1.5 s or more than 9 blocks from where it began, or
+    the caller cancels.
+- **`Mind` goal `SCENE`** (utility 0.9, above `LAP`; D28): only an emergency catch-up or alarm
+  beats it. Within 12 blocks of its owner (`SCENE_REACH`) the catch-up drive is off, since G2's far
+  lobe takes a fish 3–9 blocks from its owner; the first run let catch-up win there (path error 1.1,
+  joins of 11 s). No open water along the path → the fish sits the scene out ("no room"; greeting
+  in a corridor pushed through the owners); a wall across the aim → it leaves ("wall").
+- **`PartyLayer.crossScene(slot, scene)`**: the unit holding the slot plays it (D26), only a free
+  swimmer (D25); a predator scene on now ends, and none starts while it runs (D28).
+- **Harness:** `TwoOwnerRun.Sim.autoScenes` schedules as the server does (range 6, G2 ≥ 2.5 apart,
+  scene + 60 s cooldown); `startScene()` starts one now. `measureScenes` and `CrossSceneProbe`
+  (8 seeds × 2 min per pair and script):
+
+  | | G1 ring | G2 eight |
+  |---|---|---|
+  | Join after the greeting | 0.9–2.2 s | 0.2–1.1 s |
+  | Path error once joined | 0.13–0.21 | 0.12–0.23 |
+  | G1 roles off opposite | 2.6–4.5° | – |
+  | Cross-party contact | ≤ 0.4% | ≤ 0.6% |
+  | Scene fish inside a player | ≤ 0.55% | ≤ 2% (mixed shoal followers) |
+  | Scene leader seen by its owner | 35% (1.5 apart) – 92% | 63–65% |
+  | Ticks at the turn cap | 9–12% | 1–3.4% |
+
+  Seen before scenes was 45–51%. The ring's turn-cap ticks are a pivot of about 1–1.5 s as each
+  fish turns out of the meeting point, plus the approach and the closing linger; on the ring
+  itself it stays under the cap. Corridor: every scene sat out. Side by side, walking: G1 starts and
+  ends at once ("owner walked off"); G2 never (2 blocks apart).
+- **Tests:** `CrossSceneTest` 10/10 (ring radius rule, roles opposite, the eight smooth and split
+  at the crossing and clear of the owners, end rules, both scenes headless, corridor, D25, D28,
+  owner clearance). fishsim 458/0. Fingerprints: 930 identical; with no scene requested the two-owner
+  ones are identical to clearance alone.
+- **Seeing it:** `CrossSceneRenderProbe` writes frames (owner A's view plus a map with both fish's
+  tracks) to `fishsim/build/scene-render/`. The viewer's PAIR classes run scenes as the server would,
+  Q starts one now, and the bottom line shows each side's scene.

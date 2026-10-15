@@ -73,6 +73,7 @@ import java.util.Set;
  *   partyHomes, partyLeases and anchoredHead checkboxes (Phase 2d, §6.1) rebuild on the same seed.
  *   The "PAIR ..." classes run two owners' parties (§28.3, TwoOwnerRun.PAIRS) on a pair_* owner
  *   script: the view is owner A's; owner B is the blue box, and B's fish are drawn and marked B1-B3.
+ *   Scenes (§28) start as the server would start them; Q starts one now. The top line shows it.
  * </pre>
  *
  * The "owner" dropdown switches between manual control and any headless owner script (played
@@ -211,6 +212,7 @@ public final class CompanionViewer {
                     case KeyEvent.VK_O -> place(PointOfInterest.Kind.COMPANION, 6, -60, 1.5, 0, 0.2, 1.2, Vec.ZERO);
                     case KeyEvent.VK_K -> hurtNext = true;
                     case KeyEvent.VK_X -> placed.clear();
+                    case KeyEvent.VK_Q -> { if (twoSim != null && !twoSim.sceneOn()) twoSim.startScene(); }
                     case KeyEvent.VK_J -> jumpNext = true;
                     case KeyEvent.VK_M -> pilotOrScript().riding = !pilotOrScript().riding;
                     case KeyEvent.VK_E -> pilotOrScript().gliding = !pilotOrScript().gliding;
@@ -336,7 +338,7 @@ public final class CompanionViewer {
         benthicGroup = null;
         party = null;
         if (pairChoice != null) {
-            twoSim = new TwoOwnerRun.Sim(pairChoice, pairScript, seed, tunables, temperament);
+            twoSim = new TwoOwnerRun.Sim(pairChoice, pairScript, seed, tunables, temperament).autoScenes(true);
             script = twoSim.a.script;
             scene = script.scene;
             scriptWorld = twoSim.a.base();
@@ -563,12 +565,22 @@ public final class CompanionViewer {
         g.dispose();
     }
 
-    /** Owner B's party in owner A's first-person view. */
+    /** Owner B's party in owner A's first-person view, and the scene line. */
     private void drawOtherParty(BufferedImage fp) {
         for (var unit : twoSim.b.layer.units()) {
             CompanionRenderer.drawAgents(fp, owner, renderCache, unit.agents());
             if (unit.school() != null) CompanionRenderer.drawFollowers(fp, owner, renderCache, unit.school());
         }
+        String a = twoSim.a.layer.crossSceneLine(), b = twoSim.b.layer.crossSceneLine();
+        String line = a == null && b == null ? "no scene (Q starts one)  " + twoSim.scenesStarted() + " so far"
+                : "A " + (a == null ? "-" : a) + "   B " + (b == null ? "-" : b);
+        Graphics2D g = fp.createGraphics();
+        g.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+        g.setColor(new Color(0, 0, 0, 140));
+        g.fillRect(0, FP_H - 44, FP_W, 20);
+        g.setColor(Color.WHITE);
+        g.drawString(line, 8, FP_H - 29);
+        g.dispose();
     }
 
     /** Owner B's bodies on the map, B1-B3 by slot, and owner B, "B". */

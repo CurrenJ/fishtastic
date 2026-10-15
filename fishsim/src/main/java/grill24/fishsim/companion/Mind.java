@@ -37,7 +37,12 @@ final class Mind {
          * A party scene (D21, G4), for a predator: one smug lap round the owner, past a party-mate
          * prey hiding behind them. Only {@link PartyLayer} asks for it ({@link #requestLap}).
          */
-        LAP
+        LAP,
+        /**
+         * A cross-player scene (party spec §28): greet the other player's fish, then G1's ring or
+         * G2's eight on the shared clock. Only {@link PartyLayer#crossScene} asks for it.
+         */
+        SCENE
     }
 
     private static final int TPS = 20;
@@ -81,7 +86,7 @@ final class Mind {
 
     // ── Drives and utilities (exposed for the overlay) ──
     float proximity, attention;
-    float uBase, uCatch, uShow, uInspect, uHide, uNuzzle, uLap;
+    float uBase, uCatch, uShow, uInspect, uHide, uNuzzle, uLap, uScene;
     int unseenTicks;
     private int seenStreak;
     private int attentionThreshold;
@@ -141,6 +146,20 @@ final class Mind {
     static final double LAP_RADIUS = 1.1;
     private static final int LAP_MAX_TICKS = 12 * TPS;
 
+    // ── SCENE ──
+    /** The cross-player scene asked for, or null; and whether this fish has left it. */
+    private CrossScene scene;
+    private boolean sceneDone;
+    /** Open water along the path, judged when the goal starts: without it the fish only greets. */
+    private boolean sceneRoom;
+    /** The scene's utility: above a lap's (D28), below only an emergency. */
+    private static final float SCENE_UTILITY = 0.9f;
+    /** How far from its owner a scene may take a fish before it counts as lost, blocks. */
+    static final double SCENE_REACH = 12.0;
+    int scenesPlayed;
+    /** Why this fish left its scene early ("wall", "no room"), or null. */
+    String sceneLeft;
+
     // ── SHOW_OFF ──
     private int showPhase;
     private int showSide;
@@ -182,7 +201,28 @@ final class Mind {
             case HIDE, GUARD -> hide(o, v);
             case NUZZLE -> nuzzle(o, v);
             case LAP -> lap(o, v);
+            case SCENE -> crossScene(o, v);
         };
+    }
+
+    /**
+     * A cross-player scene (§28): held while it runs, unless an emergency wins. A lap in progress
+     * ends for it (D28).
+     */
+    void requestScene(CrossScene s) {
+        scene = s;
+        sceneDone = false;
+        sceneLeft = null;
+        if (goal == Goal.LAP) lapDone = true;
+    }
+
+    /** In a cross-player scene it hasn't left. */
+    boolean inScene() {
+        return goal == Goal.SCENE && scene != null && scene.active() && !sceneDone;
+    }
+
+    CrossScene scene() {
+        return scene;
     }
 
     /** The party layer asks for a lap (D21); it holds for {@code ticks} unless something more urgent wins. */
@@ -349,6 +389,12 @@ final class Mind {
         boolean lapFinished = goal == Goal.LAP && lapDone;
         if (lapRequest > 0) lapRequest--;
         uLap = lapRequest > 0 && !lapFinished && ownerDist < t.farGap ? 0.85f : 0f;
+        boolean sceneFinished = goal == Goal.SCENE && (sceneDone || scene == null || !scene.active());
+        // A scene takes a fish round the other player too (G2's far lobe): within its reach that
+        // isn't being left behind, and the scene ends itself if an owner leaves (CrossScene).
+        boolean sceneOn = scene != null && scene.active() && !sceneDone && ownerDist < SCENE_REACH;
+        uScene = sceneOn ? SCENE_UTILITY : 0f;
+        if (sceneOn) uCatch = 0;
 
         Goal base = ownerMoving ? Goal.ESCORT : drives.resting ? Goal.SETTLE : Goal.LOITER;
         Goal best = base;
@@ -373,6 +419,10 @@ final class Mind {
             best = Goal.LAP;
             bestU = uLap;
         }
+        if (uScene > bestU) {
+            best = Goal.SCENE;
+            bestU = uScene;
+        }
         if (uHide > bestU) {
             // An aggressive fish stands its ground against a hostile instead.
             best = temperament.guard() && drives.threat == Drives.Threat.HOSTILE ? Goal.GUARD : Goal.HIDE;
@@ -386,7 +436,7 @@ final class Mind {
         // An inspection is over when the thing is gone or has stopped being the most interesting.
         boolean done = (goal == Goal.SHOW_OFF && showDone)
                 || (goal == Goal.INSPECT && (inspecting == null || drives.target != inspecting))
-                || nuzzleFinished || lapFinished;
+                || nuzzleFinished || lapFinished || sceneFinished;
         boolean committed = goalTicks < minTicks(goal);
         if (baseSwap || emergency || done || (!committed && bestU > utility(goal) + SWITCH_MARGIN)) {
             enter(best);
@@ -402,6 +452,7 @@ final class Mind {
             case HIDE, GUARD -> uHide;
             case NUZZLE -> nuzzleDone ? 0f : 0.6f;
             case LAP -> lapDone ? 0f : 0.85f;
+            case SCENE -> sceneDone || scene == null || !scene.active() ? 0f : SCENE_UTILITY;
         };
     }
 
@@ -414,7 +465,7 @@ final class Mind {
         int base = switch (g) {
             case LOITER, SETTLE, ESCORT -> 20;
             case CATCH_UP -> 30;
-            case SHOW_OFF, INSPECT, HIDE, GUARD, NUZZLE, LAP -> 40;
+            case SHOW_OFF, INSPECT, HIDE, GUARD, NUZZLE, LAP, SCENE -> 40;
         };
         return temperament.commitment() == 1 ? base : Math.max(20, Math.round(base * temperament.commitment()));
     }
@@ -466,6 +517,10 @@ final class Mind {
                 lapPrevAngle = Double.NaN;
                 lapDone = false;
                 laps++;
+            }
+            case SCENE -> {
+                sceneRoom = false;
+                scenesPlayed++;
             }
             case NUZZLE -> {
                 nuzzleSide = sideOf(o0);
@@ -840,6 +895,49 @@ final class Mind {
         return o.velocity().horizontal().add(aroundOwner(o, v, dest).sub(body.pos).normalize().scale(speed));
     }
 
+    /**
+     * The cross-player scene (§28.2): the greeting first (D27) — to the meeting point, nose to
+     * nose with the partner — then the path, aiming {@link CrossScene#LEAD_SECONDS} ahead of where
+     * the shared clock puts this role, brisker while behind and easier while ahead; G1 ends back at
+     * the centre. Without open water along the whole path it sits the scene out; a wall across the
+     * aim ends it.
+     */
+    private Vec crossScene(OwnerState o, LocalVoxels v) {
+        CrossScene s = scene;
+        if (goalTicks == 1) sceneRoom = s.roomClear(v, body.radius);
+        if (!sceneRoom) {
+            // In a doorway or a corridor even meeting would push through the owners: sit it out.
+            sceneLeft = "no room";
+            sceneDone = true;
+            return o.velocity().horizontal();
+        }
+        wanderScale = 0.15;
+        double cruise = body.g.cruiseSpeed();
+        if (s.greeting() || s.lingering()) {
+            // Over to the meeting point, held off it on this fish's own side: nose to nose with the
+            // partner coming from the other side.
+            // Held off on the side its path sets out from, so it leaves forwards, not with a spin;
+            // the partner waits on its own side, facing it (G1 across the centre, G2 a layer apart).
+            Vec meet = s.meetingPoint();
+            Vec dir = s.startSide();
+            Vec dest = meet.add(dir.scale(body.radius + 0.25));
+            target = dest;
+            double d = dest.distanceTo(body.pos);
+            if (d < 1e-6) return Vec.ZERO;
+            return aroundOwner(o, v, dest).sub(body.pos).normalize().scale(Math.min(cruise * 2, d * 2));
+        }
+        Vec aim = s.pathPoint(s.ticks + CrossScene.LEAD_SECONDS * 20);
+        if (!v.sphereClear(aim, body.radius + 0.05)) {
+            sceneLeft = "wall";
+            sceneDone = true;
+        }
+        target = aim;
+        double d = aim.distanceTo(body.pos);
+        double speed = Math.max(0.7 * CrossScene.PATH_SPEED, Math.min(1.6 * cruise, d / CrossScene.LEAD_SECONDS));
+        Vec to = aroundOwner(o, v, aim).sub(body.pos);
+        return to.lengthSqr() < 1e-9 ? Vec.ZERO : to.normalize().scale(speed);
+    }
+
     private Vec showOff(OwnerState o, LocalVoxels v) {
         if (showSide == 0) {
             showSide = sideOf(o);
@@ -1087,6 +1185,33 @@ final class Mind {
         double closing = Math.max(0, o.velocity().dot(dir));
         double gain = Math.max(t.ownerAvoidSpeed, body.speed * 1.2);
         return dir.scale(w * gain + closing * Math.min(1, w * 2));
+    }
+
+    /**
+     * The push off other players' bodies (their {@code PLAYER} points, feet up): the same soft room
+     * and gain as {@link #ownerAvoidance}, summed over every player near enough to matter. Zero
+     * when {@link CompanionTunables#otherPlayerClearance} is off or nobody is there.
+     */
+    static Vec playerAvoidance(CompanionTunables t, java.util.List<PointOfInterest> points, Vec pos, double radius,
+                               double speed) {
+        if (!t.otherPlayerClearance) return Vec.ZERO;
+        Vec push = Vec.ZERO;
+        for (PointOfInterest p : points) {
+            if (p.kind() != PointOfInterest.Kind.PLAYER) continue;
+            Vec a = p.pos().add(0, OwnerState.BODY_RADIUS, 0), b = p.pos().add(0, OwnerState.EYE_HEIGHT + 0.1, 0);
+            Vec ab = b.sub(a);
+            double s = Math.max(0, Math.min(1, pos.sub(a).dot(ab) / ab.lengthSqr()));
+            Vec away = pos.sub(a.add(ab.scale(s)));
+            double d = away.length();
+            double limit = OwnerState.BODY_RADIUS + radius + t.ownerMargin;
+            if (d >= limit) continue;
+            Vec dir = d < 1e-6 ? new Vec(1, 0, 0) : away.scale(1 / d);
+            double w = 1 - d / limit;
+            double closing = Math.max(0, p.vel().dot(dir));
+            double gain = Math.max(t.ownerAvoidSpeed, speed * 1.2);
+            push = push.add(dir.scale(w * gain + closing * Math.min(1, w * 2)));
+        }
+        return push;
     }
 
     /** Clearance a swim keeps from the owner's body axis. */

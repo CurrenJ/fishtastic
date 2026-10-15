@@ -3,6 +3,7 @@ package grill24.fishsim.harness.companion;
 import grill24.fishsim.companion.CompanionAgent;
 import grill24.fishsim.companion.CompanionTunables;
 import grill24.fishsim.companion.CompanionWorld;
+import grill24.fishsim.companion.CrossScene;
 import grill24.fishsim.companion.OwnerState;
 import grill24.fishsim.companion.PartyGrouping;
 import grill24.fishsim.companion.PartyLayer;
@@ -108,6 +109,9 @@ public final class TwoOwnerRun {
         private CompanionWorld base;
         /** The world each unit saw this tick, by unit index. */
         private final CompanionWorld[] seen;
+        /** This side's cross-player scene and the unit playing it, or null. */
+        private CrossScene scene;
+        private PartyLayer.Unit sceneUnit;
 
         Side(int ownerId, OwnerScript script, PartyRun.Party party, long seed, CompanionTunables t, Temperament temperament) {
             this.ownerId = ownerId;
@@ -120,6 +124,11 @@ public final class TwoOwnerRun {
         }
 
         public OwnerState owner() { return base.owner(); }
+
+        /** This side's cross-player scene (whether or not it is still on), or null. */
+        public CrossScene scene() { return scene; }
+
+        public PartyLayer.Unit sceneUnit() { return sceneUnit; }
 
         public CompanionWorld base() { return base; }
 
@@ -134,9 +143,19 @@ public final class TwoOwnerRun {
         }
     }
 
+    /** The server's scene range (CompanionSceneManager.RANGE), its G2 floor, and its cooldown, as the scheduler uses them. */
+    public static final double SCENE_RANGE = 6.0, G2_MIN_OWNER_DISTANCE = 2.5;
+    public static final int SCENE_COOLDOWN_TICKS = 1200;
+
     /** The two parties, stepped one tick at a time. */
     public static final class Sim {
         public final Side a, b;
+        private int tick;
+        /** -1 with no scene yet; else the tick the latest began. */
+        private int sceneStart = -1;
+        private int busyUntil;
+        private boolean autoScenes;
+        private int scenesStarted;
 
         public Sim(Pair pair, String script, long seed, CompanionTunables t, Temperament temperament) {
             OwnerScript[] owners = OwnerScript.pair(script, seed);
@@ -144,14 +163,82 @@ public final class TwoOwnerRun {
             b = new Side(OWNER_B, owners[1], pair.b(), seedB(seed), t, temperament);
         }
 
+        /**
+         * Schedule scenes as the server does (CompanionSceneManager): with the owners within
+         * {@link #SCENE_RANGE}, the best pairing plays, then the pair sits out the scene and a
+         * cooldown. Off (the default) no scene ever starts, so the fingerprints hold.
+         */
+        public Sim autoScenes(boolean on) {
+            autoScenes = on;
+            return this;
+        }
+
+        public int tick() { return tick; }
+
+        public int scenesStarted() { return scenesStarted; }
+
+        /** A scene on either side now. */
+        public boolean sceneOn() {
+            return (a.scene != null && a.scene.active()) || (b.scene != null && b.scene.active());
+        }
+
         public void step() {
             a.base = a.script.nextWorld();
             b.base = b.script.nextWorld();
-            stepSide(a, b);
-            stepSide(b, a);
+            if (autoScenes && tick >= busyUntil && !sceneOn()
+                    && a.owner().feet().distanceTo(b.owner().feet()) <= SCENE_RANGE) startScene();
+            stepSide(a, b, this);
+            stepSide(b, a, this);
+            tick++;
         }
 
-        private static void stepSide(Side self, Side other) {
+        /**
+         * Starts the best scene the server would choose now (§28.7: free swimmers only; one species
+         * plays the ring, otherwise the eight with the owners 2.5 blocks apart), on both sides at
+         * once. Returns false when no pairing qualifies.
+         */
+        public boolean startScene() {
+            PartyLayer.Unit bestA = null, bestB = null;
+            CrossScene.Kind best = null;
+            double apart = a.owner().feet().sub(b.owner().feet()).horizontalLength();
+            for (PartyLayer.Unit ua : a.layer.units()) {
+                for (PartyLayer.Unit ub : b.layer.units()) {
+                    if (ua.group().leader().locomotion() != Locomotion.FREE_SWIM
+                            || ub.group().leader().locomotion() != Locomotion.FREE_SWIM) continue;
+                    String sa = oneSpecies(ua.group()), sb = oneSpecies(ub.group());
+                    CrossScene.Kind k = sa != null && sa.equals(sb) ? CrossScene.Kind.RING
+                            : apart >= G2_MIN_OWNER_DISTANCE ? CrossScene.Kind.EIGHT : null;
+                    if (k == null || (best != null && k.ordinal() >= best.ordinal())) continue;
+                    best = k;
+                    bestA = ua;
+                    bestB = ub;
+                }
+            }
+            if (best == null) return false;
+            a.scene = new CrossScene(best, 0);
+            b.scene = new CrossScene(best, 1);
+            a.sceneUnit = a.layer.crossScene(bestA.group().leader().slot(), a.scene);
+            b.sceneUnit = b.layer.crossScene(bestB.group().leader().slot(), b.scene);
+            sceneStart = tick;
+            busyUntil = tick + best.durationTicks + SCENE_COOLDOWN_TICKS;
+            scenesStarted++;
+            return true;
+        }
+
+        private static String oneSpecies(PartyGrouping.Group g) {
+            String s = g.leader().species();
+            for (PartyGrouping.Member m : g.members()) if (!m.species().equals(s)) return null;
+            return s;
+        }
+
+        private static void stepSide(Side self, Side other, Sim sim) {
+            if (self.scene != null && self.scene.active() || self.scene != null && self.scene.ticks() < 0) {
+                // As a client feeds it: the shared clock, both owners in packet order (A is the
+                // first), and the partner as this client's own sim of the other party has it.
+                CompanionAgent partner = other.sceneUnit == null ? null : other.sceneUnit.leader();
+                self.scene.update(sim.tick - sim.sceneStart, sim.a.owner().feet(), sim.b.owner().feet(),
+                        partner != null && partner.appear() >= 1f ? partner.position() : null);
+            }
             int n = self.layer.size();
             List<PointOfInterest> fish = new ArrayList<>();
             for (PartyLayer.Unit u : other.layer.units()) {
@@ -252,6 +339,145 @@ public final class TwoOwnerRun {
                 together == 0 ? 0 : 100.0 * near / together, minSep == Double.MAX_VALUE ? -1 : minSep,
                 100.0 * contact / ticks, contactEpisodes / minutes, seen(ta), seen(tb),
                 unitTicks == 0 ? 0 : 100.0 * inspect / unitTicks, fades);
+    }
+
+    /**
+     * Cross-player scenes on a two-owner run (§28.3), scheduled as the server does. Levels with
+     * their rates where they're events:
+     * <ul>
+     *   <li>{@code joinSeconds}: from the end of the greeting to the scene leader first within
+     *       {@link #JOINED} of its clock point (mean over joins); {@code joinedPct} of scene-sides
+     *       that ever join;</li>
+     *   <li>{@code pathError}: mean distance from the clock point once joined, blocks;</li>
+     *   <li>{@code antipodalDeg}: G1 only, both on the path: how far the two fish are from
+     *       opposite sides of the ring, degrees;</li>
+     *   <li>{@code contactPct}/{@code contactPerMin}: scene ticks with a body of one party over a
+     *       body of the other; {@code ownerContactPct}: a scene fish inside either owner;</li>
+     *   <li>{@code seenPct}: scene leaders seen by their own owner during scene ticks;</li>
+     *   <li>{@code peakTurnDeg}: the largest yaw change in one tick of a scene leader on the path
+     *       (the cap is 7), and {@code atTurnCapPct} of path ticks within half a degree of it;</li>
+     *   <li>{@code ends}: why each side's scene ended, and {@code left}: why a fish left early.</li>
+     * </ul>
+     */
+    public record SceneResult(int scenes, double sceneTicks, double joinSeconds, double joinedPct, double pathError,
+                              double antipodalDeg, double contactPct, double contactPerMin, double ownerContactPct,
+                              double seenPct, double peakTurnDeg, double atTurnCapPct, java.util.Map<String, Integer> ends,
+                              java.util.Map<String, Integer> left) {}
+
+    /** A yaw change in one tick this near the swimmers' cap (7°) counts as turning flat out. */
+    static final double TURN_CAP_NEAR = 6.5;
+
+    /** A scene leader this close to its clock point has joined the path, blocks. */
+    public static final double JOINED = 0.5;
+
+    public static SceneResult measureScenes(Pair pair, String script, long seed, int ticks, CompanionTunables t,
+                                            Temperament temperament) {
+        Sim sim = new Sim(pair, script, seed, t, temperament).autoScenes(true);
+        long atCap = 0;
+        long sceneTicks = 0, contact = 0, ownerContact = 0, seen = 0, seenTicks = 0, pathTicks = 0, antiTicks = 0;
+        double pathErr = 0, anti = 0, peakTurn = 0, joinSum = 0;
+        int joins = 0, sides = 0, contactEpisodes = 0;
+        boolean wasContact = false;
+        java.util.Map<String, Integer> ends = new java.util.TreeMap<>(), left = new java.util.TreeMap<>();
+        CrossScene lastA = null;
+        List<CrossScene> history = new ArrayList<>();
+        List<String> leftHistory = new ArrayList<>();
+        CompanionAgent[] lastLeads = new CompanionAgent[2];
+        boolean[] joined = new boolean[2], leftRecorded = new boolean[2];
+        float[] prevYaw = new float[2];
+        for (int k = 0; k < ticks; k++) {
+            sim.step();
+            CrossScene sa = sim.a.scene(), sb = sim.b.scene();
+            if (sa != lastA && sa != null) {
+                lastA = sa;
+                leftRecorded[0] = leftRecorded[1] = false;
+                history.add(sa);
+                history.add(sb);
+                lastLeads[0] = sim.a.sceneUnit() == null ? null : sim.a.sceneUnit().leader();
+                lastLeads[1] = sim.b.sceneUnit() == null ? null : sim.b.sceneUnit().leader();
+                joined[0] = joined[1] = false;
+                sides += 2;
+                prevYaw[0] = prevYaw[1] = Float.NaN;
+            }
+            boolean on = sim.sceneOn();
+            if (!on) {
+                wasContact = false;
+                continue;
+            }
+            sceneTicks++;
+            Side[] both = {sim.a, sim.b};
+            CompanionAgent[] lead = new CompanionAgent[2];
+            for (int i = 0; i < 2; i++) {
+                Side side = both[i];
+                CrossScene sc = side.scene();
+                if (side.sceneUnit() == null || sc == null || !sc.active()) continue;
+                CompanionAgent l = side.sceneUnit().leader();
+                lead[i] = l;
+                if (!leftRecorded[i] && l.sceneLeft() != null) {
+                    leftRecorded[i] = true;
+                    leftHistory.add(l.sceneLeft());
+                }
+                seenTicks++;
+                if (l.appear() >= 1f && Visibility.visible(side.owner(), l.position(), l.voxels())) seen++;
+                if (!l.inScene() || sc.greeting()) {
+                    prevYaw[i] = Float.NaN;
+                    continue;
+                }
+                double err = l.position().distanceTo(sc.pathPoint(sc.ticks()));
+                if (!joined[i] && err < JOINED) {
+                    joined[i] = true;
+                    joins++;
+                    joinSum += (sc.ticks() - CrossScene.GREET_TICKS) / 20.0;
+                }
+                if (joined[i]) {
+                    pathErr += err;
+                    pathTicks++;
+                    if (!Float.isNaN(prevYaw[i])) {
+                        float dy = Math.abs(((l.yaw() - prevYaw[i]) % 360 + 540) % 360 - 180);
+                        peakTurn = Math.max(peakTurn, dy);
+                        if (dy >= TURN_CAP_NEAR) atCap++;
+                    }
+                    prevYaw[i] = l.yaw();
+                }
+            }
+            if (sa != null && sa.kind == CrossScene.Kind.RING && lead[0] != null && lead[1] != null && joined[0] && joined[1]
+                    && lead[0].inScene() && lead[1].inScene()) {
+                Vec c = sa.ringCentre();
+                Vec da = lead[0].position().sub(c).horizontal(), db = lead[1].position().sub(c).horizontal();
+                double cos = da.dot(db) / Math.max(1e-9, da.length() * db.length());
+                anti += 180 - Math.toDegrees(Math.acos(Math.max(-1, Math.min(1, cos))));
+                antiTicks++;
+            }
+            List<double[]> ba = sim.a.bodies(), bb = sim.b.bodies();
+            boolean any = false;
+            for (double[] x : ba) {
+                for (double[] y : bb) {
+                    if (x[7] >= 1f && y[7] >= 1f && PartyRun.segDist(x, y) < PartyRun.BODY_HALF_WIDTH * (x[6] + y[6])) any = true;
+                }
+            }
+            if (any) contact++;
+            if (any && !wasContact) contactEpisodes++;
+            wasContact = any;
+            // Only the scene's own fish: a percher riding its owner's shoulder is inside them by design.
+            List<double[]> scened = new ArrayList<>();
+            if (lead[0] != null && lead[0].inScene()) scened.addAll(PartyRun.bodies(sim.a.sceneUnit()));
+            if (lead[1] != null && lead[1].inScene()) scened.addAll(PartyRun.bodies(sim.b.sceneUnit()));
+            if (inOwner(scened, sim.a.owner()) || inOwner(scened, sim.b.owner())) ownerContact++;
+        }
+        // Why each scene ended, per side (a scene still on at the end of the run is "running").
+        for (CrossScene sc : history) {
+            if (sc == null) continue;
+            String r = sc.endReason();
+            ends.merge(r == null ? "running" : r, 1, Integer::sum);
+        }
+        for (String r : leftHistory) left.merge(r, 1, Integer::sum);
+        double minutes = Math.max(1, sceneTicks) / 1200.0;
+        return new SceneResult(sim.scenesStarted(), sceneTicks, joins == 0 ? Double.NaN : joinSum / joins,
+                sides == 0 ? 0 : 100.0 * joins / sides, pathTicks == 0 ? Double.NaN : pathErr / pathTicks,
+                antiTicks == 0 ? Double.NaN : anti / antiTicks, sceneTicks == 0 ? 0 : 100.0 * contact / sceneTicks,
+                contactEpisodes / minutes, sceneTicks == 0 ? 0 : 100.0 * ownerContact / sceneTicks,
+                seenTicks == 0 ? 0 : 100.0 * seen / seenTicks, peakTurn, pathTicks == 0 ? 0 : 100.0 * atCap / pathTicks,
+                ends, left);
     }
 
     /** A drawn body's centre inside a standing player's box, widened by the fish's half width. */

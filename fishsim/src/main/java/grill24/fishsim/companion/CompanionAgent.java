@@ -221,7 +221,11 @@ public final class CompanionAgent {
         } else {
             Vec desired = mind.think(owner, voxels, crumbs);
             if (swimPush != null) desired = desired.add(swimPush);
-            body.step(desired, mind.wanderScale, mind.ownerAvoidance(owner), voxels, Capsule.ownerBody(owner));
+            Vec avoid = mind.ownerAvoidance(owner);
+            if (!world.points().isEmpty()) {
+                avoid = avoid.add(Mind.playerAvoidance(t, world.points(), body.pos, body.radius, body.speed));
+            }
+            body.step(desired, mind.wanderScale, avoid, voxels, Capsule.ownerBody(owner));
             pose = mind.pose;
             lookTarget = mind.goal == Mind.Goal.INSPECT && drives.target != null ? drives.target.pos : null;
         }
@@ -549,6 +553,16 @@ public final class CompanionAgent {
 
     /** On a lap that hasn't finished. */
     boolean lapping() { return mind.lapping(); }
+
+    /** Ask for a cross-player scene (party spec §28); see {@link PartyLayer#crossScene}. */
+    void requestScene(CrossScene scene) { mind.requestScene(scene); }
+
+    /** In a cross-player scene it hasn't left. */
+    public boolean inScene() { return perch == null && mind.inScene(); }
+
+    /** Cross-player scenes begun, and why the last one was left early (null if it wasn't). */
+    public int scenesPlayed() { return mind.scenesPlayed; }
+    public String sceneLeft() { return mind.sceneLeft; }
 
     /** Fear a party-mate predator at {@code pos}, or nothing (null). */
     void sceneThreat(Vec pos) { drives.sceneThreat = pos; }

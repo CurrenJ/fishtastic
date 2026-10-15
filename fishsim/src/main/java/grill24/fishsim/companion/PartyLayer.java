@@ -23,6 +23,8 @@ import java.util.function.IntUnaryOperator;
  *       prey's shoal) push apart in the water.</li>
  *   <li>D21, G4 ({@link CompanionTunables#partyPredatorScene}): now and then the predator does a
  *       smug lap round its standing owner while the prey hides behind their head.</li>
+ *   <li>§28 ({@link #crossScene}): a cross-player scene goes to the unit holding the slot the
+ *       server named; while it runs the predator scene neither starts nor goes on (D28).</li>
  * </ul>
  *
  * <p>Determinism: every unit reads its party-mates as they were at the end of the previous tick, so
@@ -129,6 +131,9 @@ public final class PartyLayer {
     private boolean sceneLapStarted, scenePreyHid;
     /** Scenes begun, those whose lap began, and those where the prey hid, for the probe and overlay. */
     private int scenesStarted, scenesLapped, scenesPreyHid;
+    /** The cross-player scene on now (§28), and the unit playing it; null for none. */
+    private CrossScene crossScene;
+    private Unit crossUnit;
     /** A unit's point id as its party-mates see it, from its lowest slot. */
     private final IntUnaryOperator mateId;
 
@@ -283,7 +288,8 @@ public final class PartyLayer {
         if (handClock != null) handClock.tick();
         if (!groundUnits.isEmpty()) separateGround();
         if (!swimUnits.isEmpty()) separateSwim();
-        if (scenePredator != null) predatorScene(worldOf.apply(scenePredator).owner());
+        if (crossScene != null && !crossScene.active()) crossScene = null;
+        if (scenePredator != null && crossScene == null) predatorScene(worldOf.apply(scenePredator).owner());
         PointOfInterest[] mates = new PointOfInterest[n];
         for (int i = 0; i < n; i++) mates[i] = units.get(i).asPoint(mateId.applyAsInt(units.get(i).group().lowestSlot()));
         for (int i = 0; i < n; i++) {
@@ -393,6 +399,52 @@ public final class PartyLayer {
             }
         }
         for (int i = 0; i < pos.size(); i++) apply.get(i).accept(pushes[i]);
+    }
+
+    /**
+     * Hands a cross-player scene (§28.2) to the unit holding {@code slot} (the server names a
+     * group by its leader's slot; D26: a school's followers keep formation behind it). Only a
+     * free-swimming unit takes it (D25). A predator scene on now ends for it, and none starts while
+     * it runs (D28).
+     *
+     * @return the unit playing it, or null when no free-swimming unit holds the slot
+     */
+    public Unit crossScene(int slot, CrossScene scene) {
+        Unit unit = null;
+        for (Unit u : units) {
+            for (int s : u.group().slots()) if (s == slot) unit = u;
+        }
+        if (unit == null || unit.group().leader().locomotion() != grill24.fishsim.core.Locomotion.FREE_SWIM) return null;
+        if (sceneTicks >= 0) {
+            scenePrey.leader().sceneThreat(null);
+            sceneTicks = -1;
+            sceneLinger = 0;
+            sceneWait = drawTicks(t.predatorSceneGapMinSeconds, t.predatorSceneGapMaxSeconds);
+        }
+        if (crossScene != null && crossScene != scene) crossScene.cancel("replaced");
+        crossScene = scene;
+        crossUnit = unit;
+        unit.leader().requestScene(scene);
+        return unit;
+    }
+
+    /** The cross-player scene on now, or null. */
+    public CrossScene crossScene() {
+        return crossScene != null && crossScene.active() ? crossScene : null;
+    }
+
+    /** The unit playing it, or null. */
+    public Unit crossUnit() {
+        return crossScene() == null ? null : crossUnit;
+    }
+
+    /** The overlay's line for a cross-player scene, or null with none on. */
+    public String crossSceneLine() {
+        CrossScene s = crossScene();
+        if (s == null) return null;
+        CompanionAgent l = crossUnit.leader();
+        String state = s.greeting() ? "greeting" : l.inScene() ? "on the path" : l.sceneLeft() != null ? "left: " + l.sceneLeft() : "joining";
+        return "scene: " + s.kind + " role " + s.role + ", " + s.ticks() / 20 + "/" + s.durationTicks / 20 + " s, " + state;
     }
 
     /** How long a lap request holds before the scene gives up on it, ticks. */

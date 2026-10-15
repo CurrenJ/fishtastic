@@ -345,6 +345,12 @@ public final class CompanionTunables {
     public float predatorSceneFirstMaxSeconds = 150f;
     public float predatorSceneGapMinSeconds = 240f;
     public float predatorSceneGapMaxSeconds = 480f;
+    /**
+     * Swimmers keep out of other players' bodies (their PLAYER points) as they do out of their own
+     * owner's (party spec §28.6: two solo fish 1.5 blocks apart were inside the other player 6% of
+     * the time, mixed parties 21%). Ground walkers already step round players' feet.
+     */
+    public boolean otherPlayerClearance = true;
 
     // Hand visits (owner feedback 2026-10-14: about one a minute, solo or party). HandClock.
     /** After any landing on a hand, the unseen timer waits this long before calling a fish there again. */
@@ -374,7 +380,7 @@ public final class CompanionTunables {
      */
     public static final java.util.List<String> DEV_SWITCHES = java.util.List.of(
             "partyHomes", "partyLeases", "partyHandClock", "partyGroundSeparation", "partySwimSeparation", "partyPredatorScene",
-            "handClock", "shoulderPeek", "moreGroundBeats", "idleInView",
+            "otherPlayerClearance", "handClock", "shoulderPeek", "moreGroundBeats", "idleInView",
             "anchoredHead", "anchoredPredatorDuckSeconds");
 
     /** Of {@link #DEV_SWITCHES}, those read only when a party's sim is built: flipping one needs a rebuild. */
