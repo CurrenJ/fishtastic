@@ -17,7 +17,8 @@ package grill24.fishsim.companion;
  * <p>Pose: {@link #yaw}/{@link #pitch} give the bell's axis as a look vector (upright is pitch −90),
  * {@link #spin} its slow tumble about that axis, {@link #pulse} the squeeze for the animator.
  * The JET style instead uses omnidirectional fins and mantle-first pulses, with unrestricted,
- * bounded reorientation; its counter fins can stay open during a mantle squeeze.
+ * bounded reorientation; its counter fins can stay open during a mantle squeeze. The BOB style is a
+ * float that stays near upright and shoves itself along its sail on each downstroke of a bob.
  */
 final class DriftBody extends Motor {
 
@@ -51,7 +52,7 @@ final class DriftBody extends Motor {
     private static final float SQUEEZE_FLOOR = 0.2f;
 
     private final CompanionTunables t;
-    /** How it propels itself; BOB retains the bell until Phase 3. */
+    /** How it propels itself: BELL and, behind their switches, JET and BOB each have their own motor. */
     final DriftStyle style;
     private long noise;
     /** Position in the current pulse cycle, [0, 1); the squeeze is the first {@code duty} of it. */
@@ -109,6 +110,8 @@ final class DriftBody extends Motor {
     private Vec jetAxis = Vec.UP;
     private Vec jetStrokeAxis = Vec.UP;
     private double jetClock;
+    /** Seconds since the bob's last downstroke began. */
+    private double sinceStroke;
 
     DriftBody(CompanionTunables t, DriftStyle style, Vec pos, float yaw, double radius, long seed) {
         super(grill24.fishsim.core.Locomotion.DRIFT, Gait.of(grill24.fishsim.core.Locomotion.DRIFT, t), pos, radius);
@@ -128,6 +131,10 @@ final class DriftBody extends Motor {
     void step(Vec desired, double wanderScale, Vec extraAvoid, LocalVoxels voxels, Capsule body) {
         if (style == DriftStyle.JET && t.driftJet) {
             stepJet(desired, extraAvoid, voxels);
+            return;
+        }
+        if (style == DriftStyle.BOB && t.driftBob) {
+            stepBob(desired, extraAvoid, voxels);
             return;
         }
         g = Gait.of(locomotion, t);
@@ -278,6 +285,142 @@ final class DriftBody extends Motor {
         // would count it twice and make the target reverse on every jet coast.
         burstDrive = 1;
         tailPhase += (float) (DT * Math.PI * 4);
+    }
+
+    /**
+     * The man o' war (docs/fish-companions-drift.md §6, §15): a float that stays near upright and bobs
+     * on a vertical cycle, and turns each downstroke into a horizontal shove along its sail, like a
+     * buoy skipping across waves. The shove is fixed at the downstroke's start, sized to arrive (what
+     * drag takes over the cycle plus most of the gap, along the sail), weakened when the sail is off
+     * the line of need, cut to what it could stop in the room ahead, and trimmed each tick so it
+     * never overshoots what was asked. It is horizontal only: a downstroke never turns into lift. Its
+     * height is a buoyancy hold that tracks the climb it is asked for, plus the bob. The sail turns at
+     * a capped rate and the float rocks into turns; braking is its tentacles let down (drag, no sink).
+     */
+    private void stepBob(Vec desired, Vec extraAvoid, LocalVoxels voxels) {
+        g = Gait.of(locomotion, t);
+        asked = desired;
+        double sp = vel.length();
+        Vec avoid = voxels.avoidance(pos, t.wallMargin + radius)
+                .add(voxels.avoidance(pos.add(vel.scale(0.35)), t.wallMargin + radius).scale(0.6))
+                .clampLength(1);
+        desired = desired.add(avoid.scale(Math.max(t.wallAvoidSpeed, sp * 1.2))).add(extraAvoid);
+        Vec hDesired = desired.horizontal();
+        if (t.bobTopSpeed > 0) hDesired = hDesired.clampLength(t.bobTopSpeed);
+        Vec hVel = vel.horizontal();
+        double hs = hVel.length();
+        // A skip peaks above the asked speed and coasts below it: the crest is the asked speed plus
+        // half what the coast to the next shove loses, so that over a skip it averages the ask.
+        Vec crest = hDesired.scale(1 + 0.5 * drag(hDesired.length()) * period);
+
+        // Tentacles let down: drag by how much faster it is going than its crest that way, or than
+        // it could stop in the room ahead. They can't hang down while the float shoves.
+        roomVel = hs > 1e-6 && t.driftRoomBrake ? roomSpeed(hVel.scale(1 / hs), voxels) : Double.POSITIVE_INFINITY;
+        if (t.driftFlare) {
+            double target = 0;
+            if (hs > 1e-6) {
+                double excess = hs - Math.max(0, crest.dot(hVel) / hs);
+                if (t.driftRoomBrake) excess = Math.max(excess, hs - roomVel);
+                target = Math.max(0, Math.min(1, (excess - FLARE_DEADBAND) / t.driftFlareFull)) * (1 - pulse);
+            }
+            flare += clamp((float) target - flare, -FLARE_CLOSE_RATE * (float) DT, FLARE_OPEN_RATE * (float) DT);
+        }
+        double k = drag(hs) + (t.driftFlare ? flare * t.driftFlareDrag : 0);
+        need = hDesired.scale(drag(hs)).add(hDesired.sub(hVel).scale(t.driftResponse));
+
+        // The sail turns toward what it needs; the float rocks into the turn.
+        float before = tiltYaw;
+        if (need.horizontalLength() > 0.15) {
+            float err = Body.wrap((float) need.yawDeg() - tiltYaw);
+            float cap = t.bobSailTurnDegPerTick;
+            float cmd = clamp(err * 0.3f, -cap, cap);
+            yawRate += clamp(cmd - yawRate, -cap * 0.25f, cap * 0.25f);
+        } else {
+            yawRate *= 0.8f;
+        }
+        tiltYaw = Body.wrap(tiltYaw + yawRate);
+        tiltStep = Math.abs(Body.wrap(tiltYaw - before));
+        Vec sail = Vec.fromYawPitch(tiltYaw, 0);
+
+        double meanMax = t.bobThrust * 0.5 * ENVELOPE_MEAN;
+        float effortTarget = (float) Math.min(1, need.length() / meanMax);
+        effort += clamp(effortTarget - effort, -1.5f * (float) DT, 1.5f * (float) DT);
+        period = t.bobPeriodSeconds + (t.bobPeriodFastSeconds - t.bobPeriodSeconds) * effort;
+        double height = t.bobHeight + (t.bobHeightFast - t.bobHeight) * effort;
+
+        // The cycle: rising for its first quarter, falling through the middle half (the downstroke,
+        // which shoves), rising again for the last quarter.
+        double was = phase;
+        phase += DT / period;
+        if (phase >= 1) phase -= 1;
+        strokeStart = was < 0.25 && phase >= 0.25 || was > phase && phase >= 0.25;
+        sinceStroke += DT;
+        double down = period * 0.5;
+        // Up to the crest, and what drag takes while it shoves.
+        Vec want = hDesired.scale(drag(hs) * down).add(crest.sub(hVel).scale(t.driftArriveGain));
+        // Out of its downstroke and suddenly needing to go (the owner set off, or turned round),
+        // it dips at once instead of riding out the rest of a slow bob. (bobTopSpeed, not the bob's
+        // rhythm, is what keeps a chain of these from outrunning a sprint.)
+        if (t.bobRetime && !strokeStart && (phase < 0.25 || phase > 0.75) && sinceStroke >= RETIME_MIN_SECONDS
+                && want.dot(sail) > Math.max(1.5 * lastStrokeDv, lastStrokeDv + RETIME_DV)) {
+            phase = 0.25;
+            strokeStart = true;
+        }
+        if (strokeStart) {
+            sinceStroke = 0;
+            double dv = 0;
+            double len = want.length();
+            if (len > 1e-9) {
+                double cos = want.dot(sail) / len;
+                double full = Math.cos(Math.toRadians(t.bobAlignDeg)), none = Math.cos(Math.toRadians(2 * t.bobAlignDeg));
+                double gate = Math.max(0, Math.min(1, (cos - none) / Math.max(1e-6, full - none)));
+                dv = Math.max(0, want.dot(sail)) * gate * gate * (3 - 2 * gate);
+            }
+            if (t.driftRoomBrake) dv = Math.min(dv, Math.max(0, roomSpeed(sail, voxels) - hVel.dot(sail)));
+            peak = Math.min(t.bobThrust, dv / (down * ENVELOPE_MEAN));
+            lastStrokeDv = peak * down * ENVELOPE_MEAN;
+            strokeShow = (float) Math.max(SQUEEZE_FLOOR, Math.min(1, dv / SQUEEZE_FULL_DV));
+            strokeStart = peak > 0;
+        }
+        double u = (phase - 0.25) / 0.5;
+        double s = u > 0 && u < 1 ? Math.sin(Math.PI * u) : 0;
+        pulse = (float) (s * s);
+        double shove = peak * pulse;
+        // Never more than closing the gap to the crest this tick: what's left of the stroke goes nowhere useful.
+        double available = crest.sub(hVel).scale(1 / DT).add(hVel.scale(k)).dot(sail);
+        if (t.driftRoomBrake) available = Math.min(available, (roomSpeed(sail, voxels) - hVel.dot(sail)) / DT);
+        shove = Math.min(shove, Math.max(0, available));
+        squeeze = peak > 0 ? (float) (shove / peak) * strokeShow : 0;
+
+        // Height: the climb it is asked for, plus the bob, held by buoyancy.
+        double omega = 2 * Math.PI / period;
+        double vyWant = Math.max(-t.bobClimbSpeed, Math.min(t.bobClimbSpeed, desired.y()))
+                + height * omega * Math.cos(2 * Math.PI * phase);
+        double lift = Math.max(-t.bobLift, Math.min(t.bobLift, t.bobLiftResponse * (vyWant - vel.y())));
+
+        propulsion = sail.scale(shove);
+        mantleThrust = 0;
+        lastThrust = shove;
+        Vec beforeVel = vel;
+        Vec hAcc = propulsion.sub(hVel.scale(k));
+        vel = vel.add(new Vec(hAcc.x(), lift, hAcc.z()).scale(DT));
+        speed = vel.length();
+        move(voxels, speed > 1e-6 ? vel.normalize() : sail);
+        acc = vel.sub(beforeVel).scale(1 / DT);
+
+        // Pose: leans forward into a shove, rocks into a turn, never past bobTiltMaxDeg.
+        float leanWant = (float) (t.bobTiltMaxDeg * 0.6 * Math.min(1, shove / Math.max(1e-6, t.bobThrust)));
+        tiltRate += clamp((leanWant - tilt) * 0.2f - tiltRate, -0.4f, 0.4f);
+        tilt = clamp(tilt + tiltRate, 0f, t.bobTiltMaxDeg);
+        float bankWant = clamp(yawRate * 2.5f, -t.bobTiltMaxDeg, t.bobTiltMaxDeg);
+        bank += clamp(bankWant - bank, -1.5f, 1.5f);
+        yaw = tiltYaw;
+        pitch = tilt - 90f;
+        face = tiltYaw;
+        faceRate = yawRate;
+        advanceSpin();
+        burstDrive = 1;
+        tailPhase = (float) (phase * Math.PI * 2);
     }
 
     /**
@@ -511,7 +654,7 @@ final class DriftBody extends Motor {
         calm = 0f;
         jetAxis = jetStrokeAxis = Vec.UP;
         jetClock = 0;
-        if (style == DriftStyle.JET && t.driftJet) {
+        if (style == DriftStyle.JET && t.driftJet || style == DriftStyle.BOB && t.driftBob) {
             peak = 0;
             pulse = squeeze = 0;
         }

@@ -161,6 +161,43 @@ public final class CompanionTunables {
     /** Relative pace of a squid's attention pass, blocks/s; 0 restores the bell's pass pace. */
     public float jetViewPassSpeed = 2.5f;
 
+    // Phase 3 of the drifter rework (docs/fish-companions-drift.md §6, §15): the man o' war's bob.
+    /** Phase 3: false restores the bell body for the bob style, bitwise. */
+    public boolean driftBob = true;
+    /** One bob (rise and fall) idling, and flat out, seconds. */
+    public float bobPeriodSeconds = 1.8f;
+    public float bobPeriodFastSeconds = 0.7f;
+    /** How far the float rises and falls about its ride height, blocks: idling, and flat out. */
+    public float bobHeight = 0.05f;
+    public float bobHeightFast = 0.1f;
+    /**
+     * The hardest shove a downstroke gives along the sail, blocks/s². Over a cycle that is
+     * 14 × ½ (the downstroke) × ½ (the envelope) = 3.5 b/s² mean, which holds about 5.6 b/s against
+     * the drift drag: a walk with room to catch up, a sprint only just.
+     */
+    public float bobThrust = 14f;
+    /** The float's height hold: how fast it closes on the climb it wants, 1/s, its strongest push, b/s², and its fastest climb or dive, b/s. */
+    public float bobLiftResponse = 8f;
+    public float bobLift = 12f;
+    public float bobClimbSpeed = 3f;
+    /** How fast the sail turns, degrees per tick. */
+    public float bobSailTurnDegPerTick = 8f;
+    /** The most it leans forward into a shove or rocks into a turn, degrees: it stays near upright. */
+    public float bobTiltMaxDeg = 20f;
+    /** A downstroke shoves in full only with the sail within this of the way it needs to go, degrees; none past twice it. */
+    public float bobAlignDeg = 30f;
+    /**
+     * The fastest it travels on average, blocks/s, whatever it is asked (0: no cap). Above a walk and
+     * below a sprint (spec §6): a sprint leaves it behind, and the fade is the backstop.
+     */
+    public float bobTopSpeed = 5.5f;
+    /** Dips into a downstroke at once when it needs a much bigger shove than its last, instead of riding out the bob. */
+    public boolean bobRetime = true;
+    /** Extra forward ride offset for the man o' war, blocks (the squid's jetRideAhead); 0 uses the bell's station. */
+    public float bobRideAhead = 1.5f;
+    /** The escort station turns at the sail's rate instead of a bell's 6°/tick. */
+    public boolean bobMindTurn = true;
+
     // Phase 1 of the drifter rework (docs/fish-companions-drift.md §3, §4, §13): each its own switch,
     // for equal-ground A/B. All on is the adopted body; all off is the first cut, bitwise.
     /** Pulse again as soon as it needs to, instead of waiting out a slow idle cycle. */

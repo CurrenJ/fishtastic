@@ -589,8 +589,10 @@ public final class CompanionRun {
         Vec front = Vec.fromYawPitch(s.yaw(), s.pitch());
         if (c == Locomotion.DRIFT) {
             front = switch (style) {
-                case BELL, BOB -> front;
+                case BELL -> front;
                 case JET -> front; // Mantle-first is forward; tentacle-first is reverse.
+                // The float stays upright: its front is the way its sail points.
+                case BOB -> Vec.fromYawPitch(s.yaw(), 0);
             };
         }
         return front.dot(s.vel().normalize()) < -0.17;

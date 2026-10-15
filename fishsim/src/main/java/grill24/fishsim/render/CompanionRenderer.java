@@ -426,6 +426,10 @@ public final class CompanionRenderer {
             drawSquid(g, cam, a);
             return;
         }
+        if (a.driftStyle() == grill24.fishsim.companion.DriftStyle.BOB) {
+            drawManOWar(g, cam, a);
+            return;
+        }
         double len = a.length() * a.renderAppear();
         Vec axis = Vec.fromYawPitch(a.renderYaw(), a.renderPitch());
         Vec side = axis.cross(Vec.UP);
@@ -462,6 +466,41 @@ public final class CompanionRenderer {
             Vec nn = t[1].sub(t[0]).cross(t[2].sub(t[0])).normalize();
             double shade = 0.6 + 0.4 * Math.abs(nn.dot(LIGHT));
             fill(g, cam, t, shadeColor(new Color(240, 160, 210, 190), shade), false);
+        }
+    }
+
+    /**
+     * A man o' war (docs/fish-companions-drift.md §6): a float along its sail, leaning forward into a
+     * shove and rocking into turns, its crest wobbling on each downstroke, and tentacles hanging
+     * straight down and trailing behind its travel.
+     */
+    private static void drawManOWar(Graphics2D g, Cam cam, CompanionAgent a) {
+        double len = a.length() * a.renderAppear();
+        Vec[] fr = frame(a.renderYaw(), a.renderPitch() + 90, a.renderBank());
+        Vec fwd = fr[0], right = fr[1], up = fr[2];
+        Vec c = a.renderPos();
+        double wobble = 0.15 * a.renderSqueeze();
+        Vec nose = c.add(fwd.scale(len * 0.45)).add(up.scale(len * 0.05));
+        Vec tail = c.sub(fwd.scale(len * 0.4));
+        Vec l = c.sub(right.scale(len * 0.16 * (1 + wobble))), r = c.add(right.scale(len * 0.16 * (1 + wobble)));
+        Vec belly = c.sub(up.scale(len * 0.08));
+        Color bladder = new Color(150, 160, 255, 195);
+        fill(g, cam, new Vec[]{nose, l, belly}, bladder, false);
+        fill(g, cam, new Vec[]{nose, belly, r}, bladder, false);
+        fill(g, cam, new Vec[]{tail, belly, l}, bladder, false);
+        fill(g, cam, new Vec[]{tail, r, belly}, bladder, false);
+        Vec crest = c.add(fwd.scale(len * 0.05)).add(up.scale(len * (0.32 - wobble * 0.5)));
+        fill(g, cam, new Vec[]{nose, crest, tail}, new Color(235, 135, 205, 200), false);
+        g.setStroke(new BasicStroke(1f));
+        g.setColor(new Color(110, 120, 230, 170));
+        for (int i = 0; i < 6; i++) {
+            Vec root = belly.add(fwd.scale(len * (0.25 - i * 0.1))).add(right.scale((i % 2 - 0.5) * len * 0.08));
+            Vec end = root.add(0, -len * (0.8 + 0.1 * (i % 3)), 0)
+                    .sub(a.velocity().horizontal().clampLength(3).scale(len * 0.08))
+                    .add(right.scale(Math.sin(a.renderTailPhase() + i) * len * 0.03));
+            Vec rc = cam.toCam(root), ec = cam.toCam(end);
+            if (rc.z() > NEAR && ec.z() > NEAR)
+                g.draw(new Line2D.Double(cam.sx(rc), cam.sy(rc), cam.sx(ec), cam.sy(ec)));
         }
     }
 

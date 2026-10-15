@@ -719,7 +719,7 @@ final class Mind {
         if (hs > 0.5) {
             float diff = Body.wrap((float) o.velocity().yawDeg() - escortYaw);
             float turn = body instanceof DriftBody drift && drift.style == DriftStyle.JET && t.driftJet && t.jetMindTurn
-                    ? t.jetTurnDegPerTick : 6f;
+                    ? t.jetTurnDegPerTick : bobBody() && t.bobMindTurn ? t.bobSailTurnDegPerTick : 6f;
             escortYaw = Body.wrap(escortYaw + Body.clamp(diff, -turn, turn));
         }
         Vec f = Vec.fromYawPitch(escortYaw, 0);
@@ -767,6 +767,7 @@ final class Mind {
         double centre = 1 - Math.min(1, Math.pow(lateralSigned / (t.escortLateral * body.g.lateralScale() * temperament.band()), 2));
         double along = alongBase + driftAlong * 0.4 + surge + 1.4 * centre + body.g.alongOffset();
         if (body instanceof DriftBody d && d.style == DriftStyle.JET && t.driftJet) along += t.jetRideAhead;
+        if (bobBody()) along += t.bobRideAhead;
         double height = 0.15 + driftHeight * 0.25;
         Vec station = chest.add(r.scale(lateralSigned)).add(f.scale(along)).add(0, height, 0);
         if (body.g.rideHeight() > 0) station = ridingHigh(v, station, body.g.rideHeight());
@@ -788,6 +789,11 @@ final class Mind {
         Vec correction = aroundOwner(o, v, station).sub(body.pos).scale(1.2).clampLength(body.g.catchUpSpeed());
         Vec surgeSwim = f.scale((body.burstDrive - 1) * 0.4 * body.g.cruiseSpeed());
         return o.velocity().horizontal().add(correction).add(surgeSwim);
+    }
+
+    /** A man o' war on its own motor (drift spec §6, §15). */
+    private boolean bobBody() {
+        return body instanceof DriftBody d && d.style == DriftStyle.BOB && t.driftBob;
     }
 
     private Vec catchUp(OwnerState o, LocalVoxels v, Breadcrumbs crumbs) {

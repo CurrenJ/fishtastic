@@ -1,6 +1,6 @@
 # Fish companions: drifters rework (design spec)
 
-Status: spec written 2026-10-12, owner answers in §11. Phases 0–1 built and merged (§12–§13); Phase 1 accepted by the owner in the viewer (§11). Phase 2 (jet) built in an isolated worktree, merged, and accepted by the owner in the viewer on 2026-10-13 (§14). Next: Phase 3 (bob). Builds on the companion sim
+Status: spec written 2026-10-12, owner answers in §11. Phases 0–1 built and merged (§12–§13); Phase 1 accepted by the owner in the viewer (§11). Phase 2 (jet) built in an isolated worktree, merged, and accepted by the owner in the viewer on 2026-10-13 (§14). Phase 3 (bob) built and committed 2026-10-15, awaiting the owner's viewer look (§15). Builds on the companion sim
 (docs/fish-companions-sim-plan.md; DRIFT first cut and its open problems in §9.3, parked in §9.6).
 Quality bar: the same as FREE_SWIM and the benthic ground follow (docs/fish-companions-benthic-follow.md).
 
@@ -677,3 +677,90 @@ contacts (0.32 b/s), zero owner overlap on sprint stops.
 **Owner gate (2026-10-13, viewer):** "Squid looks good, we can merge." Accepted with its
 defaults. The named differences JET_DOORWAY_VIEW, JET_PULSE_JERK and JET_COUNTER_TRAVEL
 (handoff) are accepted with it. In-game squid sprite deformation stays in Phase 5.
+
+## 15. Phase 3 as built (2026-10-15)
+
+The man o' war (`bob`, §6) has its own motor, `DriftBody.stepBob`, behind `driftBob` (on). With
+it off, the bob slot runs the bell again: all 1038 `FingerprintProbe -PfpAll=1` lines are bitwise to
+the tree before. With it on, only the 69 `DRIFT_BOB` lines change. No `FlockEngine` changes.
+
+### 15.1 What's built
+
+- **Float and bob.** It stays near upright: it leans forward into a shove and rocks into turns
+  (bank), both within `bobTiltMaxDeg` (20°). The bob is a buoyancy hold on the climb it is asked for,
+  plus a rise and fall of `bobHeight`..`bobHeightFast` (0.05..0.1 blocks) over
+  `bobPeriodSeconds`..`bobPeriodFastSeconds` (1.8..0.7 s) by effort. There is no sink: it floats.
+- **Downstroke shove.** The middle half of each bob is the downstroke, and it shoves along the sail
+  with a sin² envelope, up to `bobThrust` (14 b/s²). The shove is fixed at onset, sized to reach the
+  crest (the asked speed plus half the coast's loss, so a skip averages the ask), weakened by
+  alignment (full within `bobAlignDeg` 30°, none past 60°), cut to the room ahead, and trimmed each
+  tick. It is horizontal only, so it never becomes lift (§13.5 item 3; tested).
+- **Sail.** Turns toward the need at up to `bobSailTurnDegPerTick` (8°/tick). The drawn facing is
+  the sail.
+- **Brake.** Tentacles let down: the existing flare as drag only, no extra sink, and it can't open
+  during a shove.
+- **Top speed.** `bobTopSpeed` (5.5 b/s) caps the asked horizontal speed. That is above a walk
+  (4.3) and just below a sprint (5.6), so a sprint leaves it behind (§6).
+- **Retime** (`bobRetime`, on). Outside its downstroke, when it needs a much bigger shove than its
+  last, it dips at once instead of riding out the bob (the bell's §13 lesson).
+- **Mind.** `bobRideAhead` (1.5 blocks) adds to the escort station, as `jetRideAhead` does for the
+  squid. `bobMindTurn` turns the escort at the sail's rate.
+- **Harness.** `CompanionRun.tailFirst` reads the BOB front as the sail heading (metric only). The
+  viewer and headless renderer have a man o' war silhouette (float, crest that wobbles on each
+  shove, tentacles hanging down and trailing). `BobRenderProbe` writes close-up stills to
+  `fishsim/build/bob-render/` (Swing screenshots come out blank here). `BobBodyTest` (8 tests)
+  holds the contracts: hover without shoving, horizontal-only downstroke shoves, holds a walk,
+  sprint outruns it, capped sail turn with rocking, a brake that never shoves back, fade clears
+  the shove, off = bell bitwise, and every owner script finite, upright and out of solids.
+
+### 15.2 Bob vs the bell it replaces (8 seeds × 2400 ticks, baseline temperament; mean | worst)
+
+Equal ground: `DriftSweepProbe -PdriftStyle=bob -PtweakB=driftBob=false`. Raw output is in
+`build/bob-validation/final.txt`.
+
+| Script | Far, s (bell → bob) | Seen % | Contacts | Worst impact |
+|---|---|---|---|---|
+| walk | 6.2 → 2.7 | 9 → 31 | 0 → 0 | 0 → 0 |
+| walk_turns | 7.4 → 4.1 | 9 → 16 | 0 → 0 | 0 → 0 |
+| sprint_stop | 6.4 → 6.6 | 23 → 7 | 0 → 0 | 0 → 0 |
+| doorway | 4.6 → 4.1 | 15 → 7 | 1 → 2 | 2.88 → 3.14 |
+| forest | 7.1 → 3.2 | 8 → 9 | 3 → 1 | 6.80 → 3.20 |
+| stairwell | 12.9 → 3.4 | 7 → 5 | 37 → 0 | 6.43 → 1.76 |
+| corridor | 16.9 → 16.8 | 2 → 6 | 10 → 7 | 2.91 → 3.09 |
+| low_ceiling | 3.9 → 1.5 | 9 → 12 | 4 → 0 | 3.69 → 1.45 |
+| about_face | 4.9 → 4.0 | 29 → 4 | 0 → 0 | 0 → 0 |
+| creative_flight | 7.1 → 4.0 | 6 → 7 | 0 → 0 | 0 → 0 |
+| idle_fixed / idle_looking | 0 → 0 | 59/45 → 55/46 | 0 | 0 |
+
+Jerk fell everywhere (walk 425 → 276). Penetrations are zero on every run.
+
+### 15.3 Named differences for the owner gate
+
+- **BOB_SPRINT_VIEW.** sprint_stop seen 23 → 7%, by spec: the bell catches up at ~7.6 b/s and
+  the bob tops out at 5.5, so a sprint leaves it behind.
+- **BOB_ABOUT_FACE_VIEW.** about_face seen 29 → 4% while its far time improves (4.9 → 4.0 s). The
+  bell trailed 15+ blocks and was met head-on after each turn. The bob stays beside the owner at
+  the reversal, and the owner walks straight away from it.
+- **BOB_DOORWAY_VIEW.** doorway seen 15 → 7%, one more contact on average, worst impact
+  2.88 → 3.14 b/s.
+- **BOB_TOP_SPEED.** 5.5 b/s is 98% of a sprint. 5.2 measured slightly worse almost everywhere
+  (walk seen 24%, walk_turns far 4.7 s).
+
+### 15.4 Tried and rejected (measured)
+
+- A stronger shove (24 and 32 b/s²) under a speed cap: little gain on top of retime, more doorway
+  contacts (worst 7 → 16 at 32).
+- `bobFollowLead` (the squid's catch-up lead): no gain, doorway contacts up. Removed.
+- Retime gated to a lull (no dip after a full-strength shove): it keeps the speed, but walk seen
+  falls 31 → 21% and forest's worst far time is 16.8 s. The speed cap does that job instead. The
+  first, uncapped retime chained dips up to 6.7 b/s, above a sprint, and was rejected for that.
+
+### 15.5 For the owner's viewer look
+
+`./gradlew :fishsim:runCompanionViewer`, class "DRIFT bob (man o' war)". Look at: the idle bob by a
+still owner (calm?), the skip on a walk (speed rises and falls 4–6 b/s around 4.3), the rocking
+into turns (±12° on a straight walk's corrections), stops beside you, and a sprint leaving it
+behind. To compare, set `driftBob=false` (the bell in this slot). The live knobs are `bobThrust`,
+`bobTopSpeed`, `bobSailTurnDegPerTick`, `bobTiltMaxDeg`, `bobHeight`/`bobHeightFast`,
+`bobPeriodSeconds`/`bobPeriodFastSeconds` and `bobRideAhead`. In game, the man o' war already gets
+this motor through `companion_drift: bob`. Its species-specific sprite and beats are Phases 4–5.
