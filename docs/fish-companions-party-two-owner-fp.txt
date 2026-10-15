@@ -1,0 +1,108 @@
+FP2 two free swimmers          pair_approach_stand  #1 ce061e2295c5111e
+FP2 two free swimmers          pair_approach_stand  #2 377ef3cdd8c0302c
+FP2 two free swimmers          pair_approach_stand  #3 43b5643719a9e0cb
+FP2 two free swimmers          pair_walk_off        #1 aeee49cc0a49d0f4
+FP2 two free swimmers          pair_walk_off        #2 783c325be897f0a7
+FP2 two free swimmers          pair_walk_off        #3 b314c544a3df6ce0
+FP2 two free swimmers          pair_side_by_side    #1 d06a2865effd32a8
+FP2 two free swimmers          pair_side_by_side    #2 1d0fdb9221e7958c
+FP2 two free swimmers          pair_side_by_side    #3 180187cd204bfb58
+FP2 two free swimmers          pair_close           #1 65652e552e7e0163
+FP2 two free swimmers          pair_close           #2 ee178e6000cf6689
+FP2 two free swimmers          pair_close           #3 fbc7ff3c48598553
+FP2 two free swimmers          pair_far             #1 9ab8052fe8874ff1
+FP2 two free swimmers          pair_far             #2 fb41b4393ab72fc3
+FP2 two free swimmers          pair_far             #3 80f9c66809deb797
+FP2 two free swimmers          pair_corridor        #1 d2cbc787d1478238
+FP2 two free swimmers          pair_corridor        #2 16ebacbf1e6ea3de
+FP2 two free swimmers          pair_corridor        #3 4ae5d275d7144ced
+FP2 same species               pair_approach_stand  #1 3867cbd4206d6b2b
+FP2 same species               pair_approach_stand  #2 98f0120f03db5881
+FP2 same species               pair_approach_stand  #3 9cd8d3fa4a8dc332
+FP2 same species               pair_walk_off        #1 32ab8c71a7470f4f
+FP2 same species               pair_walk_off        #2 5dfb53c32fbdfa80
+FP2 same species               pair_walk_off        #3 7d15ff1fd630bb75
+FP2 same species               pair_side_by_side    #1 ea2fb0d7244b75cb
+FP2 same species               pair_side_by_side    #2 a43a3d4c28507234
+FP2 same species               pair_side_by_side    #3 508595feeae924fa
+FP2 same species               pair_close           #1 8e14c5a2d69a3e37
+FP2 same species               pair_close           #2 9709353f83eff328
+FP2 same species               pair_close           #3 dc28c13e1352263f
+FP2 same species               pair_far             #1 b93589a6137c68f4
+FP2 same species               pair_far             #2 9249743469732817
+FP2 same species               pair_far             #3 f7e9987a7c48f0fe
+FP2 same species               pair_corridor        #1 a002d838442f2ce8
+FP2 same species               pair_corridor        #2 41c59e000b63665b
+FP2 same species               pair_corridor        #3 530f5939d7fb96f4
+FP2 school vs solo             pair_approach_stand  #1 ed872b6f4d826a92
+FP2 school vs solo             pair_approach_stand  #2 b0b7b093e42c7630
+FP2 school vs solo             pair_approach_stand  #3 013ec0a232ff05d5
+FP2 school vs solo             pair_walk_off        #1 1f22e097ca52ff8b
+FP2 school vs solo             pair_walk_off        #2 85194c953d1117ed
+FP2 school vs solo             pair_walk_off        #3 14661fdf599a80ec
+FP2 school vs solo             pair_side_by_side    #1 0e44c2939e17ed95
+FP2 school vs solo             pair_side_by_side    #2 0f2f7574e1d1bdc3
+FP2 school vs solo             pair_side_by_side    #3 347d0e8206c987f7
+FP2 school vs solo             pair_close           #1 14496c15712fe701
+FP2 school vs solo             pair_close           #2 b06816745dee19db
+FP2 school vs solo             pair_close           #3 d5f340cef4ee1abd
+FP2 school vs solo             pair_far             #1 aa2f727c77109f51
+FP2 school vs solo             pair_far             #2 d9029c2348b0d5cb
+FP2 school vs solo             pair_far             #3 80488eb10d4f4f9b
+FP2 school vs solo             pair_corridor        #1 1149fd24dabe0134
+FP2 school vs solo             pair_corridor        #2 79053f0cd6b1eeda
+FP2 school vs solo             pair_corridor        #3 7d9f1e4760d9ff29
+FP2 predator party vs swimmer  pair_approach_stand  #1 deed94786d8edbdf
+FP2 predator party vs swimmer  pair_approach_stand  #2 6afa7a959774d197
+FP2 predator party vs swimmer  pair_approach_stand  #3 17d5169f5a5d27f4
+FP2 predator party vs swimmer  pair_walk_off        #1 8c341d3fe431291e
+FP2 predator party vs swimmer  pair_walk_off        #2 5c14403b855b9c26
+FP2 predator party vs swimmer  pair_walk_off        #3 0edfee1c11f3d085
+FP2 predator party vs swimmer  pair_side_by_side    #1 fbbc8e57565bb2dd
+FP2 predator party vs swimmer  pair_side_by_side    #2 ff59e44fce402647
+FP2 predator party vs swimmer  pair_side_by_side    #3 2fc85f285688c80f
+FP2 predator party vs swimmer  pair_close           #1 aff4fac2bd4e1550
+FP2 predator party vs swimmer  pair_close           #2 d8c0fbe85fda1b70
+FP2 predator party vs swimmer  pair_close           #3 54ec19d2c130a8ea
+FP2 predator party vs swimmer  pair_far             #1 805ecc90fc38b854
+FP2 predator party vs swimmer  pair_far             #2 0a7bee452a06dc08
+FP2 predator party vs swimmer  pair_far             #3 ac9e4cff9436e760
+FP2 predator party vs swimmer  pair_corridor        #1 36584beaee66379b
+FP2 predator party vs swimmer  pair_corridor        #2 a5f38c46d0b72335
+FP2 predator party vs swimmer  pair_corridor        #3 a06a467bc7b151f7
+FP2 crab vs crab               pair_approach_stand  #1 69837ad52f6dfc60
+FP2 crab vs crab               pair_approach_stand  #2 e60f4712421addbf
+FP2 crab vs crab               pair_approach_stand  #3 1c74686d225fd391
+FP2 crab vs crab               pair_walk_off        #1 d14d42cf5adf85fb
+FP2 crab vs crab               pair_walk_off        #2 b6d83e55f46efeb8
+FP2 crab vs crab               pair_walk_off        #3 310095f74e179c40
+FP2 crab vs crab               pair_side_by_side    #1 b61eb0d774ca717c
+FP2 crab vs crab               pair_side_by_side    #2 180367d6abdad716
+FP2 crab vs crab               pair_side_by_side    #3 bab2604d5f198de6
+FP2 crab vs crab               pair_close           #1 b7324610e1be74d0
+FP2 crab vs crab               pair_close           #2 4ba34b80854c9131
+FP2 crab vs crab               pair_close           #3 d2926b87f8b152a3
+FP2 crab vs crab               pair_far             #1 bc45262f6905c4e4
+FP2 crab vs crab               pair_far             #2 60373e952f955396
+FP2 crab vs crab               pair_far             #3 ab248ceb73635fb3
+FP2 crab vs crab               pair_corridor        #1 9bda4411fc01a90c
+FP2 crab vs crab               pair_corridor        #2 3ec9b31c49e1e965
+FP2 crab vs crab               pair_corridor        #3 d1d40c41b0f21ec1
+FP2 mixed vs mixed             pair_approach_stand  #1 0670724e205a0458
+FP2 mixed vs mixed             pair_approach_stand  #2 0ed8df68cdc9736a
+FP2 mixed vs mixed             pair_approach_stand  #3 0c606212df1359b1
+FP2 mixed vs mixed             pair_walk_off        #1 8b59e2801e38c141
+FP2 mixed vs mixed             pair_walk_off        #2 3a6b596f00bfc011
+FP2 mixed vs mixed             pair_walk_off        #3 5d1ec1ba156c2e21
+FP2 mixed vs mixed             pair_side_by_side    #1 7cefa7b22b4cf5ba
+FP2 mixed vs mixed             pair_side_by_side    #2 f9a1e3f79cf2163c
+FP2 mixed vs mixed             pair_side_by_side    #3 badb169ca9471a99
+FP2 mixed vs mixed             pair_close           #1 8b561d837ef434b0
+FP2 mixed vs mixed             pair_close           #2 7ff23bce06b6dfd1
+FP2 mixed vs mixed             pair_close           #3 6ce7a6b3b8fcd029
+FP2 mixed vs mixed             pair_far             #1 75073dd6f36a1b74
+FP2 mixed vs mixed             pair_far             #2 13c8c1dd2428db78
+FP2 mixed vs mixed             pair_far             #3 0906e185e1215cdb
+FP2 mixed vs mixed             pair_corridor        #1 66790ddfdfc1fc84
+FP2 mixed vs mixed             pair_corridor        #2 8e9033c9dbdb4d7b
+FP2 mixed vs mixed             pair_corridor        #3 1bb915b25448dfa6

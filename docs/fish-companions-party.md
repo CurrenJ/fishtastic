@@ -1051,3 +1051,38 @@ checked with two real views, not only the ghost owner.
   `devScenePackets` / `devLastScene` for the check.
 - **Gaps:** the server JVM outlives a stopped Gradle task: stop it by its port. Chat covers the lower left of the
   shots: clear or hide it in the real self-test.
+
+### 28.6 Step 3a-0 as built: the two-owner harness
+
+- **`TwoOwnerRun`** (`harness/companion`): `Sim` steps two owners and their parties the way
+  `ClientCompanions.tick` does. Both owners move, then party A steps against B as it stood, then B
+  against A as it now stands (the game steps parties one after another; here A is always first).
+  Each unit's world adds the other party's unit leaders as `COMPANION` points within 16 blocks of
+  its own leader (id `-1 - (ownerId * 3 + lowestSlot)`, owners A = 1, B = 2) and the other owner's
+  feet as a `PLAYER` point within 4 blocks of its own owner, in the adapter's order. Mate ids are
+  the game's owner-keyed ones. Party B's seed is the run's xor a constant, so the same species
+  gets different stacks. `PartyLayer.Unit.asPoint` became public; nothing else in the sim changed.
+- **`PAIRS`:** two free swimmers (G2), same species (G1), school vs solo (D26), predator party vs
+  swimmer (D28), crab vs crab (D25: plays nothing), mixed vs mixed.
+- **Scripts** (`OwnerScript.PAIR_NAMES`, `OwnerScript.pair`): `pair_approach_stand`,
+  `pair_walk_off`, `pair_side_by_side`, `pair_close` (1.5 blocks), `pair_far` (6 blocks),
+  `pair_corridor` (3 blocks apart in a one-wide corridor). New segment `faceTo`.
+- **Viewer:** "PAIR ..." classes on the `pair_*` owner scripts; the view is owner A's, owner B is
+  the blue box, B's fish are drawn and marked B1–B3 on the map.
+  `./gradlew :fishsim:runCompanionViewer -PsimArgs="--pair mixed --owner pair_approach_stand"`.
+- **Tests:** `TwoOwnerRunTest` (ids match the game and never collide; close owners see each
+  other's fish and feet; at 6 blocks fish but not feet; a party never sees its own fish as the
+  other's; deterministic; every script brings the owners within 6 blocks). fishsim 448/0.
+- **Fingerprints:** the 930 are identical. `TwoOwnerFingerprintProbe` records 108 `FP2` lines
+  (6 pairs × 6 scripts × 3 seeds, 2400 ticks), kept in `docs/fish-companions-party-two-owner-fp.txt`;
+  3a-2 must leave them identical when no scene is requested.
+- **Baseline** (`TwoOwnerBaselineProbe`, 8 seeds, 2 min), the table 3a-2 is judged against.
+  Cross-party body overlap is low everywhere (≤1.0%, ≤2.25 episodes/min). Two things stood out,
+  both from before any scene:
+  - **Fish inside the other owner's body.** A fish's centre is inside the other player's box
+    6.2% of the time for two solos 1.5 blocks apart (4.9 episodes/min), 14–15% with a school or
+    the predator party, 21% mixed vs mixed (14.9/min), and 17% mixed vs mixed in the corridor. The
+    other owner is a `PLAYER` point, which only the ground walkers avoid, so swimmers pass through
+    a nearby player. Not a 3a goal; it bears on G2, whose lobes go round both owners.
+  - **The corridor:** owner A's fish are never seen (0%) facing owner B 3 blocks away in a
+    one-wide corridor (B's 9%): the room in front is taken by the other party.

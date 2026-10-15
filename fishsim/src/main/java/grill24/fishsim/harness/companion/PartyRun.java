@@ -94,6 +94,12 @@ public final class PartyRun {
                                 CompanionWorld world) {
             return new PartyLayer(t, groups, m -> temperament, m -> members.get(m.slot()).drift, world);
         }
+
+        /** As above, with the game's owner-keyed mate ids (two parties in one world, §28.3). */
+        public PartyLayer layer(CompanionTunables t, Temperament temperament, List<PartyGrouping.Group> groups,
+                                CompanionWorld world, java.util.function.IntUnaryOperator mateId) {
+            return new PartyLayer(t, groups, m -> temperament, m -> members.get(m.slot()).drift, world, mateId);
+        }
     }
 
     /** The representative parties of §8 and the Phase 2 review. */
@@ -372,7 +378,7 @@ public final class PartyRun {
     private static double sq(double v) { return v * v; }
 
     /** Closest distance between two segments a[0..2]-a[3..5] and b[0..2]-b[3..5]. */
-    private static double segDist(double[] a, double[] b) {
+    static double segDist(double[] a, double[] b) {
         Vec p1 = new Vec(a[0], a[1], a[2]), q1 = new Vec(a[3], a[4], a[5]);
         Vec p2 = new Vec(b[0], b[1], b[2]), q2 = new Vec(b[3], b[4], b[5]);
         double best = Double.MAX_VALUE;

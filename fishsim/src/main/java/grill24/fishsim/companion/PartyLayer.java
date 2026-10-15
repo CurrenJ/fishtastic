@@ -105,7 +105,7 @@ public final class PartyLayer {
         }
 
         /** This unit's leader as a party-mate sees it, or null while it isn't fully there. */
-        PointOfInterest asPoint(int id) {
+        public PointOfInterest asPoint(int id) {
             CompanionAgent l = leader();
             if (l.appear() < 1f) return null;
             return new PointOfInterest(PointOfInterest.Kind.COMPANION, id, l.position(), l.velocity(), l.radius());

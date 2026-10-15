@@ -13,6 +13,7 @@ import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.harness.companion.CompanionRun;
 import grill24.fishsim.harness.companion.OwnerScript;
 import grill24.fishsim.harness.companion.PartyRun;
+import grill24.fishsim.harness.companion.TwoOwnerRun;
 import grill24.fishsim.harness.companion.VoxelScene;
 import grill24.fishsim.render.CompanionRenderer;
 
@@ -70,6 +71,8 @@ import java.util.Set;
  *   the overlay and dev keys follow the lead's unit, the others are drawn too (teal on the map).
  *   "mixed shoal" off groups them by the pre-D13 rule, on the same seed, for A/B; likewise the
  *   partyHomes, partyLeases and anchoredHead checkboxes (Phase 2d, §6.1) rebuild on the same seed.
+ *   The "PAIR ..." classes run two owners' parties (§28.3, TwoOwnerRun.PAIRS) on a pair_* owner
+ *   script: the view is owner A's; owner B is the blue box, and B's fish are drawn and marked B1-B3.
  * </pre>
  *
  * The "owner" dropdown switches between manual control and any headless owner script (played
@@ -142,6 +145,11 @@ public final class CompanionViewer {
     private boolean mixedShoal = true;
     /** Boolean tunables read only when a companion or party is built, so toggling one rebuilds it. */
     private static final java.util.Set<String> BUILD_SWITCHES = java.util.Set.of("anchoredHead", "partyHomes", "partyLeases");
+    /** The chosen "PAIR ..." class (two owners, §28.3), or null; it plays on {@link #pairScript}. */
+    private TwoOwnerRun.Pair pairChoice;
+    private String pairScript = OwnerScript.PAIR_NAMES.get(0);
+    /** The running two-owner sim; its owner A's party is {@link #party}. */
+    private TwoOwnerRun.Sim twoSim;
     /** The running party; {@link #agent}, {@link #group} and {@link #benthicGroup} are its lead unit's. */
     private grill24.fishsim.companion.PartyLayer party;
     private float lookYaw, lookPitch;
@@ -166,7 +174,8 @@ public final class CompanionViewer {
 
     /**
      * Launch args (-PsimArgs): {@code --party <name part>} opens on the first PARTY class whose name
-     * contains it, {@code --owner <script>} on that owner script.
+     * contains it, {@code --pair <name part>} on the first PAIR class, {@code --owner <script>} on
+     * that owner script.
      */
     private void open(String[] args) {
         launchArgs = args;
@@ -285,6 +294,16 @@ public final class CompanionViewer {
     }
 
     private void reset(String sceneName, String ownerMode) {
+        twoSim = null;
+        if (OwnerScript.PAIR_NAMES.contains(ownerMode) && pairChoice == null) pairChoice = TwoOwnerRun.PAIRS.get(0);
+        if (pairChoice != null) {
+            // Two owners on a pair script; any other owner mode plays the first pair script.
+            pairScript = OwnerScript.PAIR_NAMES.contains(ownerMode) ? ownerMode : OwnerScript.PAIR_NAMES.get(0);
+            agent = newAgent();
+            trail.clear();
+            accumulator = 0;
+            return;
+        }
         if (ownerMode.equals(MANUAL)) {
             script = null;
             scene = VoxelScene.named(sceneName);
@@ -316,6 +335,18 @@ public final class CompanionViewer {
     private CompanionAgent newAgent() {
         benthicGroup = null;
         party = null;
+        if (pairChoice != null) {
+            twoSim = new TwoOwnerRun.Sim(pairChoice, pairScript, seed, tunables, temperament);
+            script = twoSim.a.script;
+            scene = script.scene;
+            scriptWorld = twoSim.a.base();
+            owner = scriptWorld.owner();
+            party = twoSim.a.layer;
+            grill24.fishsim.companion.PartyLayer.Unit lead = party.unit(0);
+            group = lead.school();
+            benthicGroup = lead.ground();
+            return lead.leader();
+        }
         if (partyChoice != null) {
             party = partyChoice.build(tunables, temperament, seed, world(), mixedShoal);
             // Unit 0 holds slot 1, the party lead (spec §4).
@@ -345,10 +376,25 @@ public final class CompanionViewer {
 
     /** What the companion perceives: the owner and the scene, plus the script's points of interest when one plays. */
     private CompanionWorld world() {
+        if (twoSim != null) return pairView();
         if (scriptWorld != null) return scriptWorld;
         List<PointOfInterest> points = new ArrayList<>();
         for (Placed p : placed) points.add(new PointOfInterest(p.kind, p.id, p.pos, p.vel, p.radius));
         return new CompanionWorld(owner, scene, points, held, hurtNow);
+    }
+
+    /**
+     * What owner A's lead saw, plus owner B's feet as a PLAYER point however far off, so the views
+     * always draw the other owner (the party only sees them within 4 blocks).
+     */
+    private CompanionWorld pairView() {
+        CompanionWorld w = twoSim.a.seen(0);
+        for (PointOfInterest p : w.points()) if (p.kind() == PointOfInterest.Kind.PLAYER) return w;
+        List<PointOfInterest> points = new ArrayList<>(w.points());
+        OwnerState b = twoSim.b.owner();
+        points.add(new PointOfInterest(PointOfInterest.Kind.PLAYER, TwoOwnerRun.OWNER_B, b.feet(), b.velocity(),
+                TwoOwnerRun.PLAYER_RADIUS));
+        return new CompanionWorld(w.owner(), w.blocks(), points, w.held(), w.hurt());
     }
 
     /** The owner was hurt this tick (K). */
@@ -376,12 +422,21 @@ public final class CompanionViewer {
     }
 
     private void interpolate(float alpha) {
+        if (twoSim != null) twoSim.b.layer.interpolate(alpha);
         if (party != null) party.interpolate(alpha);
         else if (benthicGroup != null) benthicGroup.interpolate(alpha);
         else if (group != null) group.interpolate(alpha); else agent.interpolate(alpha);
     }
 
     private void tick() {
+        if (twoSim != null) {
+            twoSim.step();
+            owner = twoSim.a.owner();
+            scriptWorld = twoSim.a.base();
+            trail.addLast(agent.position());
+            if (trail.size() > TRAIL) trail.removeFirst();
+            return;
+        }
         scriptWorld = null;
         if (script != null) {
             scriptWorld = script.nextWorld();
@@ -445,8 +500,10 @@ public final class CompanionViewer {
         if (group != null) CompanionRenderer.drawFollowers(fp, owner, renderCache, group);
         if (benthicGroup != null) CompanionRenderer.drawBenthicFollowers(fp, owner, renderCache, benthicGroup);
         if (party != null) drawPartyMates(fp);
+        if (twoSim != null) drawOtherParty(fp);
         BufferedImage top = CompanionRenderer.topView(TOP_W, FP_H, owner, renderCache, agent, tunables, trail, 30, world());
         if (party != null) CompanionRenderer.drawTopMarks(top, owner, 30, partyMarks());
+        if (twoSim != null) CompanionRenderer.drawTopMarks(top, owner, 30, otherMarks());
         g.drawImage(fp, 0, 0, null);
         g.drawImage(top, FP_W, 0, null);
         if (agent.landMode() != null) {
@@ -506,6 +563,40 @@ public final class CompanionViewer {
         g.dispose();
     }
 
+    /** Owner B's party in owner A's first-person view. */
+    private void drawOtherParty(BufferedImage fp) {
+        for (var unit : twoSim.b.layer.units()) {
+            CompanionRenderer.drawAgents(fp, owner, renderCache, unit.agents());
+            if (unit.school() != null) CompanionRenderer.drawFollowers(fp, owner, renderCache, unit.school());
+        }
+    }
+
+    /** Owner B's bodies on the map, B1-B3 by slot, and owner B, "B". */
+    private List<CompanionRenderer.Mark> otherMarks() {
+        List<CompanionRenderer.Mark> out = new ArrayList<>();
+        for (var unit : twoSim.b.layer.units()) {
+            int[] slots = unit.group().slots();
+            if (unit.school() != null) {
+                var s = unit.school();
+                out.add(new CompanionRenderer.Mark(s.leader().renderPos(), s.leader().renderYaw(), s.leaderLength(),
+                        "B" + (slots[0] + 1)));
+                for (int i = 0; i < s.followerCount(); i++) {
+                    var f = s.follower(i);
+                    out.add(new CompanionRenderer.Mark(f.renderPos(), f.renderYaw(), f.length(), "B" + (slots[i + 1] + 1)));
+                }
+            } else {
+                List<CompanionAgent> agents = unit.agents();
+                for (int i = 0; i < agents.size(); i++) {
+                    CompanionAgent a = agents.get(i);
+                    out.add(new CompanionRenderer.Mark(a.renderPos(), a.renderYaw(), a.length(), "B" + (slots[i] + 1)));
+                }
+            }
+        }
+        OwnerState b = twoSim.b.owner();
+        out.add(new CompanionRenderer.Mark(b.feet().add(0, 1, 0), b.yawDeg(), 0.6f, "B"));
+        return out;
+    }
+
     /**
      * Every party body on the map but the one the view follows (the lead unit's leader), labelled by
      * slot (1-based, as the menu shows).
@@ -540,7 +631,7 @@ public final class CompanionViewer {
     private static final String SCHOOL_MIXED = "SCHOOL bluegill 9/16/24 cm", SCHOOL_PAIR = "SCHOOL pair 16/24 cm",
             SCHOOL_BIG = "SCHOOL big 25/40/60 cm", STARFISH_PAIR = "BENTHIC starfish pair 30/45 cm",
             SLUG_CROWD_MIXED = "BENTHIC slug crowd 8/12/18 cm";
-    private static final String PARTY_PREFIX = "PARTY ";
+    private static final String PARTY_PREFIX = "PARTY ", PAIR_PREFIX = "PAIR ";
 
     /** Member lengths, leader first, for a party-built group class, or null for every other class. */
     private static float[] partyLengths(String c) {
@@ -564,6 +655,7 @@ public final class CompanionViewer {
         modes.add(MANUAL);
         modes.addAll(OwnerScript.NAMES);
         modes.addAll(OwnerScript.GROUND_NAMES);
+        modes.addAll(OwnerScript.PAIR_NAMES);
         JComboBox<String> ownerBox = new JComboBox<>(modes.toArray(new String[0]));
         Runnable apply = () -> {
             reset((String) sceneBox.getSelectedItem(), (String) ownerBox.getSelectedItem());
@@ -575,9 +667,18 @@ public final class CompanionViewer {
                 "BENTHIC starfish line", "BENTHIC slug crowd", "ANCHORED",
                 SCHOOL_MIXED, SCHOOL_PAIR, SCHOOL_BIG, STARFISH_PAIR, SLUG_CROWD_MIXED});
         for (PartyRun.Party p : PartyRun.PARTIES) classBox.addItem(PARTY_PREFIX + p.name());
+        for (TwoOwnerRun.Pair p : TwoOwnerRun.PAIRS) classBox.addItem(PAIR_PREFIX + p.name());
         classBox.addActionListener(e -> {
             String c = (String) classBox.getSelectedItem();
             partyChoice = null;
+            pairChoice = null;
+            if (c.startsWith(PAIR_PREFIX)) {
+                for (TwoOwnerRun.Pair p : TwoOwnerRun.PAIRS) if (c.equals(PAIR_PREFIX + p.name())) pairChoice = p;
+                trio = false;
+                memberLengths = null;
+                apply.run();
+                return;
+            }
             if (c.startsWith(PARTY_PREFIX)) {
                 for (PartyRun.Party p : PartyRun.PARTIES) if (c.equals(PARTY_PREFIX + p.name())) partyChoice = p;
                 trio = false;
@@ -629,6 +730,14 @@ public final class CompanionViewer {
         panel.add(row(shoalBox));
         for (int i = 0; i + 1 < launchArgs.length; i++) {
             if (launchArgs[i].equals("--owner")) ownerBox.setSelectedItem(launchArgs[i + 1]);
+            if (launchArgs[i].equals("--pair")) {
+                for (TwoOwnerRun.Pair p : TwoOwnerRun.PAIRS) {
+                    if (p.name().contains(launchArgs[i + 1])) {
+                        classBox.setSelectedItem(PAIR_PREFIX + p.name());
+                        break;
+                    }
+                }
+            }
             if (!launchArgs[i].equals("--party")) continue;
             for (PartyRun.Party p : PartyRun.PARTIES) {
                 if (p.name().contains(launchArgs[i + 1])) {

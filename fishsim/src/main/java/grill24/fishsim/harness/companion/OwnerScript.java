@@ -37,6 +37,14 @@ public final class OwnerScript {
             // into it, and settling on and stepping off the perches cycle after cycle.
             "group_passers", "walk_backward", "climb_cycles");
 
+    /**
+     * Two-owner scripts (docs/fish-companions-party.md §28.3), played by {@link #pair}: owner A
+     * starts where the swimmer scripts do, owner B somewhere around them. Kept apart from
+     * {@link #NAMES} so no single-owner table or fingerprint runs them.
+     */
+    public static final List<String> PAIR_NAMES = List.of(
+            "pair_approach_stand", "pair_walk_off", "pair_side_by_side", "pair_close", "pair_far", "pair_corridor");
+
     public static final double WALK = 4.317, SPRINT = 5.612;
 
     /** One step of a script; returns true when it's finished. */
@@ -1062,6 +1070,91 @@ public final class OwnerScript {
             }
             default -> throw new IllegalArgumentException("unknown script " + name + " (have " + NAMES + " " + GROUND_NAMES + ")");
         }
+    }
+
+    /**
+     * A two-owner script (§28.3): owner A then owner B, each with its own pilot on its own copy of
+     * the same scene (the scenes are static, so the copies agree). Both loop on their own; every
+     * script is written so one loop outlasts a 2400-tick run.
+     */
+    public static OwnerScript[] pair(String name, long seed) {
+        double y = 64;
+        List<Segment> a = new ArrayList<>(), b = new ArrayList<>();
+        switch (name) {
+            case "pair_approach_stand" -> {
+                // B walks up from 14 blocks ahead of A, stops 3 blocks off, faces A and stays.
+                a.add(hold(6000));
+                b.add(waitTicks(100));
+                b.add(walkTo(0.5, 3.5, WALK));
+                b.add(faceTo(0.5, 0.5));
+                b.add(hold(2400));
+                b.add(walkTo(0.5, 14.5, WALK));
+                b.add(waitTicks(200));
+                return pairOf(name, "open", a, new Vec(0.5, y, 0.5), 0f, b, new Vec(0.5, y, 14.5), 180f);
+            }
+            case "pair_walk_off" -> {
+                // They meet, stand 15 s, then A walks 21 blocks away and back, mid-way through a scene.
+                b.add(waitTicks(40));
+                b.add(walkTo(0.5, 3.5, WALK));
+                b.add(faceTo(0.5, 0.5));
+                b.add(hold(6000));
+                a.add(hold(400));
+                a.add(walkTo(0.5, -20.5, WALK));
+                a.add(waitTicks(100));
+                a.add(walkTo(0.5, 0.5, WALK));
+                a.add(faceTo(0.5, 3.5));
+                a.add(hold(6000));
+                return pairOf(name, "open", a, new Vec(0.5, y, 0.5), 0f, b, new Vec(0.5, y, 14.5), 180f);
+            }
+            case "pair_side_by_side" -> {
+                // Walking together, 2 blocks apart, out and back.
+                for (List<Segment> s : List.of(a, b)) {
+                    double x = s == a ? 0.5 : 2.5;
+                    s.add(waitTicks(40));
+                    s.add(walkTo(x, 30.5, WALK));
+                    s.add(waitTicks(60));
+                    s.add(walkTo(x, 0.5, WALK));
+                    s.add(waitTicks(60));
+                }
+                return pairOf(name, "open", a, new Vec(0.5, y, 0.5), 0f, b, new Vec(2.5, y, 0.5), 0f);
+            }
+            case "pair_close" -> {
+                // Standing 1.5 blocks apart, face to face (under G2's 2.5-block floor, D24).
+                a.add(hold(6000));
+                b.add(hold(6000));
+                return pairOf(name, "open", a, new Vec(0.5, y, 0.5), 0f, b, new Vec(0.5, y, 2.0), 180f);
+            }
+            case "pair_far" -> {
+                // Standing 6 blocks apart, face to face (the scheduler's range).
+                a.add(hold(6000));
+                b.add(hold(6000));
+                return pairOf(name, "open", a, new Vec(0.5, y, 0.5), 0f, b, new Vec(0.5, y, 6.5), 180f);
+            }
+            case "pair_corridor" -> {
+                // Face to face 3 blocks apart in a one-wide corridor: no room for a ring.
+                a.add(hold(6000));
+                b.add(hold(6000));
+                return pairOf(name, "corridor", a, new Vec(0.5, y, 5.5), 0f, b, new Vec(0.5, y, 8.5), 180f);
+            }
+            default -> throw new IllegalArgumentException("unknown pair script " + name + " (have " + PAIR_NAMES + ")");
+        }
+    }
+
+    private static OwnerScript[] pairOf(String name, String scene, List<Segment> a, Vec aFeet, float aYaw,
+                                        List<Segment> b, Vec bFeet, float bYaw) {
+        return new OwnerScript[]{new OwnerScript(name, scene, aFeet, aYaw, a),
+                new OwnerScript(name, scene, bFeet, bYaw, b)};
+    }
+
+    /** Turns on the spot to face a point, at a walking turn's rate; done once facing it. */
+    static Segment faceTo(double x, double z) {
+        return p -> {
+            p.move(Vec.ZERO);
+            float target = (float) new Vec(x - p.feet.x(), 0, z - p.feet.z()).yawDeg();
+            float diff = wrap(target - p.yaw);
+            p.look(wrap(p.yaw + Math.max(-Pilot.TURN, Math.min(Pilot.TURN, diff))), 0f);
+            return Math.abs(diff) <= Pilot.TURN;
+        };
     }
 
     static float wrap(float deg) {
