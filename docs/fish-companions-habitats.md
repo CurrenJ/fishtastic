@@ -1,6 +1,6 @@
 # Companion habitats and feature preferences
 
-Generated from the shipped fish profiles for phase 5. Review this table before deciding whether any species needs an override. No new companion data block is introduced.
+Generated from the shipped fish profiles for phase 5. **Owner approved this table on 2026-10-15 (W4): no species needs an override, and no `companion` data block is added.**
 
 Water zones count as home only while the owner is in water. Cave, high altitude and Nether zones also count on land. Biome weights below 1 are excluded. Climate comes from Nether homes, high altitude, or a cold home biome, never from snow catch weights. Feature styles use the existing temperament.
 

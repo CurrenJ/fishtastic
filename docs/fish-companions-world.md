@@ -309,7 +309,7 @@ fold into one `companion` object rather than add a fourth sibling.
 | **W1** Feature index | `WorldFeatureIndex` (per level, per section, palette pre-filter, deltas, budget); warmth served from it; `Sampler` scans removed | Equal-grounds A/B against W0; `companionmoods` still passes on both loaders |
 | **W2** Notice goal | `WorldFeature`, `CompanionWorld.features()`, Notice goal, emote output, viewer markers; bask ported; perchers lean and WATCH | Fingerprints bitwise; `MoodTest` and invariants pass; bask unchanged |
 | **W3** Particles | `CompanionParticles` (rate limits, particle setting, near-field guard) | Self-test spawns each emote; no particles at MINIMAL |
-| **W4** Habitat | Better derivation (§5); per-species table for the owner | **Owner reviews the table**; decides if an override is needed |
+| **W4** Habitat | Better derivation (§5); per-species table for the owner | **Owner reviews the table**; decides if an override is needed. **Passed 2026-10-15: table approved, no override.** |
 | **W5** Readability pass | Transition beats, a look per mood, steam, homecoming, joy in water; invisible levers cut (A/B) | Reaction share up; **readability gate** |
 | **W6** Water nearby | §4.1, headless scene first | Guard plus **readability gate** |
 | **W7** Lights at night | §4.2, darkness input | Guard plus **readability gate** |

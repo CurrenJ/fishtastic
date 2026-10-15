@@ -49,6 +49,6 @@ The Fabric crash at 19:29 (`Failed to load class file for ...MoodScenes`) came f
 
 ## Owner review
 
-- [Species traits](fish-companions-habitats.md): derived from existing fields, with no new override block.
+- [Species traits](fish-companions-habitats.md): derived from existing fields, with no new override block. **Approved by the owner 2026-10-15 (W4 gate passed).**
 - Readability: inspect first-person, overlay-off moving captures before approving.
 - Tanks (W9): remain deferred until the owner decides after the rest of the work.
