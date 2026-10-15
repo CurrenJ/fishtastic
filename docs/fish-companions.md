@@ -176,9 +176,12 @@ than swimming constantly. How much it moves while docked is tuned in game (R3.3 
 - **Moods respect the species' home** (R7.1). Comfort comes from the species' `zones`,
   `biome_weights` and SNOW condition: Nether fish are happy in the Nether, cold-water fish are
   fine in snow. Anything else in an unfamiliar biome gets the miserable or shivering reaction.
-  Rain makes most fish happy.
+  Rain makes most fish happy. Each fish has its own mood (owner, 2026-10-15), so a mixed party
+  can be split.
+- **Warmth** (owner, 2026-10-15): a shivering fish reacts to warm things nearby: campfires, fire
+  and lava.
 - **Mobs:** cats make it flee onto your head (with dwell and habituation, §4). Axolotls and
-  dolphins get a friendly circle.
+  dolphins get a friendly circle. Deferred past sim Phase 5 (owner, 2026-10-15).
 - **Time and moon:** species with a night or day time weight are sleepy during their off-hours.
   Species with a full-moon moon weight do a special idle under a full moon.
 - **Deferred to "planned improvements"** (R7.3): tank interactions. That covers pressing against

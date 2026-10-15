@@ -1,6 +1,6 @@
 # Fish Companions — Simulation Rewrite Plan
 
-**Written:** 2026-10-11 · **Status: Phases 1 and 2 passed the owner's gate 2026-10-11 (§9.6, §10.6); Phase 3 (into the game) built, awaiting the owner's solo playtest (§11.7). GLIDE and DRIFT parked.**
+**Written:** 2026-10-11 · **Status: Phases 1 and 2 passed the owner's gate 2026-10-11 (§9.6, §10.6); Phase 3 (into the game) built, awaiting the owner's solo playtest (§11.7). GLIDE and DRIFT parked. Phase 4 done 2026-10-15; Phase 5 decisions recorded (§5), not started.**
 
 **Decision (owner, 2026-10-11):** rebuild companion motion the way the tank was rebuilt
 ([fish-sim-engine-plan.md](fish-sim-engine-plan.md)): a Minecraft-free simulation in `:fishsim`,
@@ -260,6 +260,18 @@ player G3/G4 and class pairings stay for later.
 
 Biome comfort, rain, time and moon, as modifiers on drives and body (sleepy = slower and longer rests,
 shivering = a body noise term).
+
+**Owner decisions (2026-10-15), not started:**
+- Scope is as above: biome comfort, rain, sleepy off-hours, and the full-moon idle. The mob
+  reactions in spec §6 (cats, axolotls, dolphins) stay deferred.
+- Each fish has its own mood, from its own species' home. A mixed party can be split, with one
+  fish shivering and its party-mates content.
+- A shivering fish reacts to warm things nearby: campfires, fire and lava.
+
+Steps (agreed 2026-10-15): 5a, the ambient input on `CompanionWorld` (a neutral snapshot keeps
+the fingerprints bitwise); 5b, comfort, rain and warmth; 5c, sleepy off-hours and the full-moon idle;
+5d, the game adapter, a debug trigger, the overlay, and a self-test on both loaders. Mood strength:
+start subtle and capped (agreed), so seen % and fades don't drop; tuned in the viewer after 5b.
 
 ### Deferred
 
