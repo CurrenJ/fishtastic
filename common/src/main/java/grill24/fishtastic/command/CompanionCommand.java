@@ -62,10 +62,9 @@ import java.util.Optional;
  *   /fishtastic companion resetbonds &lt;player&gt;             — forget every stored bond unlock
  *   /fishtastic companion hideothers &lt;bool&gt;              — hide other players' companions (persists)
  *   /fishtastic companion hideown &lt;bool&gt;                 — hide your own in first person (persists)
- *   /fishtastic companion waitatobber &lt;bool&gt;             — skip docking during the minigame (persists; docking is parked)
  * </pre>
  *
- * <p>The visual triggers ({@code debug … waitatbobber}) drive client state directly, the same way
+ * <p>The visual triggers ({@code debug … hideown}) drive client state directly, the same way
  * {@link CelebrationCommand} does, so they only work in single-player — they exist so every
  * companion animation and interaction can be seen solo, without a second player or a headless run.
  *
@@ -301,14 +300,6 @@ public class CompanionCommand {
                             grill24.fishtastic.client.FishtasticClientConfig.setHideOwnCompanionFirstPerson(value);
                             ctx.getSource().sendSuccess(() -> Component.literal(
                                     "Own companion hidden in first person: " + value + " (persisted)"), false);
-                            return 1;
-                        })))
-                .then(Commands.literal("waitatbobber")
-                        .then(Commands.argument("value", BoolArgumentType.bool()).executes(ctx -> {
-                            boolean value = BoolArgumentType.getBool(ctx, "value");
-                            grill24.fishtastic.client.FishtasticClientConfig.setCompanionWaitsAtBobber(value);
-                            ctx.getSource().sendSuccess(() -> Component.literal(
-                                    "Companion waits at the bobber: " + value + " (persisted)"), false);
                             return 1;
                         })));
     }

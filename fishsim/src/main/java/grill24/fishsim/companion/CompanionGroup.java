@@ -17,19 +17,6 @@ import grill24.fishsim.core.Locomotion;
  */
 public final class CompanionGroup {
 
-    /**
-     * The old automatic trio limit (spec §2). A school now comes from the party
-     * (docs/fish-companions-party.md §3, D8: any size schools); see {@link PartyGrouping}.
-     */
-    @Deprecated
-    public static final float TRIO_MAX_SIZE_CM = 20f;
-
-    /** @deprecated groups come from same-species party members now ({@link PartyGrouping#group}). */
-    @Deprecated
-    public static boolean isTrio(Locomotion locomotion, float sizeCm) {
-        return locomotion == Locomotion.FREE_SWIM && sizeCm < TRIO_MAX_SIZE_CM;
-    }
-
     private static final int FADE_TICKS = 8;
     /** Station behind the leader and to each side, blocks, scaled by body length. */
     private static final double STATION_BACK = 2.2, STATION_SIDE = 1.8, STATION_LOW = 0.15;

@@ -514,17 +514,9 @@ public class FishTankBlockEntityRenderer
         };
     }
 
-    /** Compatibility seam for existing companion/debug callers; resolution lives in FishVisuals. */
-    record ResolvedFishRender(FishAnimationConfig animation, float renderCalibration) {}
-
-    static ResolvedFishRender resolveFishRender(ItemStack stack, Level level) {
-        FishVisuals.ResolvedFishRender render = FishVisuals.resolve(stack, level);
-        return new ResolvedFishRender(render.animation(), render.renderCalibration());
-    }
-
     /**
      * Same size-to-scale formula the tank uses to draw fish true-to-scale
-     * ({@code size/100 * per-species render_calibration}, see {@link ResolvedFishRender}) — for
+     * ({@code size/100 * per-species render_calibration}, see {@link FishVisuals#resolve}) — for
      * anything else (held items, GUI previews) that wants a caught fish to render at its recorded
      * size. Returns {@code 1.0} (no scaling) for stacks with no recorded size.
      */

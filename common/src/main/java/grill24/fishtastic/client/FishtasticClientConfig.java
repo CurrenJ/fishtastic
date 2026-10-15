@@ -29,14 +29,10 @@ public final class FishtasticClientConfig {
     private static final String REDUCED_CELEBRATION_EFFECTS_KEY = "reducedCelebrationEffects";
     /** Don't draw other players' fish companions (docs/fish-companions.md §11 settings). */
     public static final String HIDE_OTHER_COMPANIONS_KEY = "hideOtherCompanions";
-    /** Don't draw your own companion in first person; ignored while it's docked on the minigame. */
+    /** Don't draw your own companion in first person. */
     public static final String HIDE_OWN_COMPANION_FIRST_PERSON_KEY = "hideOwnCompanionFirstPerson";
-    /**
-     * Skip docking during the minigame so the companion stays in the world. Default false (it
-     * docks). The full "waits at the bobber" behaviour is Phase 5; for now this only skips the
-     * dock, and the companion keeps following.
-     */
-    public static final String COMPANION_WAITS_AT_BOBBER_KEY = "companionWaitsAtBobber";
+    /** A retired key (the parked minigame dock); {@link #persist} drops it from older files. */
+    private static final String RETIRED_COMPANION_WAITS_AT_BOBBER_KEY = "companionWaitsAtBobber";
     private static final int DEFAULT_NOTIFICATION_VOLUME = 50;
     private static final String DEFAULT_FILE_CONTENTS = """
             # Fishtastic client-side visual toggles.
@@ -72,19 +68,13 @@ public final class FishtasticClientConfig {
             # "/fishtastic reducedeffects <true|false>" in-game, which also rewrites this file.
             reducedCelebrationEffects=false
 
-            # Fish companions (docs/fish-companions.md §11). All three default to off.
+            # Fish companions. Both default to off.
 
             # Don't draw other players' fish companions. Your own is unaffected.
             hideOtherCompanions=false
 
-            # Don't draw your own fish companion in first person. Ignored while it is docked on the
-            # fishing minigame (the docked fish is part of the minigame HUD).
+            # Don't draw your own fish companions in first person.
             hideOwnCompanionFirstPerson=false
-
-            # Skip docking during the fishing minigame so the companion stays out in the world.
-            # Default false, i.e. it docks. (The "waits at the bobber" behaviour arrives with the
-            # fishing-reactions phase; until then it simply keeps following.)
-            companionWaitsAtBobber=false
             """;
 
     private static Boolean tankWaterFillEnabled;
@@ -94,7 +84,6 @@ public final class FishtasticClientConfig {
     private static Boolean reducedCelebrationEffects;
     private static Boolean hideOtherCompanions;
     private static Boolean hideOwnCompanionFirstPerson;
-    private static Boolean companionWaitsAtBobber;
 
     /**
      * Dev-only (self-tests): values that override the on-disk settings without touching the file.
@@ -262,10 +251,7 @@ public final class FishtasticClientConfig {
         return hideOtherCompanions;
     }
 
-    /**
-     * Whether your own companion is hidden in first person. Always read together with the dock
-     * state — a docked companion is part of the minigame HUD and stays visible regardless.
-     */
+    /** Whether your own companions are hidden in first person. */
     public static boolean hideOwnCompanionFirstPerson() {
         Boolean override = TEST_OVERRIDES.get(HIDE_OWN_COMPANION_FIRST_PERSON_KEY);
         if (override != null) return override;
@@ -275,31 +261,15 @@ public final class FishtasticClientConfig {
         return hideOwnCompanionFirstPerson;
     }
 
-    /** Whether the companion skips docking during the minigame (Phase 5 will make it wait at the bobber). */
-    public static boolean companionWaitsAtBobber() {
-        Boolean override = TEST_OVERRIDES.get(COMPANION_WAITS_AT_BOBBER_KEY);
-        if (override != null) return override;
-        if (companionWaitsAtBobber == null) {
-            companionWaitsAtBobber = Boolean.parseBoolean(load().getProperty(COMPANION_WAITS_AT_BOBBER_KEY, "false"));
-        }
-        return companionWaitsAtBobber;
-    }
-
     /** Persists the hide-other-companions toggle (also reachable via the dev `companion` command). */
     public static void setHideOtherCompanions(boolean hide) {
         hideOtherCompanions = hide;
         persist();
     }
 
-    /** Persists the hide-own-companion-in-first-person toggle (never applied while docked). */
+    /** Persists the hide-own-companion-in-first-person toggle. */
     public static void setHideOwnCompanionFirstPerson(boolean hide) {
         hideOwnCompanionFirstPerson = hide;
-        persist();
-    }
-
-    /** Persists the waits-at-the-bobber toggle. */
-    public static void setCompanionWaitsAtBobber(boolean wait) {
-        companionWaitsAtBobber = wait;
         persist();
     }
 
@@ -319,7 +289,7 @@ public final class FishtasticClientConfig {
         props.setProperty(REDUCED_CELEBRATION_EFFECTS_KEY, String.valueOf(isReducedCelebrationEffects()));
         props.setProperty(HIDE_OTHER_COMPANIONS_KEY, String.valueOf(hideOtherCompanions()));
         props.setProperty(HIDE_OWN_COMPANION_FIRST_PERSON_KEY, String.valueOf(hideOwnCompanionFirstPerson()));
-        props.setProperty(COMPANION_WAITS_AT_BOBBER_KEY, String.valueOf(companionWaitsAtBobber()));
+        props.remove(RETIRED_COMPANION_WAITS_AT_BOBBER_KEY);
         try (var out = Files.newOutputStream(file)) {
             props.store(out, "Fishtastic client-side visual toggles.");
         } catch (IOException ignored) {

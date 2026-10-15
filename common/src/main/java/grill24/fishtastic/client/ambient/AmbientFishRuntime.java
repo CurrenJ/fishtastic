@@ -75,10 +75,8 @@ public final class AmbientFishRuntime {
     /** Patches shown at once (nearest to the player). One shown patch per request origin, so this
      * is exactly the context request's wire bound: the two are the same number by construction. */
     public static final int MAX_DOMAINS = grill24.fishtastic.network.AmbientContextRequestPacket.MAX_ORIGINS;
-    /** Individuals across every domain — the Phase 0 headroom (2–4 domains × ~8 fish). */
+    /** Individuals across every domain; per-domain targets come from {@link AmbientBudget#target}. */
     public static final int MAX_INDIVIDUALS = AmbientBudget.MAX_INDIVIDUALS;
-    /** Individuals wanted per domain; the pool cycles species, so a domain holds each in turn. */
-    public static final int TARGET_PER_DOMAIN = 8;
     /** A patch smaller than this is a puddle, not somewhere to put a shoal. */
     public static final int MIN_PATCH_COLUMNS = 4;
     /** How often a live domain is rebuilt from the current columns (geometry edits, fluid edits). */

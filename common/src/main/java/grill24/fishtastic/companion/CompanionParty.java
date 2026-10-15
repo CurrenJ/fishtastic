@@ -1,6 +1,5 @@
 package grill24.fishtastic.companion;
 
-import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -16,9 +15,6 @@ import java.util.List;
  * A player's companion party: three slots, each holding one bonded fish or {@link ItemStack#EMPTY}
  * (docs/fish-companions-party.md §5.1). Slot 0 is the lead. Immutable: {@link #with} returns a new
  * party, and the stacks are private copies — never mutate a stack read from here.
- *
- * <p>Saves written before the party existed held a single stack. Both persistent codecs still read
- * that shape and put the old companion in the lead slot, so no player loses a bonded fish on update.
  */
 public record CompanionParty(List<ItemStack> slots) {
     public static final int SIZE = 3;
@@ -32,11 +28,6 @@ public record CompanionParty(List<ItemStack> slots) {
             fixed.add(stack == null || stack.isEmpty() ? ItemStack.EMPTY : stack.copyWithCount(1));
         }
         slots = Collections.unmodifiableList(fixed);
-    }
-
-    /** A party whose lead is {@code stack} — what a pre-party save migrates to. */
-    public static CompanionParty ofLead(ItemStack stack) {
-        return new CompanionParty(List.of(stack));
     }
 
     public static boolean validSlot(int slot) {
@@ -79,23 +70,12 @@ public record CompanionParty(List<ItemStack> slots) {
 
     // ---------------------------------------------------------------- codecs
 
-    private static final MapCodec<CompanionParty> SLOTS = ItemStack.OPTIONAL_CODEC.listOf()
+    /** NeoForge's persistent form, {@code {slots: [...]}}. */
+    public static final MapCodec<CompanionParty> MAP_CODEC = ItemStack.OPTIONAL_CODEC.listOf()
             .fieldOf("slots").xmap(CompanionParty::new, CompanionParty::slots);
 
-    /**
-     * Fabric's persistent form. It writes {@code {slots: [...]}}; it also reads the pre-party
-     * attachment, which was a bare item stack, into the lead slot.
-     */
-    public static final Codec<CompanionParty> CODEC = Codec.withAlternative(SLOTS.codec(),
-            ItemStack.CODEC.xmap(CompanionParty::ofLead, party -> party.get(LEAD)));
-
-    /**
-     * NeoForge's persistent form. It writes {@code {slots: [...]}}; it also reads the pre-party
-     * attachment, which was {@code {stack: <item>}}, into the lead slot.
-     */
-    public static final MapCodec<CompanionParty> MAP_CODEC = Codec.mapEither(SLOTS,
-                    ItemStack.OPTIONAL_CODEC.fieldOf("stack"))
-            .xmap(either -> either.map(party -> party, CompanionParty::ofLead), Either::left);
+    /** Fabric's persistent form: the same {@code {slots: [...]}}. */
+    public static final Codec<CompanionParty> CODEC = MAP_CODEC.codec();
 
     /** Synced to the owner and everyone tracking them: always exactly {@link #SIZE} stacks. */
     public static final StreamCodec<RegistryFriendlyByteBuf, CompanionParty> STREAM_CODEC =

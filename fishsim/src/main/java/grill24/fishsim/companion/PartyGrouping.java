@@ -24,8 +24,8 @@ import java.util.Objects;
  *       percher) (D7).</li>
  * </ul>
  *
- * <p>Size never decides grouping (D8): the old trio rule ({@link CompanionGroup#isTrio}) and a
- * profile's {@code companion_group.count} are retired as sources of groups. A group's formation
+ * <p>Size never decides grouping (D8): the old automatic trio (any FREE_SWIM fish under
+ * 20 cm) and a profile's group count are retired. A group's formation
  * leader is picked by size, never by the player (D9): the smallest member leads and the rest follow
  * smallest first, ties going to the lower slot, so identical members keep the lowest slot in front.
  * The party lead (slot 0) is a separate idea: it stays the party's buddy wherever it swims in a

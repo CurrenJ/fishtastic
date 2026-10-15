@@ -506,14 +506,12 @@ public class NeoForgeGameTestRegistration {
             PacketRoundTripGameTests::fishEncyclopediaSyncPacketRoundTrips);
         register(event, env, "request_fish_encyclopedia_packet_round_trips", 200,
             PacketRoundTripGameTests::requestFishEncyclopediaPacketRoundTrips);
-        register(event, env, "companion_fishing_event_packet_round_trips", 200,
-            PacketRoundTripGameTests::companionFishingEventPacketRoundTrips);
         register(event, env, "companion_scene_packet_round_trips", 200,
             PacketRoundTripGameTests::companionScenePacketRoundTrips);
         register(event, env, "companion_slot_packets_round_trip", 200,
             PacketRoundTripGameTests::companionSlotPacketsRoundTrip);
-        register(event, env, "companion_party_codecs_migrate_and_round_trip", 200,
-            PacketRoundTripGameTests::companionPartyCodecsMigrateAndRoundTrip);
+        register(event, env, "companion_party_codecs_round_trip", 200,
+            PacketRoundTripGameTests::companionPartyCodecsRoundTrip);
         register(event, env, "ambient_context_request_packet_round_trips", 200,
             PacketRoundTripGameTests::ambientContextRequestPacketRoundTrips);
         register(event, env, "ambient_context_response_packet_round_trips", 200,

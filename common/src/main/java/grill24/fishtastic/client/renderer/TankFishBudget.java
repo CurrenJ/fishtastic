@@ -53,8 +53,8 @@ final class TankFishBudget {
             for (int slot = 0; slot < FishTankBlockEntity.CONTAINER_SIZE; slot++) {
                 ItemStack stack = tank.getItem(slot);
                 if (stack.isEmpty()) continue;
-                Locomotion locomotion = TankFlockAdapter.locomotionOf(
-                        FishTankBlockEntityRenderer.resolveFishRender(stack, level).animation());
+                Locomotion locomotion = FishVisuals.locomotionOf(
+                        FishVisuals.resolve(stack, level).animation());
                 fishPerClassPerMember[locomotion.ordinal()][member]++;
             }
         }

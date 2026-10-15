@@ -39,11 +39,11 @@ public final class CompanionFishPose {
      *                  so a fish is the same size on its owner's shoulder as when it hops off
      */
     public CompanionFishPose(ItemStack fish, Level level, float minLength) {
-        FishTankBlockEntityRenderer.ResolvedFishRender render = FishTankBlockEntityRenderer.resolveFishRender(fish, level);
+        FishVisuals.ResolvedFishRender render = FishVisuals.resolve(fish, level);
         this.stack = fish.copyWithCount(1);
         this.anim = render.animation();
-        this.length = Math.max(TankFlockAdapter.renderedLength(fish, render.renderCalibration()), minLength);
-        this.locomotion = TankFlockAdapter.locomotionOf(anim);
+        this.length = Math.max(FishVisuals.renderedLength(fish, render.renderCalibration()), minLength);
+        this.locomotion = FishVisuals.locomotionOf(anim);
         this.seed = fish.hashCode();
     }
 

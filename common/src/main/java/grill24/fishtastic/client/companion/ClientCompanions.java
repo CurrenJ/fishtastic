@@ -10,7 +10,6 @@ import grill24.fishsim.companion.PointOfInterest;
 import grill24.fishsim.companion.Temperament;
 import grill24.fishsim.companion.Vec;
 import grill24.fishtastic.client.FishtasticClientConfig;
-import grill24.fishtastic.companion.CompanionFishingOutcome;
 import grill24.fishtastic.companion.CompanionGroups;
 import grill24.fishtastic.companion.CompanionParty;
 import grill24.fishtastic.companion.CompanionSceneType;
@@ -53,9 +52,8 @@ import java.util.UUID;
  * <p>The client settings are respected at the submit sites: other players' companions can be hidden
  * entirely, and your own can be hidden in first person.
  *
- * <p>Fishing reactions (the dock on the minigame HUD) and pet-to-pet scenes are deferred to later
- * phases of the sim rewrite (plan §5): their packets still arrive here and are ignored for now, and
- * the dock's picture-in-picture renderer stays registered but parked.
+ * <p>Pet-to-pet scenes arrive as {@link #onScenePacket} (party spec §28). Fishing reactions were
+ * parked by the sim rewrite (plan §5) and their code removed; bring them back from git history.
  */
 public final class ClientCompanions {
     private ClientCompanions() {}
@@ -178,8 +176,6 @@ public final class ClientCompanions {
     public static int worldSubmitsThisFrame;
     /** Dev diagnostics: perch-layer calls and the draws it made, cumulative. */
     public static int perchLayerCalls, perchSubmits;
-    /** Dev diagnostics: the parked docked-fish renderer's run count (always 0 until fishing returns). */
-    public static int pipRenders;
 
     // Cost of the sim, for the overlay (plan §7 risk 3): block samples and time per tick, averaged
     // over the last second, and the worst tick.
@@ -328,10 +324,6 @@ public final class ClientCompanions {
 
     public static void onChunkUnloaded(ChunkPos pos) {
         if (featureIndex != null) featureIndex.chunkChanged(pos);
-    }
-
-    /** The fishing-event packet's landing point. Fishing reactions are deferred (plan §5); ignored for now. */
-    public static void onFishingEvent(UUID owner, CompanionFishingOutcome outcome) {
     }
 
     /** Scene packets received this session, and the last one (the two-client self-test reads them). */
@@ -594,7 +586,7 @@ public final class ClientCompanions {
     // ---------------------------------------------------------------- HUD pass
 
     /** Called every HUD frame after the minigame draws. Draws the dev debug overlay when it is on. */
-    public static void renderHud(GuiGraphicsExtractor graphics, @Nullable FishingMinigameAnimation minigame, float partialTick) {
+    public static void renderHud(GuiGraphicsExtractor graphics, float partialTick) {
         if (!overlay) return;
         Minecraft mc = Minecraft.getInstance();
         Font font = mc.font;
@@ -675,10 +667,6 @@ public final class ClientCompanions {
                         + "  peak blocks %d/tick, step %d us",
                 count(), bodyCount(), samples / (double) COST_WINDOW, sampleNanos / 1000.0 / COST_WINDOW,
                 stepNanos / 1000.0 / COST_WINDOW, worstStep / 1000, peakSamples, peakStepNanos / 1000);
-    }
-
-    /** Called from {@link CompanionPipRenderer}: the docked fish is parked with the fishing reactions. */
-    static void submitDockedFish(PoseStack poseStack, SubmitNodeCollector nodes, int light, float gameTime) {
     }
 
     /** The local player's running minigame, if any. */

@@ -87,12 +87,12 @@ public final class CompanionRender {
     private boolean watching;
 
     public CompanionRender(ItemStack fish, Level level) {
-        FishTankBlockEntityRenderer.ResolvedFishRender render = FishTankBlockEntityRenderer.resolveFishRender(fish, level);
+        FishVisuals.ResolvedFishRender render = FishVisuals.resolve(fish, level);
         this.stack = fish.copyWithCount(1);
         this.anim = render.animation();
-        this.length = TankFlockAdapter.renderedLength(fish, render.renderCalibration());
-        this.locomotion = TankFlockAdapter.locomotionOf(anim);
-        this.seed = TankFlockAdapter.speciesId(fish);
+        this.length = FishVisuals.renderedLength(fish, render.renderCalibration());
+        this.locomotion = FishVisuals.locomotionOf(anim);
+        this.seed = FishVisuals.speciesId(fish);
         for (int i = 0; i < states.length; i++) states[i] = new ItemStackRenderState();
     }
 

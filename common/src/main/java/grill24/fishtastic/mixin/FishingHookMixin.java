@@ -8,7 +8,6 @@ import grill24.fishtastic.tutorial.TutorialManager;
 import grill24.fishtastic.util.IFishingHookExtension;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.FluidTags;
@@ -98,28 +97,6 @@ public class FishingHookMixin implements IFishingHookExtension {
     @Override
     public int getLuck() {
         return this.luck;
-    }
-
-    // The nibble/bite flag vanilla keeps private (set from the synced DATA_BITING on clients and
-    // from the bite cycle on the server). The companion reads it for its nibble reaction (§5).
-    @Shadow
-    private boolean biting;
-
-    @Shadow
-    @Final
-    private static EntityDataAccessor<Boolean> DATA_BITING;
-
-    @Override
-    public boolean fishtastic$isBiting() {
-        return this.biting;
-    }
-
-    @Override
-    public void fishtastic$forceBite() {
-        // Dev-only self-test seam (see IFishingHookExtension): flip the local bobber's bite visual.
-        // Never syncs — an entity-data set on the client stays local.
-        ((FishingHook) (Object) this).getEntityData().set(DATA_BITING, true);
-        this.biting = true;
     }
 
     // ----- Lava fishing (obsidian / copper rods) -----

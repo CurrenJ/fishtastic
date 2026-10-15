@@ -423,15 +423,15 @@ public final class TankGroupFlock {
                 allContents.add(stack);
                 FishVisuals.ResolvedFishRender render =
                         FishVisuals.resolve(stack, level);
-                float length = TankFlockAdapter.renderedLength(stack, render.renderCalibration());
-                Locomotion locomotion = TankFlockAdapter.locomotionOf(render.animation());
+                float length = FishVisuals.renderedLength(stack, render.renderCalibration());
+                Locomotion locomotion = FishVisuals.locomotionOf(render.animation());
                 if (!memberSplit.joins(locomotion, length)) continue; // stays on its own tank's engine
                 swimStacks.add(stack);
                 swimAnims.add(render.animation());
                 swimKeyPos.add(memberPos.asLong());
                 swimKeySlot.add(slot);
                 swimSpecs.add(new FishSpec(length, locomotion, member.isItemMirrored(slot),
-                        TankFlockAdapter.speciesId(stack), TankFlockAdapter.shelterUseOf(stack, level)));
+                        FishVisuals.speciesId(stack), FishVisuals.shelterUseOf(stack, level)));
             }
         }
         contentsSnapshot = allContents.toArray(new ItemStack[0]);

@@ -102,13 +102,9 @@ public record FishProfile(
     /**
      * How a ground benthic's group walks: in a line or as a crowd. Groups come from the party now
      * (docs/fish-companions-party.md §3): two or three of the species bonded together form one.
-     *
-     * @param count deprecated and ignored: it once made a single bonded fish walk as a group of
-     *              this many. Still read so older datapacks load; omit it in new ones.
      */
-    public record CompanionGroupConfig(@Deprecated int count, Formation formation) {
+    public record CompanionGroupConfig(Formation formation) {
         public static final Codec<CompanionGroupConfig> CODEC = RecordCodecBuilder.create(i -> i.group(
-                Codec.intRange(1, 3).optionalFieldOf("count", 1).forGetter(CompanionGroupConfig::count),
                 Formation.CODEC.fieldOf("formation").forGetter(CompanionGroupConfig::formation)
         ).apply(i, CompanionGroupConfig::new));
 

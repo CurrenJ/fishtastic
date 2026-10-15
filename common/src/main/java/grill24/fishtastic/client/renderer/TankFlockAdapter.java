@@ -119,7 +119,7 @@ public final class TankFlockAdapter {
     }
 
     /**
-     * Species id of fish #{@code i} in this tank's own engine — see {@link #speciesId(ItemStack)},
+     * Species id of fish #{@code i} in this tank's own engine — see {@link FishVisuals#speciesId(ItemStack)},
      * the opaque per-item-type id the engine carries per fish.
      */
     public int fishSpecies(int i) {
@@ -290,11 +290,11 @@ public final class TankFlockAdapter {
             newAnims[idx] = render.animation();
 
             specs[idx] = new FishSpec(
-                    renderedLength(stack, render.renderCalibration()),
-                    locomotionOf(newAnims[idx]),
+                    FishVisuals.renderedLength(stack, render.renderCalibration()),
+                    FishVisuals.locomotionOf(newAnims[idx]),
                     be.isItemMirrored(slot),
-                    speciesId(stack),
-                    shelterUseOf(stack, level));
+                    FishVisuals.speciesId(stack),
+                    FishVisuals.shelterUseOf(stack, level));
             idx++;
         }
 
@@ -351,14 +351,6 @@ public final class TankFlockAdapter {
             }
         }
         return anySwimmer && TankObstacles.hasSolid(be, level);
-    }
-
-    /**
-     * How this fish's species uses shelters (its profile's {@code swarm.shelter}), mapped down to
-     * the engine's enum — {@link ShelterUse#NONE} unless the species opts in.
-     */
-    static ShelterUse shelterUseOf(ItemStack stack, Level level) {
-        return FishVisuals.shelterUseOf(stack, level);
     }
 
     /**
@@ -431,15 +423,15 @@ public final class TankFlockAdapter {
             ItemStack stack = s.copy();
             FishVisuals.ResolvedFishRender render =
                     FishVisuals.resolve(stack, level);
-            float length = renderedLength(stack, render.renderCalibration());
-            Locomotion locomotion = locomotionOf(render.animation());
+            float length = FishVisuals.renderedLength(stack, render.renderCalibration());
+            Locomotion locomotion = FishVisuals.locomotionOf(render.animation());
             if (split.joins(locomotion, length)) continue; // simulated with the group
 
             hoverStacks.add(stack);
             hoverAnims.add(render.animation());
             hoverSlots.add(slot);
             hoverSpecs.add(new FishSpec(length, TankGroupFlock.GroupSplit.stayingHomeAs(locomotion),
-                    be.isItemMirrored(slot), speciesId(stack)));
+                    be.isItemMirrored(slot), FishVisuals.speciesId(stack)));
         }
         int hoverCount = hoverStacks.size();
         int[] hoverCarry = new int[hoverCount];
@@ -485,34 +477,11 @@ public final class TankFlockAdapter {
 
     // ── Shared helpers ──────────────────────────────────────────────────────
 
-    /**
-     * The default pose → locomotion mapping (docs/fish-sim-locomotion.md §2.1). Pose and
-     * locomotion are independent concepts; this says what each render pose most likely implies
-     * about how the creature moves, so no data file has to declare anything. The mapping delegates
-     * to the shared client boundary in {@link FishVisuals}, keeping the data config Minecraft-free.
-     */
-    static Locomotion locomotionOf(FishAnimationConfig anim) {
-        return FishVisuals.locomotionOf(anim);
-    }
-
-    /**
-     * Opaque per-species id for the engine's species-aware separation/schooling: fish of the same
-     * item type school together, different items keep the wider cross-species distance. The item
-     * registry id is stable for the client session, which is all the engine needs.
-     */
-    static int speciesId(ItemStack stack) {
-        return FishVisuals.speciesId(stack);
-    }
-
     private void allocate(int n) {
         if (stacks.length == n) return;
         stacks = new ItemStack[n];
         anims = new FishAnimationConfig[n];
         itemRenderStates = new ItemStackRenderState[n];
         for (int i = 0; i < n; i++) itemRenderStates[i] = new ItemStackRenderState();
-    }
-
-    static float renderedLength(ItemStack stack, float calibration) {
-        return FishVisuals.renderedLength(stack, calibration);
     }
 }

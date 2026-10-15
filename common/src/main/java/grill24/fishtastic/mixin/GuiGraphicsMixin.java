@@ -7,9 +7,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3x2fStack;
-import net.minecraft.client.renderer.state.gui.GuiRenderState;
-import net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 
@@ -31,7 +28,6 @@ import org.spongepowered.asm.mixin.Shadow;
 @Mixin(GuiGraphicsExtractor.class)
 public abstract class GuiGraphicsMixin implements IGuiGraphicsExtension {
 
-    @Shadow @Final private GuiRenderState guiRenderState;
     @Shadow public abstract Matrix3x2fStack pose();
     @Shadow public abstract void item(ItemStack itemStack, int x, int y);
     @Shadow public abstract void item(ItemStack itemStack, int x, int y, int seed);
@@ -115,10 +111,5 @@ public abstract class GuiGraphicsMixin implements IGuiGraphicsExtension {
             this.fakeItem(itemStack, i - 8, j - 8, k);
         }
         this.pose().popMatrix();
-    }
-
-    @Override
-    public void fishtastic$addPictureInPicture(PictureInPictureRenderState state) {
-        this.guiRenderState.addPicturesInPictureState(state);
     }
 }

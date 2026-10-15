@@ -11,7 +11,7 @@ class CompanionGroupConfigTest {
     @Test
     void roundTripsSpeciesFormations() {
         for (var formation : FishProfile.CompanionGroupConfig.Formation.values()) {
-            var config = new FishProfile.CompanionGroupConfig(3, formation);
+            var config = new FishProfile.CompanionGroupConfig(formation);
             var encoded = FishProfile.CompanionGroupConfig.CODEC.encodeStart(JavaOps.INSTANCE, config);
             assertEquals(config, encoded.flatMap(value -> FishProfile.CompanionGroupConfig.CODEC
                     .parse(JavaOps.INSTANCE, value)).getOrThrow(IllegalStateException::new));
@@ -19,13 +19,9 @@ class CompanionGroupConfigTest {
     }
 
     @Test
-    void rejectsInvalidCountsAndFormationNames() {
-        for (int count : new int[]{0, -1, 4, 100}) {
-            assertTrue(FishProfile.CompanionGroupConfig.CODEC.parse(JavaOps.INSTANCE,
-                    Map.of("count", count, "formation", "line")).error().isPresent());
-        }
+    void rejectsUnknownFormationNames() {
         assertTrue(FishProfile.CompanionGroupConfig.CODEC.parse(JavaOps.INSTANCE,
-                Map.of("count", 3, "formation", "school")).error().isPresent());
+                Map.of("formation", "school")).error().isPresent());
     }
 
     @Test

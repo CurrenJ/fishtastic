@@ -133,11 +133,6 @@ public class FishtasticPackets {
                 BondCompanionPacket::handleClientToServer
         );
         registrar.registerClientToServer(
-                UnequipCompanionPacket.TYPE,
-                UnequipCompanionPacket.STREAM_CODEC,
-                UnequipCompanionPacket::handleClientToServer
-        );
-        registrar.registerClientToServer(
                 RenameCompanionPacket.TYPE,
                 RenameCompanionPacket.STREAM_CODEC,
                 RenameCompanionPacket::handleClientToServer
@@ -234,11 +229,6 @@ public class FishtasticPackets {
                 CompanionTutorialSyncPacket::handleServerToClient
         );
         registrar.registerServerToClient(
-                CompanionFishingEventPacket.TYPE,
-                CompanionFishingEventPacket.STREAM_CODEC,
-                CompanionFishingEventPacket::handleServerToClient
-        );
-        registrar.registerServerToClient(
                 CompanionScenePacket.TYPE,
                 CompanionScenePacket.STREAM_CODEC,
                 CompanionScenePacket::handleServerToClient
@@ -273,7 +263,6 @@ public class FishtasticPackets {
         registrar.accept(ReactionBoostSyncPacket.TYPE, ReactionBoostSyncPacket.STREAM_CODEC);
         registrar.accept(CompanionFeedbackPacket.TYPE, CompanionFeedbackPacket.STREAM_CODEC);
         registrar.accept(CompanionTutorialSyncPacket.TYPE, CompanionTutorialSyncPacket.STREAM_CODEC);
-        registrar.accept(CompanionFishingEventPacket.TYPE, CompanionFishingEventPacket.STREAM_CODEC);
         registrar.accept(CompanionScenePacket.TYPE, CompanionScenePacket.STREAM_CODEC);
         registrar.accept(AmbientContextResponsePacket.TYPE, AmbientContextResponsePacket.STREAM_CODEC);
     }

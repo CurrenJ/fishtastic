@@ -70,9 +70,7 @@ import net.fabricmc.fabric.api.client.particle.v1.ParticleProviderRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.BlockEntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.ClientTooltipComponentCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
-import net.fabricmc.fabric.api.client.rendering.v1.PictureInPictureRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
-import grill24.fishtastic.client.companion.CompanionPipRenderer;
 import grill24.fishtastic.client.companion.ClientCompanions;
 import grill24.fishtastic.client.ambient.ClientAmbientFish;
 import net.minecraft.client.Minecraft;
@@ -166,8 +164,6 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         // Register companion tutorial sync and bond/rename feedback handlers
         grill24.fishtastic.network.CompanionTutorialSyncPacket.registerClientHandler(CompanionTutorialClientHandler.PACKET_HANDLER);
         grill24.fishtastic.network.CompanionFeedbackPacket.registerClientHandler(grill24.fishtastic.client.CompanionClientState.PACKET_HANDLER);
-        grill24.fishtastic.network.CompanionFishingEventPacket.registerClientHandler(packet ->
-                grill24.fishtastic.client.companion.ClientCompanions.onFishingEvent(packet.owner(), packet.outcome()));
         grill24.fishtastic.network.CompanionScenePacket.registerClientHandler(packet ->
                 grill24.fishtastic.client.companion.ClientCompanions.onScenePacket(
                         packet.scene(), packet.first(), packet.firstSlot(), packet.second(), packet.secondSlot(),
@@ -312,18 +308,16 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             if (animation != null && animation.isActive()) {
                 animation.render(mc, graphics, deltaTracker.getGameTimeDeltaPartialTick(false));
             }
-            ClientCompanions.renderHud(graphics, ClientCompanions.activeMinigame(), deltaTracker.getGameTimeDeltaPartialTick(false));
+            ClientCompanions.renderHud(graphics, deltaTracker.getGameTimeDeltaPartialTick(false));
         });
 
-        // Fish companion Phase 0 spike: free-flying fish from the level submit hook, docked fish
-        // through a perspective picture-in-picture renderer (docs/fish-companions.md §5.1).
+        // Fish companions and fish in world draw from the level submit hook.
         LevelRenderEvents.COLLECT_SUBMITS.register(context -> ClientCompanions.submitWorld(
                 context.poseStack(), context.submitNodeCollector(),
                 Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false)));
         LevelRenderEvents.COLLECT_SUBMITS.register(context -> ClientAmbientFish.submitWorld(
                 context.poseStack(), context.submitNodeCollector(),
                 Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false)));
-        PictureInPictureRendererRegistry.register(ctx -> new CompanionPipRenderer(ctx.bufferSource()));
 
         // Register HUD render hook for quest progress notifications (renders after fishing minigame)
         HudElementRegistry.addLast(Ids.of(Fishtastic.MOD_ID, "quest_progress_notification"), (graphics, deltaTracker) -> {

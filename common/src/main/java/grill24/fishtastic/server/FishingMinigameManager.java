@@ -475,17 +475,6 @@ public class FishingMinigameManager {
             QuestSyncPacket.sendToPlayer(player, catchDb, Map.of(), 0, baitDepletedItem, result.firstCatchItems());
         }
 
-        // Tell everyone nearby how the session resolved (docs/fish-companions.md §5, §11). The
-        // owner's client plays its own outcome from the minigame animation; other players never
-        // see that bar, so this is the only way their copy of the companion can react. A cast with
-        // no fish on the line at all (treasure/trash only) resolves to NONE and sends nothing.
-        boolean hadFishTarget = session.targets.stream()
-                .anyMatch(target -> target.category() == FishingTarget.TargetCategory.FISH);
-        boolean caughtAFish = caughtTargets.stream()
-                .anyMatch(target -> target.category() == FishingTarget.TargetCategory.FISH);
-        grill24.fishtastic.network.CompanionFishingEventPacket.sendToNearbyPlayers(level, player,
-                grill24.fishtastic.companion.CompanionFishingOutcome.of(hadFishTarget, caughtAFish));
-
         activeSessions.remove(playerId);
 
         Fishtastic.LOGGER.info("Awarded {} items to player {} for session {} (took {} ticks)",

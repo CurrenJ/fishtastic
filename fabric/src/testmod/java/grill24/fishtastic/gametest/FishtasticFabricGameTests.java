@@ -1032,11 +1032,6 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void companionFishingEventPacketRoundTrips(GameTestHelper helper) {
-        PacketRoundTripGameTests.companionFishingEventPacketRoundTrips(helper);
-    }
-
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void companionScenePacketRoundTrips(GameTestHelper helper) {
         PacketRoundTripGameTests.companionScenePacketRoundTrips(helper);
     }
@@ -1047,8 +1042,8 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void companionPartyCodecsMigrateAndRoundTrip(GameTestHelper helper) {
-        PacketRoundTripGameTests.companionPartyCodecsMigrateAndRoundTrip(helper);
+    public void companionPartyCodecsRoundTrip(GameTestHelper helper) {
+        PacketRoundTripGameTests.companionPartyCodecsRoundTrip(helper);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")

@@ -72,10 +72,7 @@ import net.neoforged.neoforge.client.resources.VanillaClientListeners;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
-import net.neoforged.neoforge.client.event.RegisterPictureInPictureRenderersEvent;
 import net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent;
-import grill24.fishtastic.client.companion.CompanionPipRenderState;
-import grill24.fishtastic.client.companion.CompanionPipRenderer;
 import grill24.fishtastic.client.companion.ClientCompanions;
 import grill24.fishtastic.client.ambient.ClientAmbientFish;
 import net.neoforged.neoforge.client.event.ScreenEvent;
@@ -105,8 +102,6 @@ public final class FishtasticNeoForgeClient {
         // Register companion tutorial sync and bond/rename feedback handlers
         grill24.fishtastic.network.CompanionTutorialSyncPacket.registerClientHandler(CompanionTutorialClientHandler.PACKET_HANDLER);
         grill24.fishtastic.network.CompanionFeedbackPacket.registerClientHandler(grill24.fishtastic.client.CompanionClientState.PACKET_HANDLER);
-        grill24.fishtastic.network.CompanionFishingEventPacket.registerClientHandler(packet ->
-                grill24.fishtastic.client.companion.ClientCompanions.onFishingEvent(packet.owner(), packet.outcome()));
         grill24.fishtastic.network.CompanionScenePacket.registerClientHandler(packet ->
                 grill24.fishtastic.client.companion.ClientCompanions.onScenePacket(
                         packet.scene(), packet.first(), packet.firstSlot(), packet.second(), packet.secondSlot(),
@@ -156,7 +151,6 @@ public final class FishtasticNeoForgeClient {
         modEventBus.addListener(FishtasticNeoForgeClient::registerKeyMappings);
         modEventBus.addListener(FishtasticNeoForgeClient::registerTooltipComponents);
         modEventBus.addListener(FishtasticNeoForgeClient::registerMenuScreens);
-        modEventBus.addListener(FishtasticNeoForgeClient::registerPictureInPictureRenderers);
 
         // Clear the ItemEffect cache on world join and on tag sync (covers /reload without rejoin).
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onPlayerJoin);
@@ -335,10 +329,6 @@ public final class FishtasticNeoForgeClient {
                 Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false));
     }
 
-    public static void registerPictureInPictureRenderers(RegisterPictureInPictureRenderersEvent event) {
-        event.register(CompanionPipRenderState.class, CompanionPipRenderer::new);
-    }
-
     public static void onRenderGuiPre(RenderGuiEvent.Pre event) {
         TutorialClientHandler.render(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
     }
@@ -356,8 +346,7 @@ public final class FishtasticNeoForgeClient {
         if (animation != null && animation.isActive()) {
             animation.render(mc, event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
         }
-        ClientCompanions.renderHud(event.getGuiGraphics(), ClientCompanions.activeMinigame(),
-                event.getPartialTick().getGameTimeDeltaPartialTick(false));
+        ClientCompanions.renderHud(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
         // Render quest progress notifications (after fishing minigame)
         QuestProgressNotificationManager.getInstance().render(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
         // Dev tooling: brief preview of the MCP bridge's stitched orbit sheet. Production builds exclude
