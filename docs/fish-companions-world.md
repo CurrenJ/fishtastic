@@ -1,6 +1,6 @@
 # Fish Companions — The World Around You (Phase 5 rework)
 
-**Written:** 2026-10-15 · **Status: implementation in progress; owner review gates remain open.**
+**Written:** 2026-10-15 · **Status: W0–W8 done; readability gate passed in game 2026-10-15. Only W9 (tanks) remains.**
 
 This replaces the shipping plan for sim Phase 5 ([fish-companions-sim-plan.md](fish-companions-sim-plan.md)
 §12). Phase 5 as built (the ambient moods) is **not** signed off as shipped. Its code is kept as the base
@@ -310,10 +310,10 @@ fold into one `companion` object rather than add a fourth sibling.
 | **W2** Notice goal | `WorldFeature`, `CompanionWorld.features()`, Notice goal, emote output, viewer markers; bask ported; perchers lean and WATCH | Fingerprints bitwise; `MoodTest` and invariants pass; bask unchanged |
 | **W3** Particles | `CompanionParticles` (rate limits, particle setting, near-field guard) | Self-test spawns each emote; no particles at MINIMAL |
 | **W4** Habitat | Better derivation (§5); per-species table for the owner | **Owner reviews the table**; decides if an override is needed. **Passed 2026-10-15: table approved, no override.** |
-| **W5** Readability pass | Transition beats, a look per mood, steam, homecoming, joy in water; invisible levers cut (A/B) | Reaction share up; **readability gate** |
-| **W6** Water nearby | §4.1, headless scene first | Guard plus **readability gate** |
-| **W7** Lights at night | §4.2, darkness input | Guard plus **readability gate** |
-| **W8** Jukebox and note blocks | §4.3, event hooks on both loaders | Guard plus **readability gate** |
+| **W5** Readability pass | Transition beats, a look per mood, steam, homecoming, joy in water; invisible levers cut (A/B) | Reaction share up; **readability gate** **Passed in game 2026-10-15.** |
+| **W6** Water nearby | §4.1, headless scene first | Guard plus **readability gate** **Passed in game 2026-10-15.** |
+| **W7** Lights at night | §4.2, darkness input | Guard plus **readability gate** **Passed in game 2026-10-15.** |
+| **W8** Jukebox and note blocks | §4.3, event hooks on both loaders | Guard plus **readability gate** **Passed in game 2026-10-15.** |
 | **W9** Revisit tanks | Owner decides whether E3/E4 is still wanted (W3) | Owner |
 
 W0 and W1 come first, so the cost of everything after them is known and bounded from the start.
