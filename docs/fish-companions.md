@@ -319,6 +319,8 @@ species passes 500 expected casts or any lore threshold passes 50.
 
 ## 10. Pet-to-pet interactions (G1–G6)
 
+> **Superseded in part (2026-10-15):** G1 and G2 are now swum by the companion sim (docs/fish-companions-party.md §28): G1 is a horizontal ring (the vertical one is impossible under the sim's pitch cap), G2's lobes pass one fish above the other at the crossing and run at a fixed speed, only free swimmers take part, and the two clients' views may differ slightly (each self-consistent). The geometry and "identical dance" in this section and its as-built notes below describe the Phase 6 scripted scenes.
+
 **The server schedules the scenes** and sends one tiny packet per scene to the players tracking
 them (R5.1). Clients don't schedule anything; they just play the scene they're told to.
 

@@ -248,6 +248,14 @@ A social drive: greeting on approach, synchronized swim for same species (G1), a
 owners for two free swimmers (G2), all as goals the minds pursue. The server event provides the
 timing and one-scene-per-companion rule (spec §10). The scripted figure-eight goes.
 
+**Done 2026-10-15** (docs/fish-companions-party.md §26–28): the in-party predator/prey split and
+scene (G4 inside a party); G1's ring and G2's eight across players as the `SCENE` goal, timed by
+the shared clock from the two owners (D29), with the greeting as each scene's opening (D27);
+free swimmers only (D25); swimmers keep out of other players' bodies. Validated headless
+(`CrossSceneTest`, `CrossSceneProbe`, the two-view divergence probe) and in game on both loaders
+(`companionscenes` with the dev ghost owner, and a dedicated-server two-client self-test). Cross-
+player G3/G4 and class pairings stay for later.
+
 ### Phase 5 — Ambient world (spec §6)
 
 Biome comfort, rain, time and moon, as modifiers on drives and body (sleepy = slower and longer rests,
