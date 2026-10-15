@@ -21,6 +21,8 @@ import java.util.function.IntUnaryOperator;
  *       units push apart on the ground.</li>
  *   <li>D21 ({@link CompanionTunables#partySwimSeparation}): free-swimming units (a predator and its
  *       prey's shoal) push apart in the water.</li>
+ *   <li>D21, G4 ({@link CompanionTunables#partyPredatorScene}): now and then the predator does a
+ *       smug lap round its standing owner while the prey hides behind their head.</li>
  * </ul>
  *
  * <p>Determinism: every unit reads its party-mates as they were at the end of the previous tick, so
@@ -119,6 +121,14 @@ public final class PartyLayer {
     private final List<Unit> groundUnits;
     /** Free-swimming units (solos and schools), for swim separation (D21; empty under two). */
     private final List<Unit> swimUnits;
+    /** The predator scene's pair (D21, G4), or null without a free-swimming predator and prey. */
+    private final Unit scenePredator, scenePrey;
+    private long sceneRng;
+    /** Ticks until a scene may start; ticks into the one on (-1 for none); its closing linger. */
+    private int sceneWait, sceneTicks = -1, sceneLinger;
+    private boolean sceneLapStarted, scenePreyHid;
+    /** Scenes begun, those whose lap began, and those where the prey hid, for the probe and overlay. */
+    private int scenesStarted, scenesLapped, scenesPreyHid;
     /** A unit's point id as its party-mates see it, from its lowest slot. */
     private final IntUnaryOperator mateId;
 
@@ -157,6 +167,18 @@ public final class PartyLayer {
             if (u.group().leader().locomotion() == grill24.fishsim.core.Locomotion.FREE_SWIM) swim.add(u);
         }
         swimUnits = swim.size() > 1 ? List.copyOf(swim) : List.of();
+        Unit pred = null, prey = null;
+        for (Unit u : swimUnits) {
+            if (u.group().leader().predator()) { if (pred == null) pred = u; }
+            else if (prey == null) prey = u;
+        }
+        scenePredator = prey == null ? null : pred;
+        scenePrey = pred == null ? null : prey;
+        if (scenePredator != null) {
+            sceneRng = scenePredator.group().seed() * 0x9E3779B97F4A7C15L ^ scenePrey.group().seed();
+            if (sceneRng == 0) sceneRng = 1;
+            sceneWait = drawTicks(t.predatorSceneFirstMinSeconds, t.predatorSceneFirstMaxSeconds);
+        }
     }
 
     /** The party's one hand clock (HandClock), or null with under two perchers that can visit a hand. */
@@ -261,6 +283,7 @@ public final class PartyLayer {
         if (handClock != null) handClock.tick();
         if (!groundUnits.isEmpty()) separateGround();
         if (!swimUnits.isEmpty()) separateSwim();
+        if (scenePredator != null) predatorScene(worldOf.apply(scenePredator).owner());
         PointOfInterest[] mates = new PointOfInterest[n];
         for (int i = 0; i < n; i++) mates[i] = units.get(i).asPoint(mateId.applyAsInt(units.get(i).group().lowestSlot()));
         for (int i = 0; i < n; i++) {
@@ -370,6 +393,101 @@ public final class PartyLayer {
             }
         }
         for (int i = 0; i < pos.size(); i++) apply.get(i).accept(pushes[i]);
+    }
+
+    /** How long a lap request holds before the scene gives up on it, ticks. */
+    private static final int LAP_REQUEST_TICKS = 40;
+    /** The owner standing still this long first, ticks: a lap round someone walking off reads as a chase. */
+    private static final int SCENE_STILL_TICKS = 5 * 20;
+    /** The prey stays hidden this long after the lap, ticks. */
+    private static final int SCENE_LINGER_TICKS = 30;
+
+    /**
+     * The predator scene (D21, G4): when it's due, both are free and the owner has stood still a
+     * moment, the predator is asked for a lap round the owner, and the prey fears it (as it would a
+     * predator fish in the owner's hand) until a moment after the lap ends: it hides behind the
+     * owner's head, on the far side from the predator as it goes round.
+     */
+    private void predatorScene(OwnerState owner) {
+        CompanionAgent pred = scenePredator.leader(), prey = scenePrey.leader();
+        if (sceneTicks >= 0) {
+            sceneTicks++;
+            if (pred.lapping()) sceneLapStarted = true;
+            if (prey.hiding()) scenePreyHid = true;
+            boolean over = !t.partyPredatorScene
+                    || (sceneLapStarted ? !pred.lapping() : sceneTicks > LAP_REQUEST_TICKS);
+            if (over && sceneLinger == 0) sceneLinger = sceneLapStarted && t.partyPredatorScene ? SCENE_LINGER_TICKS : 1;
+            if (sceneLinger > 0 && --sceneLinger == 0) {
+                prey.sceneThreat(null);
+                if (sceneLapStarted) scenesLapped++;
+                if (scenePreyHid) scenesPreyHid++;
+                sceneTicks = -1;
+                sceneWait = drawTicks(t.predatorSceneGapMinSeconds, t.predatorSceneGapMaxSeconds);
+            } else {
+                prey.sceneThreat(pred.position());
+            }
+            return;
+        }
+        if (sceneWait > 0) sceneWait--;
+        if (sceneWait > 0 || !t.partyPredatorScene) return;
+        if (pred.freeForScene() && prey.freeForScene() && pred.ownerStillTicks() >= SCENE_STILL_TICKS
+                && lapRoom(pred, owner)) startScene();
+    }
+
+    /** Open water all round the owner where the lap goes: in a doorway or a stairwell a lap only fizzles. */
+    private static boolean lapRoom(CompanionAgent pred, OwnerState owner) {
+        double r = OwnerState.BODY_RADIUS + pred.radius() + Mind.LAP_RADIUS;
+        Vec c = owner.chest().add(0, 0.2, 0);
+        for (int k = 0; k < 12; k++) {
+            double a = k * Math.PI / 6;
+            if (!pred.voxels().sphereClear(c.add(Math.cos(a) * r, 0, Math.sin(a) * r), pred.radius() + 0.1)) return false;
+        }
+        return true;
+    }
+
+    private void startScene() {
+        scenesStarted++;
+        sceneTicks = 0;
+        sceneLinger = 0;
+        sceneLapStarted = scenePreyHid = false;
+        scenePredator.leader().requestLap(LAP_REQUEST_TICKS);
+        scenePrey.leader().sceneThreat(scenePredator.leader().position());
+    }
+
+    /**
+     * Dev trigger: the predator scene now, skipping the wait and the standing-still rule.
+     *
+     * @return what happened, for the command's reply
+     */
+    public String devPredatorScene() {
+        if (scenePredator == null) return "No free-swimming predator and prey in this party";
+        if (sceneTicks >= 0) return "The predator scene is already on";
+        if (!scenePredator.leader().freeForScene() || !scenePrey.leader().freeForScene())
+            return "Busy: the predator or its prey is catching up, hiding or fading";
+        startScene();
+        return "Predator scene: " + scenePredator.group().leader().species() + " laps, "
+                + scenePrey.group().leader().species() + " hides";
+    }
+
+    /** The overlay's line for the predator scene, or null without a pair. */
+    public String sceneLine() {
+        if (scenePredator == null) return null;
+        String now = sceneTicks >= 0 ? "on, " + (sceneLapStarted ? "lapping" : "lap asked") + (scenePreyHid ? ", prey hidden" : "")
+                : !t.partyPredatorScene ? "off" : sceneWait > 0 ? "next in " + (sceneWait + 19) / 20 + " s" : "due, waiting for a still owner";
+        return "predator scene: " + now + "  (" + scenesStarted + " begun, " + scenesLapped + " lapped, "
+                + scenesPreyHid + " prey hid)";
+    }
+
+    public int scenesStarted() { return scenesStarted; }
+    public int scenesLapped() { return scenesLapped; }
+    public int scenesPreyHid() { return scenesPreyHid; }
+
+    private int drawTicks(double minSeconds, double maxSeconds) {
+        sceneRng ^= sceneRng << 13;
+        sceneRng ^= sceneRng >>> 7;
+        sceneRng ^= sceneRng << 17;
+        double u = (sceneRng >>> 11) * 0x1.0p-53;
+        return (int) Math.round((minSeconds + u * (maxSeconds - minSeconds)) * 20);
     }
 
     public void interpolate(float alpha) {

@@ -532,6 +532,34 @@ public final class CompanionAgent {
 
     void swimPush(Vec push) { swimPush = push; }
 
+    // ── Predator scene (D21, PartyLayer) ──
+
+    /** A free swimmer that could take part in a party scene now: all there, swimming, not busy with something urgent. */
+    boolean freeForScene() {
+        if (perch != null || fade != Fade.NONE || appear < 1f) return false;
+        Mind.Goal g = mind.goal;
+        return g != Mind.Goal.CATCH_UP && g != Mind.Goal.HIDE && g != Mind.Goal.GUARD && drives.wariness == 0;
+    }
+
+    /** Ticks the owner has stood still, as this fish judges it. */
+    int ownerStillTicks() { return mind.stillTicks; }
+
+    /** Ask for a lap round the owner; the request holds {@code ticks} unless something more urgent wins. */
+    void requestLap(int ticks) { mind.requestLap(ticks); }
+
+    /** On a lap that hasn't finished. */
+    boolean lapping() { return mind.lapping(); }
+
+    /** Fear a party-mate predator at {@code pos}, or nothing (null). */
+    void sceneThreat(Vec pos) { drives.sceneThreat = pos; }
+
+    /** Hiding from something (the scene's predator, or anything else). */
+    boolean hiding() { return mind.goal == Mind.Goal.HIDE; }
+
+    /** Laps begun and finished (a full turn), for the probe. */
+    public int laps() { return mind.laps; }
+    public int lapsCompleted() { return mind.lapsCompleted; }
+
     /** The push from other swimming units this tick, blocks/s, or -1 for none (overlay). */
     public double swimPushStrength() { return swimPush == null ? -1 : swimPush.length(); }
 

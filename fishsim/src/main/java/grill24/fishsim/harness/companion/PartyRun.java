@@ -90,8 +90,8 @@ public final class PartyRun {
             return layer(t, temperament, groups(seed, mixedShoal), world);
         }
 
-        PartyLayer layer(CompanionTunables t, Temperament temperament, List<PartyGrouping.Group> groups,
-                         CompanionWorld world) {
+        public PartyLayer layer(CompanionTunables t, Temperament temperament, List<PartyGrouping.Group> groups,
+                                CompanionWorld world) {
             return new PartyLayer(t, groups, m -> temperament, m -> members.get(m.slot()).drift, world);
         }
     }

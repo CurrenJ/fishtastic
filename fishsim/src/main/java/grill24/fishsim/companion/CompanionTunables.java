@@ -335,6 +335,16 @@ public final class CompanionTunables {
      * shoal), as ground walkers do on the ground. Only a party with two swimming units has anything to do.
      */
     public boolean partySwimSeparation = true;
+    /**
+     * The predator scene (D21, G4): now and then, with the owner standing still, a party's predator
+     * does a smug lap round them while its prey hides behind their head. Rare: the first after
+     * {@link #predatorSceneFirstMinSeconds}..max, then {@link #predatorSceneGapMinSeconds}..max apart.
+     */
+    public boolean partyPredatorScene = true;
+    public float predatorSceneFirstMinSeconds = 60f;
+    public float predatorSceneFirstMaxSeconds = 150f;
+    public float predatorSceneGapMinSeconds = 240f;
+    public float predatorSceneGapMaxSeconds = 480f;
 
     // Hand visits (owner feedback 2026-10-14: about one a minute, solo or party). HandClock.
     /** After any landing on a hand, the unseen timer waits this long before calling a fish there again. */
@@ -363,7 +373,7 @@ public final class CompanionTunables {
      * the order it lists them. Each is a public field of this class.
      */
     public static final java.util.List<String> DEV_SWITCHES = java.util.List.of(
-            "partyHomes", "partyLeases", "partyHandClock", "partyGroundSeparation", "partySwimSeparation",
+            "partyHomes", "partyLeases", "partyHandClock", "partyGroundSeparation", "partySwimSeparation", "partyPredatorScene",
             "handClock", "shoulderPeek", "moreGroundBeats", "idleInView",
             "anchoredHead", "anchoredPredatorDuckSeconds");
 

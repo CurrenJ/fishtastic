@@ -838,7 +838,7 @@ while following can fix half of it at most.
 ## 23. Phase 3c as built (the party switch command)
 
 - **Command** (dev builds only: the whole `companion` tree sits behind `DevEnvironmentCheck`):
-  - `/fishtastic companion switch` lists the switches (ten at 3c; eleven with `partySwimSeparation`, §26), with changed ones and their defaults
+  - `/fishtastic companion switch` lists the switches (ten at 3c; twelve with `partySwimSeparation`, §26, and `partyPredatorScene`, §27), with changed ones and their defaults
     marked, and `[rebuilds]` on those read only when a party is built;
   - `/fishtastic companion switch <name> on|off` (or seconds, for `anchoredPredatorDuckSeconds`);
   - `/fishtastic companion switch reset`.
@@ -897,5 +897,36 @@ while following can fix half of it at most.
 
   Every other party's metrics are unchanged; fingerprints identical (930); fishsim 442/0.
 - **Viewer:** `./gradlew :fishsim:runCompanionViewer -PsimArgs="--party predator --owner corridor"`.
-- **Next (step 2, Phase 4 proper):** the rare predator/prey scene on top: the prey ducks behind
-  the owner while the predator does its smug lap (§7, G4), with a per-pair cooldown.
+- **Next:** step 2, the predator scene (§27).
+
+## 27. Phase 4, step 2: the predator scene (D21, G4)
+
+- **What it is:** now and then, with the owner standing still, the party's free-swimming predator
+  does one smug lap round them (new mind goal `LAP`: chest height, 1.1 blocks past the owner's body,
+  1.3× cruise, the way it was already going round), while its prey shoal fears it as it would a
+  predator fish in the owner's hand: the existing `HIDE` goal takes it behind the owner's head, on
+  the far side from the predator as it goes round. The prey stays hidden 1.5 s after the lap.
+- **When** (`PartyLayer.predatorScene`, switch `partyPredatorScene`, on, live): the first 60–150 s
+  after the party is built, then 4–8 min apart (`predatorScene*Seconds` tunables), and only when
+  both are free (no catch-up, hiding or fade, no real threat), the owner has stood still 5 s, and
+  the lap circle is open water all round. The lap ends after a full turn, at a wall, after 12 s,
+  or when the owner walks off (a lap round someone leaving reads as a chase).
+- **Measured** (`PredatorSceneProbe`, `predator + 2 prey`, 8 seeds per script):
+  - real timing: 0.20 scenes/min on the five-minute idle scripts (one per ~5 min);
+  - timing cut short (first 5–10 s, then 20–30 s apart): 397 scenes, 347 laps begun, 224 full
+    turns, prey hid in 352. Per lap tick: prey on the owner's far side 82%, prey hiding 98%,
+    predator seen 24%, 9 contact ticks in all. Mean lap 6.4 s. In open scripts (idle, camera
+    sweep, held items, item drops) most scenes are a full turn with the prey 81–89% on the far side;
+  - tried first: a 3 s stand and no open-water check. Scenes then started in doorways, stairwells
+    and short pauses on walks, and fizzled (laps of 0.2–1.5 s, no full turns). The 5 s stand and
+    the open check removed them; the rest (teleport, elytra, sprint away) are the owner leaving
+    mid-lap, which can't be foreseen;
+  - `PartyBaselineProbe` for the party is within noise of §26 (scenes are rare); fingerprints
+    identical (930); fishsim 442/0.
+- **Debug:** the overlay's party header adds `predator scene: …` (on / next in N s / due, with
+  counts). `/fishtastic companion predatorscene` starts it now, skipping the wait and the stand.
+- **Self-test:** `companionparty` adds pike + bluegill + discus: the pike swims apart from the
+  shoal, and after the command it laps (`LAP`) while the shoal hides (`HIDE`), with the overlay
+  line. 24/24 on Fabric and on NeoForge.
+- **Not yet:** a predator perched or on the ground, and prey that perch or walk, take no part; and
+  cross-party predator/prey (two players' companions) is still the server scene's job (§7).

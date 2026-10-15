@@ -40,6 +40,7 @@ import java.util.Optional;
  *   /fishtastic companion switch [reset|&lt;name&gt; &lt;value&gt;] — list, set or reset the party switches (rebuilds when needed)
  *   /fishtastic companion temperament &lt;id&gt;|species      — force a temperament on your companion (or its own)
  *   /fishtastic companion fake hostile|cat|item|companion — a scripted thing for it to react to (clear removes them)
+ *   /fishtastic companion predatorscene                   — your party's predator laps you now, its prey hides
  *   /fishtastic companion hurt                            — it sees you hurt (an aggressive fish bites)
  *   /fishtastic companion drowsy                          — as if you'd idled long enough for it to settle
  *   /fishtastic companion ground                          — a ground benthic (and its group) comes back down off the perch
@@ -141,6 +142,9 @@ public class CompanionCommand {
                                     }
                                     return client(ctx, () -> grill24.fishtastic.client.companion.ClientCompanions.devFake(kind));
                                 })))
+                // The predator scene (party D21, G4) now: your predator laps you, its prey hides.
+                .then(Commands.literal("predatorscene").executes(ctx -> client(ctx,
+                        grill24.fishtastic.client.companion.ClientCompanions::devPredatorScene)))
                 .then(Commands.literal("hurt").executes(ctx -> client(ctx,
                         grill24.fishtastic.client.companion.ClientCompanions::devHurt)))
                 .then(Commands.literal("drowsy").executes(ctx -> client(ctx,

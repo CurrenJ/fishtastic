@@ -4867,6 +4867,7 @@ public final class RenderSelfTest {
             });
         }
         queueSharedClockWatch();
+        queuePredatorScene();
         queue(20, mc -> {
             grill24.fishtastic.client.companion.ClientCompanions.devOverlay(false);
             server(mc, RenderSelfTest::clearParties);
@@ -4914,6 +4915,54 @@ public final class RenderSelfTest {
             check("companionparty.clock.turns_go_round", visitors == 3, "hand landings in 60 s " + landed);
             check("companionparty.clock.one_at_a_time", maxOnHand[0] <= 1, "most on a hand at once " + maxOnHand[0]);
             grill24.fishtastic.client.companion.ClientCompanions.devHandGapReset();
+        });
+    }
+
+    /**
+     * The predator scene (party spec D21, §27): a pike with two prey swims apart from their shoal;
+     * the dev command starts the scene at once, and within 8 s the pike laps the owner (goal LAP)
+     * while the shoal's leader hides (HIDE), and the overlay names it.
+     */
+    private static void queuePredatorScene() {
+        queue(1, mc -> server(mc, s -> {
+            clearParties(s);
+            run(s, "fishtastic companion give @p fishtastic:northern_pike 50 1");
+            run(s, "fishtastic companion give @p fishtastic:bluegill 15 2");
+            run(s, "fishtastic companion give @p fishtastic:discus 15 3");
+        }));
+        boolean[] lapped = new boolean[1], hid = new boolean[1];
+        String[] overlay = new String[1];
+        queue(100, mc -> {
+            var companions = grill24.fishtastic.client.companion.ClientCompanions.localCompanions();
+            String lines = String.join("; ", companions.stream()
+                    .map(grill24.fishtastic.client.companion.ClientCompanion::partyLine).toList());
+            check("companionparty.predator.apart", companions.size() == 2
+                    && companions.stream().anyMatch(c -> c.bodyCount() == 2), lines);
+            server(mc, s -> run(s, "fishtastic companion predatorscene"));
+            mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
+        });
+        for (int k = 0; k < 160; k++) {
+            int tick = k;
+            queue(1, mc -> {
+                for (var c : grill24.fishtastic.client.companion.ClientCompanions.localCompanions()) {
+                    if (c.agent() == null) continue;
+                    if ("LAP".equals(c.agent().goal())) lapped[0] = true;
+                    if (c.bodyCount() == 2 && "HIDE".equals(c.agent().goal())) hid[0] = true;
+                }
+                String state = grill24.fishtastic.client.companion.ClientCompanions.debugState();
+                if (state.contains("predator scene: on")) overlay[0] = state;
+                if (tick == 40) {
+                    companionLog("predator scene 2s");
+                    screenshot(mc, "companionparty", "predator_scene_tp");
+                }
+            });
+        }
+        queue(1, mc -> {
+            String state = grill24.fishtastic.client.companion.ClientCompanions.debugState();
+            check("companionparty.predator.lap", lapped[0], state);
+            check("companionparty.predator.prey_hid", hid[0], state);
+            check("companionparty.predator.overlay", overlay[0] != null, state);
+            mc.options.setCameraType(CameraType.FIRST_PERSON);
         });
     }
 

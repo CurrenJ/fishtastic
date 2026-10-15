@@ -120,6 +120,9 @@ final class Drives {
     Threat threat = Threat.NONE;
     /** Where that thing is (null when nothing is). */
     Vec threatPos;
+    /** A party-mate predator on its lap (D21, PartyLayer's scene), feared as a held predator is; null for none. */
+    Vec sceneThreat;
+    private static final long SCENE_FEAR_ID = Long.MIN_VALUE + 1;
     /** A hostile within {@link #HOSTILE_NEAR} of the owner, used to it or not: an anchored fish ducks in. */
     boolean hostileClose;
 
@@ -203,6 +206,7 @@ final class Drives {
         }
         CompanionWorld.Held h = w.held();
         if (h == CompanionWorld.Held.PREDATOR) fear(-1L - h.ordinal(), Threat.PREDATOR, w.heldPoint());
+        if (sceneThreat != null) fear(SCENE_FEAR_ID, Threat.PREDATOR, sceneThreat);
         if (h != CompanionWorld.Held.NONE && novelty(h) > 0) {
             Interest i = interests.computeIfAbsent(-1L - h.ordinal(), k -> new Interest(k, null, h));
             see(i, w.heldPoint(), w.owner().velocity(), 0.1);

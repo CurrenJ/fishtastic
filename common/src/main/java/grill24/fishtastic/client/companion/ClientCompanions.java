@@ -82,6 +82,8 @@ public final class ClientCompanions {
         /** Drops the party's sim; the next tick builds it afresh beside its owner (a build-time switch changed). */
         void rebuild() { layer = null; }
 
+        @Nullable PartyLayer layer() { return layer; }
+
         /** Builds (first tick) or steps the party's sim; returns the time it took, ns. */
         long tick(ClientLevel level, CompanionWorldAdapter.LevelBlocks blocks, List<PointOfInterest> devPoints) {
             int n = companions.size();
@@ -291,6 +293,23 @@ public final class ClientCompanions {
         return player == null ? List.of() : companionsOf(player);
     }
 
+    /** The local player's party layer, or null before it's built or without a party. */
+    @Nullable
+    private static PartyLayer localLayer() {
+        Player player = Minecraft.getInstance().player;
+        OwnerParty party = player == null ? null : PARTIES.get(player.getUUID());
+        return party == null ? null : party.layer();
+    }
+
+    /**
+     * Dev-only (`/fishtastic companion predatorscene`): the predator scene (D21, G4) now, skipping its
+     * wait and the standing-still rule: the party's predator laps you and its prey hides.
+     */
+    public static String devPredatorScene() {
+        PartyLayer layer = localLayer();
+        return layer == null ? "No companion party" : layer.devPredatorScene();
+    }
+
     /** Every tracked companion of any player — the perch layer's lookup by rendered entity. */
     public static List<ClientCompanion> companionsOf(Player player) {
         OwnerParty party = PARTIES.get(player.getUUID());
@@ -406,6 +425,9 @@ public final class ClientCompanions {
         lines.add("party (debug slot " + (devSlot + 1) + ")");
         for (ClientCompanion c : companions) lines.add((c.holdsSlot(devSlot) ? "> " : "  ") + c.partyStateLine());
         lines.add(partyClockLine(companions));
+        PartyLayer layer = localLayer();
+        String scene = layer == null ? null : layer.sceneLine();
+        if (scene != null) lines.add("  " + scene);
         return lines;
     }
 

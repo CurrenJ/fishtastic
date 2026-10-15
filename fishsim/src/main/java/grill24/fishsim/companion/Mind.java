@@ -32,7 +32,12 @@ final class Mind {
         /** A hostile, for an aggressive fish: take up a spot between it and the owner, puffed up, facing it. */
         GUARD,
         /** The owner standing still, for a docile fish: over to the side of their head for a nuzzle. */
-        NUZZLE
+        NUZZLE,
+        /**
+         * A party scene (D21, G4), for a predator: one smug lap round the owner, past a party-mate
+         * prey hiding behind them. Only {@link PartyLayer} asks for it ({@link #requestLap}).
+         */
+        LAP
     }
 
     private static final int TPS = 20;
@@ -76,7 +81,7 @@ final class Mind {
 
     // ── Drives and utilities (exposed for the overlay) ──
     float proximity, attention;
-    float uBase, uCatch, uShow, uInspect, uHide, uNuzzle;
+    float uBase, uCatch, uShow, uInspect, uHide, uNuzzle, uLap;
     int unseenTicks;
     private int seenStreak;
     private int attentionThreshold;
@@ -125,6 +130,17 @@ final class Mind {
     PoseHint pose = PoseHint.NONE;
     int inspections;
 
+    // ── LAP ──
+    /** Ticks left on a lap request from the party layer; 0 for none. */
+    private int lapRequest;
+    private int lapDir = 1;
+    private double lapAngle, lapPrevAngle;
+    private boolean lapDone;
+    int laps, lapsCompleted;
+    /** Lap circle radius past the owner's body and the fish's own, blocks, and its cap, ticks. */
+    static final double LAP_RADIUS = 1.1;
+    private static final int LAP_MAX_TICKS = 12 * TPS;
+
     // ── SHOW_OFF ──
     private int showPhase;
     private int showSide;
@@ -165,7 +181,18 @@ final class Mind {
             case INSPECT -> inspect(o, v);
             case HIDE, GUARD -> hide(o, v);
             case NUZZLE -> nuzzle(o, v);
+            case LAP -> lap(o, v);
         };
+    }
+
+    /** The party layer asks for a lap (D21); it holds for {@code ticks} unless something more urgent wins. */
+    void requestLap(int ticks) {
+        lapRequest = ticks;
+    }
+
+    /** On a lap that hasn't finished yet. */
+    boolean lapping() {
+        return goal == Goal.LAP && !lapDone;
     }
 
     /** One tick of thinking, with the temperament's heading noise applied to whatever the goal asked. */
@@ -319,6 +346,10 @@ final class Mind {
         uNuzzle = temperament.nuzzle() && !ownerMoving && stillTicks > NUZZLE_DWELL_TICKS && nuzzleCooldown == 0
                 && drives.wariness == 0 && ownerDist < t.farGap && !nuzzleFinished ? 0.6f : 0f;
 
+        boolean lapFinished = goal == Goal.LAP && lapDone;
+        if (lapRequest > 0) lapRequest--;
+        uLap = lapRequest > 0 && !lapFinished && ownerDist < t.farGap ? 0.85f : 0f;
+
         Goal base = ownerMoving ? Goal.ESCORT : drives.resting ? Goal.SETTLE : Goal.LOITER;
         Goal best = base;
         float bestU = uBase;
@@ -338,6 +369,10 @@ final class Mind {
             best = Goal.NUZZLE;
             bestU = uNuzzle;
         }
+        if (uLap > bestU) {
+            best = Goal.LAP;
+            bestU = uLap;
+        }
         if (uHide > bestU) {
             // An aggressive fish stands its ground against a hostile instead.
             best = temperament.guard() && drives.threat == Drives.Threat.HOSTILE ? Goal.GUARD : Goal.HIDE;
@@ -351,7 +386,7 @@ final class Mind {
         // An inspection is over when the thing is gone or has stopped being the most interesting.
         boolean done = (goal == Goal.SHOW_OFF && showDone)
                 || (goal == Goal.INSPECT && (inspecting == null || drives.target != inspecting))
-                || nuzzleFinished;
+                || nuzzleFinished || lapFinished;
         boolean committed = goalTicks < minTicks(goal);
         if (baseSwap || emergency || done || (!committed && bestU > utility(goal) + SWITCH_MARGIN)) {
             enter(best);
@@ -366,6 +401,7 @@ final class Mind {
             case INSPECT -> uInspect;
             case HIDE, GUARD -> uHide;
             case NUZZLE -> nuzzleDone ? 0f : 0.6f;
+            case LAP -> lapDone ? 0f : 0.85f;
         };
     }
 
@@ -378,7 +414,7 @@ final class Mind {
         int base = switch (g) {
             case LOITER, SETTLE, ESCORT -> 20;
             case CATCH_UP -> 30;
-            case SHOW_OFF, INSPECT, HIDE, GUARD, NUZZLE -> 40;
+            case SHOW_OFF, INSPECT, HIDE, GUARD, NUZZLE, LAP -> 40;
         };
         return temperament.commitment() == 1 ? base : Math.max(20, Math.round(base * temperament.commitment()));
     }
@@ -422,6 +458,14 @@ final class Mind {
                 peekTicks = 0;
                 // Only a temperament that peeks draws for it (the random stream stays the baseline's otherwise).
                 peekWait = temperament.peekOut() ? drawTicks(2, 4) : 0;
+            }
+            case LAP -> {
+                lapRequest = 0;
+                lapDir = sideOf(o0);
+                lapAngle = 0;
+                lapPrevAngle = Double.NaN;
+                lapDone = false;
+                laps++;
             }
             case NUZZLE -> {
                 nuzzleSide = sideOf(o0);
@@ -764,6 +808,36 @@ final class Mind {
                     && v.segmentClear(aside, asideAhead, room);
         }
         return true;
+    }
+
+    /**
+     * One lap round the owner at chest height, a little brisker than cruising, in the direction it
+     * was already on (D21): done after a full turn, at a wall, or after {@link #LAP_MAX_TICKS}.
+     */
+    private Vec lap(OwnerState o, LocalVoxels v) {
+        Vec chest = o.chest();
+        Vec rel = body.pos.sub(chest).horizontal();
+        double cur = Math.atan2(rel.z(), rel.x());
+        if (!Double.isNaN(lapPrevAngle)) {
+            double d = cur - lapPrevAngle;
+            if (d > Math.PI) d -= 2 * Math.PI;
+            if (d < -Math.PI) d += 2 * Math.PI;
+            lapAngle += d * lapDir;
+        }
+        lapPrevAngle = cur;
+        double r = OwnerState.BODY_RADIUS + body.radius + LAP_RADIUS;
+        double aim = cur + lapDir * 0.6;
+        Vec dest = chest.add(Math.cos(aim) * r, 0.2, Math.sin(aim) * r);
+        // Done after a full turn, out of time, at a wall, or when the owner walks off (a lap round
+        // someone leaving reads as a chase).
+        if (lapAngle >= 2 * Math.PI || goalTicks > LAP_MAX_TICKS || ownerMoving || !v.sphereClear(dest, body.radius + 0.1)) {
+            if (lapAngle >= 2 * Math.PI && !lapDone) lapsCompleted++;
+            lapDone = true;
+        }
+        target = dest;
+        wanderScale = 0.2;
+        double speed = body.g.cruiseSpeed() * 1.3;
+        return o.velocity().horizontal().add(aroundOwner(o, v, dest).sub(body.pos).normalize().scale(speed));
     }
 
     private Vec showOff(OwnerState o, LocalVoxels v) {
