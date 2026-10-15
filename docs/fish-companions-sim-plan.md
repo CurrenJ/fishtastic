@@ -1,6 +1,6 @@
 # Fish Companions — Simulation Rewrite Plan
 
-**Written:** 2026-10-11 · **Status: Phases 1 and 2 passed the owner's gate 2026-10-11 (§9.6, §10.6); Phase 3 (into the game) built, awaiting the owner's solo playtest (§11.7). GLIDE and DRIFT parked. Phase 4 done 2026-10-15; Phase 5 (ambient moods) built and validated 2026-10-15 (§12), awaiting the owner's look (§12.7).**
+**Written:** 2026-10-11 · **Status: Phases 1 and 2 passed the owner's gate 2026-10-11 (§9.6, §10.6); Phase 3 (into the game) built, awaiting the owner's solo playtest (§11.7). GLIDE and DRIFT parked. Phase 4 done 2026-10-15; Phase 5 (ambient moods) built and validated 2026-10-15 (§12), not signed off: the owner chose a rework around the world around the player, planned in [fish-companions-world.md](fish-companions-world.md).**
 
 **Decision (owner, 2026-10-11):** rebuild companion motion the way the tank was rebuilt
 ([fish-sim-engine-plan.md](fish-sim-engine-plan.md)): a Minecraft-free simulation in `:fishsim`,
@@ -1025,6 +1025,11 @@ Solo playtest, both loaders: `/fishtastic companion give @p fishtastic:<species>
 ---
 
 ## 12. Phase 5 — ambient world, as built (2026-10-15)
+
+> **2026-10-15: superseded as the shipping plan.** The owner's audit found most moods invisible and the
+> inputs too global. The rework (world features, the Notice goal, particles, a shared feature index)
+> is in [fish-companions-world.md](fish-companions-world.md). This section stays as the record of the
+> base it builds on; §12.7's gate questions are replaced by that doc's readability gate (§7).
 
 | Step | Builds | Gate |
 |---|---|---|
