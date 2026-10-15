@@ -14,6 +14,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(ClientLevel.class)
 public class ClientLevelCompanionMixin {
+    @Inject(method = "unload", at = @At("TAIL"))
+    private void fishtastic$companionChunkUnloaded(net.minecraft.world.level.chunk.LevelChunk chunk, CallbackInfo ci) {
+        ClientCompanions.onChunkUnloaded(chunk.getPos());
+    }
+
     @Inject(method = "onChunkLoaded", at = @At("TAIL"))
     private void fishtastic$companionChunkLoaded(ChunkPos pos, CallbackInfo ci) {
         ClientCompanions.onChunkLoaded(pos);

@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import grill24.fishsim.companion.CompanionAgent;
 import grill24.fishsim.companion.PoseHint;
+import grill24.fishsim.companion.Temperament;
 import grill24.fishsim.companion.Vec;
 import grill24.fishsim.core.Locomotion;
 import grill24.fishtastic.data.FishAnimationConfig;
@@ -29,8 +30,7 @@ import java.util.Random;
  * <p>The sim's {@link PoseHint}s are mapped where the old companion already had an equivalent
  * pose: an anchored fish's duck (the retract envelope), the name-tag head tilt, and the nose-up of
  * begging for bait and mild interest in food; and the Phase 5 moods' shiver (a quick tremble of
- * roll and yaw) and moon gaze (nose up). The rest are named in the debug overlay only, until the
- * owner decides how they should look.
+ * roll and yaw), moon gaze (nose up), drowsy droop, water dips and musical sways.
  */
 public final class CompanionRender {
     /**
@@ -81,6 +81,10 @@ public final class CompanionRender {
     private final float[] lastPhase = {Float.NaN, Float.NaN, Float.NaN};
 
     private float tilt, prevTilt, hintPitch, prevHintPitch, retract, prevRetract, shiver, prevShiver;
+    private float reactionClock;
+    private Temperament temperament = Temperament.BASELINE;
+    private Vec watchDirection;
+    private boolean watching;
 
     public CompanionRender(ItemStack fish, Level level) {
         FishTankBlockEntityRenderer.ResolvedFishRender render = FishTankBlockEntityRenderer.resolveFishRender(fish, level);
@@ -100,7 +104,13 @@ public final class CompanionRender {
 
     /** Client tick: eases the pose-hint envelopes toward what the lead fish's hint says now. */
     public void tick(CompanionAgent agent) {
-        tick(agent.poseHint());
+        tick(agent.poseHint(), agent.temperament(), agent.lookTarget() == null ? null : agent.lookTarget().sub(agent.position()));
+    }
+
+    public void tick(PoseHint hint, Temperament temperament, Vec watchDirection) {
+        this.temperament = temperament;
+        this.watchDirection = watchDirection;
+        tick(hint);
     }
 
     /** Client tick with this fish's own hint (a group member's mood differs from its leader's). */
@@ -109,9 +119,25 @@ public final class CompanionRender {
         prevHintPitch = hintPitch;
         prevRetract = retract;
         prevShiver = shiver;
-        tilt = approach(tilt, hint == PoseHint.TILT ? TILT_DEG : 0f, TILT_RATE);
+        reactionClock++;
+        watching = hint == PoseHint.WATCH;
+        float rhythm = reactionClock * (temperament.stillness() > .8f ? .11f : temperament.nuzzle() ? .17f : .25f);
+        if (temperament.regular() < 1f && temperament.jitter() > 1.3f)
+            rhythm += .6f * Mth.sin(reactionClock * .47f);
+        float danceRoll = (temperament.guard() ? 7f : temperament.stillness() > .8f ? 29f : temperament.nuzzle() ? 12f : 20f)
+                * Mth.sin(rhythm);
+        float dancePitch = (temperament.guard() ? 30f : temperament.nuzzle() ? 5f : 12f) * Mth.sin(rhythm * 2);
+        float roll = hint == PoseHint.TILT ? TILT_DEG : hint == PoseHint.WATCH ? 12f
+                : hint == PoseHint.DANCE ? danceRoll
+                : hint == PoseHint.GLEE ? 28f * Mth.sin(reactionClock * .18f)
+                : hint == PoseHint.SLEEPY ? 9f + 4f * Mth.sin(reactionClock * .045f) : 0f;
+        tilt = approach(tilt, roll, TILT_RATE);
         float pitch = hint == PoseHint.BEG ? BEG_PITCH : hint == PoseHint.MILD ? MILD_PITCH
-                : hint == PoseHint.MOON_GAZE ? MOON_PITCH : 0f;
+                : hint == PoseHint.MOON_GAZE ? MOON_PITCH
+                : hint == PoseHint.DIP ? 32f : hint == PoseHint.DROOP ? 22f
+                : hint == PoseHint.SLEEPY ? 18f + 5f * Mth.sin(reactionClock * .06f)
+                : hint == PoseHint.WATCH ? -12f
+                : hint == PoseHint.DANCE ? dancePitch : 0f;
         shiver = approach(shiver, hint == PoseHint.SHIVER ? 1f : 0f, SHIVER_EASE);
         hintPitch = approach(hintPitch, pitch, PITCH_RATE);
         retract = approach(retract, hint == PoseHint.DUCK ? 1f : 0f, RETRACT_RATE);
@@ -174,10 +200,16 @@ public final class CompanionRender {
         poseStack.mulPose(Axis.YP.rotationDegrees(-yawDeg));
         // A drifter's pitch is its bell axis (upright is −90); the pose is drawn upright, so tilt by the difference.
         float tiltDeg = locomotion == Locomotion.DRIFT ? pitchDeg + 90f : pitchDeg;
-        poseStack.mulPose(Axis.XP.rotationDegrees(tiltDeg + hintPitch(partial)));
+        boolean sourceLean = riding && watching && watchDirection != null;
+        poseStack.mulPose(Axis.XP.rotationDegrees(tiltDeg + (sourceLean ? 0 : hintPitch(partial))));
+        if (sourceLean) {
+            var lean = CompanionFeatureLean.toward(poseStack.last().pose(), watchDirection);
+            poseStack.mulPose(Axis.XP.rotationDegrees(lean.pitch()));
+            poseStack.mulPose(Axis.ZP.rotationDegrees(lean.roll()));
+        }
         float tremor = shiverYaw(partial, gameTime, index);
         if (tremor != 0f) poseStack.mulPose(Axis.YP.rotationDegrees(tremor));
-        float roll = hintTilt(partial) + shiverRoll(partial, gameTime, index);
+        float roll = (sourceLean ? 0 : hintTilt(partial)) + shiverRoll(partial, gameTime, index);
         if (roll != 0f) poseStack.mulPose(Axis.ZP.rotationDegrees(roll));
         // Lean toward the heading, but face the art its own way: upright, this is just the facing.
         if (locomotion == Locomotion.DRIFT) poseStack.mulPose(Axis.YP.rotationDegrees(Mth.wrapDegrees(yawDeg - faceDeg)));

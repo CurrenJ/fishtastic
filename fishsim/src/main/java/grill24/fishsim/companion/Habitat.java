@@ -36,6 +36,13 @@ public record Habitat(Set<String> homes, Map<Ambient.Weather, Float> weather, Ma
         hours = Map.copyOf(hours);
     }
 
+    public boolean ownWater(String zone) {
+        String token = zone.startsWith("zone:") ? zone : "zone:" + zone.toLowerCase(java.util.Locale.ROOT);
+        return homes.contains(token) || token.equals("zone:deep_ocean") && homes.contains("zone:ocean");
+    }
+
+    public boolean nightActive() { return hours(Ambient.DayPart.NIGHT) > 1; }
+
     public float weather(Ambient.Weather w) {
         return weather.getOrDefault(w, 1f);
     }

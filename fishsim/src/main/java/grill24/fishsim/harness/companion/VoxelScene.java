@@ -39,6 +39,13 @@ public final class VoxelScene implements BlockQuery {
         this.groundTop = groundTop;
     }
 
+    /** Small real-water fixture for feature films; the owner remains on the bank. */
+    public void addWorldWater(grill24.fishsim.companion.Vec source) {
+        int x = (int)Math.floor(source.x()), z = (int)Math.floor(source.z());
+        int[] box = {x-1, groundTop-1, z, x+2, groundTop+1, z+3};
+        airs.add(box); waters.add(box); version++;
+    }
+
     /** The feet height of anyone standing on the ground. */
     public double feetY() {
         return groundTop + 1;

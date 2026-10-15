@@ -35,6 +35,16 @@ public final class CompanionAgent {
     private final Drives drives;
     private final Temperament temperament;
     private PoseHint pose = PoseHint.NONE;
+    private java.util.List<WorldFeature> lastFeatures = java.util.List.of();
+    private final java.util.ArrayList<Emote> emotes = new java.util.ArrayList<>();
+    private record RecentEmote(Emote event, long born) {}
+    private final java.util.ArrayDeque<RecentEmote> recentEmotes = new java.util.ArrayDeque<>();
+    private boolean wasHome, wasInWater;
+    private int moodBeat;
+    private PoseHint moodBeatPose = PoseHint.NONE;
+    private int lastFeeling;
+    private int danceTail;
+
     /** Ticks a perched anchored fish has been startled by a predator in its owner's hand alone (tunable anchoredPredatorDuckSeconds). */
     private int predatorDuckTicks;
     private Vec lookTarget;
@@ -188,9 +198,19 @@ public final class CompanionAgent {
         prevAppear = appear;
         prevTail = body.tailPhase;
         ticks++;
+        emotes.clear();
+        lastFeatures = world.features();
 
         voxels.update(blocks, owner.eye());
-        mood.update(world.ambient(), habitat, owner.chest(), body.pos);
+        mood.update(world.moodAmbient(), habitat, owner.chest(), body.pos);
+        if (groupLeader == null) {
+            mind.notice.update(world, habitat, body.pos);
+            mind.noticeWatching = perch != null && perch.ground == null && !owner.inWater();
+            mind.noticeGround = perch != null && perch.ground != null && perch.onGround();
+            mind.noticeGroundReachable = !mind.noticeGround || mind.notice.groundWaterReachable(owner,perch.ground,voxels);
+            mind.indexedWarmthPresent = world.features().stream().anyMatch(f -> f.kind() == WorldFeature.Kind.WARMTH);
+        }
+        mood.waterJoy = owner.inWater() && !habitat.equals(Habitat.NONE) ? (habitat.atHome(world.ambient()) ? 0.85f : 0.65f) : 0;
         if (groupLeader == null) drives.update(world);
         // The mood's idle pace on the temperament's (exactly the temperament's while there's no mood).
         if (paced != null) paced.pace = temperament.pace() * drives.moodPace();
@@ -229,7 +249,11 @@ public final class CompanionAgent {
             // Riding the owner through a teleport: it went with them, so don't draw it streaking.
             if (perch.attached() && owner.teleported()) prevPos = perch.pos;
             if (groupLeader == null) perchPose();
-            else { pose = groupLeader.pose; lookTarget = groupLeader.lookTarget; }
+            else {
+                pose = Mood.memberPose(groupLeader.pose,mood,mind.idleDwelling());
+                if (pose == PoseHint.SLEEPY && groupLeader.mood.sleepy > 0.5f && mood.sleepy <= 0.5f) pose = PoseHint.NONE;
+                lookTarget = groupLeader.lookTarget;
+            }
         } else {
             Vec desired = mind.think(owner, voxels, crumbs);
             if (swimPush != null) desired = desired.add(swimPush);
@@ -239,8 +263,14 @@ public final class CompanionAgent {
             }
             body.step(desired, mind.wanderScale, avoid, voxels, Capsule.ownerBody(owner));
             pose = mind.pose;
-            lookTarget = mind.goal == Mind.Goal.INSPECT && drives.target != null ? drives.target.pos : null;
+            lookTarget = (mind.goal == Mind.Goal.INSPECT || mind.goal == Mind.Goal.NOTICE) && drives.target != null ? drives.target.pos : null;
         }
+
+        worldExpression(world);
+        if (perch != null && perch.ground != null && perch.ground.waterSplash) emotes.add(new Emote(Emote.Kind.SPLASH,body.pos));
+
+        for (Emote event : emotes) recentEmotes.addLast(new RecentEmote(event,ticks));
+        while (!recentEmotes.isEmpty() && ticks - recentEmotes.peekFirst().born() > 16) recentEmotes.removeFirst();
 
         switch (fade) {
             case OUT -> {
@@ -274,6 +304,79 @@ public final class CompanionAgent {
         }
     }
 
+    /** Readable beats remain per member even when the school shares one movement mind. */
+    private void worldExpression(CompanionWorld world) {
+        OwnerState owner = world.owner();
+        boolean home = !habitat.equals(Habitat.NONE) && habitat.atHome(world.ambient());
+        boolean wet = owner.inWater() && !habitat.equals(Habitat.NONE);
+        if (home && !wasHome || wet && !wasInWater) {
+            emotes.add(new Emote(Emote.Kind.HOMECOMING, body.pos));
+            moodBeat = 60; moodBeatPose = PoseHint.GLEE;
+            if (groupLeader == null && !ownerMoving() && perch == null) mind.requestLap(80);
+        }
+        wasHome = home; wasInWater = wet;
+        int feeling = mood.shivering() ? 1 : mood.glum > 0.4f ? 2 : mood.sleepy > 0.5f ? 3 : Math.max(mood.glee,mood.waterJoy) > 0.5f ? 4 : 0;
+        if (feeling != lastFeeling && feeling != 0) {
+            moodBeat = 50;
+            moodBeatPose = switch (feeling) { case 1 -> PoseHint.SHIVER; case 2 -> PoseHint.DROOP; case 3 -> PoseHint.SLEEPY; default -> PoseHint.GLEE; };
+            emotes.add(new Emote(switch (feeling) { case 1 -> Emote.Kind.FROST; case 2 -> Emote.Kind.SIGH; case 3 -> Emote.Kind.SNORE; default -> Emote.Kind.SPLASH; }, body.pos));
+        }
+        lastFeeling = feeling;
+        boolean plain = pose == PoseHint.NONE || pose == PoseHint.SLEEPY || pose == PoseHint.TREMBLE || pose == PoseHint.SHIVER || pose == PoseHint.MOON_GAZE;
+        if (moodBeat > 0) { moodBeat--; if (plain && !mood.moonstruck()) pose = moodBeatPose; }
+        else if (plain) {
+            if (mood.shivering()) pose = PoseHint.SHIVER;
+            else if (mood.glum > 0.4f) pose = PoseHint.DROOP;
+            else if (mood.sleepy > 0.5f) pose = PoseHint.SLEEPY;
+        }
+        if (mind.lapping() && mood.glee > 0.5f && plain) pose = PoseHint.GLEE;
+        if (mood.glee > 0.5f && (world.ambient().weather() == Ambient.Weather.RAIN || world.ambient().weather() == Ambient.Weather.THUNDER)
+                && ticks % 100 == 0) emotes.add(new Emote(Emote.Kind.SPLASH,body.pos));
+        if (ticks % 90 == 0) {
+            if (mood.shivering()) emotes.add(new Emote(Emote.Kind.FROST, body.pos));
+            else if (mood.glum > 0.4f) emotes.add(new Emote(Emote.Kind.SIGH, body.pos));
+            else if (mood.sleepy > 0.5f) emotes.add(new Emote(Emote.Kind.SNORE, body.pos));
+        }
+        boolean nether = world.ambient().place().contains("zone:nether") || world.ambient().place().contains("dim:minecraft:the_nether");
+        if (nether && habitat.climate() != Habitat.Climate.HOT && !habitat.equals(Habitat.NONE) && ticks % 40 == 1)
+            emotes.add(new Emote(Emote.Kind.STEAM, body.pos));
+        Notice notice = groupLeader == null ? mind.notice : groupLeader.mind.notice;
+        if (notice.utility > 0 && perch != null && perch.attached() && drives.wariness < 0.3f && notice.feature != null) {
+            lookTarget = notice.feature.pos();
+            pose = groupLeader == null ? notice.perform(body.pos, notice.destination(owner, body.pos), true) : PoseHint.WATCH;
+        } else if (groupLeader == null && mind.goal == Mind.Goal.NOTICE && notice.feature != null) {
+            lookTarget = notice.feature.pos();
+        }
+        if (groupLeader == null) emotes.addAll(notice.events);
+        boolean music = notice.feature != null && notice.feature.kind() == WorldFeature.Kind.MUSIC
+                && notice.feature.music().active(world.gameTick());
+        if (music && drives.wariness < 0.3f && !mind.inScene() && (plain || pose == PoseHint.WATCH || pose == PoseHint.NOSE)) pose = PoseHint.DANCE;
+        if (pose == PoseHint.DANCE) danceTail = 50;
+        else if (danceTail > 0) { danceTail--; if (plain) pose = PoseHint.DANCE; }
+    }
+
+    /** The actual source being watched/performed at, for renderers and source-specific dev assertions. */
+    public WorldFeature noticedFeature() {
+        if (mind.goal == Mind.Goal.NOTICE && drives.target != null && drives.target.kind == PointOfInterest.Kind.WARMTH) {
+            for (WorldFeature feature : lastFeatures)
+                if (feature.kind() == WorldFeature.Kind.WARMTH && feature.pos().equals(drives.target.pos)) return feature;
+        }
+        Notice notice = mind.notice;
+        if (notice.utility > 0 && notice.feature != null && (mind.goal == Mind.Goal.NOTICE || pose == PoseHint.WATCH || pose == PoseHint.DANCE)) return notice.feature;
+        return null;
+    }
+
+    public long ageTicks() { return ticks; }
+    /** Render-only history so a frame sampled between beats still shows their marker. */
+    public java.util.List<Emote> recentEmotes() { return recentEmotes.stream().map(RecentEmote::event).toList(); }
+    public java.util.List<Emote> emotes() { return java.util.List.copyOf(emotes); }
+    public boolean reacting() {
+        return mind.goal == Mind.Goal.NOTICE || pose == PoseHint.WATCH && mind.notice.utility > 0 || mind.lapping() && (mood.glee > 0.5f || mood.waterJoy > 0.5f || wasHome) || !emotes.isEmpty() || pose == PoseHint.SHIVER || pose == PoseHint.MOON_GAZE
+                || pose == PoseHint.DROOP || pose == PoseHint.GLEE || pose == PoseHint.DANCE || pose == PoseHint.DIP
+                || pose == PoseHint.SLEEPY && mood.sleepy > 0.5f;
+    }
+
+
     /**
      * A percher out of the water shows its curiosity in its pose: nose to a held item it has hopped
      * onto the hand for, or a watchful look at something it can't go to. Watching a thing in the
@@ -283,12 +386,12 @@ public final class CompanionAgent {
     private void perchPose() {
         if (perch.onGround()) {
             pose = mind.pose;
-            lookTarget = mind.goal == Mind.Goal.INSPECT && drives.target != null ? drives.target.pos : drives.threatPos;
+            lookTarget = (mind.goal == Mind.Goal.INSPECT || mind.goal == Mind.Goal.NOTICE) && drives.target != null ? drives.target.pos : drives.threatPos;
             return;
         }
         if (perch.mode == PerchBody.Mode.SWIM) {
             pose = mind.pose;
-            lookTarget = mind.goal == Mind.Goal.INSPECT && drives.target != null ? drives.target.pos : null;
+            lookTarget = (mind.goal == Mind.Goal.INSPECT || mind.goal == Mind.Goal.NOTICE) && drives.target != null ? drives.target.pos : null;
             return;
         }
         Drives.Interest it = drives.target;
@@ -701,7 +804,7 @@ public final class CompanionAgent {
     }
 
     static MoodLevels levels(Mood m) {
-        return new MoodLevels(m.cold, m.glum, m.glee, m.sleepy, m.moon, m.warmed);
+        return new MoodLevels(m.cold, m.glum, Math.max(m.glee,m.waterJoy), m.sleepy, m.moon, m.warmed);
     }
 
     /** The overlay's mood line. */
@@ -712,6 +815,7 @@ public final class CompanionAgent {
      * a member drawn off the leader): the leader's mood hints are swapped for this fish's own.
      */
     public PoseHint poseFor(PoseHint lead) {
+        if (groupLeader != null) return pose;
         Mind m = groupLeader == null ? mind : groupLeader.mind;
         return Mood.memberPose(lead, mood, m.idleDwelling());
     }
@@ -721,7 +825,7 @@ public final class CompanionAgent {
 
     /** Goes to bask by a warm thing right now (an inspection of one). */
     public boolean basking() {
-        return mind.goal == Mind.Goal.INSPECT && drives.target != null && drives.target.kind == PointOfInterest.Kind.WARMTH;
+        return (mind.goal == Mind.Goal.INSPECT || mind.goal == Mind.Goal.NOTICE) && drives.target != null && drives.target.kind == PointOfInterest.Kind.WARMTH;
     }
 
     // ── Interpolated pose (after interpolate) ──────────────────────────────────────────────────

@@ -35,6 +35,8 @@ final class Mood {
     float glum;
     /** 0..1, eased: glad of the rain (or a Nether fish by a fire). */
     float glee;
+    /** Water joy is a visible tone, without hidden movement multipliers. */
+    float waterJoy;
     /** 0..1, eased: its off-hours. */
     float sleepy;
     /** 0..1, eased: a full moon at night, for a species that comes out under one. */
@@ -144,7 +146,7 @@ final class Mood {
         // Time and moon: sleepy in its off-hours; a full-moon species idles high at night under one.
         Ambient.DayPart part = a.dayPart();
         if (part != null) {
-            boolean moonNight = part == Ambient.DayPart.NIGHT && a.fullMoon() && h.fullMoon() > 1f;
+            boolean moonNight = part == Ambient.DayPart.NIGHT && a.weather() == Ambient.Weather.CLEAR && !a.place().contains("sky:blocked") && a.fullMoon() && h.fullMoon() > 1f;
             if (moonNight) moonTo = 1f;
             else if (h.hours(part) < 1f || (h.hours(part) <= 1f && h.hours(opposite(part)) > 1f)) sleepyTo = 1f;
         }
@@ -179,12 +181,12 @@ final class Mood {
         float c = cold, g = glum, j = glee, s = sleepy;
         pace = (1 - 0.12f * c) * (1 - 0.15f * g) * (1 + 0.12f * j) * (1 - 0.2f * s);
         rest = (1 + 1.0f * s) * (1 - 0.4f * j);
-        dwell = (1 + 0.3f * g) * (1 + 0.4f * s) * (1 - 0.2f * j);
+        dwell = 1 - 0.2f * j;
         jitter = (1 + 0.4f * c) * (1 + 0.15f * j);
-        band = (1 - 0.15f * c) * (1 - 0.1f * g) * (1 + 0.1f * j);
-        curiosity = (1 - 0.3f * c) * (1 - 0.4f * g) * (1 + 0.2f * j) * (1 - 0.25f * s);
+        band = 1 + 0.1f * j;
+        curiosity = 1 + 0.2f * j;
         stillness = 0.15f * g + 0.25f * s;
-        lift = 0.5f * moon;
+        lift = 0.5f * moon - 0.3f * glum;
     }
 
     /**
@@ -193,7 +195,7 @@ final class Mood {
      * leader itself it's its own hint unchanged.
      */
     static PoseHint memberPose(PoseHint lead, Mood own, boolean idleDwelling) {
-        PoseHint base = lead == PoseHint.SHIVER || lead == PoseHint.MOON_GAZE ? PoseHint.NONE : lead;
+        PoseHint base = lead == PoseHint.SHIVER || lead == PoseHint.MOON_GAZE || lead == PoseHint.DROOP || lead == PoseHint.GLEE ? PoseHint.NONE : lead;
         boolean plain = base == PoseHint.NONE || base == PoseHint.SLEEPY || base == PoseHint.TREMBLE;
         if (own.shivering() && plain) return PoseHint.SHIVER;
         if (own.moonstruck() && idleDwelling && (base == PoseHint.NONE || base == PoseHint.SLEEPY)) return PoseHint.MOON_GAZE;

@@ -126,6 +126,7 @@ public final class CompanionRenderer {
             g.fillRect(0, 0, w, h);
         }
 
+        if (world != null) drawFeatures(g, cam, world, a);
         if (overlay) drawOverlay(g, w, h, a, occluded);
         if (world != null && world.held() != CompanionWorld.Held.NONE) {
             g.setFont(new Font(Font.MONOSPACED, Font.BOLD, 12));
@@ -140,6 +141,27 @@ public final class CompanionRenderer {
         g.drawLine(w / 2, h / 2 - 5, w / 2, h / 2 + 5);
         g.dispose();
         return img;
+    }
+
+    private static void drawFeatures(Graphics2D g, Cam cam, CompanionWorld world, CompanionAgent agent) {
+        for (var f : world.features()) {
+            Vec c = cam.toCam(f.pos());
+            if (c.z() <= NEAR) continue;
+            int x = (int) cam.sx(c), y = (int) cam.sy(c);
+            g.setColor(switch(f.kind()) { case WARMTH -> WARMTH; case WATER_SURFACE -> new Color(0x42B9ED); case LIGHT -> new Color(0xFFEAA0); case MUSIC -> new Color(0xAF65DA); });
+            int r = (int) Math.max(5, Math.min(25, cam.f() * 0.2 / c.z()));
+            g.fillOval(x-r,y-r,r*2,r*2);
+        }
+        for (var e : agent.recentEmotes()) {
+            Vec c = cam.toCam(e.pos().add(0,0.25,0));
+            if (c.z() <= NEAR) continue;
+            g.setColor(e.kind() == grill24.fishsim.companion.Emote.Kind.NOTE ? new Color(0xBCEB5D) : Color.WHITE);
+            g.drawOval((int)cam.sx(c)-7,(int)cam.sy(c)-7,14,14);
+            if (e.kind() == grill24.fishsim.companion.Emote.Kind.NOTE) {
+                int x=(int)cam.sx(c), y=(int)cam.sy(c);
+                g.drawLine(x+6,y,x+6,y-14); g.fillOval(x-1,y-3,8,6);
+            }
+        }
     }
 
     private static final Color HOSTILE = new Color(0x3B7A3B), CAT = new Color(0x8E7CC3),
@@ -315,8 +337,27 @@ public final class CompanionRenderer {
         }
         Color body = a.locomotion() == grill24.fishsim.core.Locomotion.BENTHIC ? CRAB
                 : a.locomotion() == grill24.fishsim.core.Locomotion.ANCHORED ? EEL : FISH;
-        drawFishAt(g, cam, a.length() * a.renderAppear(), a.renderPos(), a.renderYaw(), a.renderPitch(),
-                a.renderBank(), a.renderTailPhase(), body);
+        drawFishAt(g, cam, a.length() * a.renderAppear(), a.renderPos(), a.renderYaw(), a.renderPitch() + reactionPitch(a),
+                a.renderBank() + reactionBank(a), a.renderTailPhase(), body);
+    }
+
+    private static float reactionPitch(CompanionAgent a) {
+        double phase = a.ageTicks() * 0.05;
+        return switch (a.poseHint()) {
+            case DROOP -> 22; case SLEEPY -> 16 + (float)Math.sin(phase)*4;
+            case DIP -> 30; case MOON_GAZE -> -32;
+            case DANCE -> a.temperament().guard() ? (float)Math.sin(phase*5)*30 : (float)Math.sin(phase*3)*8;
+            default -> 0;
+        };
+    }
+    private static float reactionBank(CompanionAgent a) {
+        double phase = a.ageTicks() * 0.05;
+        return switch(a.poseHint()) {
+            case SHIVER -> (float)Math.sin(phase*28)*15;
+            case GLEE -> (float)Math.sin(phase*5)*40;
+            case DANCE -> (float)Math.sin(phase*(a.temperament().regular()==1?5:4.7))*28;
+            default -> 0;
+        };
     }
 
     /** A school's followers, each at its own body length, drawn like the leader where the owner can see them. */

@@ -16,7 +16,7 @@ import java.util.List;
  * @param ambient biome, weather, time, moon and warmth for moods (Phase 5); {@link Ambient#NEUTRAL} for none
  */
 public record CompanionWorld(OwnerState owner, BlockQuery blocks, List<PointOfInterest> points, Held held,
-                             boolean hurt, Ambient ambient) {
+                             boolean hurt, Ambient ambient, List<WorldFeature> features, long gameTick) {
 
     /** A held item's reaction category (spec §3.1). The adapter maps item stacks to these. */
     public enum Held {
@@ -37,7 +37,25 @@ public record CompanionWorld(OwnerState owner, BlockQuery blocks, List<PointOfIn
 
     public CompanionWorld {
         points = List.copyOf(points);
+        features = List.copyOf(features);
         if (ambient == null) ambient = Ambient.NEUTRAL;
+    }
+
+    public CompanionWorld(OwnerState owner, BlockQuery blocks, List<PointOfInterest> points, Held held, boolean hurt, Ambient ambient) {
+        this(owner, blocks, points, held, hurt, ambient, List.of(), 0);
+    }
+    public CompanionWorld withFeatures(List<WorldFeature> features) {
+        return new CompanionWorld(owner, blocks, points, held, hurt, ambient, features, gameTick);
+    }
+    public CompanionWorld withGameTick(long tick) {
+        return new CompanionWorld(owner, blocks, points, held, hurt, ambient, features, tick);
+    }
+    /** Compatibility view for the established bask/hold rules; production warmth lives in features. */
+    Ambient moodAmbient() {
+        if (features.stream().noneMatch(f -> f.kind() == WorldFeature.Kind.WARMTH)) return ambient;
+        java.util.ArrayList<Vec> warm = new java.util.ArrayList<>(ambient.warmth());
+        for (WorldFeature feature : features) if (feature.kind() == WorldFeature.Kind.WARMTH) warm.add(feature.pos());
+        return ambient.withWarmth(warm);
     }
 
     /** No ambient: no moods, as before Phase 5. */
@@ -47,11 +65,11 @@ public record CompanionWorld(OwnerState owner, BlockQuery blocks, List<PointOfIn
 
     /** The same tick seen with other points, keeping everything else (the ambient included). */
     public CompanionWorld withPoints(List<PointOfInterest> points) {
-        return new CompanionWorld(owner, blocks, points, held, hurt, ambient);
+        return new CompanionWorld(owner, blocks, points, held, hurt, ambient, features, gameTick);
     }
 
     public CompanionWorld withAmbient(Ambient ambient) {
-        return new CompanionWorld(owner, blocks, points, held, hurt, ambient);
+        return new CompanionWorld(owner, blocks, points, held, hurt, ambient, features, gameTick);
     }
 
     /**

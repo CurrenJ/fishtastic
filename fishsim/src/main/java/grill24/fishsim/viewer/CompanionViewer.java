@@ -100,6 +100,9 @@ public final class CompanionViewer {
     private CompanionAgent agent;
     /** The mood preset V has cycled to (Phase 5), or null for none; and its ambient, placed where the owner stood. */
     private MoodScenes.Preset mood;
+    private String featureScene;
+    private Vec featureAnchor = Vec.ZERO;
+    private long featureTick;
     private Ambient moodAmbient = Ambient.NEUTRAL;
     private OwnerState owner;
     private long seed = 1;
@@ -218,6 +221,16 @@ public final class CompanionViewer {
                     case KeyEvent.VK_O -> place(PointOfInterest.Kind.COMPANION, 6, -60, 1.5, 0, 0.2, 1.2, Vec.ZERO);
                     case KeyEvent.VK_K -> hurtNext = true;
                     case KeyEvent.VK_V -> nextMood();
+                    case KeyEvent.VK_U -> {
+                        var names = grill24.fishsim.harness.companion.WorldScenes.NAMES;
+                        int index = featureScene == null ? 0 : names.indexOf(featureScene)+1;
+                        featureScene = index < names.size() ? names.get(index) : null;
+                        featureAnchor = owner.feet(); featureTick = 0;
+                        if (featureScene != null) {
+                            agent.habitat(grill24.fishsim.harness.companion.WorldScenes.habitat(featureScene));
+                            if (featureScene.equals("water")) scene.addWorldWater(featureAnchor.add(0.7,0,2.5));
+                        }
+                    }
                     case KeyEvent.VK_X -> placed.clear();
                     case KeyEvent.VK_Q -> { if (twoSim != null && !twoSim.sceneOn()) twoSim.startScene(); }
                     case KeyEvent.VK_J -> jumpNext = true;
@@ -386,10 +399,10 @@ public final class CompanionViewer {
     /** What the companion perceives: the owner and the scene, plus the script's points of interest when one plays. */
     private CompanionWorld world() {
         if (twoSim != null) return pairView();
-        if (scriptWorld != null) return mood == null ? scriptWorld : scriptWorld.withAmbient(moodAmbient);
+        if (scriptWorld != null) return grill24.fishsim.harness.companion.WorldScenes.apply(mood == null ? scriptWorld : scriptWorld.withAmbient(moodAmbient), featureScene, featureAnchor, featureTick);
         List<PointOfInterest> points = new ArrayList<>();
         for (Placed p : placed) points.add(new PointOfInterest(p.kind, p.id, p.pos, p.vel, p.radius));
-        return new CompanionWorld(owner, scene, points, held, hurtNow, mood == null ? Ambient.NEUTRAL : moodAmbient);
+        return grill24.fishsim.harness.companion.WorldScenes.apply(new CompanionWorld(owner, scene, points, held, hurtNow, mood == null ? Ambient.NEUTRAL : moodAmbient), featureScene, featureAnchor, featureTick);
     }
 
     /**
@@ -460,6 +473,7 @@ public final class CompanionViewer {
     }
 
     private void tick() {
+        featureTick++;
         if (twoSim != null) {
             twoSim.step();
             owner = twoSim.a.owner();

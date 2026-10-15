@@ -27,6 +27,7 @@ final class Mind {
         SHOW_OFF,
         /** Something interesting: swim over, hold off at a species-sized distance, nose at it, lose interest. */
         INSPECT,
+        NOTICE,
         /** Something alarming: dart into cover on the owner's far side and keep an eye on it from there. */
         HIDE,
         /** A hostile, for an aggressive fish: take up a spot between it and the owner, puffed up, facing it. */
@@ -69,6 +70,11 @@ final class Mind {
     private final Motor body;
     private final Drives drives;
     private final Temperament temperament;
+    final Notice notice;
+    boolean indexedWarmthPresent;
+    boolean noticeWatching, noticeGround, noticeGroundReachable = true;
+    private boolean groundWater() { return noticeGround && notice.feature != null && notice.feature.kind() == WorldFeature.Kind.WATER_SURFACE; }
+    private boolean indexedWarmth() { return inspecting != null && inspecting.kind == PointOfInterest.Kind.WARMTH && indexedWarmthPresent; }
     private long rng;
 
     Goal goal = Goal.LOITER;
@@ -173,6 +179,7 @@ final class Mind {
         this.body = body;
         this.drives = drives;
         this.temperament = temperament;
+        this.notice = new Notice(temperament, drives.mood);
         this.rng = seed * 0x9E3779B97F4A7C15L + 0x632BE59BD9B4E019L;
         if (rng == 0) rng = 1;
         this.alongBase = (float) (-0.2 + 0.7 * unit());
@@ -199,6 +206,7 @@ final class Mind {
             case CATCH_UP -> catchUp(o, v, crumbs);
             case SHOW_OFF -> showOff(o, v);
             case INSPECT -> inspect(o, v);
+            case NOTICE -> indexedWarmth() ? inspect(o, v) : notice(o, v);
             case HIDE, GUARD -> hide(o, v);
             case NUZZLE -> nuzzle(o, v);
             case LAP -> lap(o, v);
@@ -277,6 +285,21 @@ final class Mind {
         float face = Float.NaN;
         boolean hurry = false;
         switch (goal) {
+            case NOTICE -> {
+                if (indexedWarmth()) {
+                    Drives.Interest it = inspecting;
+                    double hold = (0.35 + 1.2 * bodyLength() + it.radius) * temperament.inspectSpacing();
+                    Vec away = ground.pos.sub(it.pos).horizontal().normalize();
+                    if (away.lengthSqr() < 1e-6) away = o.flatRight();
+                    destination = it.pos.add(away.scale(hold));
+                    drives.engage(it, ground.pos.sub(it.pos).horizontalLength(), hold);
+                    face = (float) it.pos.sub(ground.pos).horizontal().yawDeg(); pose = PoseHint.NOSE; break;
+                }
+                if (notice.feature == null) break;
+                destination = notice.groundDestination(o, ground, v);
+                face = (float) notice.feature.pos().sub(ground.pos).horizontal().yawDeg();
+                pose = notice.perform(ground.pos, destination, false);
+            }
             case INSPECT -> {
                 Drives.Interest it = inspecting;
                 // Held things retain their hand-hop presentation; world things draw a detour.
@@ -492,8 +515,11 @@ final class Mind {
             bestU = uShow;
         }
         if (uInspect > bestU) {
-            best = Goal.INSPECT;
+            best = drives.target.kind == PointOfInterest.Kind.WARMTH && indexedWarmthPresent ? Goal.NOTICE : Goal.INSPECT;
             bestU = uInspect;
+        }
+        if (!noticeWatching && (!groundWater() || seen && noticeGroundReachable) && notice.utility > bestU && !ownerMoving && proximity < 0.3f && drives.wariness < 0.3f) {
+            best = Goal.NOTICE; bestU = notice.utility;
         }
         if (uNuzzle > bestU) {
             best = Goal.NUZZLE;
@@ -518,7 +544,8 @@ final class Mind {
         boolean emergency = (best == Goal.CATCH_UP && uCatch > EMERGENCY)
                 || ((best == Goal.HIDE || best == Goal.GUARD) && drives.wariness > ALARM);
         // An inspection is over when the thing is gone or has stopped being the most interesting.
-        boolean done = (goal == Goal.SHOW_OFF && showDone)
+        boolean done = (goal == Goal.NOTICE && (indexedWarmth() ? drives.target != inspecting : notice.utility == 0 || ownerMoving || proximity >= 0.3f || groundWater() && !seen))
+                || (goal == Goal.SHOW_OFF && showDone)
                 || (goal == Goal.INSPECT && (inspecting == null || drives.target != inspecting))
                 || nuzzleFinished || lapFinished || sceneFinished;
         boolean committed = goalTicks < minTicks(goal);
@@ -533,6 +560,7 @@ final class Mind {
             case CATCH_UP -> uCatch;
             case SHOW_OFF -> showDone ? 0f : 0.8f;
             case INSPECT -> uInspect;
+            case NOTICE -> indexedWarmth() ? uInspect : notice.utility;
             case HIDE, GUARD -> uHide;
             case NUZZLE -> nuzzleDone ? 0f : 0.6f;
             case LAP -> lapDone ? 0f : 0.85f;
@@ -549,7 +577,7 @@ final class Mind {
         int base = switch (g) {
             case LOITER, SETTLE, ESCORT -> 20;
             case CATCH_UP -> 30;
-            case SHOW_OFF, INSPECT, HIDE, GUARD, NUZZLE, LAP, SCENE -> 40;
+            case SHOW_OFF, INSPECT, NOTICE, HIDE, GUARD, NUZZLE, LAP, SCENE -> 40;
         };
         return temperament.commitment() == 1 ? base : Math.max(20, Math.round(base * temperament.commitment()));
     }
@@ -583,6 +611,10 @@ final class Mind {
                 showDone = false;
                 showSide = 0; // chosen on the first tick, from where the fish is
                 showOffs++;
+            }
+            case NOTICE -> {
+                inspecting = drives.target != null && drives.target.kind == PointOfInterest.Kind.WARMTH ? drives.target : null;
+                if (inspecting != null) { inspections++; ambushPhase = 0; }
             }
             case INSPECT -> {
                 inspecting = drives.target;
@@ -634,7 +666,7 @@ final class Mind {
         centreTicks = spotCentred || centred ? centreTicks + 1 : 0;
         if (spot == null || spot.distanceTo(chest) > bandOuterNow + 0.8 || !v.sphereClear(spot, body.radius + 0.1)
                 || centreTicks > 20) {
-            spot = drives.mood.moonstruck() ? pickMoonSpot(o, v) : pickSpot(o, v);
+            spot = drives.mood.moonstruck() ? pickMoonSpot(o, v) : moodSink(pickSpot(o, v), o, v);
             dwelling = false;
             centreTicks = 0;
         }
@@ -710,7 +742,7 @@ final class Mind {
         centreTicks = spotCentred || fishCentred ? centreTicks + 1 : 0;
         if (spot == null || spot.distanceTo(chest) > bandOuterNow + 0.8 || !v.sphereClear(spot, body.radius + 0.1)
                 || centreTicks > 20) {
-            spot = drives.mood.moonstruck() ? pickMoonSpot(o, v) : pickSettleSpot(o, v);
+            spot = drives.mood.moonstruck() ? pickMoonSpot(o, v) : moodSink(pickSettleSpot(o, v), o, v);
             dwelling = false;
             centreTicks = 0;
         }
@@ -777,6 +809,14 @@ final class Mind {
      * The moon idle's spot (Phase 5): a settle spot, every other one at the edge of the owner's view
      * so the gazing is seen, lifted by the mood where there's room.
      */
+    private Vec moodSink(Vec point, OwnerState owner, LocalVoxels blocks) {
+        float sink = drives.mood.lift;
+        if (sink >= 0) return point;
+        Vec low = point.add(0,sink,0);
+        return blocks.sphereClear(low,body.radius+0.25) && blocks.segmentClear(body.pos,low,body.radius)
+                && !insideOwner(owner,low,body.radius+0.25) ? low : point;
+    }
+
     private Vec pickMoonSpot(OwnerState o, LocalVoxels v) {
         Vec p = pickSettleSpot(o, v);
         if (p == body.pos) return p;
@@ -989,7 +1029,7 @@ final class Mind {
         lapPrevAngle = cur;
         double r = OwnerState.BODY_RADIUS + body.radius + LAP_RADIUS;
         double aim = cur + lapDir * 0.6;
-        Vec dest = chest.add(Math.cos(aim) * r, 0.2, Math.sin(aim) * r);
+        Vec dest = chest.add(Math.cos(aim) * r, 0.2 + (gleeLap ? 0.35 * Math.max(0,Math.sin(goalTicks * 0.12)) : 0), Math.sin(aim) * r);
         // Done after a full turn, out of time, at a wall, or when the owner walks off (a lap round
         // someone leaving reads as a chase).
         // A glad lap (Phase 5) is kept for a second even if the owner sets off: a lap cut short at once is a dither.
@@ -1096,6 +1136,17 @@ final class Mind {
      * A held item is looked at from beyond the hand, along the view, so the owner sees the fish
      * do it; a thing in the world from the fish's own side of it, a little above.
      */
+    private Vec notice(OwnerState o, LocalVoxels v) {
+        if (notice.feature == null) return loiter(o, v);
+        Vec destination = notice.destination(o, body.pos);
+        if (!v.sphereClear(destination, body.radius + 0.05)) destination = destination.add(0, 0.5, 0);
+        target = destination;
+        pose = notice.perform(body.pos, destination, false);
+        wanderScale = 0.12;
+        Vec delta = aroundOwner(o, v, destination).sub(body.pos);
+        return delta.clampLength(body.g.cruiseSpeed() * 1.8).scale(delta.length() < 0.5 ? 1.2 : 1);
+    }
+
     private Vec inspect(OwnerState o, LocalVoxels v) {
         Drives.Interest it = inspecting;
         if (it == null) return loiter(o, v);

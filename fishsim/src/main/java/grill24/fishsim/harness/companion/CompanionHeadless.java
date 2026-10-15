@@ -42,11 +42,13 @@ public final class CompanionHeadless {
 
     private static final int FP_W = 512, FP_H = 288, TOP = 288;
     private static final int TRAIL = 120;
+    private static boolean overlay = true;
 
     private CompanionHeadless() {}
 
     public static void main(String[] args) throws IOException {
         String scriptArg = "all";
+        String feature = null;
         long seed = 1;
         Locomotion locomotion = Locomotion.FREE_SWIM;
         boolean trio = false;
@@ -57,6 +59,8 @@ public final class CompanionHeadless {
         Path out = Path.of("build", "companion-export");
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
+                case "--feature" -> feature = args[++i];
+                case "--overlay-off" -> overlay = false;
                 case "--script" -> scriptArg = args[++i];
                 case "--seed" -> seed = Long.parseLong(args[++i]);
                 case "--ticks" -> ticks = Integer.parseInt(args[++i]);
@@ -89,8 +93,9 @@ public final class CompanionHeadless {
                         : locomotion == Locomotion.DRIFT
                         ? CompanionRun.drifter(script, seed, style, temperament, CompanionTunables.defaults(), true)
                         : new CompanionRun(script, seed, locomotion, temperament, CompanionTunables.defaults(), true);
+                if (feature != null) run.worldScene(feature);
                 CompanionRun.Metrics m = export(run, script, prefix, ticks, Math.min(gifTicks, ticks), out);
-                String line = m.summary();
+                String line = m.summary() + String.format(java.util.Locale.ROOT," reactionShare=%.3f",run.reactionShare());
                 if (run.group != null) line += " | " + run.followerMetrics().summary();
                 if (run.agent.locomotion() == grill24.fishsim.core.Locomotion.BENTHIC) line += " | " + run.groundMetrics().summary();
                 if (run.agent.locomotion() == Locomotion.DRIFT) line += " | " + run.driftMetrics().summary();
@@ -118,7 +123,7 @@ public final class CompanionHeadless {
                 boolean sheetFrame = tick % 60 == 0 && sheet.size() < 20;
                 if (!gifFrame && !sheetFrame) continue;
                 if (run.group != null) run.group.interpolate(1f); else run.agent.interpolate(1f);
-                BufferedImage fp = CompanionRenderer.firstPerson(FP_W, FP_H, run.owner, run.scene, run.agent, true, run.world);
+                BufferedImage fp = CompanionRenderer.firstPerson(FP_W, FP_H, run.owner, run.scene, run.agent, overlay, run.world);
                 if (run.group != null) {
                     LocalVoxels v = new LocalVoxels();
                     v.update(run.scene, run.owner.eye());

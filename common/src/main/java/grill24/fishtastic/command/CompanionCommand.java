@@ -80,6 +80,24 @@ import java.util.Optional;
  */
 public class CompanionCommand {
 
+    private static int feature(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        String kind = StringArgumentType.getString(ctx, "kind");
+        if (kind.equals("jukebox") || kind.equals("notes"))
+            return client(ctx, () -> grill24.fishtastic.client.companion.CompanionFeatureDev.music(kind));
+        var player = ctx.getSource().getPlayerOrException();
+        var pos = player.blockPosition().relative(player.getDirection(), kind.equals("light") ? 5 : kind.equals("warm") ? 4 : 2);
+        var state = switch (kind) {
+            case "water" -> net.minecraft.world.level.block.Blocks.WATER.defaultBlockState();
+            case "light" -> net.minecraft.world.level.block.Blocks.TORCH.defaultBlockState();
+            case "warm" -> net.minecraft.world.level.block.Blocks.CAMPFIRE.defaultBlockState();
+            default -> null;
+        };
+        if (state == null) { ctx.getSource().sendFailure(Component.literal("Unknown feature: " + kind)); return 0; }
+        player.level().setBlockAndUpdate(pos, state);
+        ctx.getSource().sendSuccess(() -> Component.literal("Placed companion feature: " + kind), false);
+        return 1;
+    }
+
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         return Commands.literal("companion")
                 .requires(FishtasticPermissions.gamemaster())
@@ -184,6 +202,11 @@ public class CompanionCommand {
                         grill24.fishtastic.client.companion.ClientCompanions::devHurt)))
                 .then(Commands.literal("drowsy").executes(ctx -> client(ctx,
                         grill24.fishtastic.client.companion.ClientCompanions::devDrowsy)))
+                .then(Commands.literal("feature")
+                        .then(Commands.argument("kind", StringArgumentType.word())
+                                .suggests((c, b) -> SharedSuggestionProvider.suggest(
+                                        java.util.List.of("jukebox", "notes", "water", "light", "warm"), b))
+                                .executes(CompanionCommand::feature)))
                 .then(Commands.literal("mood")
                         .then(Commands.argument("mood", StringArgumentType.word())
                                 .suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(

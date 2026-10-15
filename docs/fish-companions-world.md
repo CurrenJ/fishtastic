@@ -1,6 +1,6 @@
 # Fish Companions — The World Around You (Phase 5 rework)
 
-**Written:** 2026-10-15 · **Status: plan agreed (owner, 2026-10-15), open questions answered (§9); no step started.**
+**Written:** 2026-10-15 · **Status: implementation in progress; owner review gates remain open.**
 
 This replaces the shipping plan for sim Phase 5 ([fish-companions-sim-plan.md](fish-companions-sim-plan.md)
 §12). Phase 5 as built (the ambient moods) is **not** signed off as shipped. Its code is kept as the base

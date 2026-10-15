@@ -95,7 +95,7 @@ public final class ClientCompanion {
     private final DriftStyle driftStyle;
     /** Each member's species' habitat (Phase 5 moods): a mixed shoal's members differ. */
     private final Habitat[] habitats;
-    private final CompanionAmbient.Sampler ambient = new CompanionAmbient.Sampler();
+    private final CompanionParticles[] particles;
     private Ambient lastAmbient = Ambient.NEUTRAL;
     /** The lead's habitat as last given (its species', or a dev mood's), for the overlay. */
     private Habitat habitatNow;
@@ -130,12 +130,14 @@ public final class ClientCompanion {
         int n = stacks.size();
         this.stacks = new ItemStack[n];
         this.renders = new CompanionRender[n];
+        this.particles = new CompanionParticles[n];
         this.perchPoses = new CompanionFishPose[n];
         this.lengths = new float[n];
         for (int i = 0; i < n; i++) {
             ItemStack stack = stacks.get(i);
             this.stacks[i] = stack.copy();
             this.renders[i] = new CompanionRender(stack, level);
+            this.particles[i] = new CompanionParticles();
             this.perchPoses[i] = new CompanionFishPose(stack, level, MIN_SIM_LENGTH);
             this.lengths[i] = Math.max(renders[i].length(), MIN_SIM_LENGTH);
         }
@@ -216,8 +218,11 @@ public final class ClientCompanion {
      *
      * @param companions every other party's companion near enough to matter, as points of interest
      */
+    Vec3 featureEye() { return owner != null ? owner.getEyePosition() : phantomEye; }
+    BlockPos featureOwner() { return BlockPos.containing(featureEye()); }
+
     CompanionWorld world(ClientLevel level, CompanionWorldAdapter.LevelBlocks blocks, List<PointOfInterest> companions,
-                         List<PointOfInterest> devPoints) {
+                         List<PointOfInterest> devPoints, Ambient ownerAmbient) {
         OwnerState ownerState;
         boolean hurt;
         CompanionWorld.Held held;
@@ -245,7 +250,8 @@ public final class ClientCompanion {
         lastOwner = ownerState;
         lastHeld = held;
         lastPoints = points.size();
-        Ambient amb = ambient.sample(level, owner != null ? owner.getEyePosition() : phantomEye);
+        WorldFeatureIndex index = ClientCompanions.featureIndex();
+        Ambient amb = ownerAmbient;
         Habitat h = null;
         ClientCompanions.DevMood dev = isLocal() ? ClientCompanions.devMood() : null;
         if (dev != null) {
@@ -258,7 +264,10 @@ public final class ClientCompanion {
         }
         lastAmbient = amb;
         giveHabitat(h);
-        return new CompanionWorld(ownerState, blocks, points, held, hurt, amb);
+        List<grill24.fishsim.companion.WorldFeature> features = new ArrayList<>();
+        if (index != null) features.addAll(index.features(featureOwner(), 10));
+        features.addAll(CompanionMusic.features(level, level.getGameTime()));
+        return new CompanionWorld(ownerState, blocks, points, held, hurt, amb).withFeatures(features).withGameTick(level.getGameTime());
     }
 
     /**
@@ -300,7 +309,21 @@ public final class ClientCompanion {
     void afterStep(long partyStepNanos) {
         stepNanos = partyStepNanos;
         ageTicks++;
-        for (int i = 0; i < renders.length; i++) renders[i].tick(poseOf(i));
+        ClientLevel level = Minecraft.getInstance().level;
+        if (level != null && agent != null) for (int i=0;i<particles.length;i++) {
+            if (school != null && i>0) {
+                var follower = school.follower(i-1);
+                if (follower.appear()>0) particles[i].emit(level,follower.emotes());
+            } else {
+                CompanionAgent fish = i<agentCount() ? member(i) : agent;
+                if (fish != null && fish.appear()>0) particles[i].emit(level,fish.emotes());
+            }
+        }
+        for (int i = 0; i < renders.length; i++) {
+            var fish = member(i);
+            renders[i].tick(poseOf(i), fish.temperament(),
+                    fish.lookTarget() == null ? null : fish.lookTarget().sub(fish.position()));
+        }
     }
 
     /** Forgets every sampled block (a block changed nearby, or a chunk arrived). */
@@ -497,11 +520,19 @@ public final class ClientCompanion {
         CompanionRender render = renders[i];
         poseStack.pushPose();
         if (appear < 1f) poseStack.scale(appear, appear, appear);
+        boolean watch = poseOf(i) == grill24.fishsim.companion.PoseHint.WATCH && member(i).lookTarget() != null;
+        if (watch) {
+            var lean = grill24.fishtastic.client.renderer.CompanionFeatureLean.toward(poseStack.last().pose(),
+                    member(i).lookTarget().sub(member(i).position()));
+            poseStack.mulPose(Axis.XP.rotationDegrees(lean.pitch()));
+            poseStack.mulPose(Axis.ZP.rotationDegrees(lean.roll()));
+        }
         float tilt = render.hintTilt(partialTick) + render.shiverRoll(partialTick, gameTime(partialTick), i);
+        if (watch) tilt -= render.hintTilt(partialTick); // the source projection supplies WATCH's lean
         if (tilt != 0f) poseStack.mulPose(Axis.ZP.rotationDegrees(tilt));
         // Members breathe out of step: each idles on its own offset clock.
         perchPoses[i].submit(poseStack, nodes, light, gameTime(partialTick) + i * MEMBER_IDLE_OFFSET, extraYawDeg,
-                render.hintPitch(partialTick),
+                watch ? 0 : render.hintPitch(partialTick),
                 render.retract(partialTick));
         poseStack.popPose();
     }

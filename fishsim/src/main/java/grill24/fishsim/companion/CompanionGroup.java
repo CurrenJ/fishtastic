@@ -108,7 +108,8 @@ public final class CompanionGroup {
         Capsule ownerBody = Capsule.ownerBody(owner);
         players = world.points();
         for (Follower f : followers) {
-            f.mood.update(world.ambient(), f.habitat, owner.chest(), f.body.pos);
+            f.mood.update(world.moodAmbient(), f.habitat, owner.chest(), f.body.pos);
+            f.expression(world);
             f.step(owner, ownerBody);
         }
     }
@@ -161,6 +162,34 @@ public final class CompanionGroup {
         /** Its own mood, from its own species' habitat (Phase 5): shown in its pose, never its motion. */
         private final Mood mood = new Mood();
         private Habitat habitat = Habitat.NONE;
+        private final java.util.ArrayList<Emote> emotes = new java.util.ArrayList<>();
+        private boolean wasHome, wasWet;
+        private int expressionTick, beatTicks, feeling;
+        private PoseHint beatPose = PoseHint.NONE;
+        public java.util.List<Emote> emotes() { return java.util.List.copyOf(emotes); }
+        private void expression(CompanionWorld world) {
+            emotes.clear(); expressionTick++;
+            boolean home = !habitat.equals(Habitat.NONE) && habitat.atHome(world.ambient());
+            boolean wet = !habitat.equals(Habitat.NONE) && world.owner().inWater();
+            if (home && !wasHome || wet && !wasWet) {
+                emotes.add(new Emote(Emote.Kind.HOMECOMING, body.pos)); beatTicks = 60; beatPose = PoseHint.GLEE;
+            }
+            wasHome = home; wasWet = wet;
+            mood.waterJoy = wet ? (home ? 0.85f : 0.65f) : 0;
+            int now = mood.shivering() ? 1 : mood.glum > 0.4f ? 2 : mood.sleepy > 0.5f ? 3 : Math.max(mood.glee,mood.waterJoy) > 0.5f ? 4 : 0;
+            if (now != feeling && now != 0) {
+                beatTicks = 50;
+                beatPose = switch(now) { case 1 -> PoseHint.SHIVER; case 2 -> PoseHint.DROOP; case 3 -> PoseHint.SLEEPY; default -> PoseHint.GLEE; };
+                emotes.add(new Emote(switch(now) { case 1 -> Emote.Kind.FROST; case 2 -> Emote.Kind.SIGH; case 3 -> Emote.Kind.SNORE; default -> Emote.Kind.SPLASH; }, body.pos));
+            }
+            feeling = now;
+            if (beatTicks > 0) beatTicks--;
+            if (expressionTick % 90 == 0 && now > 0 && now < 4)
+                emotes.add(new Emote(now == 1 ? Emote.Kind.FROST : now == 2 ? Emote.Kind.SIGH : Emote.Kind.SNORE,body.pos));
+            if (expressionTick % 40 == 1 && habitat.climate() != Habitat.Climate.HOT && !habitat.equals(Habitat.NONE)
+                    && (world.ambient().place().contains("zone:nether") || world.ambient().place().contains("dim:minecraft:the_nether")))
+                emotes.add(new Emote(Emote.Kind.STEAM,body.pos));
+        }
         private final int side;
         /** This follower's own body length, and its spacing length to the leader. */
         private final float length;
@@ -184,7 +213,14 @@ public final class CompanionGroup {
 
         /** This follower's pose: the leader's, with the leader's mood swapped for its own. */
         public PoseHint pose() {
-            return Mood.memberPose(leader.poseHint(), mood, leader.idleDwelling());
+            PoseHint hint = Mood.memberPose(leader.poseHint(), mood, leader.idleDwelling());
+            if (hint == PoseHint.GLEE || hint == PoseHint.DROOP || hint == PoseHint.SLEEPY && leader.mood().sleepy() > 0.5f) hint = PoseHint.NONE;
+            if (hint == PoseHint.NONE) {
+                if (beatTicks > 0) return beatPose;
+                if (mood.glum > 0.4f) return PoseHint.DROOP;
+                if (mood.sleepy > 0.5f) return PoseHint.SLEEPY;
+            }
+            return hint;
         }
 
         Follower(Body body, int side, long seed, float length) {

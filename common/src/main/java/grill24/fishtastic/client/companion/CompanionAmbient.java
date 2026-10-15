@@ -49,8 +49,10 @@ public final class CompanionAmbient {
 
     // ── The ambient ────────────────────────────────────────────────────────────────────────────
 
-    /** One owner's ambient, with the warmth scan cached between scans. */
-    static final class Sampler {
+    /** Legacy W0 sampler used exclusively by the equal-ground dev cost harness. */
+    public static final class Sampler {
+        public long reads, nanos;
+        public Ambient sampleForCost(Level level, net.minecraft.world.phys.Vec3 eye) { return sample(level, eye); }
         private List<Vec> warmth = List.of();
         private long nextScan = Long.MIN_VALUE;
         private BlockPos scannedAt;
@@ -60,26 +62,30 @@ public final class CompanionAmbient {
             BlockPos pos = BlockPos.containing(eye);
             long now = level.getGameTime();
             if (now >= nextScan || scannedAt == null || scannedAt.distManhattan(pos) > 3) {
+                long start = System.nanoTime();
                 warmth = scanWarmth(level, pos);
+                reads += 1183; nanos += System.nanoTime() - start;
                 nextScan = now + WARM_SCAN_TICKS;
                 scannedAt = pos;
             }
-            return at(level, pos, warmth);
+            return at(level, eye, warmth);
         }
     }
 
-    /** The ambient at {@code pos}, with the given warm points. */
-    static Ambient at(Level level, BlockPos pos, List<Vec> warmth) {
+    /** Ambient at the exact eye; water-zone homes use the same chest sample as OwnerState. */
+    static Ambient at(Level level, net.minecraft.world.phys.Vec3 eye, List<Vec> warmth) {
+        BlockPos pos = BlockPos.containing(eye);
         Holder<Biome> biome = level.getBiome(pos);
         Set<String> place = new HashSet<>();
         biome.unwrapKey().ifPresent(k -> place.add(k.identifier().toString()));
         biome.tags().forEach(tag -> place.add("#" + tag.location()));
-        // Of the fishing zones only the Nether says where a fish is: the rest are water-body
-        // catch-alls (any land column resolves to RIVER), which would make every river fish at home anywhere.
-        if (FishProfile.Zone.resolve(biome, pos.getY(), level.getSeaLevel()).contains(FishProfile.Zone.NETHER)) {
-            place.add(zoneToken(FishProfile.Zone.NETHER));
+        boolean wet = level.getFluidState(BlockPos.containing(eye.subtract(0, grill24.fishsim.companion.OwnerState.CHEST_DROP, 0))).is(FluidTags.WATER);
+        for (FishProfile.Zone z : FishProfile.Zone.resolve(biome, pos.getY(), level.getSeaLevel())) {
+            if (z == FishProfile.Zone.NETHER || z == FishProfile.Zone.CAVE || z == FishProfile.Zone.HIGH_ALTITUDE || wet)
+                place.add(zoneToken(z));
         }
         place.add("dim:" + level.dimension().identifier());
+        if (!level.canSeeSky(pos)) place.add("sky:blocked");
 
         float base = biome.value().getBaseTemperature();
         boolean snows = biome.value().coldEnoughToSnow(pos, level.getSeaLevel());
@@ -94,7 +100,8 @@ public final class CompanionAmbient {
         Ambient.DayPart part = Ambient.DayPart.valueOf(
                 FishProfile.TimeOfDay.fromGameTime(level.getOverworldClockTime()).name());
         int moon = FishMoonPhase.at(level, pos).index();
-        return new Ambient(place, temperature, weather, part, moon, warmth);
+        return new Ambient(place, temperature, weather, part, moon, warmth)
+                .withDarkness(1f - level.getMaxLocalRawBrightness(pos) / 15f);
     }
 
     /** Lit campfires, fire and lava near {@code pos}: the nearest block of each cell, the nearest few cells. */
@@ -135,17 +142,20 @@ public final class CompanionAmbient {
         if (profile.isEmpty()) return Habitat.NONE;
         FishProfile p = profile.get();
         Set<String> homes = new HashSet<>();
-        // Homes are its biomes, and the Nether; its other zones are water bodies, not places (see at()).
+        // Water-zone homes match only wet owner tokens; cave/altitude/Nether are real land places too.
         boolean nether = p.zones().contains(FishProfile.Zone.NETHER);
         if (nether) homes.add(zoneToken(FishProfile.Zone.NETHER));
-        boolean coldHome = false;
+        for (FishProfile.Zone z : p.zones()) homes.add(zoneToken(z));
+        boolean coldHome = p.zones().contains(FishProfile.Zone.HIGH_ALTITUDE);
         for (FishProfile.BiomeWeight w : p.biomeWeights()) {
             if (w.multiplier() < 1f) continue; // a biome it's less likely in isn't a home
             w.biome().unwrap().ifLeft(tag -> homes.add("#" + tag.location()))
                     .ifRight(list -> list.forEach(h -> h.unwrapKey().ifPresent(k -> homes.add(k.identifier().toString()))));
             for (Holder<Biome> b : (HolderSet<Biome>) w.biome()) {
                 if (b.is(BiomeTags.IS_NETHER)) nether = true;
-                if (b.value().getBaseTemperature() < SNOW_BELOW) coldHome = true;
+                if (b.value().getBaseTemperature() < SNOW_BELOW || b.unwrapKey().map(k -> Set.of(
+                        "minecraft:cold_ocean", "minecraft:deep_cold_ocean", "minecraft:frozen_ocean", "minecraft:deep_frozen_ocean")
+                        .contains(k.identifier().toString())).orElse(false)) coldHome = true;
             }
         }
         Map<Ambient.Weather, Float> weather = new EnumMap<>(Ambient.Weather.class);
@@ -159,7 +169,7 @@ public final class CompanionAmbient {
         float fullMoon = 1f;
         for (FishProfile.MoonWeight w : p.moonWeights()) if (w.phase() == FishMoonPhase.FULL_MOON) fullMoon *= w.multiplier();
         Habitat.Climate climate = nether ? Habitat.Climate.HOT
-                : coldHome || weather.getOrDefault(Ambient.Weather.SNOW, 1f) > 1f ? Habitat.Climate.COLD
+                : coldHome ? Habitat.Climate.COLD
                 : Habitat.Climate.TEMPERATE;
         return new Habitat(homes, weather, hours, fullMoon, climate);
     }

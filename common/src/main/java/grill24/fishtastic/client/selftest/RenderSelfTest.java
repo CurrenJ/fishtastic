@@ -148,7 +148,7 @@ public final class RenderSelfTest {
     /** Scenes that run only when the marker names them (they need something the default run lacks). */
     private static final List<String> OPT_IN_SCENES = List.of("matte", "matteclip", "fourwaters", "cathedral",
             "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench",
-            "companionbond", "companionsim", "companionparty", "companioneel", "twoclient", "companionscenes", "companionmoods", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk");
+            "companionbond", "companionsim", "companionparty", "companioneel", "twoclient", "companionscenes", "companionmoods", "companionworld", "companionparticles", "companionworldcost", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk");
 
     private static Boolean armed;
     /** Keep ordinary automatic features from interfering with explicitly armed fixture scenes. */
@@ -387,6 +387,9 @@ public final class RenderSelfTest {
             case "twoclient" -> queueTwoClientScene();
             case "companionscenes" -> queueCompanionScenesScene();
             case "companionmoods" -> queueCompanionMoodsScene();
+            case "companionworld" -> queueCompanionWorldScene();
+            case "companionparticles" -> queueCompanionParticlesScene();
+            case "companionworldcost" -> queueCompanionWorldCostScene();
             case "ambientparity" -> queueAmbientParityScene();
             case "ambientwater" -> queueAmbientWaterScene();
             case "ambientcontext" -> queueAmbientContextScene();
@@ -5093,6 +5096,370 @@ public final class RenderSelfTest {
      * party (temperate bluegill, cold-water arctic char, Nether discus) in plains, then snow
      * (/fillbiome), a campfire, rain, a full-moon midnight with a parrotfish, and the dev trigger.
      */
+    private static void queueCompanionParticlesScene() {
+        queue(1, RenderSelfTest::paradeSetup);
+        var particles = new grill24.fishtastic.client.companion.CompanionParticles();
+        var saved = new net.minecraft.server.level.ParticleStatus[1];
+        long[] decreasedAfter = new long[1];
+        var glintBlock = new BlockPos[1];
+        var glintOriginal = new net.minecraft.world.level.block.state.BlockState[1];
+        queue(1, mc -> {
+            saved[0] = mc.options.particles().get();
+            mc.options.particles().set(net.minecraft.server.level.ParticleStatus.MINIMAL);
+            var p = mc.player.getEyePosition().add(2, 0, 0);
+            particles.emit(mc.level, java.util.List.of(new grill24.fishsim.companion.Emote(
+                    grill24.fishsim.companion.Emote.Kind.NOTE,
+                    new grill24.fishsim.companion.Vec(p.x, p.y, p.z), .5f)));
+            check("companionparticles.minimal", particles.spawned() == 0, "spawned=" + particles.spawned());
+            mc.options.particles().set(net.minecraft.server.level.ParticleStatus.ALL);
+            var c = mc.gameRenderer.getMainCamera().position();
+            particles.emit(mc.level, java.util.List.of(new grill24.fishsim.companion.Emote(
+                    grill24.fishsim.companion.Emote.Kind.NOTE,
+                    new grill24.fishsim.companion.Vec(c.x, c.y, c.z), .5f)));
+            check("companionparticles.near_field", particles.spawned() == 0, "spawned=" + particles.spawned());
+        });
+        for (var kind : grill24.fishsim.companion.Emote.Kind.values()) queue(24, mc -> {
+            var p = mc.player.getEyePosition().add(mc.player.getLookAngle().scale(2));
+            if (kind == grill24.fishsim.companion.Emote.Kind.GLINT) {
+                glintBlock[0] = BlockPos.containing(p);
+                glintOriginal[0] = mc.level.getBlockState(glintBlock[0]);
+                mc.level.setBlockAndUpdate(glintBlock[0], Blocks.GLOWSTONE.defaultBlockState());
+                p = Vec3.atCenterOf(glintBlock[0]);
+            }
+            long before = particles.spawned();
+            var beat = java.util.List.of(new grill24.fishsim.companion.Emote(kind,
+                    new grill24.fishsim.companion.Vec(p.x, p.y, p.z), .75f));
+            particles.emit(mc.level, beat);
+            long after = particles.spawned();
+            particles.emit(mc.level, beat);
+            check("companionparticles." + kind, after > before && particles.spawned() == after, "spawned=" + after);
+            if (kind == grill24.fishsim.companion.Emote.Kind.GLINT)
+                check("companionparticles.glint_outside_opaque_light", particles.lastSpawnPosition() != null
+                        && particles.lastSpawnPosition().y() > glintBlock[0].getY() + 1,
+                        "actual spawn=" + particles.lastSpawnPosition());
+            screenshot(mc, "companionparticles", kind.name().toLowerCase(Locale.ROOT));
+        });
+        queue(24, mc -> {
+            if (glintBlock[0] != null) mc.level.setBlockAndUpdate(glintBlock[0], glintOriginal[0]);
+            mc.options.particles().set(net.minecraft.server.level.ParticleStatus.DECREASED);
+            var p = mc.player.getEyePosition().add(mc.player.getLookAngle().scale(2));
+            var beat = java.util.List.of(new grill24.fishsim.companion.Emote(
+                    grill24.fishsim.companion.Emote.Kind.NOTE,
+                    new grill24.fishsim.companion.Vec(p.x, p.y, p.z), .5f));
+            particles.emit(mc.level, beat);
+            decreasedAfter[0] = particles.spawned();
+        });
+        queue(10, mc -> {
+            var p = mc.player.getEyePosition().add(mc.player.getLookAngle().scale(2));
+            particles.emit(mc.level, java.util.List.of(new grill24.fishsim.companion.Emote(
+                    grill24.fishsim.companion.Emote.Kind.NOTE,
+                    new grill24.fishsim.companion.Vec(p.x, p.y, p.z), .5f)));
+            check("companionparticles.decreased_rate", particles.spawned() == decreasedAfter[0], "spawned=" + particles.spawned());
+            mc.options.particles().set(saved[0]);
+        });
+    }
+
+    private static void queueCompanionWorldScene() {
+        queue(1, RenderSelfTest::paradeSetup);
+        queue(1, mc -> {
+            var identity = new org.joml.Matrix4f();
+            var left = grill24.fishtastic.client.renderer.CompanionFeatureLean.toward(identity, new grill24.fishsim.companion.Vec(-1, 0, 0));
+            var right = grill24.fishtastic.client.renderer.CompanionFeatureLean.toward(identity, new grill24.fishsim.companion.Vec(1, 0, 0));
+            check("companionworld.percher.opposite_lean", left.roll() > 0 && right.roll() < 0, "left=" + left + " right=" + right);
+            for (int frame = 0; frame < 4; frame++) {
+                var matrix = new org.joml.Matrix4f().rotateY(frame * .8f).rotateX(frame * .2f);
+                if (frame % 2 == 1) matrix.scale(-1, -1, 1);
+                for (int side : new int[]{-1, 1}) {
+                    var target = new grill24.fishsim.companion.Vec(side, 0, .3);
+                    var lean = grill24.fishtastic.client.renderer.CompanionFeatureLean.toward(matrix, target);
+                    var up = matrix.transformDirection(new org.joml.Vector3f(0, 1, 0));
+                    var tip = new org.joml.Matrix4f(matrix).rotateX((float) Math.toRadians(lean.pitch()))
+                            .rotateZ((float) Math.toRadians(lean.roll())).transformDirection(new org.joml.Vector3f(0, 1, 0));
+                    check("companionworld.percher.frame" + frame + ".side" + side,
+                            tip.sub(up).dot((float) target.x(), (float) target.y(), (float) target.z()) > 0,
+                            "source-directed lean=" + lean);
+                }
+            }
+        });
+        queue(1, mc -> {
+            mc.options.hideGui = true;
+            server(mc, s -> run(s, asMe(mc) + "tp @s ~ ~ ~ 180 22"));
+        });
+        queue(1, mc -> server(mc, s -> {
+            clearParties(s);
+            run(s, "fishtastic companion give @p fishtastic:bluegill 25 1");
+            run(s, "weather clear 99999");
+        }));
+        queue(100, mc -> grill24.fishtastic.client.companion.ClientCompanions.devOverlay(false));
+        queue(1, mc -> {
+            BlockPos pos = mc.player.blockPosition().offset(3, 0, 0);
+            var songs = mc.level.registryAccess().lookupOrThrow(Registries.JUKEBOX_SONG);
+            var song = songs.listElements().findFirst().orElseThrow();
+            mc.level.levelEvent(1010, pos, songs.getId(song.value()));
+            check("companionworld.jukebox_event_start",
+                    grill24.fishtastic.client.companion.CompanionMusic.features(mc.level, mc.level.getGameTime()).stream()
+                            .anyMatch(f -> f.id() == pos.asLong()), "vanilla event 1010");
+            mc.level.levelEvent(1011, pos, 0);
+            check("companionworld.jukebox_event_stop",
+                    grill24.fishtastic.client.companion.CompanionMusic.features(mc.level, mc.level.getGameTime()).stream()
+                            .noneMatch(f -> f.id() == pos.asLong()), "vanilla event 1011");
+            mc.level.setBlockAndUpdate(pos, Blocks.NOTE_BLOCK.defaultBlockState()
+                    .setValue(net.minecraft.world.level.block.NoteBlock.NOTE, 18));
+            mc.level.blockEvent(pos, Blocks.NOTE_BLOCK, 0, 0);
+            check("companionworld.note_event",
+                    grill24.fishtastic.client.companion.CompanionMusic.features(mc.level, mc.level.getGameTime()).stream()
+                            .anyMatch(f -> f.id() == pos.asLong() && f.music().pitch() == .75f), "vanilla block event");
+            mc.level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+            check("companionworld.note_expiry",
+                    grill24.fishtastic.client.companion.CompanionMusic.features(mc.level, mc.level.getGameTime() + 13).stream()
+                            .noneMatch(f -> f.id() == pos.asLong()), "note expires after pulse");
+            grill24.fishtastic.client.companion.CompanionMusic.jukebox(mc.level, pos, 2);
+            check("companionworld.song_expiry",
+                    grill24.fishtastic.client.companion.CompanionMusic.features(mc.level, mc.level.getGameTime() + 2).isEmpty(), "song length honored");
+            grill24.fishtastic.client.companion.CompanionMusic.note(mc.level, pos, .5f);
+            grill24.fishtastic.client.companion.CompanionMusic.clear();
+            check("companionworld.music_clear",
+                    grill24.fishtastic.client.companion.CompanionMusic.features(mc.level, mc.level.getGameTime()).isEmpty(), "disconnect reset hook clears events");
+        });
+        for (String feature : java.util.List.of("jukebox", "notes", "water", "light", "warm")) {
+            if (feature.equals("warm")) {
+                queue(1, mc -> server(mc, s -> {
+                    run(s, asMe(mc) + "fill ~-6 ~ ~-6 ~6 ~5 ~6 minecraft:air");
+                    run(s, asMe(mc) + "fillbiome ~-12 ~-3 ~-12 ~12 ~8 ~12 minecraft:snowy_plains");
+                    run(s, "time set 6000");
+                }));
+                queue(220, mc -> {
+                    var mood = moodOf("bluegill");
+                    check("companionworld.warm.starts_cold", mood != null && mood.cold() > .5f, moods());
+                    screenshot(mc, "companionworld", "warm-before-fire");
+                });
+            }
+            queue(1, mc -> grill24.fishtastic.client.companion.CompanionMusic.clear());
+            queue(1, mc -> server(mc, s -> {
+                run(s, "time set " + (feature.equals("light") ? "18000" : "6000"));
+                run(s, asMe(mc) + "fill ~-6 ~ ~-6 ~6 ~5 ~6 minecraft:air");
+                if (feature.equals("jukebox")) run(s, asMe(mc) + "setblock ~ ~ ~-2 minecraft:jukebox");
+                if (feature.equals("notes")) run(s, asMe(mc) + "setblock ~ ~ ~-2 minecraft:note_block[note=18]");
+                run(s, asMe(mc) + "fishtastic companion feature " + feature);
+                if (feature.equals("water")) {
+                    run(s, asMe(mc) + "setblock ~1 ~ ~-2 minecraft:stone");
+                    run(s, asMe(mc) + "setblock ~-1 ~ ~-2 minecraft:stone");
+                    run(s, asMe(mc) + "setblock ~ ~ ~-1 minecraft:stone");
+                    run(s, asMe(mc) + "setblock ~ ~ ~-3 minecraft:stone");
+                }
+            }));
+            queue(40, mc -> {
+                if (feature.equals("light")) {
+                    var c = grill24.fishtastic.client.companion.ClientCompanions.local();
+                    check("companionworld.light.settled_darkness", c != null && c.ambient().darkness() > .45f,
+                            c == null ? "no companion" : "darkness=" + c.ambient().darkness());
+                }
+            });
+            boolean[] reacted = {false};
+            boolean[] waterContact = {false};
+            String[] splashPosition = {"no source-specific SPLASH observed"};
+            queue(1, mc -> {
+                int[] clock = {0};
+                tickProbe = client -> {
+                    int tick = clock[0]++;
+                    if (tick >= 180) { tickProbe = null; return; }
+                    if (feature.equals("notes") && tick % 10 == 0)
+                        grill24.fishtastic.client.companion.CompanionFeatureDev.music("notes");
+                    for (var c : grill24.fishtastic.client.companion.ClientCompanions.localCompanions()) {
+                        if (c.agent() == null || !"NOTICE".equals(c.agent().goal())) continue;
+                        var noticed = c.agent().noticedFeature();
+                        int distance = feature.equals("light") ? 5 : feature.equals("warm") ? 4 : 2;
+                        BlockPos source = client.player.blockPosition().relative(client.player.getDirection(), distance);
+                        var expectedKind = feature.equals("jukebox") || feature.equals("notes") ? grill24.fishsim.companion.WorldFeature.Kind.MUSIC
+                                : feature.equals("water") ? grill24.fishsim.companion.WorldFeature.Kind.WATER_SURFACE
+                                : feature.equals("light") ? grill24.fishsim.companion.WorldFeature.Kind.LIGHT
+                                : grill24.fishsim.companion.WorldFeature.Kind.WARMTH;
+                        if (noticed == null || noticed.id() != source.asLong() || noticed.kind() != expectedKind) continue;
+                        if (feature.equals("water")) for (var emote : c.agent().emotes()) {
+                            if (emote.kind() != grill24.fishsim.companion.Emote.Kind.SPLASH) continue;
+                            var pos = emote.pos();
+                            boolean wet = client.level.getFluidState(BlockPos.containing(pos.x(), pos.y(), pos.z()))
+                                    .is(net.minecraft.tags.FluidTags.WATER);
+                            splashPosition[0] = "splash=" + pos + " real_water=" + wet;
+                            if (wet) waterContact[0] = true;
+                        }
+                        if (feature.equals("notes") && noticed.music().source() != grill24.fishsim.companion.WorldFeature.Source.NOTE_BLOCK) continue;
+                        if (feature.equals("jukebox") && noticed.music().source() != grill24.fishsim.companion.WorldFeature.Source.JUKEBOX) continue;
+                        var pose = c.agent().poseHint();
+                        boolean expected = feature.equals("jukebox") || feature.equals("notes")
+                                ? pose == grill24.fishsim.companion.PoseHint.DANCE
+                                : pose == grill24.fishsim.companion.PoseHint.NOSE
+                                    || feature.equals("water") && pose == grill24.fishsim.companion.PoseHint.DIP;
+                        if (expected) reacted[0] = true;
+                    }
+                    if (tick < 80 && tick % 4 == 0)
+                        screenshot(client, "companionworld", feature + "-frame" + String.format(Locale.ROOT, "%02d", tick / 4));
+                };
+            });
+            queue(182, mc -> {
+                tickProbe = null;
+                check("companionworld." + feature + ".reaction", reacted[0],
+                        grill24.fishtastic.client.companion.ClientCompanions.debugState());
+                if (feature.equals("water"))
+                    check("companionworld.water.physical_contact", waterContact[0], splashPosition[0]);
+                if (feature.equals("warm")) {
+                    var mood = moodOf("bluegill");
+                    check("companionworld.warm.basked", mood != null && mood.warmed(), moods());
+                }
+                screenshot(mc, "companionworld", feature);
+                grill24.fishtastic.client.companion.CompanionMusic.stop(mc.level, mc.player.blockPosition().relative(mc.player.getDirection(), 2));
+                grill24.fishtastic.client.companion.ClientCompanions.devMood("off");
+            });
+            queue(100, mc -> {});
+        }
+        queue(1, mc -> server(mc, s -> {
+            run(s, asMe(mc) + "fill ~-6 ~ ~-6 ~6 ~5 ~6 minecraft:air");
+            run(s, asMe(mc) + "fillbiome ~-12 ~-3 ~-12 ~12 ~8 ~12 minecraft:plains");
+        }));
+        queue(220, mc -> {});
+        for (String mood : java.util.List.of("sleepy", "glum")) {
+            boolean[] visiblePose = {false};
+            queue(1, mc -> {
+                grill24.fishtastic.client.companion.ClientCompanions.devMood(mood);
+                int[] clock = {0};
+                tickProbe = client -> {
+                    int tick = clock[0]++;
+                    if (tick >= 140) { tickProbe = null; return; }
+                    if (poseOf("bluegill") == (mood.equals("sleepy") ? grill24.fishsim.companion.PoseHint.SLEEPY
+                            : grill24.fishsim.companion.PoseHint.DROOP)) visiblePose[0] = true;
+                    if (tick >= 60 && tick < 140 && tick % 4 == 0)
+                        screenshot(client, "companionworld", mood + "-frame" + String.format(Locale.ROOT, "%02d", (tick - 60) / 4));
+                };
+            });
+            queue(142, mc -> {
+                tickProbe = null;
+                check("companionworld." + mood + ".pose", visiblePose[0], moods());
+                grill24.fishtastic.client.companion.ClientCompanions.devMood("off");
+            });
+        }
+        queue(1, mc -> {
+            mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
+            server(mc, s -> {
+                clearParties(s);
+                run(s, "fishtastic companion give @p fishtastic:garden_eel 40 1");
+                run(s, "time set 18000");
+            });
+        });
+        queue(140, mc -> {});
+        for (int side : new int[]{-1, 1}) {
+            queue(1, mc -> server(mc, s -> {
+                run(s, asMe(mc) + "fill ~-6 ~ ~-6 ~6 ~5 ~6 minecraft:air");
+                run(s, asMe(mc) + "setblock ~" + (side * 4) + " ~ ~-3 minecraft:sea_lantern");
+            }));
+            boolean[] watched = {false};
+            for (int frame = 0; frame < 8; frame++) {
+                int number = frame;
+                queue(10, mc -> {
+                    var c = grill24.fishtastic.client.companion.ClientCompanions.local();
+                    if (c != null && c.agent() != null && c.agent().poseHint() == grill24.fishsim.companion.PoseHint.WATCH
+                            && c.agent().noticedFeature() != null
+                            && c.agent().noticedFeature().kind() == grill24.fishsim.companion.WorldFeature.Kind.LIGHT
+                            && c.agent().noticedFeature().id() == mc.player.blockPosition().offset(side * 4, 0, -3).asLong()) watched[0] = true;
+                    screenshot(mc, "companionworld", "percher-" + (side < 0 ? "left" : "right") + "-frame" + number);
+                });
+            }
+            queue(1, mc -> check("companionworld.percher." + (side < 0 ? "left" : "right") + ".watch", watched[0],
+                    grill24.fishtastic.client.companion.ClientCompanions.debugState()));
+        }
+        queue(1, mc -> server(mc, s -> {
+            run(s, asMe(mc) + "fill ~-6 ~ ~-6 ~6 ~5 ~6 minecraft:air");
+            run(s, "time set 6000");
+            run(s, asMe(mc) + "fillbiome ~-12 ~-3 ~-12 ~12 ~8 ~12 minecraft:plains");
+            clearParties(s);
+        }));
+        queue(1, mc -> { mc.options.hideGui = false; mc.options.setCameraType(CameraType.FIRST_PERSON); });
+    }
+
+    /** Equal-world A/B: each old sampler and the new shared index see identical owner paths. */
+    private static void queueCompanionWorldCostScene() {
+        queue(1, RenderSelfTest::paradeSetup);
+        queue(1, mc -> grill24.fishtastic.client.companion.CompanionWorldIndexChecks.run(mc.level, mc.player.blockPosition())
+                .forEach((name, detail) -> check("companionworldcost." + name, detail.isEmpty(), detail)));
+        for (String terrain : java.util.List.of("superflat", "village_fixture", "lush_cave_fixture", "ocean_shore_fixture", "nether_fixture")) {
+        queue(1, mc -> server(mc, s -> {
+            run(s, asMe(mc) + "fill ~-10 ~-1 ~-10 ~10 ~4 ~10 minecraft:air");
+            run(s, asMe(mc) + "fill ~-10 ~-1 ~-10 ~10 ~-1 ~10 minecraft:stone");
+            String biome = switch (terrain) {
+                case "lush_cave_fixture" -> "lush_caves";
+                case "ocean_shore_fixture" -> "ocean";
+                case "nether_fixture" -> "nether_wastes";
+                default -> "plains";
+            };
+            run(s, asMe(mc) + "fillbiome ~-12 ~-3 ~-12 ~12 ~8 ~12 minecraft:" + biome);
+            String block = switch (terrain) {
+                case "village_fixture" -> "minecraft:oak_planks";
+                case "lush_cave_fixture" -> "minecraft:moss_block";
+                case "ocean_shore_fixture" -> "minecraft:water";
+                case "nether_fixture" -> "minecraft:netherrack";
+                default -> "minecraft:stone";
+            };
+            run(s, asMe(mc) + "fill ~2 ~ ~-8 ~8 ~ ~8 " + block);
+            if (terrain.equals("village_fixture")) {
+                run(s, asMe(mc) + "setblock ~2 ~1 ~ minecraft:campfire");
+                run(s, asMe(mc) + "setblock ~4 ~1 ~ minecraft:lantern");
+            } else if (terrain.equals("lush_cave_fixture")) {
+                run(s, asMe(mc) + "fill ~2 ~3 ~-8 ~8 ~3 ~8 minecraft:glow_lichen[down=true]");
+                run(s, asMe(mc) + "fill ~2 ~ ~2 ~4 ~ ~4 minecraft:water");
+            } else if (terrain.equals("nether_fixture")) {
+                run(s, asMe(mc) + "fill ~2 ~ ~2 ~4 ~ ~4 minecraft:lava");
+                run(s, asMe(mc) + "setblock ~6 ~1 ~ minecraft:shroomlight");
+            }
+        }));
+        queue(100, mc -> {});
+        for (String scenario : java.util.List.of("standing", "walking", "sprinting", "party3", "secondowner")) {
+            var legacy = new grill24.fishtastic.client.companion.CompanionAmbient.Sampler[scenario.equals("party3") ? 3 : scenario.equals("secondowner") ? 2 : 1];
+            for (int i = 0; i < legacy.length; i++) legacy[i] = new grill24.fishtastic.client.companion.CompanionAmbient.Sampler();
+            var index = new grill24.fishtastic.client.companion.WorldFeatureIndex[1];
+            long[] totals = new long[8]; // steady old/new reads, old/new peak, old/new worst ns; all-tick index peak/worst ns
+            queue(1, mc -> {
+                index[0] = new grill24.fishtastic.client.companion.WorldFeatureIndex(mc.level);
+                int[] clock = {0};
+                tickProbe = client -> {
+                    final int tick = clock[0]++;
+                    if (tick >= 400) { tickProbe = null; return; }
+                    double speed = scenario.equals("walking") ? .215 : scenario.equals("sprinting") ? .28 : 0;
+                    double path = tick * speed % 32;
+                    var eye = mc.player.getEyePosition().add(path <= 16 ? path - 8 : 24 - path, 0, 0);
+                    var owners = new java.util.ArrayList<BlockPos>();
+                    long reads = 0, nanos = 0;
+                    for (int i = 0; i < legacy.length; i++) {
+                        var p = scenario.equals("secondowner") ? eye.add(i * 4, 0, 0) : eye;
+                        long r = legacy[i].reads, n = legacy[i].nanos;
+                        legacy[i].sampleForCost(mc.level, p);
+                        reads += legacy[i].reads - r; nanos += legacy[i].nanos - n;
+                        owners.add(BlockPos.containing(p));
+                    }
+                    index[0].tick(owners);
+                    for (BlockPos owner : new java.util.LinkedHashSet<>(owners)) index[0].features(owner, 10);
+                    var cost = index[0].cost();
+                    totals[6] = Math.max(totals[6], cost.reads());
+                    totals[7] = Math.max(totals[7], cost.nanos());
+                    if (tick >= 200) {
+                        totals[0] += reads; totals[1] += cost.reads();
+                        totals[2] = Math.max(totals[2], reads); totals[3] = Math.max(totals[3], cost.reads());
+                        totals[4] = Math.max(totals[4], nanos); totals[5] = Math.max(totals[5], cost.nanos());
+                    }
+                };
+            });
+            queue(402, mc -> {
+                tickProbe = null;
+                Fishtastic.LOGGER.info("[selftest] worldcost terrain={} scenario={} old steady_mean={} steady_peak={} steady_worst_us={} index steady_mean={} steady_peak={} steady_worst_us={} discovery_peak={} discovery_worst_us={}",
+                        terrain, scenario, totals[0] / 200.0, totals[2], totals[4] / 1000.0, totals[1] / 200.0,
+                        totals[3], totals[5] / 1000.0, totals[6], totals[7] / 1000.0);
+                check("companionworldcost." + terrain + "." + scenario + ".budget",
+                        totals[6] <= grill24.fishtastic.client.companion.WorldFeatureIndex.READ_BUDGET, "peak=" + totals[6]);
+                if (scenario.equals("standing") || scenario.equals("party3") || scenario.equals("secondowner"))
+                    check("companionworldcost." + scenario + ".zero_standing", totals[1] == 0, "reads=" + totals[1]);
+            });
+        }
+        }
+    }
+
     private static void queueCompanionMoodsScene() {
         queue(1, RenderSelfTest::paradeSetup);
         queue(1, mc -> grill24.fishtastic.client.companion.ClientCompanions.devOverlay(true));

@@ -680,7 +680,7 @@ final class GroundMind {
     private void tryGapHop(LocalVoxels v) {
         // Only further along the way than it can walk to, and only somewhere it can't walk: a hop
         // is for getting across, not about.
-        int newest = via >= 0 ? via : trail.size();
+        int newest = via >= 0 ? Math.min(via, trail.size()) : trail.size();
         for (int i = 0; i < newest; i++) {
             Vec c = trail.get(i);
             double d = c.distanceTo(g.pos);

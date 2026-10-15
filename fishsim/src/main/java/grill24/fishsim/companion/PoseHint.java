@@ -7,6 +7,7 @@ package grill24.fishsim.companion;
  */
 public enum PoseHint {
     NONE,
+    DANCE, DIP, DROOP, GLEE,
     /** A rod in the hand: eager, watching the rod tip. */
     EXCITED,
     /** Bait in the hand: begging. */

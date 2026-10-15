@@ -7,6 +7,8 @@
     "AbstractContainerScreenMixin",
     "AvatarRendererMixin",
     "ClientLevelCompanionMixin",
+    "LevelEventCompanionMixin",
+    "NoteBlockCompanionMixin",
     "FishingHookRendererMixin",
     "GameRendererMixin",
     "GuiGraphicsMixin",

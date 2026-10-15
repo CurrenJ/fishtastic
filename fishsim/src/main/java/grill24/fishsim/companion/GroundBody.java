@@ -140,10 +140,16 @@ final class GroundBody extends Motor {
     void walk(Vec target, double wantSpeed, Rhythm rhythm, Vec push, float faceYaw, LocalVoxels v) {
         phaseTicks++;
         impulse = false;
+        waterSplash = false;
         lastImpulse = 0;
         backstopLastStep = false;
         lastImpact = 0;
         Vec before = vel;
+        if (notePitch >= 0) {
+            double apex = 0.15 + 0.4 * notePitch; notePitch = -1;
+            double time = arcTime(pos,pos,apex,v);
+            if (time > 0) { hopLanding = pos; hopRise = 0; launchArc(time,apex); }
+        }
         advanceRhythm(rhythm);
         advanceWander();
         switch (phase) {
@@ -568,6 +574,7 @@ final class GroundBody extends Motor {
         float err = Math.abs(Body.wrap((float) to.yawDeg() - yaw));
         if (phaseTicks >= ticks && speed < 0.4 && (to.horizontalLength() < 1e-3 || err < 4f)) launch(v);
         else if (phaseTicks > 40) {
+            waterReturn = null;
             hopLanding = null; // couldn't line it up: give up and walk on
             enter(Phase.WALK);
         }
@@ -598,6 +605,7 @@ final class GroundBody extends Motor {
             }
         }
         if (T < 0) {
+            waterReturn = null;
             hopLanding = null;
             enter(Phase.WALK);
             stepCooldown = 20;
@@ -644,7 +652,34 @@ final class GroundBody extends Motor {
         return T;
     }
 
+    private float notePitch = -1;
+    /** A note pulse launches during the next motor tick, preserving impulse accounting. */
+    boolean notePulse(float pitch) {
+        if (!onFloor()) return false;
+        notePitch = Math.max(0,Math.min(1,pitch)); return true;
+    }
+    private Vec waterReturn;
+    boolean waterSplash;
+    /** A checked out-and-back hop; the water surface reverses the fall with a swim impulse. */
+    boolean dipTo(Vec water, LocalVoxels v) {
+        if (!onFloor() || waterReturn != null || water.distanceTo(pos) > 2) return false;
+        Vec shore = pos;
+        double out = arcTime(shore, water, 0.4, v);
+        double back = arcTime(water, shore, Math.max(0,shore.y()-water.y())+0.4, v);
+        if (out < 0 || back < 0 || !v.water(water)) return false;
+        if (!hopTo(water, v)) return false;
+        waterReturn = shore;
+        return true;
+    }
+
     private void fly(LocalVoxels v) {
+        if (waterReturn != null && vel.y() < 0 && v.water(pos)) {
+            Vec shore = waterReturn;
+            waterReturn = null;
+            double apex = Math.max(0, shore.y() - pos.y()) + 0.4;
+            double time = arcTime(pos, shore, apex, v);
+            if (time > 0) { hopLanding = shore; hopRise = shore.y() - pos.y(); launchArc(time, apex); waterSplash = true; return; }
+        }
         if (climb && hopLanding != null) {
             Vec[] next = climbStep(pos, vel, hopLanding);
             vel = next[1];
@@ -785,6 +820,7 @@ final class GroundBody extends Motor {
         impulse = true;
         squash = (float) Math.min(1, 0.4 + Math.max(0, -before.y()) * 0.08);
         hopLanding = null;
+        waterReturn = null;
         climb = false;
         enter(Phase.LAND);
     }
@@ -916,6 +952,7 @@ final class GroundBody extends Motor {
         forwardAccel = 0;
         squash = 0f;
         hopLanding = null;
+        waterReturn = null;
         climb = false;
     }
 

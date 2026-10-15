@@ -277,14 +277,19 @@ class MoodTest {
 
     /** Sleepy: it settles sooner once its owner stands about, and idles slower. */
     @Test
-    void aSleepyFishSettlesSoonerAndIdlesSlower() {
+    void aSleepyFishSettlesSoonerAndShowsItsDrowsiness() {
         for (String s : IDLE) for (long seed = 1; seed <= 3; seed++) {
             Watch sleepy = watch(s, seed, Locomotion.FREE_SWIM, "sleepy");
             Watch base = watch(s, seed, Locomotion.FREE_SWIM, null);
             String at = s + "#" + seed;
             assertTrue(sleepy.firstRest >= 0 && sleepy.firstRest < base.firstRest - 6 * 20,
                     at + " settled at " + sleepy.firstRest / 20.0 + "s vs " + base.firstRest / 20.0 + "s");
-            assertTrue(sleepy.speed < base.speed * 0.92, at + " speed " + sleepy.speed + " vs " + base.speed);
+            // World rework deliberately removed hidden dwell/curiosity/band multipliers.
+            CompanionRun look = new CompanionRun(s, seed, Locomotion.FREE_SWIM, CompanionTunables.defaults(), true);
+            MoodScenes.apply(look, MoodScenes.named("sleepy"), look.owner.feet());
+            look.run(600);
+            assertTrue(look.samples.stream().filter(sample -> sample.pose().equals("SLEEPY")).count() > 200,
+                    at + " sleepy has its own sustained, drawn pose");
         }
     }
 

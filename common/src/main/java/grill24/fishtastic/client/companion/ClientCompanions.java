@@ -101,8 +101,9 @@ public final class ClientCompanions {
         long tick(ClientLevel level, CompanionWorldAdapter.LevelBlocks blocks, List<PointOfInterest> devPoints) {
             int n = companions.size();
             CompanionWorld[] worlds = new CompanionWorld[n];
+            var ownerAmbient = CompanionAmbient.at(level, companions.get(0).featureEye(), List.of());
             for (int i = 0; i < n; i++) {
-                worlds[i] = companions.get(i).world(level, blocks, othersNear(this, companions.get(i)), devPoints);
+                worlds[i] = companions.get(i).world(level, blocks, othersNear(this, companions.get(i)), devPoints, ownerAmbient);
             }
             long start = System.nanoTime();
             if (layer == null) {
@@ -160,6 +161,8 @@ public final class ClientCompanions {
     /** Dev-only companions with no owner, round an imaginary still owner — a stand-in for another player's. */
     private static final Map<UUID, OwnerParty> PHANTOMS = new HashMap<>();
     @Nullable private static ClientLevel trackedLevel;
+    @Nullable private static WorldFeatureIndex featureIndex;
+    public static WorldFeatureIndex featureIndex() { return featureIndex; }
     @Nullable private static CompanionWorldAdapter.LevelBlocks blocks;
     /** Another companion counts as a point of interest within this range of an owner, blocks. */
     private static final double COMPANION_RANGE = 16.0;
@@ -198,7 +201,9 @@ public final class ClientCompanions {
             PARTIES.clear();
             PHANTOMS.clear();
             CompanionDevPoints.clear();
+            CompanionMusic.clear();
             trackedLevel = level;
+            featureIndex = level == null ? null : new WorldFeatureIndex(level);
             blocks = level == null ? null : new CompanionWorldAdapter.LevelBlocks(level);
             lastSamples = lastSampleNanos = 0;
         }
@@ -222,6 +227,9 @@ public final class ClientCompanions {
 
         CompanionDevPoints.tick(level);
         List<PointOfInterest> devPoints = CompanionDevPoints.points();
+        List<BlockPos> featureOwners = new ArrayList<>();
+        for (OwnerParty p : parties()) for (ClientCompanion c : p.companions()) featureOwners.add(c.featureOwner());
+        featureIndex.tick(featureOwners.stream().distinct().toList());
         long step = 0;
         for (OwnerParty party : parties()) step += party.tick(level, blocks, devPoints);
         recordCost(step);
@@ -307,13 +315,19 @@ public final class ClientCompanions {
 
     /** A block changed on the client: every companion forgets the blocks it sampled (cheap; resampled lazily). */
     public static void onBlockChanged(BlockPos pos) {
+        if (featureIndex != null) featureIndex.changed(pos);
         if (PARTIES.isEmpty() && PHANTOMS.isEmpty()) return;
         for (ClientCompanion companion : all()) companion.invalidateBlocks();
     }
 
     /** A chunk arrived: cells sampled while it was missing read as air, so forget them. */
     public static void onChunkLoaded(ChunkPos pos) {
-        onBlockChanged(BlockPos.ZERO);
+        if (featureIndex != null) featureIndex.chunkChanged(pos);
+        for (ClientCompanion companion : all()) companion.invalidateBlocks();
+    }
+
+    public static void onChunkUnloaded(ChunkPos pos) {
+        if (featureIndex != null) featureIndex.chunkChanged(pos);
     }
 
     /** The fishing-event packet's landing point. Fishing reactions are deferred (plan §5); ignored for now. */

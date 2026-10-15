@@ -56,6 +56,18 @@ public final class CompanionRun {
     public CompanionWorld world;
     public final List<Sample> samples = new ArrayList<>();
     private final boolean record;
+    private String worldScene;
+    private Vec featureAnchor;
+    private long worldTick;
+    private long screenTicks, reactionTicks;
+    public void worldScene(String name) {
+        if (!WorldScenes.NAMES.contains(name)) throw new IllegalArgumentException(name);
+        worldScene = name; featureAnchor = owner.feet(); agent.habitat(WorldScenes.habitat(name));
+        if (name.equals("water")) scene.addWorldWater(featureAnchor.add(0.7,0,2.5));
+    }
+    /** Share of visible ticks carrying a distinct pose, emote or active Notice performance. */
+    public double reactionShare() { return screenTicks == 0 ? 0 : (double) reactionTicks / screenTicks; }
+
 
     public CompanionRun(String scriptName, long seed, CompanionTunables tunables, boolean record) {
         this(scriptName, seed, Locomotion.FREE_SWIM, tunables, record);
@@ -178,7 +190,7 @@ public final class CompanionRun {
     private int sceneVersion;
 
     public void tick() {
-        world = script.nextWorld();
+        world = WorldScenes.apply(script.nextWorld(), worldScene, featureAnchor, worldTick++);
         owner = world.owner();
         // A door shuts only once nothing is in the doorway; any block change refreshes what's cached.
         scene.applyDoor(d -> doorClear(d));
@@ -200,6 +212,7 @@ public final class CompanionRun {
         } else {
             agent.step(world);
         }
+        if (seenNow()) { screenTicks++; if (agent.reacting()) reactionTicks++; }
         if (record) {
             samples.add(new Sample(owner, agent.position(), agent.velocity(), agent.acceleration(),
                     agent.yaw(), agent.pitch(), agent.bank(), agent.lastTurnDeg(), agent.goal(),

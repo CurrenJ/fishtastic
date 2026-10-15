@@ -25,7 +25,7 @@ import java.util.Set;
  * @param warmth      warm things near the owner (campfires, fire, lava), block centres
  */
 public record Ambient(Set<String> place, float temperature, Weather weather, DayPart dayPart, int moonPhase,
-                      List<Vec> warmth) {
+                      List<Vec> warmth, float darkness) {
 
     /** As fish profiles' {@code weather_weights} name it. SNOW is rain where it's cold enough to snow. */
     public enum Weather { CLEAR, RAIN, SNOW, THUNDER }
@@ -35,7 +35,16 @@ public record Ambient(Set<String> place, float temperature, Weather weather, Day
 
     public static final Ambient NEUTRAL = new Ambient(Set.of(), Float.NaN, Weather.CLEAR, null, -1, List.of());
 
+    public Ambient(Set<String> place, float temperature, Weather weather, DayPart dayPart, int moonPhase, List<Vec> warmth) {
+        this(place, temperature, weather, dayPart, moonPhase, warmth, Float.NaN);
+    }
+
+    public Ambient withDarkness(float darkness) {
+        return new Ambient(place, temperature, weather, dayPart, moonPhase, warmth, darkness);
+    }
+
     public Ambient {
+        if (!Float.isNaN(darkness)) darkness = Math.max(0, Math.min(1, darkness));
         place = Set.copyOf(place);
         warmth = List.copyOf(warmth);
     }
@@ -45,18 +54,18 @@ public record Ambient(Set<String> place, float temperature, Weather weather, Day
     }
 
     public Ambient withPlace(Set<String> place, float temperature) {
-        return new Ambient(place, temperature, weather, dayPart, moonPhase, warmth);
+        return new Ambient(place, temperature, weather, dayPart, moonPhase, warmth, darkness);
     }
 
     public Ambient withWeather(Weather weather) {
-        return new Ambient(place, temperature, weather, dayPart, moonPhase, warmth);
+        return new Ambient(place, temperature, weather, dayPart, moonPhase, warmth, darkness);
     }
 
     public Ambient withTime(DayPart dayPart, int moonPhase) {
-        return new Ambient(place, temperature, weather, dayPart, moonPhase, warmth);
+        return new Ambient(place, temperature, weather, dayPart, moonPhase, warmth, darkness);
     }
 
     public Ambient withWarmth(List<Vec> warmth) {
-        return new Ambient(place, temperature, weather, dayPart, moonPhase, warmth);
+        return new Ambient(place, temperature, weather, dayPart, moonPhase, warmth, darkness);
     }
 }

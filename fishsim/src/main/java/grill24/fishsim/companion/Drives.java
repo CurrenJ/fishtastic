@@ -232,7 +232,7 @@ final class Drives {
             see(i, p.pos(), p.vel(), p.radius());
         }
         if (mood.wantsWarmth) {
-            for (Vec p : w.ambient().warmth()) {
+            for (Vec p : w.moodAmbient().warmth()) {
                 if (p.distanceTo(chest) > SENSE_RANGE) continue;
                 long key = WARMTH_KEY | (((long) Math.floor(p.x()) & 0x1FFFFF) << 42)
                         | (((long) Math.floor(p.y()) & 0x1FFFFF) << 21) | ((long) Math.floor(p.z()) & 0x1FFFFF);
