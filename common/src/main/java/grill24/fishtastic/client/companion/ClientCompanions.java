@@ -133,6 +133,8 @@ public final class ClientCompanions {
         final long startTime;
         /** Client ticks waited, not game time: a loaded client's synced clock can jump. */
         int waited;
+        /** The game time it arrived at, for the log (how far the synced clock moved while it waited). */
+        long arrivedGameTime;
 
         PendingScene(CompanionSceneType type, UUID first, int firstSlot, UUID second, int secondSlot, long startTime) {
             this.type = type;
@@ -332,7 +334,9 @@ public final class ClientCompanions {
         devLastScene = scene + " " + first + "#" + firstSlot + " + " + second + "#" + secondSlot + " @" + startTime;
         ClientLevel level = Minecraft.getInstance().level;
         if (level == null) return;
-        PENDING_SCENES.add(new PendingScene(scene, first, firstSlot, second, secondSlot, startTime));
+        PendingScene pending = new PendingScene(scene, first, firstSlot, second, secondSlot, startTime);
+        pending.arrivedGameTime = level.getGameTime();
+        PENDING_SCENES.add(pending);
     }
 
     /** Starts every waiting scene whose two parties now have sims; drops those that waited too long. */
@@ -346,6 +350,8 @@ public final class ClientCompanions {
                 return true;
             }
             CrossScene.Kind kind = p.type == CompanionSceneType.G1_SAME_SPECIES ? CrossScene.Kind.RING : CrossScene.Kind.EIGHT;
+            grill24.fishtastic.Fishtastic.LOGGER.info("[companion] scene {} started after {} client ticks; game time moved {}",
+                    p.type, p.waited, level.getGameTime() - p.arrivedGameTime);
             startScene(a, kind, 0, p.firstSlot, p.startTime, p.second, p.secondSlot);
             startScene(b, kind, 1, p.secondSlot, p.startTime, p.first, p.firstSlot);
             scenesStarted++;

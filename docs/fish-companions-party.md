@@ -1223,8 +1223,12 @@ checked with two real views, not only the ghost owner.
     and the eight ends "done" on both at the same moment. All checks pass on Fabric and NeoForge.
   - One NeoForge two-client run failed on client B only: it got the packet but never started its
     side, while A played the scene. B was the loaded one (started 45 s late). The pending wait was
-    measured on the synced game clock, which a lagging client can see jump; it now counts client
-    ticks (40) and logs any drop. Not reproduced since: NeoForge passed twice after, Fabric again.
+    measured on the synced game clock (drop after 20 game ticks). Confirmed by logging the clock
+    against client ticks for every waiting scene: on the joining client B the game time jumps
+    13–17 ticks while the scene waits a single client tick (3 runs; client A: 0), leaving 3–7 ticks
+    of margin, so a slightly larger jump under load drops the scene silently, as seen. The wait now
+    counts client ticks (40), and every start logs both numbers and every drop is logged. Since the
+    fix: NeoForge two-client 5/5 runs pass on both clients, Fabric 2/2.
   - Solo runs of every companion self-test (`companionbond, companionsim, companionparty,
     companioneel, companionscenes`): 71/71 on Fabric and on NeoForge. Game tests: Fabric 369/369,
     NeoForge 363/363.
