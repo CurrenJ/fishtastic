@@ -148,7 +148,7 @@ public final class RenderSelfTest {
     /** Scenes that run only when the marker names them (they need something the default run lacks). */
     private static final List<String> OPT_IN_SCENES = List.of("matte", "matteclip", "fourwaters", "cathedral",
             "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench",
-            "companionbond", "companionsim", "companionparty", "companioneel", "twoclient", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk");
+            "companionbond", "companionsim", "companionparty", "companioneel", "twoclient", "companionscenes", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk");
 
     private static Boolean armed;
     /** Keep ordinary automatic features from interfering with explicitly armed fixture scenes. */
@@ -385,6 +385,7 @@ public final class RenderSelfTest {
             case "companionparty" -> queueCompanionPartyScene();
             case "companioneel" -> queueCompanionEelScene();
             case "twoclient" -> queueTwoClientScene();
+            case "companionscenes" -> queueCompanionScenesScene();
             case "ambientparity" -> queueAmbientParityScene();
             case "ambientwater" -> queueAmbientWaterScene();
             case "ambientcontext" -> queueAmbientContextScene();
@@ -4669,11 +4670,190 @@ public final class RenderSelfTest {
             STEPS.addFirst(new Step(20, scenePoll[0]));
         };
         queue(1, scenePoll[0]);
+        // The scene plays on this client (party spec §28): its own fish on the path after the
+        // greeting, the other player's fish in the scene too (this client simulates both), and
+        // the eight running to its end.
+        queueUntil("twoclient.local_on_path", 400, mc -> {
+            String sc = grill24.fishtastic.client.companion.ClientCompanions.devLocalScene();
+            if (sc == null || !sc.startsWith("EIGHT") || !sc.contains("leader SCENE")) return false;
+            return Integer.parseInt(sc.replaceAll(".* t(\\d+) .*", "$1")) > grill24.fishsim.companion.CrossScene.GREET_TICKS + 10;
+        }, RenderSelfTest::localScene);
+        queue(1, mc -> {
+            Player peer = mc.level.players().stream().filter(pl -> pl != mc.player).findFirst().orElse(null);
+            var theirs = peer == null ? List.<grill24.fishtastic.client.companion.ClientCompanion>of()
+                    : grill24.fishtastic.client.companion.ClientCompanions.companionsOf(peer);
+            String goal = theirs.isEmpty() || theirs.get(0).agent() == null ? "none" : theirs.get(0).agent().goal();
+            check("twoclient.remote_in_scene", "SCENE".equals(goal), "peer's fish: " + goal);
+            mc.gui.getChat().clearMessages(false);
+            screenshot(mc, "twoclient", (a ? "a" : "b") + "_scene");
+        });
+        queueUntil("twoclient.scene_done", 500, mc -> "EIGHT done".equals(
+                grill24.fishtastic.client.companion.ClientCompanions.devLastSceneEnd), RenderSelfTest::localScene);
         queue(20, mc -> mc.options.setCameraType(CameraType.THIRD_PERSON_BACK));
         queue(30, mc -> screenshot(mc, "twoclient", (a ? "a" : "b") + "_tp"));
         queue(1, mc -> mc.options.setCameraType(CameraType.FIRST_PERSON));
         // Linger so the peer's shots and checks still find this player.
         queue(400, mc -> note("twoclient done, " + mc.level.players().size() + " players"));
+    }
+
+    /**
+     * Polls {@code cond} every 5 ticks for up to {@code maxTicks}, then records {@code name} as a
+     * check with {@code detail} (and how long it took).
+     */
+    @SuppressWarnings("unchecked")
+    private static void queueUntil(String name, int maxTicks, java.util.function.Predicate<Minecraft> cond,
+                                   java.util.function.Supplier<String> detail) {
+        final int[] waited = {0};
+        final Consumer<Minecraft>[] poll = new Consumer[1];
+        poll[0] = mc -> {
+            boolean ok = cond.test(mc);
+            if (ok || (waited[0] += 5) > maxTicks) {
+                check(name, ok, detail.get() + " (" + waited[0] + " ticks)");
+                return;
+            }
+            STEPS.addFirst(new Step(5, poll[0]));
+        };
+        queue(1, poll[0]);
+    }
+
+    /** A command prefix that runs as this client's own player, by name (never @p: the ghost can be nearer). */
+    private static String asMe(Minecraft mc) {
+        String n = mc.player.getName().getString();
+        return "execute as " + n + " at " + n + " run ";
+    }
+
+    /** The ghost owner as this client sees it, or null. */
+    private static Player ghostPlayer(Minecraft mc) {
+        if (mc.level == null) return null;
+        for (Player p : mc.level.players()) {
+            if (p.getName().getString().equals(grill24.fishtastic.server.CompanionGhost.NAME)) return p;
+        }
+        return null;
+    }
+
+    private static String localScene() {
+        String s = grill24.fishtastic.client.companion.ClientCompanions.devLocalScene();
+        return s == null ? "none (last ended: " + grill24.fishtastic.client.companion.ClientCompanions.devLastSceneEnd + ")" : s;
+    }
+
+    private static void shoot(Minecraft mc, String shot) {
+        mc.gui.getChat().clearMessages(false);
+        screenshot(mc, "companionscenes", shot);
+    }
+
+    /**
+     * Cross-player scenes alone (party spec §28.3, D31): the ghost owner walks up with a discus
+     * while the local player has a bluegill, the real scheduler starts G2, and the bluegill greets
+     * and swims the eight; then a bluegill ghost and a forced G1 (with the bubble heart), a packet
+     * 120 ticks late joining mid-path, and the ghost walking off ending a scene.
+     */
+    private static void queueCompanionScenesScene() {
+        queue(1, RenderSelfTest::paradeSetup);
+        queue(1, mc -> grill24.fishtastic.client.companion.ClientCompanions.devOverlay(true));
+        queue(1, mc -> server(mc, s -> {
+            clearParties(s);
+            run(s, "fishtastic companion give @p fishtastic:bluegill 20 1");
+            run(s, asMe(mc) + "fishtastic companion ghost add fishtastic:discus");
+        }));
+        queueUntil("companionscenes.ghost_party", 300, mc -> {
+            Player g = ghostPlayer(mc);
+            return g != null && !grill24.fishtastic.client.companion.ClientCompanions.companionsOf(g).isEmpty();
+        }, () -> "ghost " + (ghostPlayer(Minecraft.getInstance()) != null));
+        final int[] before = new int[2];
+        queue(1, mc -> {
+            before[0] = grill24.fishtastic.client.companion.ClientCompanions.scenesStarted;
+            before[1] = grill24.fishtastic.client.companion.ClientCompanions.heartsSpawned;
+        });
+        // The real scheduler: the ghost walks into range and G2 starts by itself.
+        queueUntil("companionscenes.g2_scheduled", 400,
+                mc -> localScene().startsWith("EIGHT"), RenderSelfTest::localScene);
+        queue(CrossSceneTicks.GREET + 30, mc -> {
+            String sc = localScene();
+            check("companionscenes.g2_on_path", sc.contains("leader SCENE") && !sc.contains("left:"), sc);
+            shoot(mc, "g2_fp");
+        });
+        queue(20, mc -> mc.options.setCameraType(CameraType.THIRD_PERSON_BACK));
+        queue(20, mc -> shoot(mc, "g2_tp"));
+        queue(1, mc -> mc.options.setCameraType(CameraType.FIRST_PERSON));
+        queueUntil("companionscenes.g2_done", 600, mc -> "EIGHT done".equals(
+                grill24.fishtastic.client.companion.ClientCompanions.devLastSceneEnd), RenderSelfTest::localScene);
+        // G1: a bluegill ghost, the scene forced (the pair is on cooldown now).
+        queue(1, mc -> server(mc, s -> run(s, asMe(mc) + "fishtastic companion ghost add fishtastic:bluegill")));
+        queue(80, mc -> server(mc, s -> run(s, asMe(mc) + "fishtastic companion ghost scene g1")));
+        queueUntil("companionscenes.g1_started", 100, mc -> localScene().startsWith("RING"), RenderSelfTest::localScene);
+        // Face the ghost, a little up, so the ring and the heart between the two players are in shot.
+        queue(1, mc -> {
+            Player g = ghostPlayer(mc);
+            if (g == null) return;
+            double dx = g.getX() - mc.player.getX(), dz = g.getZ() - mc.player.getZ();
+            float yaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
+            mc.player.setYRot(yaw);
+            mc.player.setYHeadRot(yaw);
+            mc.player.setXRot(-15f);
+            note(String.format(Locale.ROOT, "ghost at %.1f %.1f %.1f, me at %.1f %.1f %.1f, %.1f blocks", g.getX(), g.getY(),
+                    g.getZ(), mc.player.getX(), mc.player.getY(), mc.player.getZ(), Math.sqrt(dx * dx + dz * dz)));
+        });
+        queueUntil("companionscenes.g1_heart", 200,
+                mc -> grill24.fishtastic.client.companion.ClientCompanions.heartsSpawned > before[1],
+                () -> "hearts " + grill24.fishtastic.client.companion.ClientCompanions.heartsSpawned);
+        queue(2, mc -> {
+            // The heart's bubbles are in open air here (vanilla's would be gone after one tick).
+            var bubbles = grill24.fishtastic.client.companion.ClientCompanions.devHeartBubbles;
+            long inAir = bubbles.stream().filter(b -> {
+                net.minecraft.world.phys.AABB box = b.getBoundingBox();
+                return mc.level.getFluidState(BlockPos.containing(box.getCenter())).isEmpty();
+            }).count();
+            check("companionscenes.heart_bubbles_in_air", bubbles.size() == 32 && inAir == bubbles.size(),
+                    bubbles.size() + " bubbles, " + inAir + " in air");
+            shoot(mc, "g1_heart");
+        });
+        // Vanilla's bubble removes itself on its first tick out of water; these must outlive that.
+        // Later they pop as they reach their height (0.5 up, at a random rise), so a few have gone by 1 s.
+        queue(1, mc -> {
+            var bubbles = grill24.fishtastic.client.companion.ClientCompanions.devHeartBubbles;
+            long alive = bubbles.stream().filter(net.minecraft.client.particle.Particle::isAlive).count();
+            check("companionscenes.heart_bubbles_live_in_air", alive == bubbles.size() && !bubbles.isEmpty(),
+                    alive + " of " + bubbles.size() + " alive 3 ticks after the heart");
+        });
+        queue(17, mc -> {
+            var bubbles = grill24.fishtastic.client.companion.ClientCompanions.devHeartBubbles;
+            long alive = bubbles.stream().filter(net.minecraft.client.particle.Particle::isAlive).count();
+            note("heart bubbles alive after 1 s: " + alive + " of " + bubbles.size());
+            shoot(mc, "g1_heart_later");
+        });
+        queue(20, mc -> {
+            String sc = localScene();
+            check("companionscenes.g1_on_path", sc.contains("leader SCENE") && !sc.contains("left:"), sc);
+            shoot(mc, "g1_ring");
+        });
+        queueUntil("companionscenes.g1_done", 300, mc -> "RING done".equals(
+                grill24.fishtastic.client.companion.ClientCompanions.devLastSceneEnd), RenderSelfTest::localScene);
+        // A packet 120 ticks late joins mid-path, past the greeting.
+        queue(1, mc -> server(mc, s -> run(s, asMe(mc) + "fishtastic companion ghost scene g2 120")));
+        queueUntil("companionscenes.late_joins_mid_path", 60, mc -> {
+            String sc = grill24.fishtastic.client.companion.ClientCompanions.devLocalScene();
+            if (sc == null || !sc.startsWith("EIGHT")) return false;
+            int t = Integer.parseInt(sc.replaceAll(".* t(\\d+) .*", "$1"));
+            return t >= 120;
+        }, RenderSelfTest::localScene);
+        // The ghost walks off: the scene ends early.
+        queue(10, mc -> server(mc, s -> run(s, asMe(mc) + "fishtastic companion ghost walk leave")));
+        queueUntil("companionscenes.walk_off_ends_it", 200, mc -> {
+            String end = grill24.fishtastic.client.companion.ClientCompanions.devLastSceneEnd;
+            return grill24.fishtastic.client.companion.ClientCompanions.devLocalScene() == null && end != null
+                    && end.startsWith("EIGHT") && !end.endsWith("done");
+        }, () -> "last ended: " + grill24.fishtastic.client.companion.ClientCompanions.devLastSceneEnd);
+        queue(1, mc -> {
+            check("companionscenes.both_started_here", grill24.fishtastic.client.companion.ClientCompanions.scenesStarted
+                    >= before[0] + 3, "scenes started " + grill24.fishtastic.client.companion.ClientCompanions.scenesStarted);
+            server(mc, s -> run(s, "fishtastic companion ghost remove"));
+        });
+        queue(20, mc -> server(mc, RenderSelfTest::clearParties));
+    }
+
+    /** The scene greeting's length, ticks (CrossScene.GREET_TICKS). */
+    private static final class CrossSceneTicks {
+        static final int GREET = grill24.fishsim.companion.CrossScene.GREET_TICKS;
     }
 
     private static void paradeSetup(Minecraft mc) {

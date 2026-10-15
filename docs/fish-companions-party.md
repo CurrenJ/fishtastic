@@ -1177,3 +1177,56 @@ checked with two real views, not only the ghost owner.
   - no scene played in one view only;
   - each view on its own: path error 0.10–0.15, G1 roles 2.5–5.8° off opposite. Gate passed.
 - **Test:** `CrossSceneTest.twoClientsSeeTheRingAlike` (lag 3: mean gap under 0.3). 11/11.
+
+### 28.10 Step 3b as built: in game, the ghost owner, and the self-tests
+
+- **Packet → sim** (`ClientCompanions`): a scene packet waits (up to 40 client ticks, counted on
+  the client, logged if dropped) until both named parties have sims, then each plays its side through `PartyLayer.crossScene` (role 0 for the packet's
+  first). Each tick before the parties step, `feedScenes` gives every scene the shared clock
+  (`level.getGameTime() − start`), both players' feet in packet order (a remote player's
+  interpolated position) and the partner unit's leader from this client's own sim of it. A partner
+  whose party is gone (logged out, out of view, another dimension) cancels it ("partner gone"); a
+  party rebuild drops it. A packet older than the scene ends at once; a younger one joins mid-path.
+- **G1's bubble heart**: once per scene per client (the first participant's side), 4.5 s in (mid
+  first lap), traced in the camera plane between the two players, 0.2 above their eyes, with one
+  vanilla heart through it; never with minimal particles. It uses the mod's `medium_bubble`, which
+  lives out of water (vanilla's `bubble` removes itself on its first tick in air, so the Phase 6
+  heart was invisible apart from the vanilla heart). The first in-game shot had it above the view
+  (it floated over the ring); it now sits between the players. Checked in the self-test (owner
+  question, 2026-10-15): all 32 bubbles are in open air and all alive 3 ticks on; they pop when
+  they have risen `HEART_POP_RISE` = 1 block (at 0.5, only 13–20 of 32 were left after 1 s; at 1,
+  32 of 32), so the heart drifts up and fades over about 2–4 s.
+- **Overlay**: the party header adds `scene: EIGHT role 0, 6/16 s, on the path` (greeting,
+  joining, on the path, or left: why).
+- **Ghost owner** (D31; `CompanionGhost`, dev runs and single-player worlds only): a real
+  `ServerPlayer` named CompanionGhost on a dead connection (`GhostConnection`, which on NeoForge
+  configures the mock connection as the game tests do), added to the player list with a party.
+  The server walks it: it appears 12 blocks ahead, walks up to 3 (or `[blocks]`), stands facing
+  you, or walks off 16 and logs out. Commands:
+  `/fishtastic companion ghost add <species> [species] [species]`,
+  `ghost walk approach [blocks]|stand|leave`, `ghost scene g1|g2 [late ticks]` (forces one now:
+  `CompanionSceneManager.devForceScene`, skipping range, cooldowns and class rules; late = the
+  packet's start that many ticks in the past), `ghost remove`, and `ghost` alone to describe it.
+  It joins and leaves with a chat line and is in the tab list; its player file is written on removal.
+  `ghost add` and `ghost scene` refuse to run as the ghost: the first self-test sent them as
+  `execute as @p`, which landed on the ghost (the nearest player to world spawn), so the second
+  ghost was its own owner and never walked up. The self-test now names its player.
+- **Self-tests** (both loaders, isolated run directories via
+  `docs/fish-companions-twoclient/twoclient.init.gradle`):
+  - `companionscenes` (solo, `-PtwoRole=solo`): the ghost with a discus walks up and the real
+    scheduler starts G2; the bluegill is on the path after the greeting; the eight ends "done";
+    a bluegill ghost and a forced G1 with the heart (its bubbles in air and still alive); a packet 120 ticks late joins at t ≥ 120; the
+    ghost walking off ends a scene ("owner walked off"). Screenshots `g2_fp`, `g2_tp`, `g1_heart`,
+    `g1_ring`.
+  - `twoclient` (dedicated server + two clients, `run-twoclient.sh fabric|neoforge`): beyond §28.5,
+    each client's own fish is on the eight's path, it sees the other player's fish in `SCENE` too,
+    and the eight ends "done" on both at the same moment. All checks pass on Fabric and NeoForge.
+  - One NeoForge two-client run failed on client B only: it got the packet but never started its
+    side, while A played the scene. B was the loaded one (started 45 s late). The pending wait was
+    measured on the synced game clock, which a lagging client can see jump; it now counts client
+    ticks (40) and logs any drop. Not reproduced since: NeoForge passed twice after, Fabric again.
+  - Solo runs of every companion self-test (`companionbond, companionsim, companionparty,
+    companioneel, companionscenes`): 71/71 on Fabric and on NeoForge. Game tests: Fabric 369/369,
+    NeoForge 363/363.
+- **For the owner's look:** the ring's pivot out of the meeting point (§28.8), the heart's size
+  and place, and how close the ghost's discus passes on G2 (third-person shot).

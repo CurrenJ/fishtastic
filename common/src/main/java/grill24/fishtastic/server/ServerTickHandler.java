@@ -41,6 +41,7 @@ public class ServerTickHandler {
 
         // Pet-to-pet companion scenes (§10): the server schedules, clients just play
         try {
+            CompanionGhost.tick(server);
             CompanionSceneManager.tick(server);
         } catch (Exception e) {
             Fishtastic.LOGGER.error("Error ticking companion scene manager", e);

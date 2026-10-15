@@ -225,6 +225,35 @@ public final class CompanionSceneManager {
         return until != null && until >= now;
     }
 
+    /**
+     * Dev trigger (party spec §28.3, the ghost owner's {@code scene} command): starts {@code type}
+     * between the first free-swimming companion of each player now, skipping range, cooldowns and
+     * the class rules, with the packet's start {@code delayTicks} in the past (a packet that
+     * arrives late joins mid-path).
+     *
+     * @return what happened, for the command's reply
+     */
+    public static String devForceScene(ServerLevel level, ServerPlayer a, ServerPlayer b, CompanionSceneType type,
+                                       int delayTicks) {
+        CompanionGroups.Group ga = firstSwimmer(a, level), gb = firstSwimmer(b, level);
+        if (ga == null || gb == null) return "Both players need a free-swimming companion";
+        long now = level.getGameTime();
+        Candidate first = new Candidate(a, ga), second = new Candidate(b, gb);
+        BUSY_UNTIL.remove(first.member());
+        BUSY_UNTIL.remove(second.member());
+        start(level, first, second, type, now - Math.max(0, delayTicks));
+        return "Scene " + type + " between " + a.getName().getString() + " (slot " + (ga.leader() + 1) + ") and "
+                + b.getName().getString() + " (slot " + (gb.leader() + 1) + ")" + (delayTicks > 0 ? ", " + delayTicks + " ticks late" : "");
+    }
+
+    @Nullable
+    private static CompanionGroups.Group firstSwimmer(ServerPlayer player, ServerLevel level) {
+        for (CompanionGroups.Group g : CompanionGroups.of(CompanionStorage.party(player), level.registryAccess())) {
+            if (g.locomotion() == Locomotion.FREE_SWIM) return g;
+        }
+        return null;
+    }
+
     /** Dev/test seam: forget every busied companion and the packet sink. */
     public static void resetForTest() {
         BUSY_UNTIL.clear();

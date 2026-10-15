@@ -4,6 +4,8 @@
 //   Server:   .\gradlew.bat :fabric:runServer -I docs/fish-companions-twoclient/twoclient.init.gradle -PtwoRole=server
 //   Client A: .\gradlew.bat :fabric:runClient -I docs/fish-companions-twoclient/twoclient.init.gradle -PtwoRole=a
 //   Client B: .\gradlew.bat :fabric:runClient -I docs/fish-companions-twoclient/twoclient.init.gradle -PtwoRole=b
+//   Solo:     .\gradlew.bat :fabric:runClient -I docs/fish-companions-twoclient/twoclient.init.gradle -PtwoRole=solo
+//             (no server: the companionscenes self-test with the ghost owner in a fresh flat world)
 //
 // NeoForge: the same with :neoforge:runServer / :neoforge:runClient and -PtwoLoader=neoforge
 // (port 25601, run directories run-neoforge-<role>), so the two loaders never share a world.
@@ -13,7 +15,7 @@
 // set the clock and give companions by command. -PtwoScenes=... overrides the scene list.
 gradle.projectsEvaluated {
     def role = gradle.startParameter.projectProperties.get('twoRole')
-    if (!(role in ['server', 'a', 'b'])) throw new GradleException('Set -PtwoRole=server, a or b')
+    if (!(role in ['server', 'a', 'b', 'solo'])) throw new GradleException('Set -PtwoRole=server, a, b or solo')
     def base = rootProject.file('docs/fish-companions-twoclient').canonicalFile
     def loader = gradle.startParameter.projectProperties.get('twoLoader') ?: 'fabric'
     if (!(loader in ['fabric', 'neoforge'])) throw new GradleException('Set -PtwoLoader=fabric or neoforge')
@@ -24,10 +26,11 @@ gradle.projectsEvaluated {
     def platform = rootProject.project(':' + loader)
     def names = ['FishA', 'FishB']
     if (role != 'server') {
-        def name = role == 'a' ? names[0] : names[1]
-        def scenes = gradle.startParameter.projectProperties.get('twoScenes') ?: 'twoclient'
-        new File(target, 'fishtastic_render_selftest').text =
-                scenes.split(',').join('\n') + "\nserver=localhost:${port}\nrole=${role}\n"
+        def name = role == 'b' ? names[1] : names[0]
+        def scenes = gradle.startParameter.projectProperties.get('twoScenes') ?: (role == 'solo' ? 'companionscenes' : 'twoclient')
+        // solo: the flat self-test world on the integrated server (the ghost owner's scenes), no server to join.
+        new File(target, 'fishtastic_render_selftest').text = role == 'solo' ? scenes.split(',').join('\n') + '\n'
+                : scenes.split(',').join('\n') + "\nserver=localhost:${port}\nrole=${role}\n"
         def options = new File(target, 'options.txt')
         def lines = options.exists() ? options.readLines() : []
         def captureOptions = ['onboardAccessibility': 'false', 'overrideWidth': '960', 'overrideHeight': '540',

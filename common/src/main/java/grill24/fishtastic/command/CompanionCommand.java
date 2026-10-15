@@ -41,6 +41,10 @@ import java.util.Optional;
  *   /fishtastic companion temperament &lt;id&gt;|species      — force a temperament on your companion (or its own)
  *   /fishtastic companion fake hostile|cat|item|companion — a scripted thing for it to react to (clear removes them)
  *   /fishtastic companion predatorscene                   — your party's predator laps you now, its prey hides
+ *   /fishtastic companion ghost add &lt;species&gt;...         — a second player with that party walks up (party spec §28, D31)
+ *   /fishtastic companion ghost walk approach|stand|leave [blocks] — walk up (to [blocks]), stand, or walk off and leave
+ *   /fishtastic companion ghost scene g1|g2 [late ticks]  — a scene with the ghost now (a late packet joins mid-path)
+ *   /fishtastic companion ghost remove                    — the ghost logs out
  *   /fishtastic companion hurt                            — it sees you hurt (an aggressive fish bites)
  *   /fishtastic companion drowsy                          — as if you'd idled long enough for it to settle
  *   /fishtastic companion ground                          — a ground benthic (and its group) comes back down off the perch
@@ -145,6 +149,37 @@ public class CompanionCommand {
                 // The predator scene (party D21, G4) now: your predator laps you, its prey hides.
                 .then(Commands.literal("predatorscene").executes(ctx -> client(ctx,
                         grill24.fishtastic.client.companion.ClientCompanions::devPredatorScene)))
+                // The ghost owner (party spec §28.3, D31): cross-player scenes, alone.
+                .then(Commands.literal("ghost")
+                        .then(Commands.literal("add")
+                                .then(Commands.argument("species", IdentifierArgument.id()).suggests(CompanionCommand::fishSuggestions)
+                                        .executes(ctx -> ghostAdd(ctx, 1))
+                                        .then(Commands.argument("species2", IdentifierArgument.id()).suggests(CompanionCommand::fishSuggestions)
+                                                .executes(ctx -> ghostAdd(ctx, 2))
+                                                .then(Commands.argument("species3", IdentifierArgument.id()).suggests(CompanionCommand::fishSuggestions)
+                                                        .executes(ctx -> ghostAdd(ctx, 3))))))
+                        .then(Commands.literal("walk")
+                                .then(Commands.literal("approach").executes(ctx -> ghostWalk(ctx, grill24.fishtastic.server.CompanionGhost.Mode.APPROACH, grill24.fishtastic.server.CompanionGhost.STAND_OFF))
+                                        .then(Commands.argument("blocks", FloatArgumentType.floatArg(1f, 6f)).executes(ctx -> ghostWalk(ctx,
+                                                grill24.fishtastic.server.CompanionGhost.Mode.APPROACH, FloatArgumentType.getFloat(ctx, "blocks")))))
+                                .then(Commands.literal("stand").executes(ctx -> ghostWalk(ctx, grill24.fishtastic.server.CompanionGhost.Mode.STAND, grill24.fishtastic.server.CompanionGhost.STAND_OFF)))
+                                .then(Commands.literal("leave").executes(ctx -> ghostWalk(ctx, grill24.fishtastic.server.CompanionGhost.Mode.LEAVE, grill24.fishtastic.server.CompanionGhost.STAND_OFF))))
+                        .then(Commands.literal("scene")
+                                .then(Commands.literal("g1").executes(ctx -> ghostScene(ctx, grill24.fishtastic.companion.CompanionSceneType.G1_SAME_SPECIES, 0))
+                                        .then(Commands.argument("late", com.mojang.brigadier.arguments.IntegerArgumentType.integer(0, 600))
+                                                .executes(ctx -> ghostScene(ctx, grill24.fishtastic.companion.CompanionSceneType.G1_SAME_SPECIES, com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "late")))))
+                                .then(Commands.literal("g2").executes(ctx -> ghostScene(ctx, grill24.fishtastic.companion.CompanionSceneType.G2_FREE_SWIM_EIGHT, 0))
+                                        .then(Commands.argument("late", com.mojang.brigadier.arguments.IntegerArgumentType.integer(0, 600))
+                                                .executes(ctx -> ghostScene(ctx, grill24.fishtastic.companion.CompanionSceneType.G2_FREE_SWIM_EIGHT, com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "late"))))))
+                        .then(Commands.literal("remove").executes(ctx -> {
+                            grill24.fishtastic.server.CompanionGhost.remove(ctx.getSource().getServer());
+                            ctx.getSource().sendSuccess(() -> Component.literal("Ghost removed").withStyle(ChatFormatting.GREEN), false);
+                            return 1;
+                        }))
+                        .executes(ctx -> {
+                            ctx.getSource().sendSuccess(() -> Component.literal(grill24.fishtastic.server.CompanionGhost.describe()), false);
+                            return 1;
+                        }))
                 .then(Commands.literal("hurt").executes(ctx -> client(ctx,
                         grill24.fishtastic.client.companion.ClientCompanions::devHurt)))
                 .then(Commands.literal("drowsy").executes(ctx -> client(ctx,
@@ -381,6 +416,72 @@ public class CompanionCommand {
         ctx.getSource().sendSuccess(() -> Component.literal("Gave " + player.getName().getString() + " a "
                 + CompanionStorage.get(player, target).getHoverName().getString() + " companion in slot " + (target + 1))
                 .withStyle(ChatFormatting.GREEN), true);
+        return 1;
+    }
+
+    private static java.util.concurrent.CompletableFuture<com.mojang.brigadier.suggestion.Suggestions> fishSuggestions(
+            CommandContext<CommandSourceStack> ctx, com.mojang.brigadier.suggestion.SuggestionsBuilder builder) {
+        return SharedSuggestionProvider.suggest(BuiltInRegistries.ITEM.stream()
+                .filter(item -> item.builtInRegistryHolder().is(FishtasticItemTags.FISH))
+                .map(item -> BuiltInRegistries.ITEM.getKey(item).toString()), builder);
+    }
+
+    /** The ghost owner is a dev tool for one player's own world: a dev run or a single-player world. */
+    private static boolean ghostAllowed(CommandContext<CommandSourceStack> ctx) {
+        if (grill24.fishtastic.env.DevEnvironmentCheck.isDevelopmentEnvironment() || ctx.getSource().getServer().isSingleplayer()) return true;
+        ctx.getSource().sendFailure(Component.literal("The ghost owner is for dev runs and single-player worlds only"));
+        return false;
+    }
+
+    /** The ghost can't be its own owner (an "execute as @p" can land on it, being the nearest player). */
+    private static boolean isGhost(CommandContext<CommandSourceStack> ctx, ServerPlayer player) {
+        if (!player.getUUID().equals(grill24.fishtastic.server.CompanionGhost.ID)) return false;
+        ctx.getSource().sendFailure(Component.literal("Run this as yourself, not as the ghost"));
+        return true;
+    }
+
+    private static int ghostAdd(CommandContext<CommandSourceStack> ctx, int count) throws CommandSyntaxException {
+        if (!ghostAllowed(ctx)) return 0;
+        ServerPlayer owner = ctx.getSource().getPlayerOrException();
+        if (isGhost(ctx, owner)) return 0;
+        java.util.List<ItemStack> fish = new java.util.ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            Identifier id = IdentifierArgument.getId(ctx, i == 0 ? "species" : "species" + (i + 1));
+            Optional<Item> item = BuiltInRegistries.ITEM.getOptional(id);
+            if (item.isEmpty() || !item.get().builtInRegistryHolder().is(FishtasticItemTags.FISH)) {
+                ctx.getSource().sendFailure(Component.literal("Not a fish: " + id));
+                return 0;
+            }
+            fish.add(new ItemStack(item.get()));
+        }
+        grill24.fishtastic.server.CompanionGhost.add(owner, fish);
+        ctx.getSource().sendSuccess(() -> Component.literal("Ghost added, walking up: " + grill24.fishtastic.server.CompanionGhost.describe())
+                .withStyle(ChatFormatting.GREEN), false);
+        return 1;
+    }
+
+    private static int ghostWalk(CommandContext<CommandSourceStack> ctx, grill24.fishtastic.server.CompanionGhost.Mode mode, double standOff) {
+        if (!ghostAllowed(ctx)) return 0;
+        if (grill24.fishtastic.server.CompanionGhost.ghost() == null) {
+            ctx.getSource().sendFailure(Component.literal("No ghost: /fishtastic companion ghost add <species> first"));
+            return 0;
+        }
+        grill24.fishtastic.server.CompanionGhost.walk(mode, standOff);
+        ctx.getSource().sendSuccess(() -> Component.literal("Ghost: " + mode.name().toLowerCase()).withStyle(ChatFormatting.GREEN), false);
+        return 1;
+    }
+
+    private static int ghostScene(CommandContext<CommandSourceStack> ctx, grill24.fishtastic.companion.CompanionSceneType type, int late) throws CommandSyntaxException {
+        if (!ghostAllowed(ctx)) return 0;
+        ServerPlayer owner = ctx.getSource().getPlayerOrException();
+        if (isGhost(ctx, owner)) return 0;
+        ServerPlayer ghost = grill24.fishtastic.server.CompanionGhost.ghost();
+        if (ghost == null) {
+            ctx.getSource().sendFailure(Component.literal("No ghost: /fishtastic companion ghost add <species> first"));
+            return 0;
+        }
+        String result = grill24.fishtastic.server.CompanionSceneManager.devForceScene(owner.level(), owner, ghost, type, late);
+        ctx.getSource().sendSuccess(() -> Component.literal(result).withStyle(ChatFormatting.GREEN), false);
         return 1;
     }
 

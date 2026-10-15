@@ -3,6 +3,7 @@ package grill24.fishtastic.client.companion;
 import com.mojang.blaze3d.vertex.PoseStack;
 import grill24.fishsim.companion.CompanionTunables;
 import grill24.fishsim.companion.CompanionWorld;
+import grill24.fishsim.companion.CrossScene;
 import grill24.fishsim.companion.PartyGrouping;
 import grill24.fishsim.companion.PartyLayer;
 import grill24.fishsim.companion.PointOfInterest;
@@ -80,7 +81,18 @@ public final class ClientCompanions {
         List<ClientCompanion> companions() { return companions; }
 
         /** Drops the party's sim; the next tick builds it afresh beside its owner (a build-time switch changed). */
-        void rebuild() { layer = null; }
+        void rebuild() {
+            layer = null;
+            scene = null;
+        }
+
+        // ── A cross-player scene (party spec §28) ──
+        /** This party's side of a scene, the shared start tick, the partner and its slot; null for none. */
+        @Nullable private CrossScene scene;
+        private long sceneStart;
+        @Nullable private UUID scenePartner;
+        private int scenePartnerSlot;
+        private boolean heartFired;
 
         @Nullable PartyLayer layer() { return layer; }
 
@@ -113,6 +125,35 @@ public final class ClientCompanions {
     }
 
     private static final Map<UUID, OwnerParty> PARTIES = new HashMap<>();
+    /** Scene packets waiting for both parties' sims (party spec §28.2, D30), and how long they may wait. */
+    private static final class PendingScene {
+        final CompanionSceneType type;
+        final UUID first, second;
+        final int firstSlot, secondSlot;
+        final long startTime;
+        /** Client ticks waited, not game time: a loaded client's synced clock can jump. */
+        int waited;
+
+        PendingScene(CompanionSceneType type, UUID first, int firstSlot, UUID second, int secondSlot, long startTime) {
+            this.type = type;
+            this.first = first;
+            this.firstSlot = firstSlot;
+            this.second = second;
+            this.secondSlot = secondSlot;
+            this.startTime = startTime;
+        }
+    }
+    private static final List<PendingScene> PENDING_SCENES = new ArrayList<>();
+    private static final int PENDING_SCENE_TICKS = 40;
+    /** G1's bubble heart, on the shared clock: mid-way round the first lap. */
+    private static final int HEART_TICK = CrossScene.GREET_TICKS + 40;
+    /**
+     * The heart's size, blocks per heart-curve unit, and how far above the owners' eyes it floats:
+     * between the two players, below the ring, so both see it whole.
+     */
+    private static final double HEART_SCALE = 0.03, HEART_RISE = 0.2;
+    /** How far a heart bubble rises before it pops: 1 block holds the heart about 2-4 s (0.5 lost half by 1 s). */
+    private static final double HEART_POP_RISE = 1.0;
     /** Dev-only companions with no owner, round an imaginary still owner — a stand-in for another player's. */
     private static final Map<UUID, OwnerParty> PHANTOMS = new HashMap<>();
     @Nullable private static ClientLevel trackedLevel;
@@ -172,6 +213,9 @@ public final class ClientCompanions {
             }
         }
         PARTIES.keySet().retainAll(seen);
+
+        startPendingScenes(level);
+        feedScenes(level);
 
         CompanionDevPoints.tick(level);
         List<PointOfInterest> devPoints = CompanionDevPoints.points();
@@ -277,11 +321,142 @@ public final class ClientCompanions {
     public static int devScenePackets;
     @Nullable public static String devLastScene;
 
-    /** The scene packet's landing point. Pet-to-pet scenes return in Phase 4 (plan §5); ignored for now. */
+    /**
+     * The scene packet's landing point (party spec §28): each named party plays its side, through
+     * the unit holding the named slot. It waits up to a second for both parties' sims (the first
+     * tick after a player comes into view has none yet), then is dropped.
+     */
     public static void onScenePacket(CompanionSceneType scene, UUID first, int firstSlot, UUID second, int secondSlot,
                                      long startTime) {
         devScenePackets++;
         devLastScene = scene + " " + first + "#" + firstSlot + " + " + second + "#" + secondSlot + " @" + startTime;
+        ClientLevel level = Minecraft.getInstance().level;
+        if (level == null) return;
+        PENDING_SCENES.add(new PendingScene(scene, first, firstSlot, second, secondSlot, startTime));
+    }
+
+    /** Starts every waiting scene whose two parties now have sims; drops those that waited too long. */
+    private static void startPendingScenes(ClientLevel level) {
+        PENDING_SCENES.removeIf(p -> {
+            OwnerParty a = PARTIES.get(p.first), b = PARTIES.get(p.second);
+            if (a == null || b == null || a.layer() == null || b.layer() == null) {
+                if (++p.waited <= PENDING_SCENE_TICKS) return false;
+                grill24.fishtastic.Fishtastic.LOGGER.info("[companion] scene {} dropped: party {} {}", p.type,
+                        a == null || a.layer() == null ? p.first : p.second, a == null || b == null ? "not in view" : "not built");
+                return true;
+            }
+            CrossScene.Kind kind = p.type == CompanionSceneType.G1_SAME_SPECIES ? CrossScene.Kind.RING : CrossScene.Kind.EIGHT;
+            startScene(a, kind, 0, p.firstSlot, p.startTime, p.second, p.secondSlot);
+            startScene(b, kind, 1, p.secondSlot, p.startTime, p.first, p.firstSlot);
+            scenesStarted++;
+            return true;
+        });
+    }
+
+    private static void startScene(OwnerParty party, CrossScene.Kind kind, int role, int slot, long start, UUID partner,
+                                   int partnerSlot) {
+        CrossScene scene = new CrossScene(kind, role);
+        if (party.layer().crossScene(slot, scene) == null) {
+            // D25: no free swimmer holds that slot here (the party changed since the server chose).
+            grill24.fishtastic.Fishtastic.LOGGER.info("[companion] scene {} refused by slot {}", kind, slot + 1);
+            return;
+        }
+        party.scene = scene;
+        party.sceneStart = start;
+        party.scenePartner = partner;
+        party.scenePartnerSlot = partnerSlot;
+        party.heartFired = false;
+    }
+
+    /**
+     * Each scene's inputs for this tick, before the parties step: the shared clock, both owners'
+     * feet in the packet's order, and the partner unit's leader as this client's sim has it. A
+     * partner whose party is gone (logged out, out of view, another dimension) ends it (D30).
+     */
+    private static void feedScenes(ClientLevel level) {
+        long now = level.getGameTime();
+        for (OwnerParty party : PARTIES.values()) {
+            CrossScene scene = party.scene;
+            if (scene == null || party.layer() == null) continue;
+            if (scene.endReason() != null) {
+                if (party.owner() == Minecraft.getInstance().player) devLastSceneEnd = scene.kind + " " + scene.endReason();
+                party.scene = null;
+                continue;
+            }
+            OwnerParty other = PARTIES.get(party.scenePartner);
+            if (other == null || other.layer() == null) {
+                scene.cancel("partner gone");
+                continue;
+            }
+            Player first = scene.role == 0 ? party.owner() : other.owner();
+            Player second = scene.role == 0 ? other.owner() : party.owner();
+            grill24.fishsim.companion.CompanionAgent partner = null;
+            for (PartyLayer.Unit u : other.layer().units()) {
+                for (int s : u.group().slots()) if (s == party.scenePartnerSlot) partner = u.leader();
+            }
+            scene.update((int) (now - party.sceneStart), feet(first), feet(second),
+                    partner != null && partner.appear() >= 1f ? partner.position() : null);
+            if (scene.role == 0 && scene.kind == CrossScene.Kind.RING && !party.heartFired && scene.ticks() >= HEART_TICK
+                    && scene.active()) {
+                party.heartFired = true;
+                spawnSceneHeart(level, first.getEyePosition().add(second.getEyePosition()).scale(0.5));
+            }
+        }
+    }
+
+    private static grill24.fishsim.companion.Vec feet(Player p) {
+        return new grill24.fishsim.companion.Vec(p.getX(), p.getY(), p.getZ());
+    }
+
+    /**
+     * G1's bubble heart (spec §10, party §28.2): bubbles traced along the heart curve in this
+     * client's camera plane between the two players, with one vanilla heart through the middle. Drawn once
+     * per scene per client (by the first participant's side), and never with minimal particles.
+     * The mod's own medium bubble, since the vanilla bubble pops at once out of water.
+     */
+    private static void spawnSceneHeart(ClientLevel level, Vec3 eyes) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.options.particles().get() == net.minecraft.server.level.ParticleStatus.MINIMAL) return;
+        Vec3 centre = eyes.add(0, HEART_RISE, 0);
+        net.minecraft.client.Camera camera = mc.gameRenderer.getMainCamera();
+        org.joml.Vector3fc left = camera.leftVector(), upV = camera.upVector();
+        Vec3 right = new Vec3(-left.x(), -left.y(), -left.z()), up = new Vec3(upV.x(), upV.y(), upV.z());
+        List<net.minecraft.client.particle.Particle> bubbles = new ArrayList<>();
+        for (int i = 0; i < 32; i++) {
+            double t = i / 32.0 * Math.PI * 2;
+            double hx = 16 * Math.pow(Math.sin(t), 3);
+            double hy = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+            Vec3 p = centre.add(right.scale(hx * HEART_SCALE)).add(up.scale(hy * HEART_SCALE));
+            // Medium bubble args: drift x, the height it pops at, drift z. Kept so the self-test can
+            // check they live in air (vanilla's bubble removes itself on its first tick out of water).
+            net.minecraft.client.particle.Particle bubble = mc.particleEngine.createParticle(
+                    grill24.fishtastic.FishtasticParticleTypes.MEDIUM_BUBBLE.value(), p.x, p.y, p.z, 0, p.y + HEART_POP_RISE, 0);
+            if (bubble != null) bubbles.add(bubble);
+        }
+        devHeartBubbles = bubbles;
+        level.addParticle(net.minecraft.core.particles.ParticleTypes.HEART, centre.x, centre.y, centre.z, 0, 0.02, 0);
+        heartsSpawned++;
+    }
+
+    /** Cross-player scenes started on this client, and bubble hearts drawn (the self-test reads them). */
+    public static int scenesStarted, heartsSpawned;
+    /** The last bubble heart's bubbles, for the self-test's "do they live in air" check. */
+    public static List<net.minecraft.client.particle.Particle> devHeartBubbles = List.of();
+
+    /** How the local party's last scene ended ("EIGHT done"), for the self-test; null before one ends. */
+    @Nullable public static String devLastSceneEnd;
+
+    /** The local party's cross-player scene, for the self-test: kind, role, clock, and why it ended (or null). */
+    @Nullable
+    public static String devLocalScene() {
+        Player player = Minecraft.getInstance().player;
+        OwnerParty party = player == null ? null : PARTIES.get(player.getUUID());
+        if (party == null || party.scene == null) return null;
+        CrossScene s = party.scene;
+        PartyLayer.Unit u = party.layer() == null ? null : party.layer().crossUnit();
+        return s.kind + " role " + s.role + " t" + s.ticks() + " " + (s.endReason() == null ? "on" : s.endReason())
+                + (u == null ? "" : " leader " + u.leader().goal()
+                + (u.leader().sceneLeft() == null ? "" : " left:" + u.leader().sceneLeft()));
     }
 
     /**
@@ -434,6 +609,8 @@ public final class ClientCompanions {
         PartyLayer layer = localLayer();
         String scene = layer == null ? null : layer.sceneLine();
         if (scene != null) lines.add("  " + scene);
+        String cross = layer == null ? null : layer.crossSceneLine();
+        if (cross != null) lines.add("  " + cross);
         return lines;
     }
 
