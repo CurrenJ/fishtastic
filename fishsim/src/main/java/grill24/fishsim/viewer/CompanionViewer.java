@@ -72,8 +72,7 @@ import java.util.Set;
  *   benthic_park) and the ground owner scripts are in the dropdowns.
  *   The "PARTY ..." classes run a whole party (docs/fish-companions-party.md §6, PartyRun.PARTIES):
  *   the overlay and dev keys follow the lead's unit, the others are drawn too (teal on the map).
- *   "mixed shoal" off groups them by the pre-D13 rule, on the same seed, for A/B; likewise the
- *   partyHomes, partyLeases and anchoredHead checkboxes (Phase 2d, §6.1) rebuild on the same seed.
+ *   "mixed shoal" off groups them by the pre-D13 rule, on the same seed, for A/B.
  *   The "PAIR ..." classes run two owners' parties (§28.3, TwoOwnerRun.PAIRS) on a pair_* owner
  *   script: the view is owner A's; owner B is the blue box, and B's fish are drawn and marked B1-B3.
  *   Scenes (§28) start as the server would start them; Q starts one now. The top line shows it.
@@ -153,8 +152,6 @@ public final class CompanionViewer {
     private PartyRun.Party partyChoice;
     /** D13's switch for the PARTY classes: off keeps different-species free swimmers apart (A/B). */
     private boolean mixedShoal = true;
-    /** Boolean tunables read only when a companion or party is built, so toggling one rebuilds it. */
-    private static final java.util.Set<String> BUILD_SWITCHES = java.util.Set.of("anchoredHead", "partyHomes", "partyLeases");
     /** The chosen "PAIR ..." class (two owners, §28.3), or null; it plays on {@link #pairScript}. */
     private TwoOwnerRun.Pair pairChoice;
     private String pairScript = OwnerScript.PAIR_NAMES.get(0);
@@ -824,11 +821,8 @@ public final class CompanionViewer {
             try {
                 if (f.getType() == boolean.class) {
                     JCheckBox box = new JCheckBox(f.getName(), f.getBoolean(tunables));
-                    // Read only when the fish or party is built (§6.1 homes, leases, D5): rebuild on the same seed.
-                    boolean atBuild = BUILD_SWITCHES.contains(f.getName());
                     box.addActionListener(e -> {
                         set(f, box.isSelected());
-                        if (atBuild) apply.run();
                         canvas.requestFocusInWindow();
                     });
                     sliderRefreshers.add(() -> box.setSelected(get(f, Boolean.class)));

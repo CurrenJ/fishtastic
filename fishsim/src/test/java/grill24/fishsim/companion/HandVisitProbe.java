@@ -19,8 +19,7 @@ import java.util.TreeMap;
  * of the time a fish sits on a hand. Solo for each percher kind, then per party: what the player
  * sees is any fish on a hand, so the party figure sums its members.
  *
- * <p>Run with -PsimStdout; -PsweepSeeds=N changes the seed count (default 4); -PtweakA=noHandClock
- * is the pre-HandClock behaviour, {@code soloClock} keeps the clock but each party member its own.
+ * <p>Run with -PsimStdout; -PsweepSeeds=N changes the seed count (default 4).
  */
 @EnabledIfSystemProperty(named = "simStdout", matches = "true")
 class HandVisitProbe {
@@ -30,15 +29,6 @@ class HandVisitProbe {
 
     static CompanionTunables tunables() {
         CompanionTunables t = PartyBaselineProbe.tunables();
-        switch (System.getProperty("tweakA", "")) {
-            case "noHandClock" -> t.handClock = false;
-            case "soloClock" -> t.partyHandClock = false;
-            case "noIdleInView" -> t.idleInView = false;
-            case "noPeek" -> t.shoulderPeek = false;
-            case "noBeats" -> t.moreGroundBeats = false;
-            case "none" -> { t.idleInView = false; t.moreGroundBeats = false; }
-            default -> { }
-        }
         if (System.getProperty("tweakList") != null) {
             String[] g = System.getProperty("tweakList").split(",");
             t.handGapMinSeconds = Float.parseFloat(g[0]);

@@ -113,14 +113,11 @@ class PartyLayerTest {
     }
 
     @Test
-    void loneAnchoredHomesOnTheHeadUnlessSwitchedOff() {
+    void loneAnchoredHomesOnTheHead() {
         PartyRun.Party p = new PartyRun.Party("eel", List.of(
                 PartyRun.Spec.of("eel", grill24.fishsim.core.Locomotion.ANCHORED, 0.45f)));
         CompanionTunables t = CompanionTunables.defaults();
         assertEquals(PerchBody.Slot.HEAD, p.build(t, Temperament.BASELINE, 1,
-                OwnerScript.named("walk", 1).nextWorld()).unit(0).leader().perchHome());
-        t.anchoredHead = false;
-        assertEquals(PerchBody.Slot.BACK, p.build(t, Temperament.BASELINE, 1,
                 OwnerScript.named("walk", 1).nextWorld()).unit(0).leader().perchHome());
     }
 

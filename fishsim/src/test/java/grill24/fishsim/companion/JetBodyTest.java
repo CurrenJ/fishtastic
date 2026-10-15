@@ -70,22 +70,6 @@ class JetBodyTest {
     }
 
     @Test
-    void disablingJetRestoresTheBellBitwise() {
-        t.driftJet = false;
-        DriftBody jet = squid();
-        DriftBody bell = new DriftBody(t, DriftStyle.BELL, jet.pos, 0, 0.15, 42);
-        for (int i = 0; i < 300; i++) {
-            Vec ask = Vec.fromYawPitch(i * 2, Math.sin(i * 0.1) * 20).scale(3);
-            jet.step(ask, 0, Vec.ZERO, air, null);
-            bell.step(ask, 0, Vec.ZERO, air, null);
-            assertEquals(bell.pos, jet.pos);
-            assertEquals(bell.vel, jet.vel);
-            assertEquals(bell.yaw, jet.yaw);
-            assertEquals(bell.pitch, jet.pitch);
-        }
-    }
-
-    @Test
     void allOwnerScriptsKeepSquidFiniteAndOutsideSolids() {
         for (String script : OwnerScript.NAMES) {
             for (int seed = 1; seed <= 3; seed++) {

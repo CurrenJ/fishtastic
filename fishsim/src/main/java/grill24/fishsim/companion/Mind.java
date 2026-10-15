@@ -722,7 +722,7 @@ final class Mind {
 
     /** The burst surge on an idle ask: a swimmer's tail beat, a steady drifter's none. */
     private float idleSurge() {
-        return t.driftIdleSteady && calmK() > 0 ? 1f : body.burstDrive;
+        return calmK() > 0 ? 1f : body.burstDrive;
     }
 
     // ── SETTLE ──
@@ -862,7 +862,7 @@ final class Mind {
         if (Float.isNaN(escortYaw)) escortYaw = hs > 0.5 ? (float) o.velocity().yawDeg() : o.yawDeg();
         if (hs > 0.5) {
             float diff = Body.wrap((float) o.velocity().yawDeg() - escortYaw);
-            float turn = body instanceof DriftBody drift && drift.style == DriftStyle.JET && t.driftJet && t.jetMindTurn
+            float turn = body instanceof DriftBody drift && drift.style == DriftStyle.JET
                     ? t.jetTurnDegPerTick : bobBody() && t.bobMindTurn ? t.bobSailTurnDegPerTick : 6f;
             escortYaw = Body.wrap(escortYaw + Body.clamp(diff, -turn, turn));
         }
@@ -910,7 +910,7 @@ final class Mind {
         // Crossing over goes in front of the owner, never through them.
         double centre = 1 - Math.min(1, Math.pow(lateralSigned / (t.escortLateral * body.g.lateralScale() * band()), 2));
         double along = alongBase + driftAlong * 0.4 + surge + 1.4 * centre + body.g.alongOffset();
-        if (body instanceof DriftBody d && d.style == DriftStyle.JET && t.driftJet) along += t.jetRideAhead;
+        if (body instanceof DriftBody d && d.style == DriftStyle.JET) along += t.jetRideAhead;
         if (bobBody()) along += t.bobRideAhead;
         double height = 0.15 + driftHeight * 0.25;
         Vec station = chest.add(r.scale(lateralSigned)).add(f.scale(along)).add(0, height, 0);
@@ -946,10 +946,10 @@ final class Mind {
         if (beside.lengthSqr() < 1e-9) beside = o.flatRight();
         Vec dest = chest.add(beside.scale(1.0));
         // A drifter comes up alongside them, not up their trail and into their back (§13.8).
-        if (body.locomotion == grill24.fishsim.core.Locomotion.DRIFT && t.driftOwnerAside > 0) {
+        if (body.locomotion == grill24.fishsim.core.Locomotion.DRIFT) {
             dest = driftAside(o, v, chest, dest);
         }
-        if (body instanceof DriftBody drift && drift.style == DriftStyle.JET && t.driftJet) {
+        if (body instanceof DriftBody drift && drift.style == DriftStyle.JET) {
             Vec lead = dest.add(o.velocity().horizontal().scale(t.jetFollowLead));
             if (v.segmentClear(dest, lead, body.radius + ROUTE_MARGIN)
                     && v.segmentClear(body.pos, lead, body.radius + ROUTE_MARGIN)) dest = lead;
@@ -1096,7 +1096,7 @@ final class Mind {
             laggedYaw = o.yawDeg();
         }
         // The aim lags the camera: the fish swims to where the owner was looking a moment ago.
-        float turn = body instanceof DriftBody drift && drift.style == DriftStyle.JET && t.driftJet && t.jetMindTurn
+        float turn = body instanceof DriftBody drift && drift.style == DriftStyle.JET
                 ? t.jetTurnDegPerTick * 0.5f : 3.5f;
         laggedYaw = Body.wrap(laggedYaw + Body.clamp(Body.wrap(o.yawDeg() - laggedYaw), -turn, turn));
         float pitch = Body.clamp(o.pitchDeg(), -25f, 35f);
@@ -1116,7 +1116,7 @@ final class Mind {
         double speed;
         if (showPhase == 0) {
             if (d < 0.45) showPhase = 1;
-            double pace = body instanceof DriftBody drift && drift.style == DriftStyle.JET && t.driftJet
+            double pace = body instanceof DriftBody drift && drift.style == DriftStyle.JET
                     && t.jetViewPassSpeed > 0
                     ? t.jetViewPassSpeed : body.g.cruiseSpeed() * 1.6;
             speed = Math.min(pace, 0.4 + d * 1.5);
@@ -1125,7 +1125,7 @@ final class Mind {
                 showPhase = 0;
                 showSide = -showSide;
             }
-            speed = body instanceof DriftBody drift && drift.style == DriftStyle.JET && t.driftJet
+            speed = body instanceof DriftBody drift && drift.style == DriftStyle.JET
                     && t.jetViewPassSpeed > 0
                     ? t.jetViewPassSpeed * 0.6 : body.g.cruiseSpeed() * 0.9;
         }

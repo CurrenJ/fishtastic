@@ -233,7 +233,7 @@ final class Body extends Motor {
      */
     private Vec clearDirection(Vec desired, LocalVoxels voxels) {
         double dLen = desired.length();
-        if (!t.whiskers || dLen < HOLD_SPEED) return desired;
+        if (dLen < HOLD_SPEED) return desired;
         Vec dir = desired.scale(1 / dLen);
         double sp = Math.max(speed, dLen);
         double need = Math.min(WHISKER_MAX, 0.5 + sp * sp / (2 * g.maxForce()) + sp * (BRAKE_DELAY + 0.1));

@@ -11,18 +11,16 @@ import java.util.function.IntUnaryOperator;
  * the others' leaders as {@link PointOfInterest.Kind#COMPANION} points within {@link #MATE_RANGE},
  * the way ClientCompanions feeds them in game.
  *
- * <p>Party rules act on units, never inside a formation, and each has an on/off switch:
+ * <p>Party rules act on units, never inside a formation:
  * <ul>
  *   <li>Phase 2c: the mixed shoal (D13) is in {@link PartyGrouping}.</li>
- *   <li>Phase 2d ({@link CompanionTunables#partyHomes}, {@link CompanionTunables#partyLeases}):
- *       every percher gets its own home perch when the party is built, and a transient move takes
- *       a free perch or doesn't happen ({@link PerchLeases}).</li>
- *   <li>Phase 2f ({@link CompanionTunables#partyGroundSeparation}): ground walkers of different
- *       units push apart on the ground.</li>
+ *   <li>Phase 2d: every percher gets its own home perch when the party is built, and a transient
+ *       move takes a free perch or doesn't happen ({@link PerchLeases}).</li>
+ *   <li>Phase 2f: ground walkers of different units push apart on the ground.</li>
  *   <li>D21 ({@link CompanionTunables#partySwimSeparation}): free-swimming units (a predator and its
  *       prey's shoal) push apart in the water.</li>
- *   <li>D21, G4 ({@link CompanionTunables#partyPredatorScene}): now and then the predator does a
- *       smug lap round its standing owner while the prey hides behind their head.</li>
+ *   <li>D21, G4: now and then the predator does a smug lap round its standing owner while the
+ *       prey hides behind their head.</li>
  *   <li>§28 ({@link #crossScene}): a cross-player scene goes to the unit holding the slot the
  *       server named; while it runs the predator scene neither starts nor goes on (D28).</li>
  * </ul>
@@ -162,7 +160,7 @@ public final class PartyLayer {
         }
         units = List.copyOf(out);
         leases = units.size() > 1 ? perches(t, world.owner()) : null;
-        handClock = units.size() > 1 && t.handClock && t.partyHandClock ? sharedHandClock() : null;
+        handClock = units.size() > 1 ? sharedHandClock() : null;
         this.t = t;
         List<Unit> ground = new ArrayList<>();
         for (Unit u : units) if (u.leader().groundWalker()) ground.add(u);
@@ -230,15 +228,13 @@ public final class PartyLayer {
             }
         }
         if (bodies.size() < 2) return null;
-        if (t.partyHomes) {
-            // Party slot order, lead first, whatever order the units are listed in.
-            java.util.Comparator<CompanionAgent> bySlot = java.util.Comparator.comparingInt(a -> a.perchBody().partySlot);
-            anchored.sort(bySlot);
-            others.sort(bySlot);
-            for (CompanionAgent a : anchored) home(a, free, ANCHORED_ORDER, owner);
-            for (CompanionAgent a : others) home(a, free, OTHER_ORDER, owner);
-        }
-        return t.partyLeases ? new PerchLeases(bodies) : null;
+        // Party slot order, lead first, whatever order the units are listed in.
+        java.util.Comparator<CompanionAgent> bySlot = java.util.Comparator.comparingInt(a -> a.perchBody().partySlot);
+        anchored.sort(bySlot);
+        others.sort(bySlot);
+        for (CompanionAgent a : anchored) home(a, free, ANCHORED_ORDER, owner);
+        for (CompanionAgent a : others) home(a, free, OTHER_ORDER, owner);
+        return new PerchLeases(bodies);
     }
 
     private static void home(CompanionAgent a, java.util.Set<PerchBody.Slot> free, List<PerchBody.Slot> order,
@@ -307,7 +303,7 @@ public final class PartyLayer {
     }
 
     /**
-     * Ground separation (§6.2, {@link CompanionTunables#partyGroundSeparation}): every ground walker
+     * Ground separation (§6.2): every ground walker
      * is pushed away from other units' ground walkers within crowd range, as a BenthicGroup crowd's
      * members are, from where they stood at the end of the last tick. Each keeps its own mind; a
      * shared trail queue and a mixed-species line were measured and lost (§20).
@@ -342,7 +338,7 @@ public final class PartyLayer {
                 pushes[i] = pushes[i] == null ? p : pushes[i].add(p);
             }
         }
-        for (int i = 0; i < all.size(); i++) all.get(i).partyPush(t.partyGroundSeparation ? pushes[i] : null);
+        for (int i = 0; i < all.size(); i++) all.get(i).partyPush(pushes[i]);
     }
 
     /** Body gap two swimming units keep, in mean body lengths, beyond their radii (D21). */
@@ -466,9 +462,8 @@ public final class PartyLayer {
             sceneTicks++;
             if (pred.lapping()) sceneLapStarted = true;
             if (prey.hiding()) scenePreyHid = true;
-            boolean over = !t.partyPredatorScene
-                    || (sceneLapStarted ? !pred.lapping() : sceneTicks > LAP_REQUEST_TICKS);
-            if (over && sceneLinger == 0) sceneLinger = sceneLapStarted && t.partyPredatorScene ? SCENE_LINGER_TICKS : 1;
+            boolean over = sceneLapStarted ? !pred.lapping() : sceneTicks > LAP_REQUEST_TICKS;
+            if (over && sceneLinger == 0) sceneLinger = sceneLapStarted ? SCENE_LINGER_TICKS : 1;
             if (sceneLinger > 0 && --sceneLinger == 0) {
                 prey.sceneThreat(null);
                 if (sceneLapStarted) scenesLapped++;
@@ -481,7 +476,7 @@ public final class PartyLayer {
             return;
         }
         if (sceneWait > 0) sceneWait--;
-        if (sceneWait > 0 || !t.partyPredatorScene) return;
+        if (sceneWait > 0) return;
         if (pred.freeForScene() && prey.freeForScene() && pred.ownerStillTicks() >= SCENE_STILL_TICKS
                 && lapRoom(pred, owner)) startScene();
     }
@@ -525,7 +520,7 @@ public final class PartyLayer {
     public String sceneLine() {
         if (scenePredator == null) return null;
         String now = sceneTicks >= 0 ? "on, " + (sceneLapStarted ? "lapping" : "lap asked") + (scenePreyHid ? ", prey hidden" : "")
-                : !t.partyPredatorScene ? "off" : sceneWait > 0 ? "next in " + (sceneWait + 19) / 20 + " s" : "due, waiting for a still owner";
+                : sceneWait > 0 ? "next in " + (sceneWait + 19) / 20 + " s" : "due, waiting for a still owner";
         return "predator scene: " + now + "  (" + scenesStarted + " begun, " + scenesLapped + " lapped, "
                 + scenesPreyHid + " prey hid)";
     }

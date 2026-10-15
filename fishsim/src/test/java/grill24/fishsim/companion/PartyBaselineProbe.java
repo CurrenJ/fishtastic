@@ -17,8 +17,7 @@ import java.util.Locale;
  *
  * <p>Answers, per party: do units overlap, fight for a perch, crowd the view, starve one another
  * of view time, or inspect each other? Run with -PsimStdout; -PsweepSeeds=N changes the seed count;
- * -PtweakA=noShoal groups by the pre-D13 rule (different-species free swimmers stay separate);
- * -PtweakB switches Phase 2d's perch rules and Phase 2f's ground separation ({@link #tunables}).
+ * -PtweakA=noShoal groups by the pre-D13 rule (different-species free swimmers stay separate).
  * The parties, the stepping ({@link PartyLayer}) and the measures live in {@link PartyRun}, the
  * Phase 2b metric suite; this prints them.
  */
@@ -37,22 +36,10 @@ class PartyBaselineProbe {
     }
 
     /**
-     * Phase 2d's switches (§6.1) from -PtweakB: {@code off} is the 2c baseline (no homes, no leases,
-     * anchored on the back), {@code homes} homes and D5 without leases (the review's candidate A),
-     * {@code noAnchoredHead} homes and leases with anchored fish still homed on the back.
-     * Unset, all on.
+     * The defaults: Phase 2d's homes and leases, D5 and ground separation are no longer switches.
      */
     static CompanionTunables tunables() {
-        CompanionTunables t = CompanionTunables.defaults();
-        switch (System.getProperty("tweakB", "")) {
-            case "off" -> { t.partyHomes = false; t.partyLeases = false; t.anchoredHead = false;
-                t.partyGroundSeparation = false; }
-            case "homes" -> t.partyLeases = false;
-            case "noAnchoredHead" -> t.anchoredHead = false;
-            case "noSep" -> t.partyGroundSeparation = false;
-            default -> { }
-        }
-        return t;
+        return CompanionTunables.defaults();
     }
 
     /**

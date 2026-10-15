@@ -96,8 +96,6 @@ final class DriftBody extends Motor {
     float flare;
     /** How far the bell's axis turned this tick, degrees (tilt and lean direction together). */
     float tiltStep;
-    /** Swinging back through upright to lean the other way (for {@code driftPivotSwingOnly}). */
-    private boolean reversing;
     /** How settled at rest it is, 0..1 (§13.7): eases its sink and slows its pulse while it idles. */
     float calm;
     /** Its sink this tick, blocks/s², eased by {@link #calm}. */
@@ -129,7 +127,7 @@ final class DriftBody extends Motor {
 
     @Override
     void step(Vec desired, double wanderScale, Vec extraAvoid, LocalVoxels voxels, Capsule body) {
-        if (style == DriftStyle.JET && t.driftJet) {
+        if (style == DriftStyle.JET) {
             stepJet(desired, extraAvoid, voxels);
             return;
         }
@@ -158,31 +156,26 @@ final class DriftBody extends Motor {
         Vec need = hold.add(desired.sub(vel).scale(t.driftResponse));
         this.need = need;
         Vec axisBefore = axis();
-        steerAxis(need, hold, sp);
+        steerAxis(need, hold);
         Vec axis = axis();
         tiltStep = (float) Math.toDegrees(Math.acos(Math.max(-1, Math.min(1, axisBefore.dot(axis)))));
-        double along = Math.max(0, need.dot(axis));
         double meanMax = t.driftThrust * t.driftPulseDuty * ENVELOPE_MEAN;
         // Effort is how much it needs, not how much its bell is pointed at yet: a jelly far behind
         // is trying hard while it is still swinging round.
         float effortTarget = (float) Math.min(1, need.length() / meanMax);
         effort += clamp(effortTarget - effort, -1.5f * (float) DT, 1.5f * (float) DT);
 
-        if (t.driftRoomBrake) {
-            roomVel = sp > 1e-6 ? roomSpeed(vel.scale(1 / sp), voxels) : Double.POSITIVE_INFINITY;
-            roomAxis = roomSpeed(axis, voxels);
-        }
-        if (t.driftFlare) updateFlare(desired, sp);
-        advancePulse(along, hold, desired, axis);
+        roomVel = sp > 1e-6 ? roomSpeed(vel.scale(1 / sp), voxels) : Double.POSITIVE_INFINITY;
+        roomAxis = roomSpeed(axis, voxels);
+        updateFlare(desired, sp);
+        advancePulse(hold, desired, axis);
         double thrust = peak * pulse;
         lastThrust = thrust;
         propulsion = axis.scale(thrust);
         Vec before = vel;
         double dragNow = drag(sp), sinkNow = sink;
-        if (t.driftFlare) {
-            dragNow += flare * t.driftFlareDrag;
-            sinkNow += flare * t.driftFlareSink;
-        }
+        dragNow += flare * t.driftFlareDrag;
+        sinkNow += flare * t.driftFlareSink;
         Vec a = axis.scale(thrust).sub(vel.scale(dragNow)).add(0, -sinkNow, 0);
         vel = vel.add(a.scale(DT));
         speed = vel.length();
@@ -208,12 +201,12 @@ final class DriftBody extends Motor {
                 .add(voxels.avoidance(pos.add(vel.scale(0.35)), t.wallMargin + radius).scale(0.6))
                 .clampLength(1);
         desired = desired.add(avoid.scale(Math.max(t.wallAvoidSpeed, sp * 1.2))).add(extraAvoid);
-        roomVel = sp > 1e-6 && t.driftRoomBrake ? roomSpeed(vel.normalize(), voxels) : Double.POSITIVE_INFINITY;
-        if (t.driftRoomBrake && desired.length() > 1e-6)
+        roomVel = sp > 1e-6 ? roomSpeed(vel.normalize(), voxels) : Double.POSITIVE_INFINITY;
+        if (desired.length() > 1e-6)
             desired = desired.clampLength(roomSpeed(desired.normalize(), voxels));
-        if (t.driftFlare) updateFlare(desired, sp);
-        double k = drag(sp) + (t.driftFlare ? flare * t.driftFlareDrag : 0);
-        Vec hold = desired.scale(t.jetCounterFinBrake ? drag(sp) : k).add(0, sink, 0);
+        updateFlare(desired, sp);
+        double k = drag(sp) + flare * t.driftFlareDrag;
+        Vec hold = desired.scale(drag(sp)).add(0, sink, 0);
         need = hold.add(desired.sub(vel).scale(t.driftResponse));
         Vec fins = need.clampLength(Math.max(0, t.jetFinThrust));
         Vec residual = need.sub(fins);
@@ -247,8 +240,7 @@ final class DriftBody extends Motor {
             // so turning during the coast never sweeps a live jet across the room.
             double dv = Math.max(0, hold.scale(cycle).add(desired.sub(vel).scale(t.driftArriveGain))
                     .sub(fins.scale(cycle)).dot(jetStrokeAxis));
-            if (t.driftRoomBrake) dv = Math.min(dv,
-                    Math.max(0, roomSpeed(jetStrokeAxis, voxels) - vel.dot(jetStrokeAxis)));
+            dv = Math.min(dv, Math.max(0, roomSpeed(jetStrokeAxis, voxels) - vel.dot(jetStrokeAxis)));
             peak = Math.min(t.jetThrust, dv / (cycle * duty * ENVELOPE_MEAN));
             strokeShow = (float) Math.min(1, dv / SQUEEZE_FULL_DV);
             strokeStart = peak > 0;
@@ -258,13 +250,10 @@ final class DriftBody extends Motor {
         pulse = (float) (s * s);
         squeeze = pulse * strokeShow;
         double jet = peak * pulse;
-        if (t.jetArrive) {
-            double available = desired.sub(vel).scale(1 / DT).add(vel.scale(k)).add(0, sink, 0)
-                    .sub(fins).dot(jetStrokeAxis);
-            if (t.driftRoomBrake) available = Math.min(available,
-                    (roomSpeed(jetStrokeAxis, voxels) - vel.dot(jetStrokeAxis)) / DT);
-            jet = Math.min(jet, Math.max(0, available));
-        }
+        double available = desired.sub(vel).scale(1 / DT).add(vel.scale(k)).add(0, sink, 0)
+                .sub(fins).dot(jetStrokeAxis);
+        available = Math.min(available, (roomSpeed(jetStrokeAxis, voxels) - vel.dot(jetStrokeAxis)) / DT);
+        jet = Math.min(jet, Math.max(0, available));
         propulsion = fins.add(jetStrokeAxis.scale(jet));
         mantleThrust = jet;
         squeeze = peak > 0 ? (float) (jet / peak) * strokeShow : 0;
@@ -315,17 +304,15 @@ final class DriftBody extends Motor {
 
         // Tentacles let down: drag by how much faster it is going than its crest that way, or than
         // it could stop in the room ahead. They can't hang down while the float shoves.
-        roomVel = hs > 1e-6 && t.driftRoomBrake ? roomSpeed(hVel.scale(1 / hs), voxels) : Double.POSITIVE_INFINITY;
-        if (t.driftFlare) {
-            double target = 0;
-            if (hs > 1e-6) {
-                double excess = hs - Math.max(0, crest.dot(hVel) / hs);
-                if (t.driftRoomBrake) excess = Math.max(excess, hs - roomVel);
-                target = Math.max(0, Math.min(1, (excess - FLARE_DEADBAND) / t.driftFlareFull)) * (1 - pulse);
-            }
-            flare += clamp((float) target - flare, -FLARE_CLOSE_RATE * (float) DT, FLARE_OPEN_RATE * (float) DT);
+        roomVel = hs > 1e-6 ? roomSpeed(hVel.scale(1 / hs), voxels) : Double.POSITIVE_INFINITY;
+        double target = 0;
+        if (hs > 1e-6) {
+            double excess = hs - Math.max(0, crest.dot(hVel) / hs);
+            excess = Math.max(excess, hs - roomVel);
+            target = Math.max(0, Math.min(1, (excess - FLARE_DEADBAND) / t.driftFlareFull)) * (1 - pulse);
         }
-        double k = drag(hs) + (t.driftFlare ? flare * t.driftFlareDrag : 0);
+        flare += clamp((float) target - flare, -FLARE_CLOSE_RATE * (float) DT, FLARE_OPEN_RATE * (float) DT);
+        double k = drag(hs) + flare * t.driftFlareDrag;
         need = hDesired.scale(drag(hs)).add(hDesired.sub(hVel).scale(t.driftResponse));
 
         // The sail turns toward what it needs; the float rocks into the turn.
@@ -376,7 +363,7 @@ final class DriftBody extends Motor {
                 double gate = Math.max(0, Math.min(1, (cos - none) / Math.max(1e-6, full - none)));
                 dv = Math.max(0, want.dot(sail)) * gate * gate * (3 - 2 * gate);
             }
-            if (t.driftRoomBrake) dv = Math.min(dv, Math.max(0, roomSpeed(sail, voxels) - hVel.dot(sail)));
+            dv = Math.min(dv, Math.max(0, roomSpeed(sail, voxels) - hVel.dot(sail)));
             peak = Math.min(t.bobThrust, dv / (down * ENVELOPE_MEAN));
             lastStrokeDv = peak * down * ENVELOPE_MEAN;
             strokeShow = (float) Math.max(SQUEEZE_FLOOR, Math.min(1, dv / SQUEEZE_FULL_DV));
@@ -388,7 +375,7 @@ final class DriftBody extends Motor {
         double shove = peak * pulse;
         // Never more than closing the gap to the crest this tick: what's left of the stroke goes nowhere useful.
         double available = crest.sub(hVel).scale(1 / DT).add(hVel.scale(k)).dot(sail);
-        if (t.driftRoomBrake) available = Math.min(available, (roomSpeed(sail, voxels) - hVel.dot(sail)) / DT);
+        available = Math.min(available, (roomSpeed(sail, voxels) - hVel.dot(sail)) / DT);
         shove = Math.min(shove, Math.max(0, available));
         squeeze = peak > 0 ? (float) (shove / peak) * strokeShow : 0;
 
@@ -435,10 +422,10 @@ final class DriftBody extends Motor {
         if (sp > 1e-6) {
             double kept = Math.max(0, desired.dot(vel) / sp);
             double excess = sp - kept;
-            if (t.driftRoomBrake) excess = Math.max(excess, sp - roomVel);
+            excess = Math.max(excess, sp - roomVel);
             target = Math.max(0, Math.min(1, (excess - FLARE_DEADBAND) / t.driftFlareFull));
         }
-        if (style != DriftStyle.JET || !t.driftJet || !t.jetCounterFinBrake) target *= 1 - pulse;
+        if (style != DriftStyle.JET) target *= 1 - pulse;
         flare += clamp((float) target - flare, -FLARE_CLOSE_RATE * (float) DT, FLARE_OPEN_RATE * (float) DT);
     }
 
@@ -447,12 +434,8 @@ final class DriftBody extends Motor {
         return t.driftDrag + t.driftDragPerSpeed * v;
     }
 
-    /**
-     * Tilts the bell toward {@code need}, never past horizontal, at a capped and eased rate. With
-     * {@code driftSlowPivot} the cap rises as it slows: a hanging bell rights and leans quickly, a
-     * fast one is carried on its line (and a flare, by slowing it, frees it to turn).
-     */
-    private void steerAxis(Vec need, Vec hold, double sp) {
+    /** Tilts the bell toward {@code need}, never past horizontal, at a capped and eased rate. */
+    private void steerAxis(Vec need, Vec hold) {
         double h = need.horizontalLength();
         float wantTilt = (float) Math.toDegrees(Math.atan2(h, Math.max(1e-6, need.y())));
         // Never past the leaning limit: a bell doesn't swim upside down. A hovering jelly stays
@@ -474,19 +457,14 @@ final class DriftBody extends Motor {
         }
         // Braking or out of a fall, what it needs points level or down, where a bell can't push. It
         // leans only as far as holding its asked velocity takes and lets the flare and sink do the rest.
-        if (!t.driftLeanIntoBrake && need.y() <= need.horizontalLength() * TAN_LEVEL) {
+        if (need.y() <= need.horizontalLength() * TAN_LEVEL) {
             float holdTilt = (float) Math.toDegrees(Math.atan2(hold.horizontalLength(), Math.max(1e-6, hold.y())));
             wantTilt = Math.min(wantTilt, holdTilt + t.driftBrakeTiltMarginDeg);
         }
         float wantYaw = h > 1e-4 ? (float) need.yawDeg() : tiltYaw;
         float yawErr = Body.wrap(wantYaw - tiltYaw);
         boolean swinging = Math.abs(yawErr) > 90f && tilt > 1f;
-        // A reversal is the swing back to upright and the lean out the other way after it.
-        if (swinging) reversing = true;
-        else if (reversing && (tilt >= wantTilt - 5f || h <= 1e-4)) reversing = false;
-        float boost = t.driftSlowPivot > 0 && (!t.driftPivotSwingOnly || reversing)
-                ? 1f + t.driftSlowPivot * (float) (1 - Math.min(1, sp / t.driftSlowPivotSpeed)) : 1f;
-        float rate = t.driftTiltRateDegPerTick * boost;
+        float rate = t.driftTiltRateDegPerTick;
         // Tilt toward a new direction by swinging through upright when that is shorter than turning.
         if (swinging) {
             wantTilt = 0f;
@@ -495,7 +473,7 @@ final class DriftBody extends Motor {
         }
         if (tilt < 1f && h > 1e-4) tiltYaw = wantYaw;
         float cmd = clamp((wantTilt - tilt) * 0.2f, -rate, rate);
-        tiltRate += clamp(cmd - tiltRate, -0.4f * boost, 0.4f * boost);
+        tiltRate += clamp(cmd - tiltRate, -0.4f, 0.4f);
         tilt = clamp(tilt + tiltRate, 0f, 90f);
         yawRate = 0f;
     }
@@ -521,39 +499,38 @@ final class DriftBody extends Motor {
      * Advances the pulse cycle. A cycle's length and its pulse's strength are fixed when it starts,
      * from the effort and need of that moment, so a pulse never changes shape mid-squeeze.
      *
-     * <p>With {@code driftRetime} a cycle may end early once its squeeze is over: when the cycle it
+     * <p>A cycle may end early once its squeeze is over: when the cycle it
      * would choose now is already over (it has started hurrying), or when the stroke it wants now is
      * much bigger than the last one (that one went off while it was still swinging round, or before
      * the owner set off). A jelly can pulse whenever it likes; waiting out a 2.8 s idle cycle with
      * its owner walking off was most of the first cut's lag.
      *
-     * <p>With {@code driftArrive} a stroke is sized as a velocity change, not as a held
+     * <p>A stroke is sized as a velocity change, not as a held
      * acceleration: what drag and sink will take over the cycle, plus most of the gap to the asked
      * velocity, along the bell. (The first cut multiplied the continuous correction by the whole
      * cycle — at an idle cycle four times the gap.) A stroke well off the line of what's needed is
      * weakened, so a bell still swinging round doesn't push itself up and sideways.
      */
-    private void advancePulse(double along, Vec hold, Vec desired, Vec axis) {
-        float slowest = t.driftIdlePulseSeconds > 0
-                ? t.driftPulseSeconds + (t.driftIdlePulseSeconds - t.driftPulseSeconds) * calm : t.driftPulseSeconds;
+    private void advancePulse(Vec hold, Vec desired, Vec axis) {
+        float slowest = t.driftPulseSeconds + (t.driftIdlePulseSeconds - t.driftPulseSeconds) * calm;
         double next = slowest + (t.driftPulseFastSeconds - slowest) * effort;
         phase += DT / period;
         boolean wrap = phase >= 1;
-        if (!wrap && t.driftRetime && phase >= t.driftPulseDuty) {
+        if (!wrap && phase >= t.driftPulseDuty) {
             double since = phase * period;
             wrap = since >= next || since >= RETIME_MIN_SECONDS
                     && (strokeDv(hold, desired, axis, next) > Math.max(1.5 * lastStrokeDv, lastStrokeDv + RETIME_DV)
                     // A calm bell's long cycle doesn't let it fall: dropping well faster than it wants
                     // (out of a swoop, or under a flare), it strokes again at once — also when it has
                     // just stopped idling but is still in a long idle cycle (§13.7).
-                    || (calm > 0 || period > t.driftPulseSeconds) && t.driftCalmCatch
+                    || (calm > 0 || period > t.driftPulseSeconds)
                     && vel.y() < desired.y() - CALM_CATCH_DV);
         }
         strokeStart = wrap;
         if (wrap) {
             phase = phase >= 1 ? phase - 1 : 0;
             period = next;
-            double mean = t.driftArrive ? strokeDv(hold, desired, axis, period) / period : along;
+            double mean = strokeDv(hold, desired, axis, period) / period;
             peak = Math.min(t.driftThrust, mean / (t.driftPulseDuty * ENVELOPE_MEAN));
             lastStrokeDv = peak * t.driftPulseDuty * ENVELOPE_MEAN * period;
             strokeShow = (float) Math.max(SQUEEZE_FLOOR, Math.min(1, lastStrokeDv / SQUEEZE_FULL_DV));
@@ -573,22 +550,21 @@ final class DriftBody extends Motor {
         Vec want = hold.scale(cycle).add(desired.sub(vel).scale(t.driftArriveGain));
         double alongDv = want.dot(axis);
         double len = want.length();
-        if ((alongDv <= 0 || len < 1e-9) && !t.driftHoldHeight) return 0;
         if (len < 1e-9) return 0;
         double cos = alongDv / len;
         double gate = Math.max(0, Math.min(1, (cos - COS_60) / (COS_25 - COS_60)));
         double dv = alongDv * gate * gate * (3 - 2 * gate);
         // Near upright it can always hold its height, wherever it wants to go next.
-        if (t.driftHoldHeight && axis.y() > HOLD_HEIGHT_MIN_UP) {
+        if (axis.y() > HOLD_HEIGHT_MIN_UP) {
             // Only a short window of sink: with retiming it can pulse again soon, and paying a slow idle
             // cycle's sink at once would bob it up and down by blocks.
             double rise = sink * HOLD_HEIGHT_SECONDS + desired.y() - vel.y();
             dv = Math.max(dv, Math.max(0, rise) / axis.y());
         }
         // No faster along the bell than its flare could stop in the room ahead.
-        if (t.driftRoomBrake) dv = Math.min(dv, Math.max(0, roomAxis - vel.dot(axis)));
+        dv = Math.min(dv, Math.max(0, roomAxis - vel.dot(axis)));
         // No more lift than it wants: what's left of the stroke after that goes nowhere useful.
-        if (t.driftNoClimb && axis.y() > 1e-3) {
+        if (axis.y() > 1e-3) {
             double maxRise = Math.max(0, desired.y()) + 0.5 * sink * cycle + CLIMB_MARGIN;
             dv = Math.min(dv, Math.max(0, (maxRise - vel.y()) / axis.y()));
         }
@@ -603,17 +579,17 @@ final class DriftBody extends Motor {
      * For a squid, reserve the distance travelled while its counter fins open as well; assuming
      * full stopping drag immediately made the old candidate see a door too late.
      *
-     * <p>With {@code driftRoomPastContact}, a block it already touches is not in the way unless it
+     * <p>A block it already touches is not in the way unless it
      * comes closer along {@code dir}: it sweeps the largest sphere that is clear where it is (§13.12).
      * Pressed to a tunnel wall or sitting on the floor, the full sphere read no room in any direction,
      * so every stroke was cut to nothing and it could neither stop a fall nor push off the floor.
      */
     private double roomSpeed(Vec dir, LocalVoxels voxels) {
         double k = t.driftDrag + t.driftFlareDrag;
-        boolean jet = style == DriftStyle.JET && t.driftJet;
+        boolean jet = style == DriftStyle.JET;
         if (jet) k /= 1 + k * t.jetBrakeDelay;
         double r = radius + (jet ? t.jetRoomMargin : ROOM_MARGIN);
-        if (t.driftRoomPastContact && !voxels.sphereClear(pos, r)) {
+        if (!voxels.sphereClear(pos, r)) {
             // The clearance where it is, to within a millimetre: only what it is already touching is let off.
             double lo = 0, hi = r;
             for (int i = 0; i < ROOM_BISECTIONS; i++) {
@@ -654,7 +630,7 @@ final class DriftBody extends Motor {
         calm = 0f;
         jetAxis = jetStrokeAxis = Vec.UP;
         jetClock = 0;
-        if (style == DriftStyle.JET && t.driftJet || style == DriftStyle.BOB && t.driftBob) {
+        if (style == DriftStyle.JET || style == DriftStyle.BOB && t.driftBob) {
             peak = 0;
             pulse = squeeze = 0;
         }

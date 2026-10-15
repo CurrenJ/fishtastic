@@ -244,7 +244,7 @@ class BenthicGroundInvariantTest {
             long fades = r.g().fades();
             // With hand visits rare (HandClock) a walker on the stairs rides up less; the owner
             // accepted one fade there (2026-10-14).
-            if (s.equals("stairs_up_down") && CompanionTunables.defaults().handClock) {
+            if (s.equals("stairs_up_down")) {
                 assertTrue(fades <= 1, k + " faded more than once where it could follow " + why(k, r));
             } else if (NO_FADE.contains(s) || (s.equals("sprint_away") && FAST_ENOUGH_FOR_SPRINT.contains(config(k)))) {
                 assertEquals(0, fades, k + " faded where it could follow " + why(k, r));

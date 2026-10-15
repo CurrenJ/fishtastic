@@ -62,13 +62,6 @@ public final class BenthicGroup {
                 members[i].groupStart(members[0].position().sub(world.owner().flatForward().scale(back)));
             }
         }
-        // The leader sets the formation's pace: no faster than its slowest member walks (D10), so a
-        // big leader never strands small followers. Identical members leave it uncapped.
-        if (t.groupPaceCap) {
-            double slowest = members[0].groundPace();
-            for (CompanionAgent a : members) slowest = Math.min(slowest, a.groundPace());
-            if (slowest < members[0].groundPace()) members[0].groundPaceCap(slowest);
-        }
     }
 
     private static float[] filled(float length, int count) {

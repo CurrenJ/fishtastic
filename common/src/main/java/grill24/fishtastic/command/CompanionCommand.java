@@ -37,7 +37,7 @@ import java.util.Optional;
  *   /fishtastic companion off                             — unequip; the fish comes back
  *   /fishtastic companion give &lt;player&gt; &lt;species&gt; [size] — equip a conjured fish directly
  *   /fishtastic companion debug &lt;bool&gt;                  — overlay: goal, drives, pose hint, temperament, sim cost
- *   /fishtastic companion switch [reset|&lt;name&gt; &lt;value&gt;] — list, set or reset the party switches (rebuilds when needed)
+ *   /fishtastic companion switch [reset|&lt;name&gt; &lt;value&gt;] — list, set or reset the party switches
  *   /fishtastic companion temperament &lt;id&gt;|species      — force a temperament on your companion (or its own)
  *   /fishtastic companion fake hostile|cat|item|companion — a scripted thing for it to react to (clear removes them)
  *   /fishtastic companion predatorscene                   — your party's predator laps you now, its prey hides

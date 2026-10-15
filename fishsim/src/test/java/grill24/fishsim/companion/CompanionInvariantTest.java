@@ -230,9 +230,9 @@ class CompanionInvariantTest {
     /**
      * A percher's seen floor with hand visits rare: the owner accepted the cost (2026-10-14).
      * Slow ground walkers (crab, slug, plaice) can't overtake a walking owner to show themselves,
-     * and measured as low as 4% on walking scripts; 5% for everything else.
+     * and measured as low as 4% on walking scripts.
      */
-    static final double PERCHER_SEEN_FLOOR = CompanionTunables.defaults().handClock ? 0.03 : 0.05;
+    static final double PERCHER_SEEN_FLOOR = 0.03;
 
     private static String script(String key) {
         return key.substring(key.indexOf('/') + 1, key.indexOf('#'));

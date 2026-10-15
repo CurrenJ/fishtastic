@@ -79,12 +79,6 @@ public final class ClientCompanions {
         @Nullable CompanionParty party() { return party; }
         List<ClientCompanion> companions() { return companions; }
 
-        /** Drops the party's sim; the next tick builds it afresh beside its owner (a build-time switch changed). */
-        void rebuild() {
-            layer = null;
-            scene = null;
-        }
-
         // ── A cross-player scene (party spec §28) ──
         /** This party's side of a scene, the shared start tick, the partner and its slot; null for none. */
         @Nullable private CrossScene scene;
@@ -918,15 +912,14 @@ public final class ClientCompanions {
             Object value = switchValue(ClientCompanion.TUNABLES, name);
             boolean changed = !value.equals(switchValue(DEFAULTS, name));
             out.append("\n  ").append(name).append(" ").append(show(value))
-                    .append(changed ? "  (changed; default " + show(switchValue(DEFAULTS, name)) + ")" : "")
-                    .append(CompanionTunables.BUILD_TIME_SWITCHES.contains(name) ? "  [rebuilds]" : "");
+                    .append(changed ? "  (changed; default " + show(switchValue(DEFAULTS, name)) + ")" : "");
         }
         return out.toString();
     }
 
     /**
      * Dev-only (`/fishtastic companion switch <name> <value>`): sets one switch for every party this
-     * client runs. A switch read only when a party is built rebuilds every party's sim.
+     * client runs, live.
      *
      * @param value {@code on}/{@code off} (or true/false), or seconds for anchoredPredatorDuckSeconds
      */
@@ -952,14 +945,11 @@ public final class ClientCompanions {
         } catch (IllegalAccessException e) {
             throw new IllegalStateException(e);
         }
-        boolean rebuilt = CompanionTunables.BUILD_TIME_SWITCHES.contains(name);
-        if (rebuilt) rebuildAll();
-        return name + " " + show(switchValue(ClientCompanion.TUNABLES, name)) + (rebuilt ? " (parties rebuilt)" : " (live)");
+        return name + " " + show(switchValue(ClientCompanion.TUNABLES, name)) + " (live)";
     }
 
     /** Dev-only (`/fishtastic companion switch reset`): every party switch back to its default. */
     public static String devSwitchReset() {
-        boolean rebuild = false;
         for (String name : CompanionTunables.DEV_SWITCHES) {
             Object def = switchValue(DEFAULTS, name);
             if (def.equals(switchValue(ClientCompanion.TUNABLES, name))) continue;
@@ -968,10 +958,8 @@ public final class ClientCompanions {
             } catch (IllegalAccessException e) {
                 throw new IllegalStateException(e);
             }
-            rebuild |= CompanionTunables.BUILD_TIME_SWITCHES.contains(name);
         }
-        if (rebuild) rebuildAll();
-        return "Companion switches back to their defaults" + (rebuild ? " (parties rebuilt)" : "");
+        return "Companion switches back to their defaults";
     }
 
     /**
@@ -998,10 +986,6 @@ public final class ClientCompanions {
             if (!value.equals(switchValue(DEFAULTS, name))) changed.add(name + " " + show(value).toUpperCase(Locale.ROOT));
         }
         return changed.isEmpty() ? null : "switches: " + String.join(", ", changed);
-    }
-
-    private static void rebuildAll() {
-        for (OwnerParty party : parties()) party.rebuild();
     }
 
     private static java.lang.reflect.Field switchField(String name) {

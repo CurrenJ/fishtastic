@@ -166,7 +166,7 @@ public final class PerchBody extends Motor {
         this.rng = seed * 0x9E3779B97F4A7C15L + 0x2545F4914F6CDD1DL;
         if (rng == 0) rng = 1;
         this.pace = Math.sqrt(Math.max(0.15, length) / 0.3);
-        this.home = locomotion == Locomotion.ANCHORED ? (t.anchoredHead ? Slot.HEAD : Slot.BACK)
+        this.home = locomotion == Locomotion.ANCHORED ? Slot.HEAD
                 : switch ((int) Math.floorMod(seed, 3L)) {
                     case 0 -> Slot.RIGHT_SHOULDER;
                     case 1 -> Slot.LEFT_SHOULDER;
@@ -410,7 +410,7 @@ public final class PerchBody extends Motor {
         }
         // Unseen a while with the hand not due: it peeks into view from where it rides (a ground
         // fish too: idle, it rests up here most of the time).
-        if (t.handClock && t.shoulderPeek && !groupMember && slot.peeks() && peekCooldown == 0
+        if (!groupMember && slot.peeks() && peekCooldown == 0
                 && unseenTicks >= attentionThreshold && !handDue() && !handTurn()) {
             peekLen = peekTicks = drawTicks(1.5, 2.5);
             peekCooldown = drawTicks(t.attentionMinSeconds, t.attentionMaxSeconds);
@@ -489,14 +489,14 @@ public final class PerchBody extends Motor {
 
     private int handStay = -1;
 
-    /** Whether the unseen timer may call it to the hand now (always, with the clock off). */
+    /** Whether the unseen timer may call it to the hand now. */
     private boolean handDue() {
-        return !t.handClock || handClock.ready(this);
+        return handClock.ready(this);
     }
 
     /** In a party, whether its turn on the hand has come round (HandClock): it goes, seen or not. */
     private boolean handTurn() {
-        return t.handClock && handClock.shared() && handClock.ready(this);
+        return handClock.shared() && handClock.ready(this);
     }
 
     /** Whether a party's hand turn can go to it: a percher that can lead, on the owner or the ground. */
@@ -661,7 +661,7 @@ public final class PerchBody extends Motor {
                 if (slot.hand()) {
                     unseenTicks = 0;
                     sinceHand = 0;
-                    if (t.handClock) handClock.wait = drawTicks(t.handGapMinSeconds, t.handGapMaxSeconds);
+                    handClock.wait = drawTicks(t.handGapMinSeconds, t.handGapMaxSeconds);
                     handVisits[handWhy.ordinal()]++;
                     handWhy = HandWhy.OTHER;
                 }
@@ -774,10 +774,9 @@ public final class PerchBody extends Motor {
         }
         // The in-view beats go first: well before it would come up to the hand, and sooner for a racer.
         gmind.unseen = unseenTicks;
-        gmind.showDue = t.handClock && t.idleInView && !groupMember && unseenTicks >= groundAttention();
         gmind.raceAhead = drives.temperament().raceAhead();
         // More ground beats with hand visits rare (HandClock): sooner after going unseen, and again sooner.
-        boolean boost = t.handClock && t.moreGroundBeats && !groupMember;
+        boolean boost = !groupMember;
         gmind.beatAfter = (int) (groundAttention() / (gmind.raceAhead ? 4 : 2) / (boost ? t.groundBeatSooner : 1));
         gmind.beatCooldownScale = boost ? 1 / t.groundBeatSooner : 1;
         gmind.step(o, v, drives, length);

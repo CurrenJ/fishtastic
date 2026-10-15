@@ -5829,13 +5829,12 @@ public final class RenderSelfTest {
             Fishtastic.LOGGER.info("[selftest] eel skin model {}", mc.player.getSkin().model());
             mc.options.fov().set(savedFov);
         });
-        // The party switches (Phase 3c), through the real command: homes off rebuilds the party and
-        // the three eels no longer split head and shoulders; reset brings that back.
-        queue(1, mc -> server(mc, s -> run(s, "fishtastic companion switch partyHomes off")));
+        // The party switches (Phase 3c), through the real command: one turned off shows on the
+        // overlay, and reset clears it with the eels' homes untouched.
+        queue(1, mc -> server(mc, s -> run(s, "fishtastic companion switch otherPlayerClearance off")));
         queue(120, mc -> {
             String state = grill24.fishtastic.client.companion.ClientCompanions.debugState();
-            check("companioneel.switch.homes_off", !eelHomes().equals(EEL_SPLIT), eelHomes() + " | " + state);
-            check("companioneel.switch.overlay", state.contains("switches: partyHomes OFF"), state);
+            check("companioneel.switch.overlay", state.contains("switches: otherPlayerClearance OFF"), state);
             server(mc, s -> run(s, "fishtastic companion switch reset"));
         });
         queue(160, mc -> {

@@ -93,7 +93,8 @@ class BobBodyTest {
             assertTrue(b.propulsion.z() <= 1e-9);
         }
         assertTrue(maxFlare > 0.5);
-        t.driftFlare = false;
+        // The same float with a flare that brakes nothing: only plain drag slows it.
+        t.driftFlareDrag = 0;
         DriftBody free = float_();
         free.vel = new Vec(0, 0, 5);
         for (int i = 0; i < 20; i++) free.step(Vec.ZERO, 0, Vec.ZERO, air, null);

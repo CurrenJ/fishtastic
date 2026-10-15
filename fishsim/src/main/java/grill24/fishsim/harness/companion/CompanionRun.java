@@ -520,7 +520,7 @@ public final class CompanionRun {
                 // backwards, or a bell pulsing tentacles-first. A bell sinking between pulses is
                 // just sinking, so for a drifter only ticks with real thrust count.
                 boolean propelled = agent.locomotion() != Locomotion.DRIFT || s.thrust() > 1.0;
-                if (agent.locomotion() == Locomotion.DRIFT && agent.driftStyle() == DriftStyle.JET && tunables.driftJet)
+                if (agent.locomotion() == Locomotion.DRIFT && agent.driftStyle() == DriftStyle.JET)
                     propelled = s.mantleThrust() > 1.0;
                 if (s.vel().length() > 1.0 && propelled && !s.tumbling()) {
                     movingTicks++;

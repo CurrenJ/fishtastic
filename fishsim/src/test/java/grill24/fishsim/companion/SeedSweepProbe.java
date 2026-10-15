@@ -19,7 +19,7 @@ import java.util.function.Consumer;
  *   -PsweepTemperament=skittish    the temperament (default baseline; "norest" = baseline with rest off)
  *   -PsweepTicks=12000             run length (default 2400)
  * </pre>
- * With no properties it reproduces the spike's whiskers on/off ablation.
+ * With no properties it reports FREE_SWIM on the default tunables.
  */
 @EnabledIfSystemProperty(named = "simStdout", matches = "true")
 class SeedSweepProbe {
@@ -38,11 +38,6 @@ class SeedSweepProbe {
         }
         Locomotion c = Locomotion.valueOf(System.getProperty("sweepClass", "FREE_SWIM"));
         String a = System.getProperty("tweakA"), b = System.getProperty("tweakB");
-        if (only == null && a == null && b == null && c == Locomotion.FREE_SWIM) {
-            report("whiskers on ", c, SCRIPTS, t -> t.whiskers = true);
-            report("whiskers off", c, SCRIPTS, t -> t.whiskers = false);
-            return;
-        }
         String[] scripts = only != null ? only.split(",") : SCRIPTS;
         report(c + " A " + (a == null ? "defaults" : a), c, scripts, tweak(a));
         if (b != null) report(c + " B " + b, c, scripts, tweak(b));

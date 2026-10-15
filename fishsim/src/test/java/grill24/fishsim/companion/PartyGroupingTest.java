@@ -190,31 +190,6 @@ class PartyGroupingTest {
         assertEquals(PartyGrouping.Kind.SOLO, h.get(1).kind());
     }
 
-    /**
-     * D10's explicit cap (opt-in, {@link CompanionTunables#groupPaceCap}): a ground leader bigger than
-     * a member walks at that member's pace; identical members and smallest-first groups are uncapped.
-     */
-    @Test
-    void groundLeaderIsPacedToItsSlowestMember() {
-        CompanionWorld world = OwnerScript.named("walk_flat", 1).nextWorld();
-        CompanionTunables t = CompanionTunables.defaults();
-        t.groupPaceCap = true;
-        BenthicGroup big = new BenthicGroup(t, 1, new float[]{0.5f, 0.4f, 0.3f}, Temperament.BASELINE,
-                GroundGait.CRAWL, BenthicGroup.Formation.LINE, world);
-        assertEquals(big.member(2).groundPace(), big.leader().groundPaceCap(), 1e-12);
-        BenthicGroup small = new BenthicGroup(t, 1, new float[]{0.3f, 0.4f, 0.5f}, Temperament.BASELINE,
-                GroundGait.CRAWL, BenthicGroup.Formation.LINE, world);
-        assertEquals(Double.POSITIVE_INFINITY, small.leader().groundPaceCap());
-        BenthicGroup same = new BenthicGroup(t, 1, 0.4f, Temperament.BASELINE, GroundGait.CRAWL, 3,
-                BenthicGroup.Formation.LINE, world);
-        assertEquals(Double.POSITIVE_INFINITY, same.leader().groundPaceCap());
-        CompanionTunables off = CompanionTunables.defaults();
-        assertFalse(off.groupPaceCap, "the cap is opt-in: D9 already makes the leader the slowest walker");
-        BenthicGroup uncapped = new BenthicGroup(off, 1, new float[]{0.5f, 0.4f, 0.3f}, Temperament.BASELINE,
-                GroundGait.CRAWL, BenthicGroup.Formation.LINE, world);
-        assertEquals(Double.POSITIVE_INFINITY, uncapped.leader().groundPaceCap());
-    }
-
     @Test
     void emptySlotsAreSimplyAbsent() {
         assertTrue(PartyGrouping.group(List.of()).isEmpty());

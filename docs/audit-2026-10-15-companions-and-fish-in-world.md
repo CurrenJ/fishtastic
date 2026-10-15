@@ -450,3 +450,22 @@ celebration). Results: fishsim 556 (59 opt-in skipped), common 856, Fabric game 
 362/362 (one round-trip test fewer each), solo self-tests `companionbond, companionsim, companionparty,
 companioneel, companionscenes, companionworld, ambientparity` 113/113 on both loaders.
 Note: a save still holding a pre-party (single-stack) companion no longer loads it.
+
+**Step 2 done 2026-10-16.** Owner chose to collapse only the signed-off switches and to delete the
+rejected ones. Collapsed (adopted branch kept, off branch deleted): `whiskers`; the bell drift set
+(`driftRetime`, `driftArrive`, `driftFlare`, `driftNoClimb`, `driftRoomBrake`, `driftRoomPastContact`,
+`driftHoldHeight`, `driftIdleSteady`, `driftCalmCatch`); the jet set (`driftJet`, `jetArrive`,
+`jetCounterFinBrake`, `jetMindTurn`); the party set (`anchoredHead`, `partyHomes`, `partyLeases`,
+`partyGroundSeparation`, `handClock`, `partyHandClock`, `shoulderPeek`, `moreGroundBeats`,
+`partyPredatorScene`). Deleted with their code: `idleInView` (and `GroundMind`'s show-spot path),
+`groupPaceCap` (and the ground pace cap), `driftSlowPivot`/`driftPivotSwingOnly`, the
+`driftLeanIntoBrake` branch, and the zero-means-off guards on `driftOwnerAside` and
+`driftIdlePulseSeconds`. With no build-time switch left, the dev command's rebuild path went too.
+Still switches, pending the owner's look: `driftBob`, `bobRetime`, `bobMindTurn`,
+`partySwimSeparation`, `otherPlayerClearance`.
+Tests that only compared a removed switch's two branches went (`disablingJetRestoresTheBellBitwise`,
+`groundLeaderIsPacedToItsSlowestMember`, `BenthicVisibilityTest`, whose assertion was clock-off only);
+the `companioneel` self-test now flips `otherPlayerClearance` instead of `partyHomes`.
+Fingerprints: all 1,038 (930 single-owner, 108 two-owner) bitwise identical before and after, so no
+rebaseline was needed. Left for now: the `GroundMind` diagnostic statics, which regression tests flip
+to prove their fixes.

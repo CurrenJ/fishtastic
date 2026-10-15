@@ -22,7 +22,7 @@ class MixedGroupProbe {
 
     static final int TICKS = 2400;
 
-    /** The run's tunables: defaults, with -PtweakA applied (e.g. -PtweakA=groupPaceCap=false). */
+    /** The run's tunables: defaults, with -PtweakA applied (e.g. -PtweakA=partySwimSeparation=false). */
     private static CompanionTunables tunables() {
         CompanionTunables t = CompanionTunables.defaults();
         SeedSweepProbe.tweak(System.getProperty("tweakA")).accept(t);
