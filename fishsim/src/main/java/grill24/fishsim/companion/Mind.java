@@ -378,7 +378,10 @@ final class Mind {
         bandOuterNow = (ownerMoving ? t.bandOuter : t.bandOuter + (t.bandOuterIdle - t.bandOuter) * idleWiden)
                 * body.g.bandScale() * band();
         proximity = (float) smoothstep(bandOuterNow, t.farGap, ownerDist);
-        if (!losToOwner && ownerDist > 1.2) proximity = Math.max(proximity, 0.75f);
+        // A water dip goes below the pool's rim on purpose; inside the feature band that isn't being left behind.
+        // Only while it's keeping up with the dip (last tick's pose): a fish that fell behind is leashed as before.
+        boolean dipping = goal == Goal.NOTICE && pose == PoseHint.DIP && ownerDist < 4.0;
+        if (!losToOwner && ownerDist > 1.2 && !dipping) proximity = Math.max(proximity, 0.75f);
 
         if (seen) {
             seenStreak++;

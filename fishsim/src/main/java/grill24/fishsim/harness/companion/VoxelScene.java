@@ -46,6 +46,18 @@ public final class VoxelScene implements BlockQuery {
         airs.add(box); waters.add(box); version++;
     }
 
+    /**
+     * Replaces {@link #addWorldWater} with the in-game self-test pool: one water block standing on the
+     * ground at feet level, a stone on each side, and the corners open.
+     */
+    public void raisedWorldWater(grill24.fishsim.companion.Vec source) {
+        int x = (int)Math.floor(source.x()), z = (int)Math.floor(source.z()), y = groundTop + 1;
+        plugs.add(new int[]{x-1, groundTop-1, z, x+2, groundTop+1, z+3});
+        waters.add(new int[]{x, y, z, x+1, y+1, z+1});
+        for (int[] d : new int[][]{{1,0},{-1,0},{0,1},{0,-1}}) solids.add(new int[]{x+d[0], y, z+d[1], x+d[0]+1, y+1, z+d[1]+1});
+        version++;
+    }
+
     /** The feet height of anyone standing on the ground. */
     public double feetY() {
         return groundTop + 1;

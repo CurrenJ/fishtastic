@@ -89,6 +89,38 @@ class WorldFeatureTest {
         }
     }
 
+    @Test void swimmersDipIntoTheInGameSelfTestPool() {
+        for(Locomotion motion : List.of(Locomotion.FREE_SWIM,Locomotion.DRIFT)) for(long seed=1;seed<=5;seed++) {
+            CompanionRun run=new CompanionRun("idle_fixed",seed,motion,0.22f,CompanionTunables.defaults(),false);
+            // The self-test puts the water two blocks ahead of the owner's feet block, surface at its top.
+            Vec feet=run.owner.feet(), source=new Vec(Math.floor(feet.x())+.5,Math.floor(feet.y())+1,Math.floor(feet.z())+2.5);
+            run.worldScene("water",source.sub(new Vec(0.7,0,2.5))); run.scene.raisedWorldWater(source);
+            boolean entered=false; int splashes=0; double lowest=Double.MAX_VALUE;
+            for(int tick=0;tick<1200;tick++) {
+                run.tick(); Vec point=run.agent.position(); lowest=Math.min(lowest,point.y()-source.y());
+                boolean wet=run.scene.water((int)Math.floor(point.x()),(int)Math.floor(point.y()),(int)Math.floor(point.z()));
+                entered|=wet;
+                // Like the in-game check: the splash's own position (where it is drawn) must be in real water.
+                for(Emote emote:run.agent.emotes()) if(emote.kind()==Emote.Kind.SPLASH) {
+                    splashes++; Vec e=emote.pos();
+                    assertTrue(run.scene.water((int)Math.floor(e.x()),(int)Math.floor(e.y()),(int)Math.floor(e.z())),"splash in real water: "+e);
+                }
+            }
+            String at=motion+"#"+seed+" lowest="+lowest;
+            assertTrue(entered,at+" enters the raised pool");
+            if(motion==Locomotion.FREE_SWIM) assertTrue(lowest<-0.3,at+" a swimmer dips well under, not a skim"); assertTrue(splashes>0,at+" splashes in the pool");
+            assertEquals(0,run.agent.leashEvents(),at);
+        }
+    }
+
+    @Test void aSoloFishShowsItsOwnDroopToTheClient() {
+        // The client draws poseFor(poseHint()), not poseHint(): a solo fish's mood pose must survive it.
+        CompanionRun run=new CompanionRun("idle_fixed",1,CompanionTunables.defaults(),false); run.worldScene("glum");
+        int droop=0;
+        for(int tick=0;tick<600;tick++) { run.tick(); if(run.agent.poseFor(run.agent.poseHint())==PoseHint.DROOP) droop++; }
+        assertTrue(droop>0,"drawn droop ticks: "+droop);
+    }
+
     @Test void walkerWaterExcursionUsesCheckedArcsAndReturnsToTheBank() {
         VoxelScene scene=VoxelScene.open();
         Vec surface=new Vec(0.7,scene.feetY(),2.5); scene.addWorldWater(surface);

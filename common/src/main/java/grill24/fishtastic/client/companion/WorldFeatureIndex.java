@@ -153,10 +153,16 @@ public final class WorldFeatureIndex {
     public List<Vec> warmth(BlockPos owner) {
         List<Vec> cached = warmthCache.get(owner);
         if (cached!=null) return cached;
-        Map<Long,WorldFeature> cells = new HashMap<>();
+        // Insert in the legacy X, Y, Z scan order: colliding cell keys iterate in insertion order, which breaks distance ties.
+        List<WorldFeature> candidates = new ArrayList<>();
         for (Section s : sections.values()) for (WorldFeature f : s.warmth.values()) {
             BlockPos p = BlockPos.of(f.id());
-            if (Math.abs(p.getX()-owner.getX())>6 || Math.abs(p.getY()-owner.getY())>3 || Math.abs(p.getZ()-owner.getZ())>6) continue;
+            if (Math.abs(p.getX()-owner.getX())<=6 && Math.abs(p.getY()-owner.getY())<=3 && Math.abs(p.getZ()-owner.getZ())<=6) candidates.add(f);
+        }
+        candidates.sort(Comparator.comparingInt((WorldFeature f)->BlockPos.getX(f.id())).thenComparingInt(f->BlockPos.getY(f.id())).thenComparingInt(f->BlockPos.getZ(f.id())));
+        Map<Long,WorldFeature> cells = new HashMap<>();
+        for (WorldFeature f : candidates) {
+            BlockPos p = BlockPos.of(f.id());
             long cell = BlockPos.asLong(p.getX()>>2,p.getY()>>2,p.getZ()>>2);
             WorldFeature old = cells.get(cell);
             double distance = p.distSqr(owner);

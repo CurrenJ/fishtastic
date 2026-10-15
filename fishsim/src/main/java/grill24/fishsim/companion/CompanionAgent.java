@@ -815,7 +815,8 @@ public final class CompanionAgent {
      * a member drawn off the leader): the leader's mood hints are swapped for this fish's own.
      */
     public PoseHint poseFor(PoseHint lead) {
-        if (groupLeader != null) return pose;
+        // Its own hint already carries its own mood: stripping it would hide a solo fish's droop and glee.
+        if (groupLeader != null || lead == pose) return pose;
         Mind m = groupLeader == null ? mind : groupLeader.mind;
         return Mood.memberPose(lead, mood, m.idleDwelling());
     }

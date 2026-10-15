@@ -60,9 +60,11 @@ public final class CompanionRun {
     private Vec featureAnchor;
     private long worldTick;
     private long screenTicks, reactionTicks;
-    public void worldScene(String name) {
+    public void worldScene(String name) { worldScene(name, owner.feet()); }
+    /** A scene whose features sit relative to {@code anchor} rather than the owner's starting feet. */
+    public void worldScene(String name, Vec anchor) {
         if (!WorldScenes.NAMES.contains(name)) throw new IllegalArgumentException(name);
-        worldScene = name; featureAnchor = owner.feet(); agent.habitat(WorldScenes.habitat(name));
+        worldScene = name; featureAnchor = anchor; agent.habitat(WorldScenes.habitat(name));
         if (name.equals("water")) scene.addWorldWater(featureAnchor.add(0.7,0,2.5));
     }
     /** Share of visible ticks carrying a distinct pose, emote or active Notice performance. */

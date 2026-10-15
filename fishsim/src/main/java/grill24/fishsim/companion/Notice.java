@@ -68,7 +68,20 @@ final class Notice {
             case WATER_SURFACE -> {
                 // One short dip per visit, with a long above-water hover on either side.
                 double dip = performing >= 25 && performing < 85 ? Math.sin((performing - 25) * Math.PI / 60) : 0;
-                point = source.add(away.scale(0.35 - 1.1 * dip)).add(0, 0.45 - 1.4 * dip, 0);
+                Vec offset = away.scale(0.35 - 1.1 * dip);
+                double rise = 0.45 - 1.4 * dip;
+                // Below the surface, pull the inward swing back until it (and a little body) is in real water: a
+                // narrow pool would otherwise put the target in its far wall, and the fish slides off instead.
+                if (rise < 0 && world != null && wet(source.add(0, rise, 0))) {
+                    Vec full = offset, step = full.horizontal().lengthSqr() < 1e-8 ? Vec.ZERO : full.horizontal().normalize().scale(0.2);
+                    int i = 10;
+                    for (; i > 0; i--) {
+                        Vec p = source.add(full.scale(i / 10.0)).add(0, rise, 0);
+                        if (wet(p) && wet(p.add(step))) break;
+                    }
+                    offset = full.scale(i / 10.0);
+                }
+                point = source.add(offset).add(0, rise, 0);
             }
             case LIGHT -> {
                 double radius = temperament.peekOut() ? 1.7 + 0.4 * Math.sin(phase * 2) : temperament.ambush() ? 1.8 : 0.85;
@@ -93,6 +106,10 @@ final class Notice {
         // Features can never pull a fish beyond its owner's local band.
         Vec delta = point.sub(owner.chest());
         return delta.length() > 3.8 ? owner.chest().add(delta.clampLength(3.8)) : point;
+    }
+
+    private boolean wet(Vec p) {
+        return world.blocks().water((int) Math.floor(p.x()), (int) Math.floor(p.y()), (int) Math.floor(p.z()));
     }
 
     private Vec waterEdge, waterBankOwner;
