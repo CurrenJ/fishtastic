@@ -65,6 +65,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.ChatVisiblity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.decoration.ItemFrame;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -147,7 +148,7 @@ public final class RenderSelfTest {
     /** Scenes that run only when the marker names them (they need something the default run lacks). */
     private static final List<String> OPT_IN_SCENES = List.of("matte", "matteclip", "fourwaters", "cathedral",
             "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench",
-            "companionbond", "companionsim", "companionparty", "companioneel", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk");
+            "companionbond", "companionsim", "companionparty", "companioneel", "twoclient", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk");
 
     private static Boolean armed;
     /** Keep ordinary automatic features from interfering with explicitly armed fixture scenes. */
@@ -383,6 +384,7 @@ public final class RenderSelfTest {
             case "companionsim" -> queueCompanionSimScene();
             case "companionparty" -> queueCompanionPartyScene();
             case "companioneel" -> queueCompanionEelScene();
+            case "twoclient" -> queueTwoClientScene();
             case "ambientparity" -> queueAmbientParityScene();
             case "ambientwater" -> queueAmbientWaterScene();
             case "ambientcontext" -> queueAmbientContextScene();
@@ -4606,6 +4608,73 @@ public final class RenderSelfTest {
      * the event often enough to make the screenshot unreliable. Same call, same event.
      */
     // ── Fish companions ─────────────────────────────────────────────────────────
+
+    /**
+     * Two-client spike (party spec §28.5): two clients join one dedicated server
+     * ({@code server=host:port}, {@code role=a|b}; both opped by the init script). Each waits for the
+     * other, stands 3 blocks from it face to face, takes one free swimmer, and checks that it sees
+     * the other player's party built and simulated, and that the server's scene packet arrives.
+     * Then it lingers so the peer's shots include it.
+     */
+    @SuppressWarnings("unchecked")
+    private static void queueTwoClientScene() {
+        final boolean a = param("role", "a").equals("a");
+        final int[] waited = {0};
+        final Consumer<Minecraft>[] peerPoll = new Consumer[1];
+        peerPoll[0] = mc -> {
+            if (mc.level.players().size() >= 2) {
+                note("twoclient peer joined after " + waited[0] + " ticks");
+                return;
+            }
+            if ((waited[0] += 20) > 20 * 180) {
+                check("twoclient.peer_joined", false, "alone after 180 s");
+                return;
+            }
+            STEPS.addFirst(new Step(20, peerPoll[0]));
+        };
+        queue(1, peerPoll[0]);
+        queue(1, mc -> {
+            mc.options.hideGui = false;
+            mc.options.setCameraType(CameraType.FIRST_PERSON);
+            grill24.fishtastic.client.companion.ClientCompanions.devOverlay(true);
+            var c = mc.player.connection;
+            c.sendCommand("gamerule advance_time false");
+            c.sendCommand("gamerule spawn_mobs false");
+            c.sendCommand("time set 6000");
+            c.sendCommand(a ? "tp @s 0.5 -60 0.5 -90 0" : "tp @s 3.5 -60 0.5 90 0");
+            c.sendCommand("fishtastic companion give @s " + (a ? "fishtastic:bluegill 20 1" : "fishtastic:discus 20 1"));
+        });
+        queue(100, mc -> {
+            Player peer = mc.level.players().stream().filter(p -> p != mc.player).findFirst().orElse(null);
+            check("twoclient.peer_visible", peer != null,
+                    mc.level.players().stream().map(p -> p.getName().getString()).toList().toString());
+            var mine = grill24.fishtastic.client.companion.ClientCompanions.localCompanions();
+            check("twoclient.local_party", !mine.isEmpty(), mine.stream()
+                    .map(grill24.fishtastic.client.companion.ClientCompanion::partyLine).toList().toString());
+            var theirs = peer == null ? List.<grill24.fishtastic.client.companion.ClientCompanion>of()
+                    : grill24.fishtastic.client.companion.ClientCompanions.companionsOf(peer);
+            check("twoclient.remote_party", !theirs.isEmpty(), theirs.stream()
+                    .map(grill24.fishtastic.client.companion.ClientCompanion::partyLine).toList().toString());
+            screenshot(mc, "twoclient", (a ? "a" : "b") + "_facing");
+        });
+        final int[] sceneWait = {0};
+        final Consumer<Minecraft>[] scenePoll = new Consumer[1];
+        scenePoll[0] = mc -> {
+            int n = grill24.fishtastic.client.companion.ClientCompanions.devScenePackets;
+            if (n > 0 || (sceneWait[0] += 20) > 20 * 40) {
+                check("twoclient.scene_packet", n > 0, n + " packets, last "
+                        + grill24.fishtastic.client.companion.ClientCompanions.devLastScene);
+                return;
+            }
+            STEPS.addFirst(new Step(20, scenePoll[0]));
+        };
+        queue(1, scenePoll[0]);
+        queue(20, mc -> mc.options.setCameraType(CameraType.THIRD_PERSON_BACK));
+        queue(30, mc -> screenshot(mc, "twoclient", (a ? "a" : "b") + "_tp"));
+        queue(1, mc -> mc.options.setCameraType(CameraType.FIRST_PERSON));
+        // Linger so the peer's shots and checks still find this player.
+        queue(400, mc -> note("twoclient done, " + mc.level.players().size() + " players"));
+    }
 
     private static void paradeSetup(Minecraft mc) {
         mc.options.hideGui = false;

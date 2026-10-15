@@ -380,6 +380,21 @@ Answered 2026-10-14 (after the owner's party playtest):
 | D20 | Make party-mates familiar (2e, §7)? | **Deferred.** Mutual curiosity is intentional and balanced as is (INSPECT 5–9% vs ~1.3% solo). Don't tune it unless a playtest shows a problem |
 | D21 | A free-swimming predator and its prey in one party (open from D13, §7) | **Split out of the shoal** (owner, 2026-10-15). A predator (`#predator_fish`) never shoals with a non-predator; predators of different species still shoal together, and a predator's duplicates school |
 
+Answered 2026-10-15 (Phase 4 step 3 design review, §28; the owner accepted every recommendation):
+
+| # | Question | Answer |
+|---|---|---|
+| D22 | G1 ring shape (the old vertical ring is impossible under the 40° pitch cap) | **Horizontal**, about 0.6 above head height, kept clear of both owners' bodies |
+| D23 | Two fish meeting at G2's crossing point | **Pass over and under** (±0.35 block at the crossing, eased out over the lobe) |
+| D24 | Scene speed | **Fixed path speed (~1.3× cruise), lap period derived**; `pathTicks` is nominal. G2 needs the owners 2.5–6 blocks apart |
+| D25 | Who takes part in cross-player scenes | **FREE_SWIM only** (server filter). Same-species percher, ground, DRIFT and GLIDE pairs play nothing (later G3) |
+| D26 | Group followers in a scene | **Keep formation behind the leader**; enlarge the ring if contact is high |
+| D27 | GREET | **The opening 1–1.5 s of every scene**, no separate drive; D20 untouched |
+| D28 | Priority | **A cross scene beats LAP** and suspends the party's predator scene; only emergencies (catch-up, alarm) refuse it |
+| D29 | Two clients' views differ | **Accepted** (sim-plan §3.6); each view must be self-consistent |
+| D30 | Cancelling | **Client-side only** (owner leaves, partner gone, party rebuilt); no cancel packet. A line cast mid-scene is ignored while fishing reactions are deferred |
+| D31 | Testing alone | **Ghost owner + headless divergence probe**; the owner's real two-client check is optional |
+
 ---
 
 ## 11. Phase 1a as built (server, data, menu)
@@ -930,3 +945,109 @@ while following can fix half of it at most.
   line. 24/24 on Fabric and on NeoForge.
 - **Not yet:** a predator perched or on the ground, and prey that perch or walk, take no part; and
   cross-party predator/prey (two players' companions) is still the server scene's job (§7).
+
+## 28. Phase 4, step 3: cross-player scenes (design, D22–D31)
+
+Agreed 2026-10-15 after a critical design review. Nothing below is built yet. This section
+supersedes the spec's §18 geometry (vertical ring, half-period eight at a fixed `pathTicks`) and
+its "both clients compute the identical dance".
+
+### 28.1 What exists
+
+- **Server:** `CompanionSceneManager` pairs companions of different owners within `RANGE` 6
+  (owner to owner), keyed by (owner, slot), a group through its leader slot; one scene per owner
+  pair; per-companion cooldown (no pair history, R5.4); no start while either owner fishes. It sends
+  one `CompanionScenePacket` (type, both members, start tick) to players within 128 blocks.
+- **Client:** `ClientCompanions.onScenePacket` ignores the packet. Every client already runs a sim
+  for every visible party, remote owners included (`ClientCompanions.tick`); the remote owner's
+  input is the interpolated entity pose, camera assumed first person at 70°.
+- **Already there for the greeting:** another owner's companion is a `COMPANION` point of interest
+  (curiosity 0.8), so approach-and-inspect across owners happens today.
+
+### 28.2 The design
+
+- **Who (D25):** `choose()` gives G1 and G2 only to FREE_SWIM pairs. G2 also needs the owners
+  2.5–6 blocks apart (D24). Game tests: a same-species percher pair, a jellyfish pair and owners
+  under 2.5 blocks play nothing.
+- **How the scene reaches the sim:** `PartyLayer.crossScene(type, ticksSinceStart, role,
+  partnerPointId, partnerOwnerPointId)`, mirroring `requestLap`. With no request the code path does
+  not run, so the 930 fingerprints stay bitwise.
+- **Targets come from the clock (D29):** each fish steers toward the point the shared phase gives
+  (`gameTime − startTime`, role 0 or 1 → the second fish half a period on), computed from the two
+  owners' live poses, never from the partner's live position (that would chase itself and depend on
+  step order). The partner's position is used only for contact separation. Both clients then aim at
+  the same targets; only lag differs.
+- **Geometry:** G1 (D22) a horizontal ring of radius 1.1 round the pair's midpoint, about head
+  height + 0.6, grown until it clears each owner by body radius + fish radius + 0.4. G2 (D23) the
+  tangent-continuous eight, lobes round each owner (radius floored at the same clearance), one fish
+  passing 0.35 above and the other 0.35 below at the crossing. Path speed fixed at ~1.3× cruise
+  (D24); the period follows from the path length.
+- **The goal:** one held mind goal per scene type (utility ~0.9, above LAP's 0.85; loses only to
+  emergency catch-up and alarm HIDE, D28). It opens with the greeting (D27): 1–1.5 s swimming to
+  the partner and holding nose to nose, which is also the join. Then pure pursuit of the clock point
+  with a lead of ~0.6 rad, up to ~1.6× cruise while behind, ~0.7× while ahead. No lerp, no snap.
+  When `durationTicks` runs out the goal releases to ordinary selection (G1 lingers 1 s facing the
+  partner first). If the open-water check fails, the fish does the greeting only.
+- **Groups (D26):** the unit holding the named slot plays; a school's followers keep formation.
+  Of a server `SEPARATE` group (non-schooling duplicates), only the named unit plays.
+- **Predator scene (D28):** while a cross scene is on, `PartyLayer` neither starts nor continues
+  its own predator scene; an arriving cross scene ends a lap in progress.
+- **Cancelling (D30), all on the client:** an owner moves for 1.5 s or more than 9 blocks from the
+  scene centre; the partner unit is missing (logout, dimension change, untracked, rebuilt); our own
+  party is rebuilt. A packet older than `durationTicks` is dropped, a younger one joins mid-path,
+  and one that arrives before the party is built waits up to 20 ticks.
+- **Bubble heart:** rebuilt as client particles (one heart plus a bubble trace, the old
+  `HEART_SCALE` lesson) for G1.
+
+### 28.3 Verification
+
+- **Headless:** `TwoOwnerRun` (two `OwnerScript`s in one scene, two `PartyLayer`s stepped in a fixed
+  order, each seeing the other's fish as `COMPANION` points and owner as a `PLAYER` point, same
+  ids as the game), a scene injector, two-owner scripts (approach and stand; one walks off
+  mid-scene; owners 1.5 and 6 blocks apart; beside a wall), and a second owner in the viewer. A
+  two-owner fingerprint set is recorded before the goals land and must stay bitwise with no scene.
+- **Metrics,** each a level with a rate: join time, path error after join, G1 antipodal error,
+  contact ticks (fish to fish, fish to owner, all bodies), seen % during scenes, peak turn rate
+  against the cap, scenes ended early by reason.
+- **Divergence probe (D31):** the same scene run as two client views (each with the other owner
+  2–4 ticks late and smoothed); reports cross-view fish distance and scenes played on one view
+  only. Gate: each view self-consistent.
+- **Solo in game (D31):** a dev-only ghost owner, a real `ServerPlayer` on the integrated server
+  with a party, walked by script, so the real scheduler and packet reach the owner's client:
+  `/fishtastic companion ghost add <species…>`, `ghost walk approach|stand|leave`,
+  `ghost scene g1|g2 [--delay N]`, `ghost remove`; an overlay scene line; a self-test on both
+  loaders.
+- **What only two real clients show:** real latency and packet order, a second clock, the other
+  player's own view. Covered by the dedicated-server two-client self-test (§28.5) where it runs.
+
+### 28.4 Steps
+
+- **3a-0** two-owner harness, scripts, viewer, baseline fingerprints (no behaviour change).
+- **3a-1** server filter and G2 spacing, game tests.
+- **3a-2** the scene goals; probes; owner looks in the viewer.
+- **3a-3** the divergence probe.
+- **3b-1** packet → `crossScene`, cancellation, overlay line, predator-scene interplay, bubble heart.
+- **3b-2** ghost owner and self-test; owner solo playtest.
+- **3c** optional real two-client check.
+
+### 28.5 Two-client self-test spike (2026-10-15)
+
+Two real clients on one dedicated server, unattended, on one machine: it works, and step 3 can be
+checked with two real views, not only the ghost owner.
+
+- **How:** `docs/fish-companions-twoclient/twoclient.init.gradle` (isolated run directories, nothing
+  touches the normal dev run). Start the server, then client A, then client B:
+  `.\gradlew.bat :fabric:runServer|runClient -I docs/fish-companions-twoclient/twoclient.init.gradle -PtwoRole=server|a|b`;
+  for NeoForge use `:neoforge:runServer|runClient` and add `-PtwoLoader=neoforge` (port 25601, its
+  own run directories). The server is offline-mode flat on port 25600 with FishA and FishB opped (offline UUIDs in
+  `ops.json`); each client's marker runs the opt-in `twoclient` self-test scene (`server=`, `role=`).
+- **The scene:** wait for the peer, stand 3 blocks apart face to face, `companion give` one free
+  swimmer each (bluegill, discus), then check the peer is visible, the local party is built, the
+  peer's party is built and simulated on this client, and a scene packet arrives; screenshots in
+  first and third person; linger 20 s so the peer's shots include it.
+- **Result:** all checks pass on both clients, on Fabric and on NeoForge. B joined 22 s after A; both
+  received the same `G2_FREE_SWIM_EIGHT` packet (same members, same start tick: 1395 on Fabric, 1409
+  on NeoForge) within a second of the parties existing. About 90 s wall time for the whole run. `ClientCompanions` gained
+  `devScenePackets` / `devLastScene` for the check.
+- **Gaps:** the server JVM outlives a stopped Gradle task: stop it by its port. Chat covers the lower left of the
+  shots: clear or hide it in the real self-test.

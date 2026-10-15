@@ -273,9 +273,15 @@ public final class ClientCompanions {
     public static void onFishingEvent(UUID owner, CompanionFishingOutcome outcome) {
     }
 
+    /** Scene packets received this session, and the last one (the two-client self-test reads them). */
+    public static int devScenePackets;
+    @Nullable public static String devLastScene;
+
     /** The scene packet's landing point. Pet-to-pet scenes return in Phase 4 (plan §5); ignored for now. */
     public static void onScenePacket(CompanionSceneType scene, UUID first, int firstSlot, UUID second, int secondSlot,
                                      long startTime) {
+        devScenePackets++;
+        devLastScene = scene + " " + first + "#" + firstSlot + " + " + second + "#" + secondSlot + " @" + startTime;
     }
 
     /**
