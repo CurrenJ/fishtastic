@@ -8,6 +8,7 @@ import grill24.fishsim.companion.PartyGrouping;
 import grill24.fishsim.companion.PartyLayer;
 import grill24.fishsim.companion.PointOfInterest;
 import grill24.fishsim.companion.Temperament;
+import grill24.fishsim.companion.Vec;
 import grill24.fishtastic.client.FishtasticClientConfig;
 import grill24.fishtastic.companion.CompanionFishingOutcome;
 import grill24.fishtastic.companion.CompanionGroups;
@@ -774,6 +775,53 @@ public final class ClientCompanions {
         if (local == null) return noSelected();
         local.devHurt();
         return "Owner hurt (for the slot " + (devSlot + 1) + " companion only)";
+    }
+
+    // ── Moods (Phase 5, docs/fish-companions-sim-plan.md §5) ──
+
+    /** A forced mood: a preset's ambient and habitat, and the campfire "warm" placed (or null). */
+    public record DevMood(grill24.fishsim.harness.companion.MoodScenes.Preset preset, @Nullable Vec warmAt) {}
+
+    @Nullable private static DevMood devMood;
+
+    /** The forced mood for your own companions, or null for the real world's. */
+    @Nullable
+    public static DevMood devMood() { return devMood; }
+
+    /** The mood presets the dev trigger takes, and "off". */
+    public static List<String> devMoodNames() {
+        List<String> names = new ArrayList<>();
+        for (var p : grill24.fishsim.harness.companion.MoodScenes.ALL) names.add(p.name());
+        names.add("off");
+        return names;
+    }
+
+    /**
+     * Dev-only (`/fishtastic companion mood <name>`): your companions feel a preset mood (cold,
+     * warm, glum, glee, sleepy, moon) as if the world and their species were the preset's; "off"
+     * goes back to the real world. "warm" puts a virtual campfire 3.5 blocks in front of you.
+     */
+    public static String devMood(String name) {
+        if (name.equals("off")) {
+            devMood = null;
+            return "Companion moods back to the real world";
+        }
+        grill24.fishsim.harness.companion.MoodScenes.Preset preset;
+        try {
+            preset = grill24.fishsim.harness.companion.MoodScenes.named(name);
+        } catch (IllegalArgumentException e) {
+            return "No mood " + name + " (" + String.join(", ", devMoodNames()) + ")";
+        }
+        Vec warm = null;
+        var player = Minecraft.getInstance().player;
+        if (preset.warmAt() != null && player != null) {
+            Vec3 fwd = Vec3.directionFromRotation(0, player.getYRot()).scale(preset.warmAt().z());
+            Vec3 at = player.position().add(fwd).add(0, preset.warmAt().y(), 0);
+            warm = new Vec(at.x, at.y, at.z);
+        }
+        devMood = new DevMood(preset, warm);
+        return "Companions feel: " + name + (warm != null ? " (a campfire 3.5 blocks ahead, stand away from it)" : "")
+                + " — see the overlay's mood line";
     }
 
     /** Dev-only (`/fishtastic companion drowsy`): as if you'd stood still long enough for it to settle. */

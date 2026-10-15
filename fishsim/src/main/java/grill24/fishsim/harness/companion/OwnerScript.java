@@ -1,5 +1,6 @@
 package grill24.fishsim.harness.companion;
 
+import grill24.fishsim.companion.Ambient;
 import grill24.fishsim.companion.BlockQuery;
 import grill24.fishsim.companion.CompanionWorld;
 import grill24.fishsim.companion.OwnerState;
@@ -62,6 +63,8 @@ public final class OwnerScript {
     private final List<ScriptedPoints.Track> tracks = new ArrayList<>();
     private ScriptedPoints.HeldSchedule held;
     private int clock;
+    /** The ambient the companion feels (Phase 5 moods); {@link Ambient#NEUTRAL} for none. */
+    public Ambient ambient = Ambient.NEUTRAL;
 
     private OwnerScript(String name, String sceneName, Vec startFeet, float startYaw, List<Segment> segments) {
         this.name = name;
@@ -89,7 +92,7 @@ public final class OwnerScript {
     public CompanionWorld nextWorld() {
         OwnerState o = next();
         boolean scriptedHurt = pilot.takeHurt();
-        if (tracks.isEmpty() && held == null && !scriptedHurt) return CompanionWorld.of(o, scene);
+        if (tracks.isEmpty() && held == null && !scriptedHurt) return CompanionWorld.of(o, scene).withAmbient(ambient);
         List<PointOfInterest> points = new ArrayList<>();
         boolean hurt = scriptedHurt;
         for (ScriptedPoints.Track track : tracks) {
@@ -104,7 +107,7 @@ public final class OwnerScript {
         }
         CompanionWorld.Held h = held == null ? CompanionWorld.Held.NONE : held.at(clock, pilot);
         clock++;
-        return new CompanionWorld(o, scene, points, h, hurt);
+        return new CompanionWorld(o, scene, points, h, hurt, ambient);
     }
 
     private OwnerScript with(ScriptedPoints.Track... t) {

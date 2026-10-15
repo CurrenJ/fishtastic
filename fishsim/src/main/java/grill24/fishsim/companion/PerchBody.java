@@ -708,6 +708,8 @@ public final class PerchBody extends Motor {
 
     /** One tick walking: unless something calls it up onto its owner or into the water. */
     private void groundStep(OwnerState o, LocalVoxels v, Runnable onSwimStart) {
+        // Never the mood's pace: a walker is the slowest companion, and even an idle slowdown left
+        // it behind in the forest and stairwell (fades +42% sleepy over 120 seeds, plan §5 Phase 5).
         ground.tempo = drives.temperament().pace();
         if (groundHopCooldown > 0) groundHopCooldown--;
         boolean ready = ground.onFloor() && groundHopCooldown == 0 && gmind.daze == 0;

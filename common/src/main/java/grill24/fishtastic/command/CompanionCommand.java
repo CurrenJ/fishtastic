@@ -184,6 +184,14 @@ public class CompanionCommand {
                         grill24.fishtastic.client.companion.ClientCompanions::devHurt)))
                 .then(Commands.literal("drowsy").executes(ctx -> client(ctx,
                         grill24.fishtastic.client.companion.ClientCompanions::devDrowsy)))
+                .then(Commands.literal("mood")
+                        .then(Commands.argument("mood", StringArgumentType.word())
+                                .suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(
+                                        java.util.List.of("cold", "warm", "glum", "glee", "sleepy", "moon", "off"), b))
+                                .executes(ctx -> {
+                                    String mood = StringArgumentType.getString(ctx, "mood");
+                                    return client(ctx, () -> grill24.fishtastic.client.companion.ClientCompanions.devMood(mood));
+                                })))
                 .then(Commands.literal("ground").executes(ctx -> client(ctx,
                         grill24.fishtastic.client.companion.ClientCompanions::devGround)))
                 .then(Commands.literal("climb").executes(ctx -> client(ctx,

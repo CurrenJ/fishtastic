@@ -2,10 +2,12 @@ package grill24.fishtastic.client.companion;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
+import grill24.fishsim.companion.Ambient;
 import grill24.fishsim.companion.BenthicGroup;
 import grill24.fishsim.companion.CompanionAgent;
 import grill24.fishsim.companion.CompanionGroup;
 import grill24.fishsim.companion.GroundGait;
+import grill24.fishsim.companion.Habitat;
 import grill24.fishsim.companion.LocalVoxels;
 import grill24.fishsim.companion.CompanionTunables;
 import grill24.fishsim.companion.CompanionWorld;
@@ -91,6 +93,14 @@ public final class ClientCompanion {
     @Nullable private final GroundGait gait;
     /** How a drifter propels itself (docs/fish-companions-drift.md §2), from the profile's companion_drift. */
     private final DriftStyle driftStyle;
+    /** Each member's species' habitat (Phase 5 moods): a mixed shoal's members differ. */
+    private final Habitat[] habitats;
+    private final CompanionAmbient.Sampler ambient = new CompanionAmbient.Sampler();
+    private Ambient lastAmbient = Ambient.NEUTRAL;
+    /** The lead's habitat as last given (its species', or a dev mood's), for the overlay. */
+    private Habitat habitatNow;
+    /** The dev mood's habitat while one is forced, or null for each member's own. */
+    @Nullable private Habitat forced;
     private final CompanionWorldAdapter.OwnerTracker tracker = new CompanionWorldAdapter.OwnerTracker();
 
     @Nullable private CompanionAgent agent;
@@ -138,6 +148,11 @@ public final class ClientCompanion {
         this.driftStyle = locomotion == Locomotion.DRIFT
                 ? DriftStyle.valueOf(profile.map(FishProfile::companionDrift).orElse(FishProfile.CompanionDrift.BELL).name())
                 : DriftStyle.BELL;
+        this.habitats = new Habitat[n];
+        for (int i = 0; i < n; i++) {
+            habitats[i] = CompanionAmbient.habitatOf(CompanionGroups.profileOf(level.registryAccess(), this.stacks[i]));
+        }
+        this.habitatNow = habitats[0];
     }
 
     /** A dev phantom: one fish round an imaginary still owner at {@code eye}. */
@@ -230,7 +245,46 @@ public final class ClientCompanion {
         lastOwner = ownerState;
         lastHeld = held;
         lastPoints = points.size();
-        return new CompanionWorld(ownerState, blocks, points, held, hurt);
+        Ambient amb = ambient.sample(level, owner != null ? owner.getEyePosition() : phantomEye);
+        Habitat h = null;
+        ClientCompanions.DevMood dev = isLocal() ? ClientCompanions.devMood() : null;
+        if (dev != null) {
+            // A forced mood (dev trigger): the preset's world and species, with the real warm things
+            // and, for "warm", the campfire the command placed.
+            List<Vec> warm = new ArrayList<>(amb.warmth());
+            if (dev.warmAt() != null) warm.add(dev.warmAt());
+            amb = dev.preset().ambient().withWarmth(warm);
+            h = dev.preset().habitat();
+        }
+        lastAmbient = amb;
+        giveHabitat(h);
+        return new CompanionWorld(ownerState, blocks, points, held, hurt, amb);
+    }
+
+    /**
+     * Hands every fish of this unit the habitat its mood reads the ambient against: its own
+     * species' (each member of a mixed shoal its own), or {@code forced} for all of them.
+     */
+    private void giveHabitat(@Nullable Habitat forced) {
+        this.forced = forced;
+        for (int i = 0; i < stacks.length; i++) {
+            Habitat h = forced != null ? forced : habitats[i];
+            if (i == 0) habitatNow = h;
+            if (school != null && i > 0) {
+                CompanionGroup.Follower f = school.follower(i - 1);
+                if (f.habitat() != h) f.habitat(h);
+            } else if (i < agentCount()) {
+                CompanionAgent a = member(i);
+                if (a != null && a.habitat() != h) a.habitat(h);
+            }
+        }
+    }
+
+    /** Member {@code i}'s own pose: its group mind's, with its own mood shown (a mixed shoal can be split). */
+    private grill24.fishsim.companion.PoseHint poseOf(int i) {
+        if (school != null && i > 0) return school.follower(i - 1).pose();
+        CompanionAgent m = i < agentCount() ? member(i) : agent;
+        return m.poseFor(m.poseHint());
     }
 
     /** The party layer built this unit's sim (on the party's first tick). */
@@ -239,13 +293,14 @@ public final class ClientCompanion {
         school = unit.school();
         benthic = unit.ground();
         agent = unit.leader();
+        giveHabitat(forced);
     }
 
     /** After the party layer stepped (or built) this unit: every member's pose hints follow the leader's mind. */
     void afterStep(long partyStepNanos) {
         stepNanos = partyStepNanos;
         ageTicks++;
-        for (CompanionRender render : renders) render.tick(agent);
+        for (int i = 0; i < renders.length; i++) renders[i].tick(poseOf(i));
     }
 
     /** Forgets every sampled block (a block changed nearby, or a chunk arrived). */
@@ -442,7 +497,7 @@ public final class ClientCompanion {
         CompanionRender render = renders[i];
         poseStack.pushPose();
         if (appear < 1f) poseStack.scale(appear, appear, appear);
-        float tilt = render.hintTilt(partialTick);
+        float tilt = render.hintTilt(partialTick) + render.shiverRoll(partialTick, gameTime(partialTick), i);
         if (tilt != 0f) poseStack.mulPose(Axis.ZP.rotationDegrees(tilt));
         // Members breathe out of step: each idles on its own offset clock.
         perchPoses[i].submit(poseStack, nodes, light, gameTime(partialTick) + i * MEMBER_IDLE_OFFSET, extraYawDeg,
@@ -477,6 +532,41 @@ public final class ClientCompanion {
     public ItemStack devStack() { return stacks[0]; }
 
     @Nullable public CompanionAgent agent() { return agent; }
+
+    /** The lead fish's species id path ("bluegill"), for checks and logs. */
+    public String species() { return BuiltInRegistries.ITEM.getKey(stacks[0].getItem()).getPath(); }
+
+    /** The habitat its agents read the ambient against now (the species', or a dev mood's). */
+    public Habitat habitat() { return habitatNow; }
+
+    /** How many fish this unit draws (a school's leader and followers, a ground group's members). */
+    public int fishCount() { return stacks.length; }
+
+    /** Member {@code i}'s species id path. */
+    public String memberSpecies(int i) { return BuiltInRegistries.ITEM.getKey(stacks[i].getItem()).getPath(); }
+
+    /** Member {@code i}'s habitat now. */
+    public Habitat memberHabitat(int i) {
+        if (school != null && i > 0) return school.follower(i - 1).habitat();
+        return i < agentCount() && member(i) != null ? member(i).habitat() : habitatNow;
+    }
+
+    /** Member {@code i}'s own mood, or null before the sim is built. */
+    @Nullable
+    public CompanionAgent.MoodLevels memberMood(int i) {
+        if (agent == null) return null;
+        if (school != null && i > 0) return school.follower(i - 1).mood();
+        return (i < agentCount() ? member(i) : agent).mood();
+    }
+
+    /** Member {@code i}'s own pose hint, or null before the sim is built. */
+    @Nullable
+    public grill24.fishsim.companion.PoseHint memberPose(int i) {
+        return agent == null ? null : poseOf(i);
+    }
+
+    /** The ambient it was last given. */
+    public Ambient ambient() { return lastAmbient; }
 
     public Temperament temperament() { return temperament; }
 
@@ -616,6 +706,16 @@ public final class ClientCompanion {
                         renders[0].retract(0f)),
                 String.format(Locale.ROOT, "held %s  points %d  owner %.1f blocks  party step %d us",
                         lastHeld, lastPoints, a.ownerDistance(), stepNanos / 1000)));
+        lines.add(a.moodDescription());
+        if (school != null) {
+            for (int i = 1; i < stacks.length; i++) {
+                lines.add("  #" + i + " " + memberSpecies(i) + " "
+                        + memberHabitat(i).climate().name().toLowerCase(Locale.ROOT) + ": "
+                        + school.follower(i - 1).moodDescription() + "  pose " + poseOf(i));
+            }
+        }
+        lines.add(CompanionAmbient.describe(lastAmbient, habitatNow)
+                + (ClientCompanions.devMood() != null && isLocal() ? "  [dev mood " + ClientCompanions.devMood().preset().name() + "]" : ""));
         lines.addAll(partyDetailLines(a));
         if (gait != null) {
             lines.add(String.format(Locale.ROOT, "ground gait %s  group %d %s  beat %s (overtakes %d roadsides %d)"

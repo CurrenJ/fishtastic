@@ -1,9 +1,11 @@
 package grill24.fishsim.viewer;
 
+import grill24.fishsim.companion.Ambient;
 import grill24.fishsim.companion.CompanionAgent;
 import grill24.fishsim.companion.CompanionTunables;
 import grill24.fishsim.companion.CompanionWorld;
 import grill24.fishsim.companion.GroundGait;
+import grill24.fishsim.companion.Habitat;
 import grill24.fishsim.companion.LocalVoxels;
 import grill24.fishsim.companion.OwnerState;
 import grill24.fishsim.companion.PointOfInterest;
@@ -11,6 +13,7 @@ import grill24.fishsim.companion.Temperament;
 import grill24.fishsim.companion.Vec;
 import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.harness.companion.CompanionRun;
+import grill24.fishsim.harness.companion.MoodScenes;
 import grill24.fishsim.harness.companion.OwnerScript;
 import grill24.fishsim.harness.companion.PartyRun;
 import grill24.fishsim.harness.companion.TwoOwnerRun;
@@ -95,6 +98,9 @@ public final class CompanionViewer {
     private OwnerScript script;          // null in manual mode
     private OwnerScript.Pilot pilot;     // manual mode
     private CompanionAgent agent;
+    /** The mood preset V has cycled to (Phase 5), or null for none; and its ambient, placed where the owner stood. */
+    private MoodScenes.Preset mood;
+    private Ambient moodAmbient = Ambient.NEUTRAL;
     private OwnerState owner;
     private long seed = 1;
     private Locomotion locomotion = Locomotion.FREE_SWIM;
@@ -211,6 +217,7 @@ public final class CompanionViewer {
                     case KeyEvent.VK_I -> place(PointOfInterest.Kind.DROPPED_ITEM, 2.5, 0, 0, 0, 0.15, 0.15, null);
                     case KeyEvent.VK_O -> place(PointOfInterest.Kind.COMPANION, 6, -60, 1.5, 0, 0.2, 1.2, Vec.ZERO);
                     case KeyEvent.VK_K -> hurtNext = true;
+                    case KeyEvent.VK_V -> nextMood();
                     case KeyEvent.VK_X -> placed.clear();
                     case KeyEvent.VK_Q -> { if (twoSim != null && !twoSim.sceneOn()) twoSim.startScene(); }
                     case KeyEvent.VK_J -> jumpNext = true;
@@ -379,10 +386,32 @@ public final class CompanionViewer {
     /** What the companion perceives: the owner and the scene, plus the script's points of interest when one plays. */
     private CompanionWorld world() {
         if (twoSim != null) return pairView();
-        if (scriptWorld != null) return scriptWorld;
+        if (scriptWorld != null) return mood == null ? scriptWorld : scriptWorld.withAmbient(moodAmbient);
         List<PointOfInterest> points = new ArrayList<>();
         for (Placed p : placed) points.add(new PointOfInterest(p.kind, p.id, p.pos, p.vel, p.radius));
-        return new CompanionWorld(owner, scene, points, held, hurtNow);
+        return new CompanionWorld(owner, scene, points, held, hurtNow, mood == null ? Ambient.NEUTRAL : moodAmbient);
+    }
+
+    /**
+     * V: the next mood preset (none, cold, warm, glum, glee, sleepy, moon). "warm" puts its campfire
+     * 3.5 blocks ahead of where the owner faces now.
+     */
+    private void nextMood() {
+        List<MoodScenes.Preset> all = MoodScenes.ALL;
+        int i = mood == null ? 0 : all.indexOf(mood) + 1;
+        mood = i < all.size() ? all.get(i) : null;
+        if (mood != null) {
+            Vec ahead = owner.flatForward().scale(mood.warmAt() == null ? 0 : mood.warmAt().z());
+            moodAmbient = mood.warmAt() == null ? mood.ambient()
+                    : mood.ambient().withWarmth(List.of(owner.feet().add(ahead).add(0, mood.warmAt().y(), 0)));
+        }
+        giveMood();
+    }
+
+    /** Every agent feels the current preset (a reseed builds new ones). */
+    private void giveMood() {
+        Habitat h = mood == null ? Habitat.NONE : mood.habitat();
+        for (CompanionAgent a : allAgents()) if (a.habitat() != h) a.habitat(h);
     }
 
     /**
@@ -396,7 +425,7 @@ public final class CompanionViewer {
         OwnerState b = twoSim.b.owner();
         points.add(new PointOfInterest(PointOfInterest.Kind.PLAYER, TwoOwnerRun.OWNER_B, b.feet(), b.velocity(),
                 TwoOwnerRun.PLAYER_RADIUS));
-        return new CompanionWorld(w.owner(), w.blocks(), points, w.held(), w.hurt());
+        return w.withPoints(points);
     }
 
     /** The owner was hurt this tick (K). */
@@ -489,6 +518,7 @@ public final class CompanionViewer {
             else agent.voxels().invalidate();
             renderCache.invalidate();
         }
+        giveMood();
         if (party != null) party.step(world());
         else if (benthicGroup != null) benthicGroup.step(world());
         else if (group != null) group.step(world()); else agent.step(world());
@@ -520,7 +550,13 @@ public final class CompanionViewer {
         g.fillRect(0, FP_H - 22, FP_W, 22);
         g.setColor(Color.WHITE);
         g.drawString("WASD move · Shift sprint · J jump · drag/arrows look · F view · T teleport · M mount · E glide · G ground"
-                + " · P climb · B tumble · K hurt · Space pause · N step · R reseed" + (paused ? "   [PAUSED]" : ""), 8, FP_H - 7);
+                + " · P climb · B tumble · K hurt · V mood · Space pause · N step · R reseed" + (paused ? "   [PAUSED]" : ""), 8, FP_H - 7);
+        if (mood != null) {
+            g.setColor(new Color(0, 0, 0, 140));
+            g.fillRect(0, 26, FP_W, 18);
+            g.setColor(new Color(0xFFD27F));
+            g.drawString("mood: " + mood.name() + "  " + agent.moodDescription() + "  pose " + agent.poseHint(), 8, 39);
+        }
     }
 
     /** Every full agent the viewer runs: the whole party's, a ground formation's, or the one fish. */

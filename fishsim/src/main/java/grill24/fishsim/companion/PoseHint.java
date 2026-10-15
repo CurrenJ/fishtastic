@@ -34,5 +34,9 @@ public enum PoseHint {
     /** Nuzzling its owner's cheek (docile). */
     NUZZLE,
     /** A small idle shiver (trembler). */
-    TREMBLE
+    TREMBLE,
+    /** Shivering with cold (Phase 5 mood): stronger than the trembler's, and in any plain pose, not only lingering. */
+    SHIVER,
+    /** Lingering high under a full moon, nose up to it (Phase 5 mood). */
+    MOON_GAZE
 }

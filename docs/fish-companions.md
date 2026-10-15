@@ -177,7 +177,8 @@ than swimming constantly. How much it moves while docked is tuned in game (R3.3 
   `biome_weights` and SNOW condition: Nether fish are happy in the Nether, cold-water fish are
   fine in snow. Anything else in an unfamiliar biome gets the miserable or shivering reaction.
   Rain makes most fish happy. Each fish has its own mood (owner, 2026-10-15), so a mixed party
-  can be split.
+  can be split; in a mixed shoal the leader's mood moves the school and each fish shows its own
+  in its pose. As built: docs/fish-companions-sim-plan.md §12.
 - **Warmth** (owner, 2026-10-15): a shivering fish reacts to warm things nearby: campfires, fire
   and lava.
 - **Mobs:** cats make it flee onto your head (with dwell and habituation, §4). Axolotls and

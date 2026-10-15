@@ -12,10 +12,11 @@ import java.util.List;
  * @param blocks the blocks around the owner
  * @param points things nearby worth reacting to (hostiles, cats, dropped items, companions, player feet)
  * @param held   what the owner holds in their main hand, as the companion understands it (spec §3.1)
- * @param hurt   the owner took damage this tick
+ * @param hurt    the owner took damage this tick
+ * @param ambient biome, weather, time, moon and warmth for moods (Phase 5); {@link Ambient#NEUTRAL} for none
  */
 public record CompanionWorld(OwnerState owner, BlockQuery blocks, List<PointOfInterest> points, Held held,
-                             boolean hurt) {
+                             boolean hurt, Ambient ambient) {
 
     /** A held item's reaction category (spec §3.1). The adapter maps item stacks to these. */
     public enum Held {
@@ -36,6 +37,21 @@ public record CompanionWorld(OwnerState owner, BlockQuery blocks, List<PointOfIn
 
     public CompanionWorld {
         points = List.copyOf(points);
+        if (ambient == null) ambient = Ambient.NEUTRAL;
+    }
+
+    /** No ambient: no moods, as before Phase 5. */
+    public CompanionWorld(OwnerState owner, BlockQuery blocks, List<PointOfInterest> points, Held held, boolean hurt) {
+        this(owner, blocks, points, held, hurt, Ambient.NEUTRAL);
+    }
+
+    /** The same tick seen with other points, keeping everything else (the ambient included). */
+    public CompanionWorld withPoints(List<PointOfInterest> points) {
+        return new CompanionWorld(owner, blocks, points, held, hurt, ambient);
+    }
+
+    public CompanionWorld withAmbient(Ambient ambient) {
+        return new CompanionWorld(owner, blocks, points, held, hurt, ambient);
     }
 
     /**
@@ -56,6 +72,6 @@ public record CompanionWorld(OwnerState owner, BlockQuery blocks, List<PointOfIn
 
     /** An owner and their blocks, with nothing else going on. */
     public static CompanionWorld of(OwnerState owner, BlockQuery blocks) {
-        return new CompanionWorld(owner, blocks, List.of(), Held.NONE, false);
+        return new CompanionWorld(owner, blocks, List.of(), Held.NONE, false, Ambient.NEUTRAL);
     }
 }

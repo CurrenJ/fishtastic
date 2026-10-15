@@ -143,7 +143,8 @@ public final class CompanionRenderer {
     }
 
     private static final Color HOSTILE = new Color(0x3B7A3B), CAT = new Color(0x8E7CC3),
-            ITEM = new Color(0xF1C232), OTHER_COMPANION = new Color(0x45B5C4), HELD = new Color(0xFFFFFF);
+            ITEM = new Color(0xF1C232), OTHER_COMPANION = new Color(0x45B5C4), HELD = new Color(0xFFFFFF),
+            WARMTH = new Color(0xE8622C);
 
     private static Color pointColor(PointOfInterest.Kind k) {
         return switch (k) {
@@ -152,6 +153,7 @@ public final class CompanionRenderer {
             case DROPPED_ITEM -> ITEM;
             case COMPANION -> OTHER_COMPANION;
             case PLAYER -> new Color(0x3D5A80);
+            case WARMTH -> WARMTH;
         };
     }
 
@@ -168,6 +170,12 @@ public final class CompanionRenderer {
             if (!depth.test(cam.toCam(p.pos()).z())) continue;
             if (!voxels.segmentClear(cam.pos(), p.pos(), 0.0)) continue;
             drawBox(g, cam, p.pos(), pointExtents(p), pointColor(p.kind()));
+        }
+        // Warm things (Phase 5 moods): a block-sized orange box each.
+        for (Vec w : world.ambient().warmth()) {
+            if (!depth.test(cam.toCam(w).z())) continue;
+            if (!voxels.segmentClear(cam.pos(), w, 0.0)) continue;
+            drawBox(g, cam, w, new Vec(0.5, 0.5, 0.5), WARMTH);
         }
         Vec hp = world.heldPoint();
         if (hp != null && depth.test(cam.toCam(hp).z())) drawBox(g, cam, hp, new Vec(0.04, 0.04, 0.04), HELD);
@@ -730,6 +738,12 @@ public final class CompanionRenderer {
                 g.fill(new java.awt.geom.Ellipse2D.Double(px - pr, py - pr, pr * 2, pr * 2));
                 g.setColor(Color.DARK_GRAY);
                 g.draw(new java.awt.geom.Ellipse2D.Double(px - pr, py - pr, pr * 2, pr * 2));
+            }
+            for (Vec warm : world.ambient().warmth()) {
+                double px = SX.applyAsDouble(warm.x()), py = SY.applyAsDouble(warm.z());
+                double pr = Math.max(3, 0.5 * pxPerBlock);
+                g.setColor(WARMTH);
+                g.fill(new java.awt.geom.Rectangle2D.Double(px - pr, py - pr, pr * 2, pr * 2));
             }
         }
 

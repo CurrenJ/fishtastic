@@ -22,6 +22,11 @@ public record PointOfInterest(Kind kind, int id, Vec pos, Vec vel, double radius
         /** Another player's companion: curiosity. */
         COMPANION,
         /** Another player's feet: ground avoidance only, never curiosity or fear. */
-        PLAYER
+        PLAYER,
+        /**
+         * A warm thing (a campfire, fire, lava): a fish that's cold goes to bask by it (Phase 5).
+         * Never in {@link CompanionWorld#points()}; it comes from {@link Ambient#warmth()}.
+         */
+        WARMTH
     }
 }

@@ -184,6 +184,7 @@ final class Mind {
     /** One tick of thinking: returns the velocity the fish wants. */
     Vec decide(OwnerState o, LocalVoxels v, Breadcrumbs crumbs) {
         o0 = o;
+        v0 = v;
         perceive(o, v);
         updateDrives();
         choose();
@@ -240,10 +241,12 @@ final class Mind {
         Vec desired = decide(o, v, crumbs);
         // A jittery temperament steadies itself between walls (a wandering heading in a tunnel is
         // a fish bumping the sides); a calm one is calm everywhere.
-        if (temperament.jitter() != 1) {
+        float jitter = temperament.jitter() * drives.mood.jitter;
+        if (jitter != 1) {
             boolean tight = !v.sphereClear(body.pos, body.radius + 0.6);
-            wanderScale *= tight ? Math.min(1, temperament.jitter()) : temperament.jitter();
+            wanderScale *= tight ? Math.min(1, jitter) : jitter;
         }
+        moodPose();
         if (temperament.tremble() && pose == PoseHint.NONE && isBase(goal) && dwelling) pose = PoseHint.TREMBLE;
         if (biteTicks > 0) {
             biteTicks--;
@@ -257,6 +260,7 @@ final class Mind {
     /** The same goal selection and habituation, expressed as a floor destination for a walker. */
     GroundIntent thinkGround(OwnerState o, LocalVoxels v, GroundBody ground) {
         o0 = o;
+        v0 = v;
         perceive(o, v, ground.pos);
         updateDrives();
         // Ground idle spots are deliberately farther out than the swimmer's comfort band.
@@ -307,6 +311,7 @@ final class Mind {
             }
             default -> { }
         }
+        moodPose();
         if (destination == null) return null;
         target = destination;
         return new GroundIntent(destination, face, hurry);
@@ -348,7 +353,7 @@ final class Mind {
     private void updateDrives() {
         double idleWiden = smoothstep(0, 10 * TPS, stillTicks);
         bandOuterNow = (ownerMoving ? t.bandOuter : t.bandOuter + (t.bandOuterIdle - t.bandOuter) * idleWiden)
-                * body.g.bandScale() * temperament.band();
+                * body.g.bandScale() * band();
         proximity = (float) smoothstep(bandOuterNow, t.farGap, ownerDist);
         if (!losToOwner && ownerDist > 1.2) proximity = Math.max(proximity, 0.75f);
 
@@ -362,11 +367,89 @@ final class Mind {
             seenStreak = 0;
             unseenTicks++;
         }
-        attention = clamp01((unseenTicks - attentionThreshold) / (t.attentionRampSeconds * TPS));
+        // A glad fish comes to show itself sooner (Phase 5 mood): its unseen time counts for more.
+        float glee = drives.mood.glee;
+        int unseen = glee > 0 ? (int) Math.round(unseenTicks * (1 + GLEE_EAGER * glee)) : unseenTicks;
+        attention = clamp01((unseen - attentionThreshold) / (t.attentionRampSeconds * TPS));
         if (showCooldown > 0) showCooldown--;
         if (nuzzleCooldown > 0) nuzzleCooldown--;
         if (ownerMoving) nuzzlesThisStill = 0;
         if (temperament.guard() && drives.sinceHurt == 0) biteTicks = BITE_TICKS;
+        gleeLaps();
+    }
+
+    // ── Mood (Phase 5) ──
+    /** Ticks to a glad fish's next lap; 0 while it isn't glad. */
+    private int gleeLapWait;
+    /** The lap asked for (or under way) is a glad one, not the party's. */
+    private boolean gleeLapPending, gleeLap;
+    /** A glad lap only once the owner has stood still this long, ticks. */
+    private static final int GLEE_LAP_STILL = 3 * TPS;
+    private static final float GLEE_LAPS = 0.6f;
+    /** How much sooner a glad fish shows itself: its unseen time counts 1 + this × glee. */
+    private static final double GLEE_EAGER = 0.6;
+
+    /** Glad of the rain: now and then a lap round its owner while they stand about. */
+    private void gleeLaps() {
+        if (drives.mood.glee < GLEE_LAPS) {
+            gleeLapWait = 0;
+            return;
+        }
+        if (gleeLapWait == 0) gleeLapWait = drawTicks(6, 12);
+        if (ownerMoving || !isBase(goal)) return;
+        if (--gleeLapWait <= 0 && stillTicks >= GLEE_LAP_STILL && lapRoom()) {
+            lapRequest = 3 * TPS;
+            gleeLapPending = true;
+            gleeLapWait = drawTicks(40, 70);
+        }
+    }
+
+    /** Open water all the way round the lap's circle: a glad lap that met a wall would end at once. */
+    private boolean lapRoom() {
+        if (o0 == null || v0 == null) return false;
+        Vec chest = o0.chest();
+        double r = OwnerState.BODY_RADIUS + body.radius + LAP_RADIUS;
+        for (int k = 0; k < 12; k++) {
+            double a = k * Math.PI / 6;
+            if (!v0.sphereClear(chest.add(Math.cos(a) * r, 0.2, Math.sin(a) * r), body.radius + 0.15)) return false;
+        }
+        return true;
+    }
+
+    /**
+     * What the mood shows in an otherwise plain pose: a shiver while it's cold, its nose up
+     * lingering under a full moon.
+     */
+    private void moodPose() {
+        if (!isBase(goal)) return;
+        Mood m = drives.mood;
+        // The cold keeps it from dozing: a shiver over the settle's drowsy pose.
+        if (m.shivering() && (pose == PoseHint.NONE || pose == PoseHint.SLEEPY)) pose = PoseHint.SHIVER;
+        // Lingering under a full moon it gazes up, settled or not.
+        if (m.moonstruck() && dwelling && goal != Goal.ESCORT && (pose == PoseHint.NONE || pose == PoseHint.SLEEPY)) {
+            pose = PoseHint.MOON_GAZE;
+        }
+    }
+
+    /** Lingering at an idle spot (loitering or settled): where a moonstruck fish gazes up. */
+    boolean idleDwelling() {
+        return (goal == Goal.LOITER || goal == Goal.SETTLE) && dwelling;
+    }
+
+    /** The temperament's band scaled by the mood. */
+    private float band() {
+        return temperament.band() * drives.mood.band;
+    }
+
+    /** The temperament's lingering scaled by the mood. */
+    private float dwell() {
+        return temperament.dwell() * drives.mood.dwell;
+    }
+
+    /** How still it hangs while lingering, raised by the mood. */
+    private float stillness() {
+        float add = drives.mood.stillness;
+        return add == 0 ? temperament.stillness() : Math.min(0.95f, temperament.stillness() + add);
     }
 
     private static final int BITE_TICKS = 14;
@@ -388,6 +471,7 @@ final class Mind {
 
         boolean lapFinished = goal == Goal.LAP && lapDone;
         if (lapRequest > 0) lapRequest--;
+        if (lapRequest == 0) gleeLapPending = false; // a glad lap that never started
         uLap = lapRequest > 0 && !lapFinished && ownerDist < t.farGap ? 0.85f : 0f;
         boolean sceneFinished = goal == Goal.SCENE && (sceneDone || scene == null || !scene.active());
         // A scene takes a fish round the other player too (G2's far lobe): within its reach that
@@ -472,6 +556,8 @@ final class Mind {
 
     /** The owner as of this tick, for goals that need it the moment they start. */
     private OwnerState o0;
+    /** The blocks as of this tick. */
+    private LocalVoxels v0;
 
     private void enter(Goal g) {
         if (goal == Goal.SHOW_OFF) {
@@ -511,6 +597,8 @@ final class Mind {
                 peekWait = temperament.peekOut() ? drawTicks(2, 4) : 0;
             }
             case LAP -> {
+                gleeLap = gleeLapPending;
+                gleeLapPending = false;
                 lapRequest = 0;
                 lapDir = sideOf(o0);
                 lapAngle = 0;
@@ -546,7 +634,7 @@ final class Mind {
         centreTicks = spotCentred || centred ? centreTicks + 1 : 0;
         if (spot == null || spot.distanceTo(chest) > bandOuterNow + 0.8 || !v.sphereClear(spot, body.radius + 0.1)
                 || centreTicks > 20) {
-            spot = pickSpot(o, v);
+            spot = drives.mood.moonstruck() ? pickMoonSpot(o, v) : pickSpot(o, v);
             dwelling = false;
             centreTicks = 0;
         }
@@ -557,8 +645,8 @@ final class Mind {
             wanderScale = 0.8;
             if (d < 0.35 && !centred) {
                 dwelling = true;
-                dwellTicks = drawTicks(t.dwellMinSeconds * temperament.dwell() * idleDwell(),
-                        t.dwellMaxSeconds * temperament.dwell() * idleDwell());
+                dwellTicks = drawTicks(t.dwellMinSeconds * dwell() * idleDwell(),
+                        t.dwellMaxSeconds * dwell() * idleDwell());
             }
             // Out of the middle of the view it goes at its own pace, never the calm one (§13.7).
             double pace = centreTicks > 0 ? 1 : idlePace();
@@ -566,10 +654,10 @@ final class Mind {
             return aroundOwner(o, v, spot).sub(body.pos).normalize().scale(speed);
         }
         // Lingering: a slow mill held loosely to the spot (a still temperament hangs almost motionless).
-        wanderScale = 1.2 * (1 - 0.7 * temperament.stillness());
+        wanderScale = 1.2 * (1 - 0.7 * stillness());
         if (--dwellTicks <= 0) spot = null;
         Vec heading = Vec.fromYawPitch(body.yaw, 0);
-        return heading.scale(0.25 * body.g.cruiseSpeed() * idleSurge() * idlePace() * (1 - temperament.stillness())).add(to.scale(0.6));
+        return heading.scale(0.25 * body.g.cruiseSpeed() * idleSurge() * idlePace() * (1 - stillness())).add(to.scale(0.6));
     }
 
     // A drifter's calm idle (docs/fish-companions-drift.md §13.7). For every other body these are the
@@ -622,7 +710,7 @@ final class Mind {
         centreTicks = spotCentred || fishCentred ? centreTicks + 1 : 0;
         if (spot == null || spot.distanceTo(chest) > bandOuterNow + 0.8 || !v.sphereClear(spot, body.radius + 0.1)
                 || centreTicks > 20) {
-            spot = pickSettleSpot(o, v);
+            spot = drives.mood.moonstruck() ? pickMoonSpot(o, v) : pickSettleSpot(o, v);
             dwelling = false;
             centreTicks = 0;
         }
@@ -635,18 +723,18 @@ final class Mind {
             wanderScale = 0.6;
             if (d < 0.3 && !centred) {
                 dwelling = true;
-                dwellTicks = drawTicks(t.dwellMinSeconds * 3 * temperament.dwell() * idleDwell(),
-                        t.dwellMaxSeconds * 3 * temperament.dwell() * idleDwell());
+                dwellTicks = drawTicks(t.dwellMinSeconds * 3 * dwell() * idleDwell(),
+                        t.dwellMaxSeconds * 3 * dwell() * idleDwell());
             }
             double speed = Math.min(0.6 * body.g.cruiseSpeed() * idleSurge() * idlePace(), 0.1 + d * 1.0);
             if (centred) speed = Math.max(speed, body.g.cruiseSpeed());
             return aroundOwner(o, v, spot).sub(body.pos).normalize().scale(speed);
         }
-        wanderScale = 0.6 * (1 - 0.7 * temperament.stillness());
+        wanderScale = 0.6 * (1 - 0.7 * stillness());
         pose = PoseHint.SLEEPY;
         if (--dwellTicks <= 0) spot = null;
         Vec heading = Vec.fromYawPitch(body.yaw, 0);
-        return heading.scale(0.12 * body.g.cruiseSpeed() * (1 - temperament.stillness())).add(to.scale(0.5));
+        return heading.scale(0.12 * body.g.cruiseSpeed() * (1 - stillness())).add(to.scale(0.5));
     }
 
     /** Within this of the eye, blocks, a spot must keep out of the central 12° of the view. */
@@ -659,7 +747,7 @@ final class Mind {
      */
     private Vec pickSettleSpot(OwnerState o, LocalVoxels v) {
         Vec chest = o.chest();
-        double inner = t.bandInner * body.g.bandScale() * temperament.band() + 0.2;
+        double inner = t.bandInner * body.g.bandScale() * band() + 0.2;
         boolean wantView = settleInView;
         settleInView = !settleInView;
         for (int attempt = 0; attempt < 24; attempt++) {
@@ -685,11 +773,24 @@ final class Mind {
         return body.pos;
     }
 
+    /**
+     * The moon idle's spot (Phase 5): a settle spot, every other one at the edge of the owner's view
+     * so the gazing is seen, lifted by the mood where there's room.
+     */
+    private Vec pickMoonSpot(OwnerState o, LocalVoxels v) {
+        Vec p = pickSettleSpot(o, v);
+        if (p == body.pos) return p;
+        Vec up = p.add(0, drives.mood.lift, 0);
+        boolean room = v.sphereClear(up, body.radius + 0.25) && v.segmentClear(body.pos, up, body.radius)
+                && !insideOwner(o, up, body.radius + 0.25);
+        return room ? up : p;
+    }
+
     /** A nearby open spot inside the comfort band, a short hop from where the fish is now. */
     private Vec pickSpot(OwnerState o, LocalVoxels v) {
         Vec chest = o.chest();
         Gait g = body.g;
-        double inner = t.bandInner * g.bandScale() * temperament.band() + 0.2;
+        double inner = t.bandInner * g.bandScale() * band() + 0.2;
         double outer = Math.max(inner + 0.3, bandOuterNow - 0.3);
         for (int attempt = 0; attempt < 24; attempt++) {
             double yaw = o.yawDeg() + (unit() - 0.5) * 300;
@@ -761,10 +862,10 @@ final class Mind {
         driftAlong = ou(driftAlong);
         driftHeight = ou(driftHeight);
 
-        double lateral = t.escortLateral * body.g.lateralScale() * temperament.band() + driftLat * 0.3;
+        double lateral = t.escortLateral * body.g.lateralScale() * band() + driftLat * 0.3;
         lateralSigned = approach(lateralSigned, side * lateral, 0.9 * Body.DT);
         // Crossing over goes in front of the owner, never through them.
-        double centre = 1 - Math.min(1, Math.pow(lateralSigned / (t.escortLateral * body.g.lateralScale() * temperament.band()), 2));
+        double centre = 1 - Math.min(1, Math.pow(lateralSigned / (t.escortLateral * body.g.lateralScale() * band()), 2));
         double along = alongBase + driftAlong * 0.4 + surge + 1.4 * centre + body.g.alongOffset();
         if (body instanceof DriftBody d && d.style == DriftStyle.JET && t.driftJet) along += t.jetRideAhead;
         if (bobBody()) along += t.bobRideAhead;
@@ -891,7 +992,9 @@ final class Mind {
         Vec dest = chest.add(Math.cos(aim) * r, 0.2, Math.sin(aim) * r);
         // Done after a full turn, out of time, at a wall, or when the owner walks off (a lap round
         // someone leaving reads as a chase).
-        if (lapAngle >= 2 * Math.PI || goalTicks > LAP_MAX_TICKS || ownerMoving || !v.sphereClear(dest, body.radius + 0.1)) {
+        // A glad lap (Phase 5) is kept for a second even if the owner sets off: a lap cut short at once is a dither.
+        boolean leaving = ownerMoving && !(gleeLap && goalTicks < 20);
+        if (lapAngle >= 2 * Math.PI || goalTicks > LAP_MAX_TICKS || leaving || !v.sphereClear(dest, body.radius + 0.1)) {
             if (lapAngle >= 2 * Math.PI && !lapDone) lapsCompleted++;
             lapDone = true;
         }

@@ -40,6 +40,11 @@ public final class CompanionAgent {
     private Vec lookTarget;
     /** A percher's body (BENTHIC, ANCHORED), else null; its swim body is the one the mind steers. */
     private final PerchBody perch;
+    /** This fish's own mood (a group leader's is its group's drives' mood), and its species' habitat. */
+    private final Mood mood;
+    private Habitat habitat = Habitat.NONE;
+    /** The swim body whose cruising pace the temperament (and the mood) sets; null for a drifter. */
+    private final Body paced;
     /** Ground-group followers share the leader's mind/drives; only their motors step. */
     private final CompanionAgent groupLeader;
     private Vec formationSwim = Vec.ZERO;
@@ -132,6 +137,8 @@ public final class CompanionAgent {
         this.temperament = temperament;
         this.groupLeader = groupLeader;
         this.drives = groupLeader == null ? new Drives(temperament) : groupLeader.drives;
+        if (groupLeader == null) drives.percher = locomotion == Locomotion.BENTHIC || locomotion == Locomotion.ANCHORED;
+        this.mood = groupLeader == null ? drives.mood : new Mood();
         this.length = length;
         this.locomotion = locomotion;
         this.driftStyle = driftStyle == null ? DriftStyle.BELL : driftStyle;
@@ -153,6 +160,7 @@ public final class CompanionAgent {
             this.mind = groupLeader == null ? new Mind(t, swim, seed, drives, temperament) : groupLeader.mind;
             start = perch.pos;
             swim.pace = temperament.pace();
+            this.paced = swim;
         } else {
             this.perch = null;
             this.body = locomotion == Locomotion.DRIFT
@@ -160,6 +168,7 @@ public final class CompanionAgent {
                     : new Body(t, locomotion, start, owner.yawDeg(), radius, seed ^ 0x5DEECE66DL);
             this.mind = new Mind(t, body, seed, drives, temperament);
             if (body instanceof Body b) b.pace = temperament.pace();
+            this.paced = body instanceof Body b ? b : null;
         }
         this.prevPos = start;
         this.renderPos = start;
@@ -181,7 +190,10 @@ public final class CompanionAgent {
         ticks++;
 
         voxels.update(blocks, owner.eye());
+        mood.update(world.ambient(), habitat, owner.chest(), body.pos);
         if (groupLeader == null) drives.update(world);
+        // The mood's idle pace on the temperament's (exactly the temperament's while there's no mood).
+        if (paced != null) paced.pace = temperament.pace() * drives.moodPace();
         if (owner.teleported()) crumbs.clear();
         crumbs.record(owner.chest());
         lastChest = owner.chest();
@@ -306,7 +318,8 @@ public final class CompanionAgent {
             return;
         }
         if (it == null || drives.curiosity < PerchBody.WATCH_CURIOSITY) {
-            if (drives.resting && perch.mode == PerchBody.Mode.PERCHED) pose = PoseHint.SLEEPY;
+            if (drives.mood.shivering()) pose = PoseHint.SHIVER;
+            else if (drives.resting && perch.mode == PerchBody.Mode.PERCHED) pose = PoseHint.SLEEPY;
             else if (temperament.tremble() && perch.mode == PerchBody.Mode.PERCHED) pose = PoseHint.TREMBLE;
             return;
         }
@@ -572,6 +585,9 @@ public final class CompanionAgent {
 
     /** Laps begun and finished (a full turn), for the probe. */
     public int laps() { return mind.laps; }
+
+    /** Its mind is lingering at an idle spot (for a member's moon gaze). */
+    boolean idleDwelling() { return (groupLeader == null ? mind : groupLeader.mind).idleDwelling(); }
     public int lapsCompleted() { return mind.lapsCompleted; }
 
     /** The push from other swimming units this tick, blocks/s, or -1 for none (overlay). */
@@ -665,6 +681,48 @@ public final class CompanionAgent {
     /** What the fish is looking at (an inspected or watched thing), or null. */
     public Vec lookTarget() { return lookTarget; }
     public Temperament temperament() { return temperament; }
+
+    // ── Mood (Phase 5) ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Sets this fish's species' habitat, which its mood reads the world's {@link Ambient} against.
+     * Each fish has its own mood (owner, 2026-10-15): a group's leader sets the group's levers, and
+     * every member shows its own in its pose ({@link #poseFor}). {@link Habitat#NONE}, the default,
+     * never moves it.
+     */
+    public void habitat(Habitat habitat) { this.habitat = habitat == null ? Habitat.NONE : habitat; }
+    public Habitat habitat() { return habitat; }
+
+    /** The mood's feelings, 0..1 each, eased; and whether its owner is by a warm thing. */
+    public record MoodLevels(float cold, float glum, float glee, float sleepy, float moon, boolean warmed) {}
+
+    public MoodLevels mood() {
+        return levels(mood);
+    }
+
+    static MoodLevels levels(Mood m) {
+        return new MoodLevels(m.cold, m.glum, m.glee, m.sleepy, m.moon, m.warmed);
+    }
+
+    /** The overlay's mood line. */
+    public String moodDescription() { return mood.describe(); }
+
+    /**
+     * This fish's pose given the pose its group's mind chose ({@code lead}, the leader's own hint for
+     * a member drawn off the leader): the leader's mood hints are swapped for this fish's own.
+     */
+    public PoseHint poseFor(PoseHint lead) {
+        Mind m = groupLeader == null ? mind : groupLeader.mind;
+        return Mood.memberPose(lead, mood, m.idleDwelling());
+    }
+
+    /** The drives, for tests in this package. */
+    Drives drivesForTest() { return drives; }
+
+    /** Goes to bask by a warm thing right now (an inspection of one). */
+    public boolean basking() {
+        return mind.goal == Mind.Goal.INSPECT && drives.target != null && drives.target.kind == PointOfInterest.Kind.WARMTH;
+    }
 
     // ── Interpolated pose (after interpolate) ──────────────────────────────────────────────────
 

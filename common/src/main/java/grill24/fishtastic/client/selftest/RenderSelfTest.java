@@ -148,7 +148,7 @@ public final class RenderSelfTest {
     /** Scenes that run only when the marker names them (they need something the default run lacks). */
     private static final List<String> OPT_IN_SCENES = List.of("matte", "matteclip", "fourwaters", "cathedral",
             "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench",
-            "companionbond", "companionsim", "companionparty", "companioneel", "twoclient", "companionscenes", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk");
+            "companionbond", "companionsim", "companionparty", "companioneel", "twoclient", "companionscenes", "companionmoods", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk");
 
     private static Boolean armed;
     /** Keep ordinary automatic features from interfering with explicitly armed fixture scenes. */
@@ -386,6 +386,7 @@ public final class RenderSelfTest {
             case "companioneel" -> queueCompanionEelScene();
             case "twoclient" -> queueTwoClientScene();
             case "companionscenes" -> queueCompanionScenesScene();
+            case "companionmoods" -> queueCompanionMoodsScene();
             case "ambientparity" -> queueAmbientParityScene();
             case "ambientwater" -> queueAmbientWaterScene();
             case "ambientcontext" -> queueAmbientContextScene();
@@ -5034,6 +5035,179 @@ public final class RenderSelfTest {
         queue(1, mc -> {
             grill24.fishtastic.client.companion.ClientCompanions.devOverlay(false);
             server(mc, RenderSelfTest::clearParties);
+        });
+    }
+
+    /** Where the local member of {@code species} is: its unit and index, or null. */
+    @org.jetbrains.annotations.Nullable
+    private static Object[] memberOf(String species) {
+        for (var c : grill24.fishtastic.client.companion.ClientCompanions.localCompanions()) {
+            for (int i = 0; i < c.fishCount(); i++) if (c.memberSpecies(i).equals(species)) return new Object[]{c, i};
+        }
+        return null;
+    }
+
+    /** {@code species}' own mood (a mixed shoal's members each have one), or null when it isn't stepping yet. */
+    @org.jetbrains.annotations.Nullable
+    private static grill24.fishsim.companion.CompanionAgent.MoodLevels moodOf(String species) {
+        Object[] m = memberOf(species);
+        return m == null ? null : ((grill24.fishtastic.client.companion.ClientCompanion) m[0]).memberMood((Integer) m[1]);
+    }
+
+    @org.jetbrains.annotations.Nullable
+    private static grill24.fishsim.companion.Habitat.Climate climateOf(String species) {
+        Object[] m = memberOf(species);
+        return m == null ? null : ((grill24.fishtastic.client.companion.ClientCompanion) m[0]).memberHabitat((Integer) m[1]).climate();
+    }
+
+    @org.jetbrains.annotations.Nullable
+    private static grill24.fishsim.companion.PoseHint poseOf(String species) {
+        Object[] m = memberOf(species);
+        return m == null ? null : ((grill24.fishtastic.client.companion.ClientCompanion) m[0]).memberPose((Integer) m[1]);
+    }
+
+    private static String moods() {
+        StringBuilder b = new StringBuilder();
+        for (var c : grill24.fishtastic.client.companion.ClientCompanions.localCompanions()) {
+            for (int i = 0; i < c.fishCount(); i++) {
+                var m = c.memberMood(i);
+                if (m == null) continue;
+                b.append(c.memberSpecies(i)).append(' ').append(c.memberHabitat(i).climate()).append(String.format(Locale.ROOT,
+                        ": cold %.2f glum %.2f glee %.2f sleepy %.2f moon %.2f%s pose %s; ", m.cold(), m.glum(), m.glee(),
+                        m.sleepy(), m.moon(), m.warmed() ? " warmed" : "", c.memberPose(i)));
+            }
+        }
+        var lead = grill24.fishtastic.client.companion.ClientCompanions.local();
+        if (lead != null) b.append(lead.ambient().weather()).append(' ').append(lead.ambient().temperature())
+                .append(' ').append(lead.ambient().dayPart()).append(" moon ").append(lead.ambient().moonPhase())
+                .append(" warm ").append(lead.ambient().warmth().size());
+        return b.toString();
+    }
+
+    private static boolean anyMood(grill24.fishsim.companion.CompanionAgent.MoodLevels m) {
+        return m.cold() > 0 || m.glum() > 0 || m.glee() > 0 || m.sleepy() > 0 || m.moon() > 0;
+    }
+
+    /**
+     * Phase 5 moods (docs/fish-companions-sim-plan.md §5, spec §6) from the real world: a mixed
+     * party (temperate bluegill, cold-water arctic char, Nether discus) in plains, then snow
+     * (/fillbiome), a campfire, rain, a full-moon midnight with a parrotfish, and the dev trigger.
+     */
+    private static void queueCompanionMoodsScene() {
+        queue(1, RenderSelfTest::paradeSetup);
+        queue(1, mc -> grill24.fishtastic.client.companion.ClientCompanions.devOverlay(true));
+        queue(1, mc -> server(mc, s -> {
+            clearParties(s);
+            run(s, "weather clear 99999");
+            run(s, "fishtastic companion give @p fishtastic:bluegill 25 1");
+            run(s, "fishtastic companion give @p fishtastic:arctic_char 30 2");
+            run(s, "fishtastic companion give @p fishtastic:discus 20 3");
+        }));
+        queueUntil("companionmoods.party", 200, mc -> moodOf("bluegill") != null && moodOf("arctic_char") != null
+                && moodOf("discus") != null, RenderSelfTest::moods);
+        queue(1, mc -> check("companionmoods.climates",
+                climateOf("bluegill") == grill24.fishsim.companion.Habitat.Climate.TEMPERATE
+                        && climateOf("arctic_char") == grill24.fishsim.companion.Habitat.Climate.COLD
+                        && climateOf("discus") == grill24.fishsim.companion.Habitat.Climate.HOT, moods()));
+        // Plains: the temperate and cold fish content, the Nether fish glum out of the heat.
+        queue(200, mc -> {
+            var b = moodOf("bluegill");
+            var a = moodOf("arctic_char");
+            var d = moodOf("discus");
+            check("companionmoods.plains", b != null && !anyMood(b) && a != null && !anyMood(a)
+                    && d != null && d.glum() > 0.4f, moods());
+            companionLog("plains");
+            screenshot(mc, "companionmoods", "plains");
+        });
+        // Snow: the bluegill and the discus shiver; the arctic char doesn't.
+        // The flat world's floor is at y -60: keep the box above the build limit (-64).
+        queue(1, mc -> server(mc, s -> run(s, asMe(mc) + "fillbiome ~-12 ~-3 ~-12 ~12 ~8 ~12 minecraft:snowy_plains")));
+        // Pose samples per member: the bluegill and discus shiver, the arctic char never does.
+        final int[] shivers = {0, 0};
+        for (int i = 0; i < 40; i++) {
+            queue(5, mc -> {
+                if (poseOf("bluegill") == grill24.fishsim.companion.PoseHint.SHIVER) shivers[0]++;
+                if (poseOf("arctic_char") == grill24.fishsim.companion.PoseHint.SHIVER) shivers[1]++;
+            });
+        }
+        queue(1, mc -> {
+            var b = moodOf("bluegill");
+            var a = moodOf("arctic_char");
+            var d = moodOf("discus");
+            check("companionmoods.snow", b != null && b.cold() > 0.5f && a != null && a.cold() == 0f
+                    && d != null && d.cold() > 0.5f, moods());
+            check("companionmoods.shiver_pose", shivers[0] > 10 && shivers[1] == 0,
+                    "shiver samples bluegill " + shivers[0] + "/40, arctic char " + shivers[1] + "/40 " + moods());
+            companionLog("snow");
+            screenshot(mc, "companionmoods", "snow");
+        });
+        // A campfire beside the owner: warm, the shiver goes.
+        queue(1, mc -> server(mc, s -> run(s, asMe(mc) + "setblock ~2 ~ ~ minecraft:campfire")));
+        queue(200, mc -> {
+            var b = moodOf("bluegill");
+            var d = moodOf("discus");
+            // In snow the Nether fish was cold, not glum: by the fire it's warm, not glad.
+            check("companionmoods.campfire", b != null && b.warmed() && b.cold() < 0.05f && d != null && d.warmed()
+                    && d.cold() < 0.05f, moods());
+            companionLog("campfire");
+            screenshot(mc, "companionmoods", "campfire");
+        });
+        queue(1, mc -> server(mc, s -> {
+            run(s, asMe(mc) + "setblock ~2 ~ ~ minecraft:air");
+            run(s, asMe(mc) + "fillbiome ~-12 ~-3 ~-12 ~12 ~8 ~12 minecraft:plains");
+            run(s, "weather rain 99999");
+        }));
+        // Rain in plains: the bluegill glad, the discus glum.
+        queue(240, mc -> {
+            var b = moodOf("bluegill");
+            var d = moodOf("discus");
+            check("companionmoods.rain", b != null && b.glee() > 0.5f && b.cold() == 0f && d != null && d.glum() > 0.4f, moods());
+            companionLog("rain");
+            screenshot(mc, "companionmoods", "rain");
+        });
+        // A full-moon midnight with a parrotfish (a full-moon species) in slot 3.
+        queue(1, mc -> server(mc, s -> {
+            run(s, "weather clear 99999");
+            run(s, "time set 18000");
+            run(s, "fishtastic companion give @p fishtastic:parrotfish 30 3");
+        }));
+        queue(240, mc -> {
+            var p = moodOf("parrotfish");
+            var b = moodOf("bluegill");
+            var lead = grill24.fishtastic.client.companion.ClientCompanions.local();
+            boolean fullMoonNight = lead != null && lead.ambient().fullMoon()
+                    && lead.ambient().dayPart() == grill24.fishsim.companion.Ambient.DayPart.NIGHT;
+            check("companionmoods.moon", fullMoonNight && p != null && p.moon() > 0.5f && b != null && b.moon() == 0f, moods());
+            companionLog("moon");
+            screenshot(mc, "companionmoods", "moon");
+        });
+        // The dev trigger forces a mood on every unit, and "off" gives the world back.
+        queue(1, mc -> {
+            server(mc, s -> run(s, "time set 6000"));
+            grill24.fishtastic.client.companion.ClientCompanions.devMood("sleepy");
+        });
+        queue(200, mc -> {
+            var b = moodOf("bluegill");
+            var p = moodOf("parrotfish");
+            check("companionmoods.dev_sleepy", b != null && b.sleepy() > 0.5f && p != null && p.sleepy() > 0.5f, moods());
+            grill24.fishtastic.client.companion.ClientCompanions.devMood("cold");
+        });
+        queue(200, mc -> {
+            var b = moodOf("bluegill");
+            check("companionmoods.dev_cold", b != null && b.cold() > 0.5f, moods());
+            screenshot(mc, "companionmoods", "dev_cold");
+            grill24.fishtastic.client.companion.ClientCompanions.devMood("off");
+        });
+        queue(160, mc -> {
+            var b = moodOf("bluegill");
+            check("companionmoods.dev_off", b != null && !anyMood(b), moods());
+        });
+        queue(1, mc -> {
+            grill24.fishtastic.client.companion.ClientCompanions.devOverlay(false);
+            server(mc, s -> {
+                run(s, "weather clear");
+                clearParties(s);
+            });
         });
     }
 

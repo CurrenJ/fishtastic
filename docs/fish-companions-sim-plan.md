@@ -1,6 +1,6 @@
 # Fish Companions — Simulation Rewrite Plan
 
-**Written:** 2026-10-11 · **Status: Phases 1 and 2 passed the owner's gate 2026-10-11 (§9.6, §10.6); Phase 3 (into the game) built, awaiting the owner's solo playtest (§11.7). GLIDE and DRIFT parked. Phase 4 done 2026-10-15; Phase 5 decisions recorded (§5), not started.**
+**Written:** 2026-10-11 · **Status: Phases 1 and 2 passed the owner's gate 2026-10-11 (§9.6, §10.6); Phase 3 (into the game) built, awaiting the owner's solo playtest (§11.7). GLIDE and DRIFT parked. Phase 4 done 2026-10-15; Phase 5 (ambient moods) built and validated 2026-10-15 (§12), awaiting the owner's look (§12.7).**
 
 **Decision (owner, 2026-10-11):** rebuild companion motion the way the tank was rebuilt
 ([fish-sim-engine-plan.md](fish-sim-engine-plan.md)): a Minecraft-free simulation in `:fishsim`,
@@ -261,7 +261,7 @@ player G3/G4 and class pairings stay for later.
 Biome comfort, rain, time and moon, as modifiers on drives and body (sleepy = slower and longer rests,
 shivering = a body noise term).
 
-**Owner decisions (2026-10-15), not started:**
+**Owner decisions (2026-10-15); built 2026-10-15, §12:**
 - Scope is as above: biome comfort, rain, sleepy off-hours, and the full-moon idle. The mob
   reactions in spec §6 (cats, axolotls, dolphins) stay deferred.
 - Each fish has its own mood, from its own species' home. A mixed party can be split, with one
@@ -1021,3 +1021,163 @@ Solo playtest, both loaders: `/fishtastic companion give @p fishtastic:<species>
 2. Held items, a real or fake zombie and cat, dropped items, standing still for ~30 s.
 3. The unmapped pose hints (§11.2): which need a look of their own, and what?
 4. Anything that pops: hop starts (§11.6), fades, teleports, entering water.
+
+---
+
+## 12. Phase 5 — ambient world, as built (2026-10-15)
+
+| Step | Builds | Gate |
+|---|---|---|
+| **5a** Ambient input | `Ambient` (place tokens, biome temperature, weather, part of the day, moon phase, warm things) as `CompanionWorld`'s sixth component; `Habitat` (a species' homes, weather/hours/full-moon weights, climate); `OwnerScript.ambient`, `MoodScenes` presets | 1,038 fingerprints (`-PfpAll`, all three probes) bitwise identical to before Phase 5 |
+| **5b** Comfort, rain, warmth | `Mood`: cold, glum, glee, with the bask; shiver pose | `MoodTest`; moods in `CompanionInvariantTest` under the temperament envelope |
+| **5c** Sleepy, moon | sleepy off-hours, the moon idle | `MoodTest`; the pooled seen/fade guard |
+| **5d** Into the game | `CompanionAmbient` (ambient from the level, habitat from the fish profile), per-member habitats, drawn shiver and moon gaze, overlay lines, `/fishtastic companion mood`, the viewer's V key, the `companionmoods` self-test | self-test on both loaders; **owner's look** |
+
+### 12.1 The input
+
+- **Place tokens** (one vocabulary for the world and the species): `minecraft:plains` (the biome),
+  `#minecraft:is_ocean` (each of its tags), `dim:minecraft:the_nether`, and `zone:nether`. A
+  species' homes are its `biome_weights` (≥ 1) biomes and tags, and `zone:nether` for a Nether fish;
+  its other zones are water bodies, not places (any land column resolves to RIVER). At home,
+  nothing grates. (`MoodScenes`' headless habitats use `zone:ocean`; it never matches a place.)
+- **Temperature** is the biome's base temperature, corrected with `coldEnoughToSnow` so a temperate
+  biome high enough to snow reads cold (`Biome#getTemperature` is private).
+- **Weather** is what falls on the owner (`precipitationAt`): under a roof or in a desert it's clear.
+  (The fishing code counts covered rain as rain; that's right for catches, not for a mood.)
+- **Time and moon** as fishing reads them (`TimeOfDay.fromGameTime(getOverworldClockTime())`,
+  `FishMoonPhase.at`).
+- **Warm things**: lit campfires, fire and lava within 6 blocks (3 up and down), scanned once a
+  second, one point per 4-block cell, the nearest four.
+- **Climate** of a species: HOT if it lives in the Nether (zone or biome); COLD if a home biome is
+  below 0.15 or its SNOW weight is over 1; else TEMPERATE. (Data note for the owner: lionfish has
+  `snow: 2.0`, so it counts as cold-hardy.)
+- `Ambient.NEUTRAL` and `Habitat.NONE` are no mood at all, exactly: every headless run without an
+  ambient is bitwise what it was.
+
+### 12.2 The rules (`Mood`)
+
+| Feeling | When | Away by |
+|---|---|---|
+| **cold** 0.8 (1 in falling snow) | not at home, below 0.15 or snowing: TEMPERATE and HOT | a warm thing within 2.5 of the owner's chest, or the fish basking within 2 of one; the warmth then holds 20 s |
+| **glum** 0.6 | not at home: TEMPERATE or COLD at 1.5+ (desert, badlands, savanna, the Nether); COLD at 1.0+; HOT below 1.0 (0.5); 0.5 in rain a species dislikes (weight < 1) or for a Nether fish | a HOT fish by a fire cheers up (glee 0.5) |
+| **glee** 0.7 (1 if its rain weight is over 1) | rain or thunder on it; snow for a COLD fish | cold beats it |
+| **sleepy** 1 | its off-hours: the part of the day weighted under 1, or the opposite of one weighted over 1 | |
+| **moon** 1 | a full moon at night, for a species whose full-moon weight is over 1 | |
+
+Each eases in over 6 s and out over 4 s. **Each fish has its own** (owner, D-decision 2026-10-15):
+the `Mood` lives on the agent, and on each school follower. A group's leader's mood sets the
+group's levers (one mind moves a mixed shoal, party D13); every member's pose shows its own
+(`Mood.memberPose`). So a mixed shoal in snow can have one fish shivering and its mates content.
+
+### 12.3 What each does (subtle and capped, owner 2026-10-15)
+
+Levers on the temperament's own, all exactly neutral at no mood (multiplying by 1.0f is exact):
+
+| Lever | cold | glum | glee | sleepy |
+|---|---|---|---|---|
+| pace (idle only, swimmers only) | ×0.88 | ×0.85 | ×1.12 | ×0.8 |
+| rest gain (swimmers only) | | | ×0.6 | ×2 |
+| dwell | | ×1.3 | ×0.8 | ×1.4 |
+| heading noise | ×1.4 | | ×1.15 | |
+| band | ×0.85 | ×0.9 | ×1.1 | |
+| curiosity | ×0.7 | ×0.6 | ×1.2 | ×0.75 |
+| stillness | | +0.15 | | +0.25 |
+
+Reactions, where a lever alone wouldn't show:
+- **Shiver** (`PoseHint.SHIVER`): in any plain pose while cold, over the settle's drowsy pose. Drawn
+  as a ~7 Hz tremble, ±5° roll and ±2.5° yaw, out of step across a trio; perched fish too.
+- **Bask**: a cold fish (or a Nether fish out of the heat) goes to a warm thing once the cold shows
+  (an inspection, `PointOfInterest.Kind.WARMTH`, which never habituates), stays 8 s, comes back warm
+  for 20 s, then cools. Hold distance keeps it ~1.5 blocks from the centre of a fire.
+- **Glad laps**: a lap round the owner every 40–70 s, only after they've stood still 3 s and only
+  with open water all round; kept for a second even if they set off. A glad fish also shows itself
+  sooner when out of view (its unseen time counts 1.6×), which is what keeps seen % up.
+- **Moon gaze** (`PoseHint.MOON_GAZE`): idling under a full moon its spots are the settle's (every
+  other one at the edge of the view) lifted 0.5 blocks, and lingering it holds its nose up 28°.
+
+### 12.4 What measuring changed
+
+All on equal seeds, mood against none (`MoodProbe`, `-PsweepSeeds`):
+- **Ground walkers take no mood pace.** Even an idle-only slowdown left a benthic behind in the
+  forest and stairwell: unforced fades 50 → 71 (sleepy) over 120 seeds × 5 obstacle scripts.
+  Without it every mood is 49–50. (The baseline's forest rate on seeds 1–40 was a lucky 0; on
+  41–200 it's 11/160.)
+- **Mood pace is idle only**, so following and catching up are never slower.
+- **Perchers take no rest gain.** A resting percher climbs onto the shoulder, which first person
+  never shows: sleepy cost a benthic 1.1 points of seen.
+- **Glad laps** first cost drifters 2 points of seen (half a lap is behind the owner): laps now come
+  half as often and the glad fish shows itself sooner — seen now rises for every class.
+- **The moon idle** first lifted every loiter spot 0.9 and stopped the fish settling; drifters lost
+  1.5 points. Now it lifts the settle's view-aware spots 0.5.
+- **The bask** first fired a second into the cold and only once; now it waits for the shiver and
+  repeats as the warmth wears off.
+- **Glad laps cut short** (the owner walking off, a wall in the stairwell) read as dithering in the
+  commitment invariant: hence the stand-still, open-ring and one-second rules.
+
+### 12.5 Verification
+
+- **Fingerprints**: 1,038 hashes (`FingerprintProbe -PfpAll`: FP, FPA, FP2, FPG) bitwise identical
+  to the tree before Phase 5, after every step.
+- **`CompanionInvariantTest`**: each of the six presets × FREE_SWIM and BENTHIC × every swimmer
+  script × 3 seeds, under the temperaments' envelope; all pass.
+- **`MoodTest`** (15 tests): the rules, easing, caps, a split party, a split mixed shoal, each
+  reaction on the idle scripts, and the owner's bar: pooled over every swimmer script × 5 seeds, no
+  mood is more than a point below none in seen %, nor more than 3 unforced fades above it
+  (FREE_SWIM, BENTHIC, DRIFT; the corridor's 1-wide tunnel and the forced-fade scripts excluded).
+- **Pooled, 10 seeds** (seen % against none): 
+
+  | Class | cold | warm | glum | glee | sleepy | moon |
+  |---|---|---|---|---|---|---|
+  | FREE_SWIM | −0.3 | +1.5 | −0.0 | +1.3 | +1.0 | +3.5 |
+  | BENTHIC | −0.2 | +0.4 | −0.1 | +0.1 | −0.1 | +0.1 |
+  | DRIFT | +0.0 | +2.8 | +0.6 | +0.4 | −0.4 | −0.6 |
+  | GLIDE (parked) | −0.8 | +2.6 | −0.3 | +0.7 | +0.8 | +2.0 |
+
+  Unforced fades differ only in the corridor's tunnel (single seeds swing either way).
+- **In game**: `companionmoods` (12 checks) passes on Fabric and NeoForge: a mixed
+  shoal of bluegill, arctic char and discus in plains (only the discus glum), in `/fillbiome` snow
+  (bluegill and discus shiver, 30/40 pose samples; the arctic char 0/40), by a campfire (warmed),
+  in rain (bluegill and char glad, discus glum), a full-moon midnight (parrotfish moonstruck,
+  bluegill sleepy: its night weight is 0.5), and the dev trigger on and off. `companionsim` and
+  `companionparty` still pass on Fabric. Found in game: fishing zones are catch-alls (any land
+  column resolves to RIVER), so only `zone:nether` counts as a place; other homes are biomes.
+
+### 12.6 Known gaps and calls left to the owner
+
+- **Benthic and anchored moods show only in the pose** (and the bask for a walker on the ground): no
+  pace, no rest gain (12.4). A sleepy percher shows nothing; `SLEEPY` is still undrawn (§11.2).
+- **A percher riding its owner watches a fire it can't reach** (as with dropped items) and keeps
+  shivering until the owner walks over.
+- **GLIDE** (parked) isn't in the seen/fade guard; it measured −0.8 (cold) to +2.6 (warm) at 10 seeds.
+- **Mood strength** is the agreed "subtle and capped" start; tune it in the viewer.
+- Mob reactions (spec §6: cats, axolotls, dolphins) stay deferred.
+
+### 12.7 For the owner's gate
+
+- **Viewer**: `./gradlew :fishsim:runCompanionViewer`, **V** cycles none → cold → warm (a campfire
+  3.5 blocks ahead, orange) → glum → glee → sleepy → moon; the mood line is under the top bar.
+- **In game, solo**: `/fishtastic companion debug true`, then `/fishtastic companion mood
+  cold|warm|glum|glee|sleepy|moon|off` (forces the preset on your party), or the real thing:
+  `/fillbiome` a snowy biome round you, a campfire, `/weather rain`, `/time set 18000` on a
+  full-moon day with a parrotfish. The overlay shows each fish's mood, the ambient and the habitat.
+1. Does the shiver read as cold (not as the trembler's idle)? Amplitude and rate?
+2. The bask: right distance from the fire, right length?
+3. Glad laps and the moon gaze: visible enough, too much?
+4. Sleepy and glum: noticeable at all? Should perchers get a look of their own?
+
+### 12.8 Tooling, and what's next
+
+Probes (all `-PsimStdout`, test source set):
+- `MoodProbe.moods` (`-PsweepSeeds=n`): every class × preset against none, pooled over the swimmer
+  scripts — seen, fades (unforced split out), speed, mood-pose share, laps, basks, rest, height.
+- `MoodProbe.fadeRates` (`-PsweepClass=BENTHIC -PsweepSeeds=120`): unforced fades per script per
+  preset; `MoodProbe.fadesByScript` (`-PsweepClass -PtweakList=warm,glum`): which seeds moved.
+- `WarmthProbe`, `WarmthTraceProbe`: the bask tick by tick; `ForestFadeProbe`: the benthic forest
+  baseline on fresh seeds (the equal-grounds check behind 12.4).
+- Fingerprints: `FingerprintProbe -PfpAll=1`, diffed against a capture from before the change.
+- In game: the `companionmoods` self-test scene (marker file, both loaders).
+
+Next, in order: the owner's look at Phase 5 (12.7) and the looks still owed (sim Phase 3 playtest
+§11.7, the drifter bob in the drift spec §15, party Phase 4 in game). Then the owner chooses among
+the deferred work: mob reactions (spec §6), fishing reactions (spec §5), tank interactions (E3,
+E4), the GLIDE redesign. Mood strength is tuned only after the owner's look.

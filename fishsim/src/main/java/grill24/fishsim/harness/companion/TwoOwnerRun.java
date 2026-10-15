@@ -294,7 +294,7 @@ public final class TwoOwnerRun {
                     pts.add(player);
                 }
                 self.seen[i] = pts == null ? base
-                        : new CompanionWorld(base.owner(), base.blocks(), pts, base.held(), base.hurt());
+                        : base.withPoints(pts);
             }
             self.layer.step(u -> self.seen[self.layer.units().indexOf(u)]);
         }

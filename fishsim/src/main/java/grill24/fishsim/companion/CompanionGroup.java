@@ -107,7 +107,10 @@ public final class CompanionGroup {
         leaderTrail.record(leader.position());
         Capsule ownerBody = Capsule.ownerBody(owner);
         players = world.points();
-        for (Follower f : followers) f.step(owner, ownerBody);
+        for (Follower f : followers) {
+            f.mood.update(world.ambient(), f.habitat, owner.chest(), f.body.pos);
+            f.step(owner, ownerBody);
+        }
     }
 
     /** This tick's points, for the followers' clearance from other players. */
@@ -155,6 +158,9 @@ public final class CompanionGroup {
     /** One follower: a free-swim body that keeps to a station on its leader. */
     public final class Follower {
         private final Body body;
+        /** Its own mood, from its own species' habitat (Phase 5): shown in its pose, never its motion. */
+        private final Mood mood = new Mood();
+        private Habitat habitat = Habitat.NONE;
         private final int side;
         /** This follower's own body length, and its spacing length to the leader. */
         private final float length;
@@ -169,6 +175,17 @@ public final class CompanionGroup {
         private float prevYaw, prevPitch, prevBank, prevTail, prevAppear = 1f;
         private Vec renderPos;
         private float renderYaw, renderPitch, renderBank, renderTail, renderAppear = 1f;
+
+        /** Sets this follower's species' habitat (a mixed shoal's members differ). */
+        public void habitat(Habitat h) { habitat = h == null ? Habitat.NONE : h; }
+        public Habitat habitat() { return habitat; }
+        public CompanionAgent.MoodLevels mood() { return CompanionAgent.levels(mood); }
+        public String moodDescription() { return mood.describe(); }
+
+        /** This follower's pose: the leader's, with the leader's mood swapped for its own. */
+        public PoseHint pose() {
+            return Mood.memberPose(leader.poseHint(), mood, leader.idleDwelling());
+        }
 
         Follower(Body body, int side, long seed, float length) {
             this.body = body;

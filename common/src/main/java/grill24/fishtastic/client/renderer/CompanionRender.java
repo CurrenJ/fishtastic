@@ -28,8 +28,9 @@ import java.util.Random;
  *
  * <p>The sim's {@link PoseHint}s are mapped where the old companion already had an equivalent
  * pose: an anchored fish's duck (the retract envelope), the name-tag head tilt, and the nose-up of
- * begging for bait and mild interest in food. The rest are named in the debug overlay only, until
- * the owner decides how they should look.
+ * begging for bait and mild interest in food; and the Phase 5 moods' shiver (a quick tremble of
+ * roll and yaw) and moon gaze (nose up). The rest are named in the debug overlay only, until the
+ * owner decides how they should look.
  */
 public final class CompanionRender {
     /**
@@ -63,6 +64,10 @@ public final class CompanionRender {
     private static final float TILT_DEG = 25f, TILT_RATE = 2.5f;
     private static final float BEG_PITCH = -15f, MILD_PITCH = -5f, PITCH_RATE = 1.5f;
     private static final float RETRACT_RATE = 0.15f;
+    /** The moon gaze's nose-up, degrees (negative is up, as begging's). */
+    private static final float MOON_PITCH = -28f;
+    /** The cold shiver: roll and yaw amplitudes, degrees; its rate, radians per tick (~7 Hz); and its ease, per tick. */
+    private static final float SHIVER_ROLL_DEG = 5f, SHIVER_YAW_DEG = 2.5f, SHIVER_RATE = 2.2f, SHIVER_EASE = 0.1f;
 
     private final ItemStack stack;
     private final FishAnimationConfig anim;
@@ -75,7 +80,7 @@ public final class CompanionRender {
     private final float[] tailClock = new float[3];
     private final float[] lastPhase = {Float.NaN, Float.NaN, Float.NaN};
 
-    private float tilt, prevTilt, hintPitch, prevHintPitch, retract, prevRetract;
+    private float tilt, prevTilt, hintPitch, prevHintPitch, retract, prevRetract, shiver, prevShiver;
 
     public CompanionRender(ItemStack fish, Level level) {
         FishTankBlockEntityRenderer.ResolvedFishRender render = FishTankBlockEntityRenderer.resolveFishRender(fish, level);
@@ -95,12 +100,19 @@ public final class CompanionRender {
 
     /** Client tick: eases the pose-hint envelopes toward what the lead fish's hint says now. */
     public void tick(CompanionAgent agent) {
-        PoseHint hint = agent.poseHint();
+        tick(agent.poseHint());
+    }
+
+    /** Client tick with this fish's own hint (a group member's mood differs from its leader's). */
+    public void tick(PoseHint hint) {
         prevTilt = tilt;
         prevHintPitch = hintPitch;
         prevRetract = retract;
+        prevShiver = shiver;
         tilt = approach(tilt, hint == PoseHint.TILT ? TILT_DEG : 0f, TILT_RATE);
-        float pitch = hint == PoseHint.BEG ? BEG_PITCH : hint == PoseHint.MILD ? MILD_PITCH : 0f;
+        float pitch = hint == PoseHint.BEG ? BEG_PITCH : hint == PoseHint.MILD ? MILD_PITCH
+                : hint == PoseHint.MOON_GAZE ? MOON_PITCH : 0f;
+        shiver = approach(shiver, hint == PoseHint.SHIVER ? 1f : 0f, SHIVER_EASE);
         hintPitch = approach(hintPitch, pitch, PITCH_RATE);
         retract = approach(retract, hint == PoseHint.DUCK ? 1f : 0f, RETRACT_RATE);
     }
@@ -110,6 +122,25 @@ public final class CompanionRender {
     public float hintPitch(float partialTick) { return Mth.lerp(partialTick, prevHintPitch, hintPitch); }
 
     public float retract(float partialTick) { return Mth.lerp(partialTick, prevRetract, retract); }
+
+    public float shiver(float partialTick) { return Mth.lerp(partialTick, prevShiver, shiver); }
+
+    /** The cold shiver's roll for fish {@code index} this frame, degrees (0 unless it's shivering). */
+    public float shiverRoll(float partialTick, float gameTime, int index) {
+        float cold = shiver(partialTick);
+        return cold <= 0f ? 0f : cold * SHIVER_ROLL_DEG * Mth.sin(shiverPhase(gameTime, index));
+    }
+
+    /** The cold shiver's yaw tremor for fish {@code index} this frame, degrees. */
+    public float shiverYaw(float partialTick, float gameTime, int index) {
+        float cold = shiver(partialTick);
+        return cold <= 0f ? 0f : cold * SHIVER_YAW_DEG * Mth.sin(shiverPhase(gameTime, index) * 1.37f + 0.8f);
+    }
+
+    /** Each fish of a trio trembles out of step with the others. */
+    private static float shiverPhase(float gameTime, int index) {
+        return gameTime * SHIVER_RATE + index * 1.9f;
+    }
 
     /**
      * Poses and submits fish {@code index} (0 the lead, 1–2 trio followers) at a world pose. The
@@ -144,7 +175,9 @@ public final class CompanionRender {
         // A drifter's pitch is its bell axis (upright is −90); the pose is drawn upright, so tilt by the difference.
         float tiltDeg = locomotion == Locomotion.DRIFT ? pitchDeg + 90f : pitchDeg;
         poseStack.mulPose(Axis.XP.rotationDegrees(tiltDeg + hintPitch(partial)));
-        float roll = hintTilt(partial);
+        float tremor = shiverYaw(partial, gameTime, index);
+        if (tremor != 0f) poseStack.mulPose(Axis.YP.rotationDegrees(tremor));
+        float roll = hintTilt(partial) + shiverRoll(partial, gameTime, index);
         if (roll != 0f) poseStack.mulPose(Axis.ZP.rotationDegrees(roll));
         // Lean toward the heading, but face the art its own way: upright, this is just the facing.
         if (locomotion == Locomotion.DRIFT) poseStack.mulPose(Axis.YP.rotationDegrees(Mth.wrapDegrees(yawDeg - faceDeg)));

@@ -147,6 +147,26 @@ final class Drives {
     private boolean ownerMoving;
     private int slowTicks, stillTicks;
 
+    // ── Mood (Phase 5) ──
+
+    /**
+     * The mood that sets the levers: the fish's own, or for a group its leader's (each member keeps
+     * its own for its pose, CompanionAgent / CompanionGroup.Follower). The agent updates it.
+     */
+    final Mood mood = new Mood();
+    /**
+     * The mood's pace, only while the owner stands about: following and catching up stay the
+     * temperament's own, so a mood never leaves a fish behind.
+     */
+    float moodPace() {
+        return ownerMoving ? 1f : mood.pace;
+    }
+
+    /** Keys warm things apart from entity ids and held items. */
+    private static final long WARMTH_KEY = 0x4000_0000_0000_0000L;
+    /** A warm thing's rough size, blocks: its hold keeps the fish out of the flames. */
+    static final double WARMTH_RADIUS = 1.0;
+
     /** 0..1: the pull of the most interesting thing in reach. */
     float curiosity;
     /** That thing, or null. */
@@ -168,6 +188,13 @@ final class Drives {
         stillTicks = Math.max(stillTicks, REST_ONSET_TICKS + 1);
         rest = Math.max(rest, SETTLE_AT);
     }
+
+    /**
+     * A percher (BENTHIC, ANCHORED): the mood's rest gain doesn't apply. A resting percher climbs
+     * onto its owner's shoulder, which first person never shows (sleepy cost a benthic 1.1 points
+     * of seen over 10 seeds, plan §5 Phase 5).
+     */
+    boolean percher;
 
     void update(CompanionWorld w) {
         tick++;
@@ -203,6 +230,15 @@ final class Drives {
             if (p.pos().distanceTo(chest) > SENSE_RANGE) continue;
             Interest i = interests.computeIfAbsent((long) p.id(), k -> new Interest(k, p.kind(), null));
             see(i, p.pos(), p.vel(), p.radius());
+        }
+        if (mood.wantsWarmth) {
+            for (Vec p : w.ambient().warmth()) {
+                if (p.distanceTo(chest) > SENSE_RANGE) continue;
+                long key = WARMTH_KEY | (((long) Math.floor(p.x()) & 0x1FFFFF) << 42)
+                        | (((long) Math.floor(p.y()) & 0x1FFFFF) << 21) | ((long) Math.floor(p.z()) & 0x1FFFFF);
+                Interest i = interests.computeIfAbsent(key, k -> new Interest(k, PointOfInterest.Kind.WARMTH, null));
+                see(i, p, Vec.ZERO, WARMTH_RADIUS);
+            }
         }
         CompanionWorld.Held h = w.held();
         if (h == CompanionWorld.Held.PREDATOR) fear(-1L - h.ordinal(), Threat.PREDATOR, w.heldPoint());
@@ -256,6 +292,7 @@ final class Drives {
     }
 
     static double novelty(PointOfInterest.Kind k) {
+        if (k == PointOfInterest.Kind.WARMTH) return 0.85;
         return k == PointOfInterest.Kind.COMPANION ? 0.8 : 0.7;
     }
 
@@ -334,7 +371,7 @@ final class Drives {
         if (ownerMoving) {
             rest = Math.max(0, rest - (float) (DT / WAKE_SECONDS));
         } else if (stillTicks > REST_ONSET_TICKS) {
-            rest = Math.min(1, rest + (float) (DT / REST_BUILD_SECONDS * temperament.rest()));
+            rest = Math.min(1, rest + (float) (DT / REST_BUILD_SECONDS * (temperament.rest() * (percher ? 1f : mood.rest))));
         }
         // Something happening wakes it; the owner getting hurt, at once.
         if (curiosity > 0.3f || wariness > 0.3f) rest = Math.max(0, rest - (float) (DT / STARTLE_SECONDS));
@@ -360,8 +397,9 @@ final class Drives {
                 continue;
             }
             if (!i.present) continue;
-            // A close look satisfies it in a few seconds; unattended, it grows dull slowly.
-            i.interest -= (float) (DT / (i.engaged > 0 ? inspectSeconds(i) : 40));
+            // A close look satisfies it in a few seconds; unattended, it grows dull slowly. A warm
+            // thing doesn't: the bask ends when the mood has had its fill (Mood#wantsWarmth).
+            if (i.kind != PointOfInterest.Kind.WARMTH) i.interest -= (float) (DT / (i.engaged > 0 ? inspectSeconds(i) : 40));
             if (i.interest <= 0.08f) {
                 i.interest = 0;
                 if (i.engaged > 0) {
@@ -376,7 +414,9 @@ final class Drives {
             }
             i.noticed = (float) Math.min(1, i.noticed + DT / NOTICE_SECONDS);
             double reach = i.isHeld() ? 1 : Mind.smoothstep(CURIOSITY_REACH + 1, CURIOSITY_REACH, i.pos.distanceTo(chest));
-            float v = (float) Math.min(1, i.interest * i.noticed * reach * temperament.curiosity());
+            // Warmth draws a cold fish whatever its mood; the mood's damper is for everything else.
+            float gain = i.kind == PointOfInterest.Kind.WARMTH ? temperament.curiosity() : temperament.curiosity() * mood.curiosity;
+            float v = (float) Math.min(1, i.interest * i.noticed * reach * gain);
             if (v > curiosity) {
                 curiosity = v;
                 target = i;

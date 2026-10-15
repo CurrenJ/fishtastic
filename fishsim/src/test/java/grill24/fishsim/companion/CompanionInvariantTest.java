@@ -2,6 +2,7 @@ package grill24.fishsim.companion;
 
 import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.harness.companion.CompanionRun;
+import grill24.fishsim.harness.companion.MoodScenes;
 import grill24.fishsim.harness.companion.OwnerScript;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
@@ -142,6 +143,19 @@ class CompanionInvariantTest {
                     }
                 }
             }
+            // Moods (plan §5 Phase 5) are bounded as temperaments are: by the baseline's own spread.
+            for (MoodScenes.Preset p : MoodScenes.ALL) {
+                for (Locomotion c : TEMPERAMENT_CLASSES) {
+                    for (String script : OwnerScript.NAMES) {
+                        for (long seed : SEEDS) {
+                            CompanionRun run = new CompanionRun(script, seed, c, CompanionTunables.defaults(), true);
+                            MoodScenes.apply(run, p, run.owner.feet());
+                            run.run(TICKS);
+                            results.put(c + "/" + script + "#" + seed + "@mood-" + p.name(), run.metrics());
+                        }
+                    }
+                }
+            }
         }
         return results;
     }
@@ -191,7 +205,7 @@ class CompanionInvariantTest {
         return envelopes.get(key.substring(0, key.indexOf('#')));
     }
 
-    /** A temperament run (its key carries "@name"). */
+    /** A temperament or mood run (its key carries "@name"). */
     private static boolean tempered(String key) {
         return key.contains("@");
     }
