@@ -156,6 +156,12 @@ public final class TwoOwnerRun {
         private int busyUntil;
         private boolean autoScenes;
         private int scenesStarted;
+        /** Ticks the given owner reaches this view late (a remote player, interpolated), 0 for exact. */
+        private int lagA, lagB;
+        private final java.util.ArrayDeque<CompanionWorld> queueA = new java.util.ArrayDeque<>(),
+                queueB = new java.util.ArrayDeque<>();
+        /** Ticks to start a scene at regardless of where the owners stand here (the server's, shared by every view). */
+        private java.util.Set<Integer> sceneTicks = java.util.Set.of();
 
         public Sim(Pair pair, String script, long seed, CompanionTunables t, Temperament temperament) {
             OwnerScript[] owners = OwnerScript.pair(script, seed);
@@ -175,6 +181,23 @@ public final class TwoOwnerRun {
 
         public int tick() { return tick; }
 
+        /**
+         * One client's view (§28.3, D29's divergence probe): owner A reaches it {@code lagA} ticks
+         * late and owner B {@code lagB} — client A sees its own player exactly and the other a few
+         * ticks behind, as an interpolated remote player.
+         */
+        public Sim lag(int lagA, int lagB) {
+            this.lagA = lagA;
+            this.lagB = lagB;
+            return this;
+        }
+
+        /** Start a scene at exactly these ticks (the server's schedule, the same in every view). */
+        public Sim sceneAt(java.util.Set<Integer> ticks) {
+            sceneTicks = ticks;
+            return this;
+        }
+
         public int scenesStarted() { return scenesStarted; }
 
         /** A scene on either side now. */
@@ -183,8 +206,9 @@ public final class TwoOwnerRun {
         }
 
         public void step() {
-            a.base = a.script.nextWorld();
-            b.base = b.script.nextWorld();
+            a.base = lagged(queueA, a.script.nextWorld(), lagA);
+            b.base = lagged(queueB, b.script.nextWorld(), lagB);
+            if (sceneTicks.contains(tick)) startScene();
             if (autoScenes && tick >= busyUntil && !sceneOn()
                     && a.owner().feet().distanceTo(b.owner().feet()) <= SCENE_RANGE) startScene();
             stepSide(a, b, this);
@@ -223,6 +247,13 @@ public final class TwoOwnerRun {
             busyUntil = tick + best.durationTicks + SCENE_COOLDOWN_TICKS;
             scenesStarted++;
             return true;
+        }
+
+        /** The world from {@code lag} ticks ago (the first one until the queue fills). */
+        private static CompanionWorld lagged(java.util.ArrayDeque<CompanionWorld> q, CompanionWorld now, int lag) {
+            if (lag == 0) return now;
+            q.addLast(now);
+            return q.size() > lag ? q.removeFirst() : q.peekFirst();
         }
 
         private static String oneSpecies(PartyGrouping.Group g) {

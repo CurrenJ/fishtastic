@@ -177,6 +177,36 @@ class CrossSceneTest {
         }
     }
 
+    /** D29: two clients, each with the other player 3 ticks late, see the same fish within a few cm on average. */
+    @Test
+    void twoClientsSeeTheRingAlike() {
+        TwoOwnerRun.Pair p = pair("same species");
+        TwoOwnerRun.Sim ref = new TwoOwnerRun.Sim(p, "pair_approach_stand", 1, CompanionTunables.defaults(),
+                Temperament.BASELINE).autoScenes(true);
+        java.util.Set<Integer> starts = new java.util.HashSet<>();
+        for (int k = 0; k < 600; k++) {
+            int before = ref.scenesStarted();
+            ref.step();
+            if (ref.scenesStarted() > before) starts.add(k);
+        }
+        TwoOwnerRun.Sim va = new TwoOwnerRun.Sim(p, "pair_approach_stand", 1, CompanionTunables.defaults(),
+                Temperament.BASELINE).lag(0, 3).sceneAt(starts);
+        TwoOwnerRun.Sim vb = new TwoOwnerRun.Sim(p, "pair_approach_stand", 1, CompanionTunables.defaults(),
+                Temperament.BASELINE).lag(3, 0).sceneAt(starts);
+        double sum = 0;
+        int n = 0;
+        for (int k = 0; k < 600; k++) {
+            va.step();
+            vb.step();
+            if (va.a.scene() == null || !va.a.sceneUnit().leader().inScene() || !vb.a.sceneUnit().leader().inScene()
+                    || va.a.scene().greeting()) continue;
+            sum += va.a.sceneUnit().leader().position().distanceTo(vb.a.sceneUnit().leader().position());
+            n++;
+        }
+        assertTrue(n > 100, "the ring never played in both views");
+        assertTrue(sum / n < 0.3, "views apart by " + sum / n + " on average");
+    }
+
     @Test
     void swimmersKeepOutOfTheOtherPlayer() {
         TwoOwnerRun.Result on = TwoOwnerRun.measure(pair("two free swimmers"), "pair_close", 1, 2400,

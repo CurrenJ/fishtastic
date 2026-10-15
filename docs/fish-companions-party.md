@@ -1161,3 +1161,19 @@ checked with two real views, not only the ghost owner.
 - **Seeing it:** `CrossSceneRenderProbe` writes frames (owner A's view plus a map with both fish's
   tracks) to `fishsim/build/scene-render/`. The viewer's PAIR classes run scenes as the server would,
   Q starts one now, and the bottom line shows each side's scene.
+
+### 28.9 Step 3a-3 as built: two clients' views (D29)
+
+- **`TwoOwnerRun.Sim.lag(lagA, lagB)`** makes one client's view: its own player exact, the other's
+  owner arriving a few ticks late (an interpolated remote player), for everything that player's
+  owner feeds (its party, its feet as a point, the scene's geometry). **`sceneAt(ticks)`** starts
+  scenes at the server's ticks, the same in every view.
+- **`CrossSceneDivergenceProbe`**: per pair and script, 8 seeds, the server's schedule from a true
+  run, then view A (B late) and view B (A late), lag 2 and 4 ticks:
+  - the same fish in the two views, on its path: mean 0.05–0.14 blocks, 95th percentile ≤ 0.95,
+    worst 1.4–2.7. The worst moments are while a player is still walking in (the path follows the
+    owners, and a late owner is somewhere else); with both standing (`pair_far`) the views are
+    identical;
+  - no scene played in one view only;
+  - each view on its own: path error 0.10–0.15, G1 roles 2.5–5.8° off opposite. Gate passed.
+- **Test:** `CrossSceneTest.twoClientsSeeTheRingAlike` (lag 3: mean gap under 0.3). 11/11.
