@@ -233,6 +233,7 @@ public final class CompanionGroup {
             double pullCap = t.catchUpSpeed * (behind ? SPRINT_BOOST : 1);
             Vec pull = dest.sub(body.pos).scale(STATION_GAIN).clampLength(pullCap);
             Vec desired = leader.velocity().add(pull).add(separation());
+            if (partyPush != null) desired = desired.add(partyPush);
             body.step(desired, 0.6, ownerAvoidance(owner), voxels, ownerBody);
         }
 
@@ -244,6 +245,9 @@ public final class CompanionGroup {
             }
             return true;
         }
+
+        /** Party swim separation (PartyLayer, D21): pushed off another unit's swimmers; null for none. */
+        Vec partyPush;
 
         /**
          * Push away from the leader and the other follower when closer than a comfortable spacing,

@@ -330,6 +330,11 @@ public final class CompanionTunables {
      * (docs/fish-companions-party.md §6.2, Phase 2f): overlap 9.25 → 2.16% for crab + octopus + slug.
      */
     public boolean partyGroundSeparation = true;
+    /**
+     * Free-swimming units of one party push apart in the water (D21: a predator apart from its prey's
+     * shoal), as ground walkers do on the ground. Only a party with two swimming units has anything to do.
+     */
+    public boolean partySwimSeparation = true;
 
     // Hand visits (owner feedback 2026-10-14: about one a minute, solo or party). HandClock.
     /** After any landing on a hand, the unseen timer waits this long before calling a fish there again. */
@@ -358,7 +363,7 @@ public final class CompanionTunables {
      * the order it lists them. Each is a public field of this class.
      */
     public static final java.util.List<String> DEV_SWITCHES = java.util.List.of(
-            "partyHomes", "partyLeases", "partyHandClock", "partyGroundSeparation",
+            "partyHomes", "partyLeases", "partyHandClock", "partyGroundSeparation", "partySwimSeparation",
             "handClock", "shoulderPeek", "moreGroundBeats", "idleInView",
             "anchoredHead", "anchoredPredatorDuckSeconds");
 

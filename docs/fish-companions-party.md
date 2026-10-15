@@ -267,9 +267,12 @@ ANCHORED change (D5). Every party rule has an on/off switch for equal-ground A/B
   predator does a smug lap is the best solo payoff. Keep intra-party scenes rare (per-pair
   cooldown). G1 (same species) no longer applies inside a party, because same species is a
   group.
-- **Open for Phase 4 (from D13):** a free-swimming predator and its free-swimming prey in one
-  party now share a shoal. Decide in Phase 4 whether such a pair schools anyway, or splits out
-  of the shoal.
+- **Predator and prey split (D21):** a free-swimming predator swims apart from its party's prey
+  shoal (`PartyGrouping`, the `predator` flag on `Member`, from `#predator_fish`). Measured on
+  `predator + 2 prey` (pike 50 + bluegill 20 + perch 25 cm, 240 runs), against the old shoal:
+  party-wide overlap 0.42 → 4.00% (worst 4.3 → 31.5%, corridor), episodes 1.67 → 4.92/min; seen
+  per slot unchanged (~25%). The overlap is the predator crossing the prey shoal: the problem a
+  Phase 4 predator/prey rule has to answer. Fingerprints bitwise (930).
 - **Scene scheduling becomes per member:** `BUSY_UNTIL` is keyed by (owner, slot), and a group
   counts as one member. One scene per owner pair at a time; the pairing is picked by the
   existing priority order across the cross-party pairs.
@@ -308,7 +311,7 @@ own companion in first person" applies to the whole party.
 |---|---|---|
 | 1 | Storage + migration, (owner, slot) identity, packets, menu with 3 slots and the party preview, hold-B rules, commands, game tests. In game: same-species slots form a group (§3), and different species run **independently** (no party layer yet; overlap expected). Retire the size and count group rules | Game tests on both loaders; trio and group fingerprints bitwise; owner tries the menu and a school |
 | 2 | Re-scoped (§6, review §6). **2b** (done, §16) `PartyBaselineProbe` as the metric suite, plus multi-unit parties in the viewer. **2c** (done, §17) mixed shoal (D13). **2d** (done, §18) perch homes + leases (§6.1, with D5's intended ANCHORED change). **Hand visits** (done, §19) the hand clock, round-robin turns, the shoulder peek and more ground beats (D15–D19). **2e** party-mate familiarity tuning (§7): deferred (D20). **2f** (built, §20) ground separation between different-species ground walkers (§6.2) | Solo and identical-group fingerprints bitwise; owner viewer |
-| 3 | In game: **3a** (done, §21) party wiring. **3b** (done, §22) per-slot overlay. **3c** (done, §23) dev switch command. **3d** (done, §24) self-test scene. **3e** (done, §25) changelog note on lost trios | Owner solo playtest |
+| 3 | In game: **3a** (done, §21) party wiring. **3b** (done, §22) per-slot overlay. **3c** (done, §23) dev switch command. **3d** (done, §24) self-test scene. **3e** (done, §25) changelog note on lost trios | Owner solo playtest: **passed 2026-10-15** |
 | 4 | Folded into sim Phase 4: social drive across and within parties | Owner viewer, then in game |
 
 Phase 1 is mechanical and low risk. Phase 2 is the real work. Don't let Phase 1's "it works with
@@ -375,6 +378,7 @@ Answered 2026-10-14 (after the owner's party playtest):
 | # | Question | Answer |
 |---|---|---|
 | D20 | Make party-mates familiar (2e, §7)? | **Deferred.** Mutual curiosity is intentional and balanced as is (INSPECT 5–9% vs ~1.3% solo). Don't tune it unless a playtest shows a problem |
+| D21 | A free-swimming predator and its prey in one party (open from D13, §7) | **Split out of the shoal** (owner, 2026-10-15). A predator (`#predator_fish`) never shoals with a non-predator; predators of different species still shoal together, and a predator's duplicates school |
 
 ---
 
@@ -834,7 +838,7 @@ while following can fix half of it at most.
 ## 23. Phase 3c as built (the party switch command)
 
 - **Command** (dev builds only: the whole `companion` tree sits behind `DevEnvironmentCheck`):
-  - `/fishtastic companion switch` lists the ten switches, with changed ones and their defaults
+  - `/fishtastic companion switch` lists the switches (ten at 3c; eleven with `partySwimSeparation`, §26), with changed ones and their defaults
     marked, and `[rebuilds]` on those read only when a party is built;
   - `/fishtastic companion switch <name> on|off` (or seconds, for `anchoredPredatorDuckSeconds`);
   - `/fishtastic companion switch reset`.
@@ -870,3 +874,28 @@ while following can fix half of it at most.
   the cost from §2, risk 1. Small free swimmers, starfish and sea slugs no longer bring copies of
   themselves; worlds from test builds see one fish where they saw a group, and the copies can't be
   handed back. Companions came after the 2.0.1 release, so only test-build worlds are affected.
+
+## 26. Phase 4, step 1: predator and prey apart (D21)
+
+- **Grouping** (`PartyGrouping`): a free-swimming predator (`#predator_fish`, the `predator` flag on
+  `Member`, set by `CompanionGroups.members`) never shoals with a non-predator. Predators of
+  different species still shoal together, and a predator's duplicates school. With no predator in
+  the party nothing changes.
+- **Swim separation** (`PartyLayer.separateSwim`, switch `partySwimSeparation`, on, live): the
+  bodies of different free-swimming units push apart in the water, as ground walkers do (§20) and
+  as a school's own members do: range 1.2 mean body lengths plus both radii, 2 blocks/s at contact,
+  from last tick's positions. A school's leader and its followers are each pushed, so the predator
+  can't swim through the back of the shoal. Only a party with two swimming units is affected.
+- **Measured** on `predator + 2 prey` (pike 50 + bluegill 20 + perch 25 cm, 240 runs):
+
+  | | One shoal (pre-D21) | Split, no separation | Split + separation |
+  |---|---|---|---|
+  | Party-wide overlap % (worst) | 0.42 (4.3) | 4.00 (31.5) | **0.55 (4.1)** |
+  | Overlap episodes /min | 1.67 | 4.92 | **1.80** |
+  | Seen % per slot | 21–25 | 24–26 | **24–26** |
+  | Leash fades, party vs the units alone | 227 vs 227 | 455 vs 455 | **460 vs 455** |
+
+  Every other party's metrics are unchanged; fingerprints identical (930); fishsim 442/0.
+- **Viewer:** `./gradlew :fishsim:runCompanionViewer -PsimArgs="--party predator --owner corridor"`.
+- **Next (step 2, Phase 4 proper):** the rare predator/prey scene on top: the prey ducks behind
+  the owner while the predator does its smug lap (§7, G4), with a per-pair cooldown.

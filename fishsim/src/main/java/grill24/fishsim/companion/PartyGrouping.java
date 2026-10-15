@@ -14,7 +14,8 @@ import java.util.Objects;
  * <ul>
  *   <li>2–3 FREE_SWIM fish, of any species: a {@link Kind#SCHOOL} ({@link CompanionGroup}). Every
  *       free swimmer in the party joins it; different species make a mixed shoal (D13), which runs
- *       on its leader's mind. {@link #group(List, boolean)} with {@code mixedShoal} off keeps
+ *       on its leader's mind. A predator and a non-predator never share a shoal (D21): the
+ *       predator swims apart, so predator and prey can meet as separate fish. {@link #group(List, boolean)} with {@code mixedShoal} off keeps
  *       schools to one species, for A/B.</li>
  *   <li>2–3 of one ground-walking BENTHIC species (a ground gait): a {@link Kind#GROUND} formation
  *       ({@link BenthicGroup}), line or crowd from the species.</li>
@@ -50,13 +51,20 @@ public final class PartyGrouping {
      * @param length     this fish's own body length, blocks
      * @param stackSeed  the seed derived from the bonded stack, exactly as a lone companion's is today
      * @param slot       the party slot, 0-based
+     * @param predator   a predator fish ({@code #predator_fish}): it never shoals with a non-predator (D21)
      */
     public record Member(String species, Locomotion locomotion, GroundGait gait, BenthicGroup.Formation formation,
-                         float length, long stackSeed, int slot) {
+                         float length, long stackSeed, int slot, boolean predator) {
         public Member {
             Objects.requireNonNull(species);
             Objects.requireNonNull(locomotion);
             if (slot < 0 || slot >= SLOTS) throw new IllegalArgumentException("slot must be 0.." + (SLOTS - 1));
+        }
+
+        /** A member that isn't a predator. */
+        public Member(String species, Locomotion locomotion, GroundGait gait, BenthicGroup.Formation formation,
+                      float length, long stackSeed, int slot) {
+            this(species, locomotion, gait, formation, length, stackSeed, slot, false);
         }
 
         /** This member's sim seed: {@link #memberSeed} of its stack seed and slot. */
@@ -175,12 +183,14 @@ public final class PartyGrouping {
             Comparator.comparingDouble(Member::length).thenComparingInt(Member::slot);
 
     /**
-     * Whether {@code b} joins {@code a}'s group: any two free swimmers with the mixed shoal on (D13),
-     * otherwise the same species of the same grouping class (a species' class and gait never differ
+     * Whether {@code b} joins {@code a}'s group: two free swimmers with the mixed shoal on (D13) unless
+     * one is a predator and the other isn't (D21), otherwise the same species of the same grouping class (a species' class and gait never differ
      * in practice).
      */
     private static boolean groupsWith(Member a, Member b, boolean mixedShoal) {
-        if (mixedShoal && a.locomotion() == Locomotion.FREE_SWIM) return b.locomotion() == Locomotion.FREE_SWIM;
+        if (mixedShoal && a.locomotion() == Locomotion.FREE_SWIM) {
+            return b.locomotion() == Locomotion.FREE_SWIM && (a.predator() == b.predator() || a.species().equals(b.species()));
+        }
         return a.species().equals(b.species()) && a.locomotion() == b.locomotion()
                 && a.groundWalker() == b.groundWalker();
     }

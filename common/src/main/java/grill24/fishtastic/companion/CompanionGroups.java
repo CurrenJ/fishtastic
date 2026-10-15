@@ -129,7 +129,8 @@ public final class CompanionGroups {
             Locomotion locomotion = locomotionOf(profile);
             members.add(new PartyGrouping.Member(BuiltInRegistries.ITEM.getKey(fish.getItem()).toString(), locomotion,
                     gaitOf(locomotion, profile), formationOf(locomotion, profile),
-                    (float) length.applyAsDouble(fish), stackSeed.applyAsLong(fish), slot));
+                    (float) length.applyAsDouble(fish), stackSeed.applyAsLong(fish), slot,
+                    fish.is(grill24.fishtastic.FishtasticItemTags.PREDATOR_FISH)));
         }
         return members;
     }

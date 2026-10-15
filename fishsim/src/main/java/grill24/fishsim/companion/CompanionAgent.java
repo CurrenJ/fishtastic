@@ -220,6 +220,7 @@ public final class CompanionAgent {
             else { pose = groupLeader.pose; lookTarget = groupLeader.lookTarget; }
         } else {
             Vec desired = mind.think(owner, voxels, crumbs);
+            if (swimPush != null) desired = desired.add(swimPush);
             body.step(desired, mind.wanderScale, mind.ownerAvoidance(owner), voxels, Capsule.ownerBody(owner));
             pose = mind.pose;
             lookTarget = mind.goal == Mind.Goal.INSPECT && drives.target != null ? drives.target.pos : null;
@@ -526,6 +527,14 @@ public final class CompanionAgent {
     }
 
     /** A push away from other units' ground walkers (§6.2 candidate), or null; ground walkers only. */
+    /** Party swim separation (PartyLayer, D21): added to a free swimmer's desired velocity; null for none. */
+    private Vec swimPush;
+
+    void swimPush(Vec push) { swimPush = push; }
+
+    /** The push from other swimming units this tick, blocks/s, or -1 for none (overlay). */
+    public double swimPushStrength() { return swimPush == null ? -1 : swimPush.length(); }
+
     void partyPush(Vec push) { if (perch != null && perch.gmind != null) perch.gmind.partyPush = push; }
 
     /** Whether it walks the ground and can take a formation station (a ground walker). */

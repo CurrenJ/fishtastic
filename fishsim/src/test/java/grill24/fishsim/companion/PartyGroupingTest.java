@@ -54,6 +54,31 @@ class PartyGroupingTest {
 
     /** With the mixed shoal off (the A/B switch), schools are one species, as before D13. */
     @Test
+    void aPredatorSwimsApartFromItsPreyShoal() {
+        // D21: pike + two prey. The prey shoal; the pike is a solo.
+        List<PartyGrouping.Group> g = PartyGrouping.group(List.of(
+                predator("pike", 0), m("bluegill", Locomotion.FREE_SWIM, 1), m("perch", Locomotion.FREE_SWIM, 2)));
+        assertEquals(2, g.size());
+        assertEquals(PartyGrouping.Kind.SOLO, g.get(0).kind());
+        assertEquals("pike", g.get(0).leader().species());
+        assertEquals(PartyGrouping.Kind.SCHOOL, g.get(1).kind());
+        assertArrayEquals(new int[]{1, 2}, g.get(1).slots());
+        // Predators of different species still shoal together, and a predator's duplicates school.
+        List<PartyGrouping.Group> h = PartyGrouping.group(List.of(
+                predator("pike", 0), m("bluegill", Locomotion.FREE_SWIM, 1), predator("gar", 2)));
+        assertEquals(2, h.size());
+        assertArrayEquals(new int[]{0, 2}, h.get(0).slots());
+        assertEquals(PartyGrouping.Kind.SOLO, h.get(1).kind());
+        List<PartyGrouping.Group> k = PartyGrouping.group(List.of(predator("pike", 0), predator("pike", 1)));
+        assertEquals(1, k.size());
+        assertEquals(PartyGrouping.Kind.SCHOOL, k.get(0).kind());
+    }
+
+    private static PartyGrouping.Member predator(String species, int slot) {
+        return new PartyGrouping.Member(species, Locomotion.FREE_SWIM, null, null, 0.25f, 100 + slot, slot, true);
+    }
+
+    @Test
     void mixedShoalOffKeepsSchoolsToOneSpecies() {
         List<PartyGrouping.Group> g = PartyGrouping.group(List.of(
                 m("bluegill", Locomotion.FREE_SWIM, 0), m("clownfish", Locomotion.FREE_SWIM, 1),

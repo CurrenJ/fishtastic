@@ -19,6 +19,8 @@ import java.util.function.IntUnaryOperator;
  *       a free perch or doesn't happen ({@link PerchLeases}).</li>
  *   <li>Phase 2f ({@link CompanionTunables#partyGroundSeparation}): ground walkers of different
  *       units push apart on the ground.</li>
+ *   <li>D21 ({@link CompanionTunables#partySwimSeparation}): free-swimming units (a predator and its
+ *       prey's shoal) push apart in the water.</li>
  * </ul>
  *
  * <p>Determinism: every unit reads its party-mates as they were at the end of the previous tick, so
@@ -115,6 +117,8 @@ public final class PartyLayer {
     private final CompanionTunables t;
     /** Units of ground walkers, for ground separation (§6.2; empty under two). */
     private final List<Unit> groundUnits;
+    /** Free-swimming units (solos and schools), for swim separation (D21; empty under two). */
+    private final List<Unit> swimUnits;
     /** A unit's point id as its party-mates see it, from its lowest slot. */
     private final IntUnaryOperator mateId;
 
@@ -148,6 +152,11 @@ public final class PartyLayer {
         List<Unit> ground = new ArrayList<>();
         for (Unit u : units) if (u.leader().groundWalker()) ground.add(u);
         groundUnits = ground.size() > 1 ? List.copyOf(ground) : List.of();
+        List<Unit> swim = new ArrayList<>();
+        for (Unit u : units) {
+            if (u.group().leader().locomotion() == grill24.fishsim.core.Locomotion.FREE_SWIM) swim.add(u);
+        }
+        swimUnits = swim.size() > 1 ? List.copyOf(swim) : List.of();
     }
 
     /** The party's one hand clock (HandClock), or null with under two perchers that can visit a hand. */
@@ -251,6 +260,7 @@ public final class PartyLayer {
         if (leases != null) leases.snapshot();
         if (handClock != null) handClock.tick();
         if (!groundUnits.isEmpty()) separateGround();
+        if (!swimUnits.isEmpty()) separateSwim();
         PointOfInterest[] mates = new PointOfInterest[n];
         for (int i = 0; i < n; i++) mates[i] = units.get(i).asPoint(mateId.applyAsInt(units.get(i).group().lowestSlot()));
         for (int i = 0; i < n; i++) {
@@ -304,6 +314,62 @@ public final class PartyLayer {
             }
         }
         for (int i = 0; i < all.size(); i++) all.get(i).partyPush(t.partyGroundSeparation ? pushes[i] : null);
+    }
+
+    /** Body gap two swimming units keep, in mean body lengths, beyond their radii (D21). */
+    static final double SWIM_SEPARATION_LENGTHS = 1.2;
+    /** Push at contact, blocks/s, as a school's own separation (CompanionGroup.SEPARATION_SPEED). */
+    static final double SWIM_SEPARATION_SPEED = 2.0;
+
+    /**
+     * Swim separation (D21, {@link CompanionTunables#partySwimSeparation}): every body of a
+     * free-swimming unit is pushed off the bodies of the other swimming units, as a school's
+     * members are pushed off each other, from where they stood at the end of the last tick. A
+     * school's leader carries its followers along; a follower is pushed too, so a predator can't
+     * swim through the back of the shoal.
+     */
+    private void separateSwim() {
+        List<Vec> pos = new ArrayList<>();
+        List<Double> radius = new ArrayList<>(), length = new ArrayList<>();
+        List<Integer> unitOf = new ArrayList<>();
+        List<java.util.function.Consumer<Vec>> apply = new ArrayList<>();
+        for (int u = 0; u < swimUnits.size(); u++) {
+            Unit unit = swimUnits.get(u);
+            CompanionAgent l = unit.leader();
+            pos.add(l.position());
+            radius.add(l.radius());
+            length.add((double) l.length());
+            unitOf.add(u);
+            apply.add(l::swimPush);
+            CompanionGroup school = unit.school();
+            if (school == null) continue;
+            for (int k = 0; k < school.followerCount(); k++) {
+                CompanionGroup.Follower f = school.follower(k);
+                pos.add(f.position());
+                radius.add(f.radius());
+                length.add((double) f.length());
+                unitOf.add(u);
+                apply.add(p -> f.partyPush = p);
+            }
+        }
+        Vec[] pushes = new Vec[pos.size()];
+        if (t.partySwimSeparation) {
+            for (int i = 0; i < pos.size(); i++) {
+                for (int j = 0; j < pos.size(); j++) {
+                    if (unitOf.get(j).equals(unitOf.get(i))) continue;
+                    double range = SWIM_SEPARATION_LENGTHS * 0.5 * (length.get(i) + length.get(j))
+                            + radius.get(i) + radius.get(j);
+                    Vec away = pos.get(i).sub(pos.get(j));
+                    double d = away.length();
+                    if (d >= range) continue;
+                    // On top of each other (they all start beside the owner): split by unit order.
+                    Vec dir = d < 1e-6 ? new Vec(unitOf.get(i) < unitOf.get(j) ? -1 : 1, 0, 0) : away.scale(1 / d);
+                    Vec p = dir.scale(SWIM_SEPARATION_SPEED * (1 - d / range));
+                    pushes[i] = pushes[i] == null ? p : pushes[i].add(p);
+                }
+            }
+        }
+        for (int i = 0; i < pos.size(); i++) apply.get(i).accept(pushes[i]);
     }
 
     public void interpolate(float alpha) {

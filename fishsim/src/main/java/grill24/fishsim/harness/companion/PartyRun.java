@@ -40,16 +40,19 @@ public final class PartyRun {
 
     /** One party member as a test party names it. */
     public record Spec(String species, Locomotion loco, GroundGait gait, BenthicGroup.Formation formation, float length,
-                       DriftStyle drift) {
+                       DriftStyle drift, boolean predator) {
         public static Spec of(String species, Locomotion loco, float length) {
             return new Spec(species, loco, loco == Locomotion.BENTHIC ? GroundGait.CRAWL : null, null, length,
-                    DriftStyle.BELL);
+                    DriftStyle.BELL, false);
         }
 
-        public Spec withDrift(DriftStyle d) { return new Spec(species, loco, gait, formation, length, d); }
+        public Spec withDrift(DriftStyle d) { return new Spec(species, loco, gait, formation, length, d, predator); }
 
         /** A benthic that never walks the ground: a pure percher (gait null). */
-        public Spec percher() { return new Spec(species, loco, null, formation, length, drift); }
+        public Spec percher() { return new Spec(species, loco, null, formation, length, drift, predator); }
+
+        /** A predator fish (D21: it never shoals with a non-predator). */
+        public Spec asPredator() { return new Spec(species, loco, gait, formation, length, drift, true); }
     }
 
     public record Party(String name, List<Spec> members) {
@@ -63,7 +66,7 @@ public final class PartyRun {
             for (int s = 0; s < members.size(); s++) {
                 Spec m = members.get(s);
                 out.add(new PartyGrouping.Member(m.species, m.loco, m.gait, m.formation, m.length,
-                        seed * 31 + s * 7919L, s));
+                        seed * 31 + s * 7919L, s, m.predator));
             }
             return out;
         }
@@ -123,7 +126,11 @@ public final class PartyRun {
             // §8's "school pair + percher": a benthic that only rides the owner.
             new Party("school pair + percher", List.of(
                     Spec.of("blue", Locomotion.FREE_SWIM, 0.16f), Spec.of("blue", Locomotion.FREE_SWIM, 0.24f),
-                    Spec.of("horse", Locomotion.BENTHIC, 0.20f).percher())));
+                    Spec.of("horse", Locomotion.BENTHIC, 0.20f).percher())),
+            // D21: a predator swims apart from its prey's shoal.
+            new Party("predator + 2 prey", List.of(
+                    Spec.of("pike", Locomotion.FREE_SWIM, 0.50f).asPredator(), Spec.of("blue", Locomotion.FREE_SWIM, 0.20f),
+                    Spec.of("perch", Locomotion.FREE_SWIM, 0.25f))));
 
     /** The scripts the suite runs: every swimmer owner script plus the ground scripts. */
     public static final List<String> SCRIPTS;
