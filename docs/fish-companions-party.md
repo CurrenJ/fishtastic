@@ -1024,7 +1024,9 @@ its "both clients compute the identical dance".
 
 - **3a-0** two-owner harness, scripts, viewer, baseline fingerprints (no behaviour change).
 - **3a-1** server filter and G2 spacing, game tests.
-- **3a-2** the scene goals; probes; owner looks in the viewer.
+- **3a-2** the scene goals; probes; owner looks in the viewer. Also owner clearance (owner,
+  2026-10-15): free swimmers keep out of another player's body (§28.6 baseline: 6–21% inside at
+  1.5 blocks), since G2's lobes go round both owners.
 - **3a-3** the divergence probe.
 - **3b-1** packet → `crossScene`, cancellation, overlay line, predator-scene interplay, bubble heart.
 - **3b-2** ghost owner and self-test; owner solo playtest.
@@ -1086,3 +1088,15 @@ checked with two real views, not only the ghost owner.
     a nearby player. Not a 3a goal; it bears on G2, whose lobes go round both owners.
   - **The corridor:** owner A's fish are never seen (0%) facing owner B 3 blocks away in a
     one-wide corridor (B's 9%): the room in front is taken by the other party.
+
+### 28.7 Step 3a-1 as built: who the server schedules
+
+- `CompanionSceneManager.choose`: both companions must be `FREE_SWIM` (D25), or nothing plays;
+  then same species (not a mixed shoal) is G1; otherwise G2 only with the owners at least
+  `G2_MIN_OWNER_DISTANCE` = 2.5 blocks apart (D24). Same-species perchers, ground walkers,
+  drifters and gliders used to get G1; they now get nothing until G3.
+- **Game tests:** new `sameSpeciesPercherPairPlaysNothing` (two starfish),
+  `sameSpeciesDrifterPairPlaysNothing` (two man o' war), `freeSwimmersTooCloseForG2` (nothing at
+  2 blocks, G2 at 3). `differentFreeSwimmersPlayG2` and `oneScenePerOwnerPairAtATime` now stand
+  their owners 3 blocks apart (the latter's bluegill + betta parties are mixed shoals, so they play
+  G2). Fabric 369/369, NeoForge 363/363.

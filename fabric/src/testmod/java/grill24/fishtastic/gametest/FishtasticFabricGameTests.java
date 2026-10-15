@@ -1640,6 +1640,21 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionSceneSameSpeciesPercherPairPlaysNothing(GameTestHelper helper) {
+        CompanionSceneGameTests.sameSpeciesPercherPairPlaysNothing(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionSceneSameSpeciesDrifterPairPlaysNothing(GameTestHelper helper) {
+        CompanionSceneGameTests.sameSpeciesDrifterPairPlaysNothing(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionSceneFreeSwimmersTooCloseForG2(GameTestHelper helper) {
+        CompanionSceneGameTests.freeSwimmersTooCloseForG2(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void companionSceneOutOfRangePairPlaysNothing(GameTestHelper helper) {
         CompanionSceneGameTests.outOfRangePairPlaysNothing(helper, helper::makeMockServerPlayerInLevel);
     }

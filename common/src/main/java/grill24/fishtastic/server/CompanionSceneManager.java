@@ -34,6 +34,9 @@ import java.util.function.BiConsumer;
  *   <li>a fixed priority order picks the scene (R5.6): same species (G1) beats two free swimmers
  *       (G2). Later scenes (predator/prey, wily, class pairing) slot into {@link #choose} in that
  *       order without touching the rest;</li>
+ *   <li>only free swimmers take part (party spec D25): perchers, ground walkers, drifters and
+ *       gliders play nothing until their own scenes (G3) exist; and G2 needs its owners at least
+ *       {@link #G2_MIN_OWNER_DISTANCE} apart (D24), since its lobes go round each of them;</li>
  *   <li>the greeting on approach (R5.3) falls out of the cooldown: walking up to a companion you
  *       haven't seen in a while almost always starts a scene, and standing together repeats at
  *       roughly the cooldown's pace.</li>
@@ -52,6 +55,8 @@ public final class CompanionSceneManager {
 
     /** How close two companions must be for a scene (the ideas doc's "~6 blocks"). */
     public static final double RANGE = 6.0;
+    /** G2's closest owner spacing (party spec D24): nearer, its lobes would pass through the owners. */
+    public static final double G2_MIN_OWNER_DISTANCE = 2.5;
     /** How long after a scene (which already ends the participants' involvement) a companion sits out. */
     public static final int COOLDOWN_TICKS = 1200;
     /** How far a scene packet is worth sending, blocks — comfortably past where a companion is visible. */
@@ -159,10 +164,12 @@ public final class CompanionSceneManager {
     @Nullable
     private static CompanionSceneType choose(Candidate a, Candidate b, long now) {
         if (isBusy(a.member(), now) || isBusy(b.member(), now)) return null;
+        // D25: both scenes are swum; the other classes wait for scenes of their own (G3).
+        if (a.group().locomotion() != Locomotion.FREE_SWIM || b.group().locomotion() != Locomotion.FREE_SWIM) return null;
         // A mixed shoal is no one species: two shoals take the free-swimmer scene below.
         if (a.group().species() == b.group().species() && a.group().kind() != CompanionGroups.Kind.SHOAL
                 && b.group().kind() != CompanionGroups.Kind.SHOAL) return CompanionSceneType.G1_SAME_SPECIES;
-        if (a.group().locomotion() == Locomotion.FREE_SWIM && b.group().locomotion() == Locomotion.FREE_SWIM) {
+        if (a.player().position().distanceToSqr(b.player().position()) >= G2_MIN_OWNER_DISTANCE * G2_MIN_OWNER_DISTANCE) {
             return CompanionSceneType.G2_FREE_SWIM_EIGHT;
         }
         return null;

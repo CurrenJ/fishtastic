@@ -36,6 +36,7 @@ public final class CompanionSceneGameTests {
     private static final Item BETTA = FishtasticItems.BETTA.value();
     private static final Item STARFISH = FishtasticItems.STARFISH.value();
     private static final Item GARDEN_EEL = FishtasticItems.GARDEN_EEL.value();
+    private static final Item MAN_O_WAR = FishtasticItems.PORTUGUESE_MAN_O_WAR.value();
 
     /** One scene packet as a recipient saw it. */
     private record Sent(ServerPlayer recipient, CompanionScenePacket packet) {}
@@ -128,7 +129,8 @@ public final class CompanionSceneGameTests {
     public static void oneScenePerOwnerPairAtATime(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
         setUp(helper);
         ServerPlayer a = place(mockPlayer.get(), 0, 0);
-        ServerPlayer b = place(mockPlayer.get(), 2, 0);
+        // Bluegill + betta make one mixed shoal per party (D13), which plays G2: 3 blocks clears its floor.
+        ServerPlayer b = place(mockPlayer.get(), 3, 0);
         equip(a, BLUEGILL, BETTA);
         equip(b, BLUEGILL, BETTA);
 
@@ -185,7 +187,7 @@ public final class CompanionSceneGameTests {
     public static void differentFreeSwimmersPlayG2(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
         setUp(helper);
         ServerPlayer a = place(mockPlayer.get(), 0, 0);
-        ServerPlayer b = place(mockPlayer.get(), 2, 0);
+        ServerPlayer b = place(mockPlayer.get(), 3, 0);
         equip(a, BLUEGILL);
         equip(b, BETTA);
 
@@ -204,6 +206,46 @@ public final class CompanionSceneGameTests {
         equip(b, GARDEN_EEL); // different species, and neither swims - nothing to choreograph yet
 
         helper.assertTrue(tick(helper, 1000).isEmpty(), "a non-swimming, mixed pair plays nothing in v1");
+        helper.succeed();
+    }
+
+    /** Party spec D25: G1 is swum, so two starfish (perchers and ground walkers) play nothing. */
+    public static void sameSpeciesPercherPairPlaysNothing(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        setUp(helper);
+        ServerPlayer a = place(mockPlayer.get(), 0, 0);
+        ServerPlayer b = place(mockPlayer.get(), 3, 0);
+        equip(a, STARFISH);
+        equip(b, STARFISH);
+
+        helper.assertTrue(tick(helper, 1000).isEmpty(), "two starfish play nothing until G3 exists");
+        helper.succeed();
+    }
+
+    /** Party spec D25: two drifters of one species play nothing either. */
+    public static void sameSpeciesDrifterPairPlaysNothing(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        setUp(helper);
+        ServerPlayer a = place(mockPlayer.get(), 0, 0);
+        ServerPlayer b = place(mockPlayer.get(), 3, 0);
+        equip(a, MAN_O_WAR);
+        equip(b, MAN_O_WAR);
+
+        helper.assertTrue(tick(helper, 1000).isEmpty(), "two man o' war play nothing until G3 exists");
+        helper.succeed();
+    }
+
+    /** Party spec D24: G2's lobes go round each owner, so it needs them 2.5 blocks apart. */
+    public static void freeSwimmersTooCloseForG2(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        setUp(helper);
+        ServerPlayer a = place(mockPlayer.get(), 0, 0);
+        ServerPlayer b = place(mockPlayer.get(), 2, 0);
+        equip(a, BLUEGILL);
+        equip(b, BETTA);
+
+        helper.assertTrue(tick(helper, 1000).isEmpty(), "owners 2 blocks apart are too close for G2");
+        place(b, 1, 0);
+        List<Sent> sent = tick(helper, 1001);
+        helper.assertTrue(!sent.isEmpty() && sent.get(0).packet().scene() == CompanionSceneType.G2_FREE_SWIM_EIGHT,
+                "3 blocks apart plays G2, got " + sent);
         helper.succeed();
     }
 

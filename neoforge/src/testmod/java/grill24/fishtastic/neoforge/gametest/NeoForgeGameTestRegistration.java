@@ -757,6 +757,12 @@ public class NeoForgeGameTestRegistration {
             helper -> CompanionSceneGameTests.differentFreeSwimmersPlayG2(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "companion_scene_percher_pair_plays_nothing", 200,
             helper -> CompanionSceneGameTests.percherPairPlaysNothing(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_scene_same_species_percher_pair_plays_nothing", 200,
+            helper -> CompanionSceneGameTests.sameSpeciesPercherPairPlaysNothing(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_scene_same_species_drifter_pair_plays_nothing", 200,
+            helper -> CompanionSceneGameTests.sameSpeciesDrifterPairPlaysNothing(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_scene_free_swimmers_too_close_for_g2", 200,
+            helper -> CompanionSceneGameTests.freeSwimmersTooCloseForG2(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "companion_scene_out_of_range_pair_plays_nothing", 200,
             helper -> CompanionSceneGameTests.outOfRangePairPlaysNothing(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "companion_scene_one_scene_per_companion", 200,
