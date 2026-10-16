@@ -764,3 +764,77 @@ behind. To compare, set `driftBob=false` (the bell in this slot). The live knobs
 `bobTopSpeed`, `bobSailTurnDegPerTick`, `bobTiltMaxDeg`, `bobHeight`/`bobHeightFast`,
 `bobPeriodSeconds`/`bobPeriodFastSeconds` and `bobRideAhead`. In game, the man o' war already gets
 this motor through `companion_drift: bob`. Its species-specific sprite and beats are Phases 4–5.
+
+## 16. The bob's calm idle (2026-10-16)
+
+Owner, after Phase 3: the man o' war is "not chill enough - it moves kind of frenetically and is very
+active and jumping around"; a drifter should have "slow, drifty floaty vibes". Fixes 1-3 of the
+assessment below are built behind `bobCalm` (on). Travel (fix 4) waits for the owner's look.
+
+### 16.1 Assessment (`BobCalmProbe`, 8 seeds × 2400 ticks, aggressive temperament)
+
+By a still owner the Phase 3 bob's sail turned at 37–41°/s on average, at its 8°/tick cap 15–17% of
+the time, with ~10.6 turns of 90° or more a minute (mean 176°). `BobCalmProbe.idleTurnCauses`: 81% of
+those began while it was asked for under 0.3 b/s, and only 19% within a second of a new idle spot.
+Station keeping did it: drifting a little past its spot flipped the need, and a bob can shove only
+along its sail, so the sail swung round. The drawn facing was the sail, and the bank rocked 13–15°
+each bob. It also never got the bell's calm idle (§13.7): 26 shoves a minute against the bell's 18.
+
+Measured and rejected on its own: a slower sail (2.5°/tick) still turns round, just more slowly
+(55% of idle time at the cap); a slower idle bob (3.5 s) alone made turning worse (47°/s: rarer,
+larger shoves overshoot more); a bare deadband on the sail (need > 1.2) cut turning to 2–6°/s but
+froze it (0.04–0.10 b/s, half the spot moves). It needs a way to correct without turning.
+
+### 16.2 What's built
+
+`calm` (the bell's §13.7 value: eased in over `driftIdleCalmSeconds` while it idles, out four times
+faster) now runs for the bob too. At calm 0 the bob is the Phase 3 bob exactly.
+
+1. **Drift.** Up to `bobCalmDrift` (1.0 b/s²) × calm of the need is a gentle push in any direction
+   (current, tentacle drag), the squid's fins for a float. Shoves are sized net of what the drift
+   gives over the cycle. The sail turns only for what is left beyond `bobCalmSailNeed` (0.6 b/s² at
+   full calm, with hysteresis: it stops under half), at up to `bobCalmSailTurnDegPerTick` (2°/tick).
+2. **Calm rhythm.** The slowest bob eases from `bobPeriodSeconds` (1.8 s) to `bobIdlePeriodSeconds`
+   (4.5 s, the bell's idle pulse). Effort is read from what the sail has to cover, not the drift.
+3. **Drawn only.** At full calm the art turns no faster than `bobCalmFaceDegPerTick` (1.5°/tick) after
+   the sail; travelling it keeps up with the sail. The rock into a turn is `bobCalmBank` (0.4) of the
+   travelling rock at full calm.
+
+Live in game: `/fishtastic companion switch bobCalm on|off`. Tests: `BobBodyTest` +3 (drifts to a small
+gap behind without turning, lets go within half a second of setting off, idle facing under half of
+Phase 3's). Fingerprints: with `bobCalm=false` all 1038 are bitwise; with it on only 66 of the 69
+`DRIFT_BOB` lines change (about_face never idles). fishsim 563 tests, 0 failed.
+
+### 16.3 Calm vs Phase 3 by a still owner (`BobCalmProbe`, 8 seeds, aggressive)
+
+| | Phase 3 | calm | bell, for reference |
+|---|---|---|---|
+| shoves / min | 25–26 | 9.6–10.7 | 18 |
+| drawn turn, mean °/s | 37–41 | 8–10 | 23–27 |
+| drawn turns ≥ 90° / min | 10.7–12.5 | 2.3–3.3 | 7–8 |
+| sail reversals / min | 8–11 | 2.6–3.8 | – |
+| bank swing per bob, ° | 13–15 | 7.5–10.6 | – |
+| speed, b/s | 0.21–0.24 | 0.14–0.17 | 0.18 |
+| idle spot moves / min | 5.4–7.0 | 6.4–7.4 | 4.4–5.2 |
+
+Walking is unchanged (walk: 80 shoves/min, swing 1.66 b/s, turn 35–36°/s, both trees).
+
+### 16.4 Named differences (DriftSweepProbe, 32 seeds, calm | Phase 3; mean | worst)
+
+- **BOB_CALM_LOW_CEILING.** low_ceiling impact 0.86|3.30 vs 0.47|1.65, far 2.4|5.9 s vs 1.8|4.9 s;
+  contacts 1|4 vs 1|3. forest far 4.2|10.1 s vs 3.8|8.2 s; doorway contacts 3|7 vs 3|12. Every contact
+  traced happened at calm 0 in CATCH_UP (Phase 3 physics), most 3–10 s after it last idled.
+  Ablating the drift, the idle period or the slow sail alone each left it about where it is, so it is
+  the state it leaves calm in, not one rule. Penetrations stay 0.
+- **BOB_CALM_REORIENT.** `reor(s)` by a still owner rises (idle_fixed 0.8 → 16.6 s): by design it drifts
+  sideways and backwards without facing its travel.
+- idle seen% is a little lower (idle_fixed 55 → 52, held_items 51 → 47); far times by a still owner
+  improve (held_items 1.5 → 0.9 s, cat_lounging 1.6 → 0.9 s).
+
+### 16.5 For the owner's look
+
+Viewer: class "DRIFT bob (man o' war)" by a still owner, compared with `bobCalm=false`. In game:
+`/fishtastic companion switch bobCalm off` and back on. Live knobs: `bobCalmDrift`, `bobCalmSailNeed`,
+`bobCalmSailTurnDegPerTick`, `bobIdlePeriodSeconds`, `bobCalmBank`, `bobCalmFaceDegPerTick`. Next,
+after the look: calmer travel (§16.1 fix 4: the 0.75 s skip, its 1.7 b/s speed swing per cycle, and
+the sail wiggle on a straight walk at ~62 reversals/min).

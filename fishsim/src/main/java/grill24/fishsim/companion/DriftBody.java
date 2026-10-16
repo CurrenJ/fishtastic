@@ -110,6 +110,8 @@ final class DriftBody extends Motor {
     private double jetClock;
     /** Seconds since the bob's last downstroke began. */
     private double sinceStroke;
+    /** Whether the bob's sail is turning toward its need (§16: on past a threshold, off under half). */
+    private boolean sailSteering;
 
     DriftBody(CompanionTunables t, DriftStyle style, Vec pos, float yaw, double radius, long seed) {
         super(grill24.fishsim.core.Locomotion.DRIFT, Gait.of(grill24.fishsim.core.Locomotion.DRIFT, t), pos, radius);
@@ -315,11 +317,26 @@ final class DriftBody extends Motor {
         double k = drag(hs) + flare * t.driftFlareDrag;
         need = hDesired.scale(drag(hs)).add(hDesired.sub(hVel).scale(t.driftResponse));
 
+        // Calm (§16): settled by a still owner, a gentle drift takes the small corrections in any
+        // direction, and only what it can't cover turns the sail; that, past a threshold with
+        // hysteresis. Travelling (calm 0) it is the Phase 3 bob.
+        Vec drift = Vec.ZERO, steer = need;
+        double steerMin = 0.15;
+        if (t.bobCalm) {
+            float calmRate = (float) DT / Math.max(0.05f, t.driftIdleCalmSeconds);
+            calm = clamp(calm + (idling ? calmRate : -4 * calmRate), 0f, 1f);
+            drift = need.clampLength(t.bobCalmDrift * calm);
+            steer = need.sub(drift);
+            double on = 0.15 + (t.bobCalmSailNeed - 0.15) * calm;
+            steerMin = sailSteering ? Math.max(0.15, 0.5 * on) : on;
+        }
+
         // The sail turns toward what it needs; the float rocks into the turn.
         float before = tiltYaw;
-        if (need.horizontalLength() > 0.15) {
-            float err = Body.wrap((float) need.yawDeg() - tiltYaw);
-            float cap = t.bobSailTurnDegPerTick;
+        sailSteering = steer.horizontalLength() > steerMin;
+        if (sailSteering) {
+            float err = Body.wrap((float) steer.yawDeg() - tiltYaw);
+            float cap = t.bobSailTurnDegPerTick + (t.bobCalm ? (t.bobCalmSailTurnDegPerTick - t.bobSailTurnDegPerTick) * calm : 0f);
             float cmd = clamp(err * 0.3f, -cap, cap);
             yawRate += clamp(cmd - yawRate, -cap * 0.25f, cap * 0.25f);
         } else {
@@ -330,9 +347,10 @@ final class DriftBody extends Motor {
         Vec sail = Vec.fromYawPitch(tiltYaw, 0);
 
         double meanMax = t.bobThrust * 0.5 * ENVELOPE_MEAN;
-        float effortTarget = (float) Math.min(1, need.length() / meanMax);
+        float effortTarget = (float) Math.min(1, steer.length() / meanMax);
         effort += clamp(effortTarget - effort, -1.5f * (float) DT, 1.5f * (float) DT);
-        period = t.bobPeriodSeconds + (t.bobPeriodFastSeconds - t.bobPeriodSeconds) * effort;
+        float slowest = t.bobPeriodSeconds + (t.bobCalm ? (t.bobIdlePeriodSeconds - t.bobPeriodSeconds) * calm : 0f);
+        period = slowest + (t.bobPeriodFastSeconds - slowest) * effort;
         double height = t.bobHeight + (t.bobHeightFast - t.bobHeight) * effort;
 
         // The cycle: rising for its first quarter, falling through the middle half (the downstroke,
@@ -345,6 +363,8 @@ final class DriftBody extends Motor {
         double down = period * 0.5;
         // Up to the crest, and what drag takes while it shoves.
         Vec want = hDesired.scale(drag(hs) * down).add(crest.sub(hVel).scale(t.driftArriveGain));
+        // What the drift will give over the cycle is not the shove's to give.
+        if (t.bobCalm) want = want.sub(drift.scale(period));
         // Out of its downstroke and suddenly needing to go (the owner set off, or turned round),
         // it dips at once instead of riding out the rest of a slow bob. (bobTopSpeed, not the bob's
         // rhythm, is what keeps a chain of these from outrunning a sprint.)
@@ -374,7 +394,7 @@ final class DriftBody extends Motor {
         pulse = (float) (s * s);
         double shove = peak * pulse;
         // Never more than closing the gap to the crest this tick: what's left of the stroke goes nowhere useful.
-        double available = crest.sub(hVel).scale(1 / DT).add(hVel.scale(k)).dot(sail);
+        double available = crest.sub(hVel).scale(1 / DT).add(hVel.scale(k)).sub(drift).dot(sail);
         available = Math.min(available, (roomSpeed(sail, voxels) - hVel.dot(sail)) / DT);
         shove = Math.min(shove, Math.max(0, available));
         squeeze = peak > 0 ? (float) (shove / peak) * strokeShow : 0;
@@ -386,6 +406,7 @@ final class DriftBody extends Motor {
         double lift = Math.max(-t.bobLift, Math.min(t.bobLift, t.bobLiftResponse * (vyWant - vel.y())));
 
         propulsion = sail.scale(shove);
+        if (t.bobCalm) propulsion = propulsion.add(drift);
         mantleThrust = 0;
         lastThrust = shove;
         Vec beforeVel = vel;
@@ -399,12 +420,21 @@ final class DriftBody extends Motor {
         float leanWant = (float) (t.bobTiltMaxDeg * 0.6 * Math.min(1, shove / Math.max(1e-6, t.bobThrust)));
         tiltRate += clamp((leanWant - tilt) * 0.2f - tiltRate, -0.4f, 0.4f);
         tilt = clamp(tilt + tiltRate, 0f, t.bobTiltMaxDeg);
-        float bankWant = clamp(yawRate * 2.5f, -t.bobTiltMaxDeg, t.bobTiltMaxDeg);
+        float bankGain = t.bobCalm ? 2.5f * (1 - (1 - t.bobCalmBank) * calm) : 2.5f;
+        float bankWant = clamp(yawRate * bankGain, -t.bobTiltMaxDeg, t.bobTiltMaxDeg);
         bank += clamp(bankWant - bank, -1.5f, 1.5f);
         yaw = tiltYaw;
         pitch = tilt - 90f;
-        face = tiltYaw;
-        faceRate = yawRate;
+        if (t.bobCalm) {
+            // Drawn only: settled, the art turns slowly after the sail; travelling it keeps up with it.
+            float cap = t.bobSailTurnDegPerTick + (t.bobCalmFaceDegPerTick - t.bobSailTurnDegPerTick) * calm;
+            float cmd = clamp(Body.wrap(tiltYaw - face) * (1 - 0.8f * calm), -cap, cap);
+            faceRate += clamp(cmd - faceRate, -(cap + (FACE_ACCEL - cap) * calm), cap + (FACE_ACCEL - cap) * calm);
+            face = Body.wrap(face + faceRate);
+        } else {
+            face = tiltYaw;
+            faceRate = yawRate;
+        }
         advanceSpin();
         burstDrive = 1;
         tailPhase = (float) (phase * Math.PI * 2);

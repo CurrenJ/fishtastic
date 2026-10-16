@@ -188,6 +188,30 @@ public final class CompanionTunables {
     /** The escort station turns at the sail's rate instead of a bell's 6°/tick. */
     public boolean bobMindTurn = true;
 
+    // The bob's calm idle (docs/fish-companions-drift.md §16), from the owner after Phase 3: "not chill
+    // enough - it moves kind of frenetically". By a still owner the sail swung round ~10 times a minute
+    // (176° each) chasing station-keeping corrections under 0.3 b/s. They act as it settles (the
+    // bell's calm, §13.7), so travel is unchanged.
+    /** false restores the Phase 3 bob, bitwise. */
+    public boolean bobCalm = true;
+    /**
+     * At full calm, a gentle drift (current and tentacle drag) makes corrections up to this, blocks/s²,
+     * in any direction, without turning the sail: the squid's fins (jetFinThrust) for a float.
+     */
+    public float bobCalmDrift = 1.0f;
+    /**
+     * At full calm the sail turns only for what the drift can't cover beyond this, blocks/s² (it keeps
+     * turning until that falls under half), and at most {@link #bobCalmSailTurnDegPerTick}.
+     */
+    public float bobCalmSailNeed = 0.6f;
+    public float bobCalmSailTurnDegPerTick = 2f;
+    /** Its slowest bob at full calm, seconds (the bell's driftIdlePulseSeconds). */
+    public float bobIdlePeriodSeconds = 4.5f;
+    /** At full calm, its rock into a turn as a share of the travelling rock. */
+    public float bobCalmBank = 0.4f;
+    /** Drawn only: at full calm the art turns no faster than this, degrees per tick; travelling it is the sail. */
+    public float bobCalmFaceDegPerTick = 1.5f;
+
     // Phase 1 of the drifter rework (docs/fish-companions-drift.md §3, §4, §13).
     /** How much of the velocity gap one cycle closes: each stroke is sized to arrive. */
     public float driftArriveGain = 0.9f;
@@ -328,7 +352,7 @@ public final class CompanionTunables {
      * the order it lists them. Each is a public field of this class.
      */
     public static final java.util.List<String> DEV_SWITCHES = java.util.List.of(
-            "partySwimSeparation", "otherPlayerClearance", "anchoredPredatorDuckSeconds");
+            "partySwimSeparation", "otherPlayerClearance", "anchoredPredatorDuckSeconds", "bobCalm");
 
     public static CompanionTunables defaults() {
         return new CompanionTunables();
