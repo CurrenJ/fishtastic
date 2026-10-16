@@ -146,7 +146,7 @@ public final class RenderSelfTest {
             "guiscale", "fixes", "hud", "gizmos", "pertank", "highlight");
 
     /** Scenes that run only when the marker names them (they need something the default run lacks). */
-    private static final List<String> OPT_IN_SCENES = List.of("matte", "matteclip", "fourwaters", "cathedral",
+    private static final List<String> OPT_IN_SCENES = List.of("matte", "matteclip", "fourwaters", "fishspin", "cathedral",
             "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench",
             "companionbond", "companionsim", "companionparty", "companioneel", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld", "companionparticles", "companionworldcost", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk");
 
@@ -375,6 +375,7 @@ public final class RenderSelfTest {
             case "matte" -> queueMatteScene();
             case "matteclip" -> queueMatteClipScene();
             case "fourwaters" -> queueFourWatersScene();
+            case "fishspin" -> queueFishSpinScene();
             case "cathedral" -> queueCathedralScene();
             case "columns" -> queueColumnsScene();
             case "spanpreview" -> queueSpanPreviewScene();
@@ -3115,6 +3116,22 @@ public final class RenderSelfTest {
             stock("fourwaters.fire", fire, idol, fish("fire_dartfish", 14f), fish("fire_dartfish", 13f), fish("fire_dartfish", 15f), fish("blazed_grub", 28f));
         }));
         queuePromoOrbit("four_waters", frames, new Vec3(origin.getX() + 0.5, origin.getY() + 1.4, origin.getZ() - 3.5), 9.0, 1.8, 36);
+    }
+
+    /**
+     * Opt-in promo clip: one bridle shiner hung alone in the void, laid level (rolled 45 degrees off its
+     * diagonal art) and turned once round by a slightly-above alpha orbit — 360 frames, a seamless 6 s loop at 60 fps.
+     */
+    private static void queueFishSpinScene() {
+        final int frames = 360;
+        Vec3 center = new Vec3(origin.getX() + 0.5, origin.getY() + 1.5, origin.getZ() - 3.5);
+        queue(1, mc -> server(mc, s -> {
+            clearVoid(s, origin.getX(), origin.getY(), origin.getZ() - 4);
+            run(s, String.format(Locale.ROOT, "summon minecraft:item_display %.2f %.2f %.2f {item:{id:\"fishtastic:bridle_shiner\",count:1},"
+                    + "brightness:{sky:15,block:15},transformation:{left_rotation:{angle:0.7853982f,axis:[0f,0f,1f]},"
+                    + "right_rotation:[0f,0f,0f,1f],translation:[0f,0f,0f],scale:[1.9f,1.9f,1.9f]}}", center.x, center.y, center.z));
+        }));
+        queuePromoOrbit("bridle_shiner_spin", frames, center, 3.4, 0.9, 30);
     }
 
     /**
