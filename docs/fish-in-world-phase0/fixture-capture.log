@@ -1,4 +1,0 @@
-free_swim: 1200 ticks, 3 fish, effective=[FREE_SWIM, FREE_SWIM, FREE_SWIM], backstops=0
-glide: 1200 ticks, 3 fish, effective=[GLIDE, GLIDE, GLIDE], backstops=0
-drift: 1200 ticks, 3 fish, effective=[DRIFT, DRIFT, DRIFT], backstops=0
-benthic: 1200 ticks, 3 fish, effective=[BENTHIC, BENTHIC, BENTHIC], backstops=0

@@ -1,5 +1,11 @@
 # Audit: fish companions and fish in world (pre-backport)
 
+**Log hygiene follow-up, 2026-10-17:** all tracked `.log` and `.log.gz` files are removed
+from the Git index, with local copies preserved and repository-wide ignore rules added.
+Historical evidence links to those logs now refer to local-only files; screenshots, CSV fixtures,
+scripts and gate records remain tracked. This supersedes the log-retention statements below.
+Existing Git history is unchanged.
+
 **Current status, 2026-10-16:** the six-step cleanup is implemented and validated; see
 [§9.4 final acceptance](#94-final-verification-and-acceptance-2026-10-16). Steps 1–2 are committed,
 steps 3–6 are recorded by this cleanup commit, and no backport has started. Five switches remain pending the owner's

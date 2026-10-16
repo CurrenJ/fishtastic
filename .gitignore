@@ -71,6 +71,8 @@ Temporary Items
 /docsOut
 
 # Logs
+*.log
+*.log.gz
 **/hs_err_pid*.log
 **/replay_pid*.log
 /common/logs/
