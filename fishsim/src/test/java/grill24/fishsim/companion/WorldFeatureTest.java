@@ -174,25 +174,25 @@ class WorldFeatureTest {
         CompanionWorld w=OwnerScript.named("idle_fixed",1).nextWorld();
         WorldFeature light=WorldFeature.light(1,w.owner().chest().add(1,0,2),14);
         Habitat lunar=new Habitat(Set.of("zone:ocean"),Map.of(),Map.of(),2,Habitat.Climate.TEMPERATE);
-        for(int i=0;i<30;i++) notice.update(w.withFeatures(List.of(light)).withAmbient(MoodScenes.PLAINS.withDarkness(0)),lunar,w.owner().chest());
+        for(int i=0;i<30;i++) notice.update(w.withFeatures(List.of(light)).withAmbient(MoodPresets.PLAINS.withDarkness(0)),lunar,w.owner().chest());
         assertEquals(0,notice.utility);
-        for(int i=0;i<200;i++) mood.update(MoodScenes.PLAINS.withTime(Ambient.DayPart.NIGHT,0),lunar,w.owner().chest(),w.owner().chest());
-        notice.update(w.withFeatures(List.of(light)).withAmbient(MoodScenes.PLAINS.withDarkness(1)),lunar,w.owner().chest());
+        for(int i=0;i<200;i++) mood.update(MoodPresets.PLAINS.withTime(Ambient.DayPart.NIGHT,0),lunar,w.owner().chest(),w.owner().chest());
+        notice.update(w.withFeatures(List.of(light)).withAmbient(MoodPresets.PLAINS.withDarkness(1)),lunar,w.owner().chest());
         assertEquals(0,notice.utility,"moon gaze wins outdoors");
-        for(int i=0;i<200;i++) mood.update(MoodScenes.PLAINS.withPlace(Set.of("sky:blocked"),0.8f).withTime(Ambient.DayPart.NIGHT,0),lunar,w.owner().chest(),w.owner().chest());
-        notice.update(w.withFeatures(List.of(light)).withAmbient(MoodScenes.PLAINS.withDarkness(1)),lunar,w.owner().chest());
+        for(int i=0;i<200;i++) mood.update(MoodPresets.PLAINS.withPlace(Set.of("sky:blocked"),0.8f).withTime(Ambient.DayPart.NIGHT,0),lunar,w.owner().chest(),w.owner().chest());
+        notice.update(w.withFeatures(List.of(light)).withAmbient(MoodPresets.PLAINS.withDarkness(1)),lunar,w.owner().chest());
         assertTrue(notice.utility>0.5,"cave light wins when moon cannot be seen");
     }
     @Test void schoolMembersFeelOwnHomeAndWarmthAndEmitIndependently() {
         CompanionWorld w=OwnerScript.named("idle_fixed",1).nextWorld();
         CompanionGroup school=new CompanionGroup(CompanionTunables.defaults(),1,new float[]{0.2f,0.25f,0.3f},Temperament.BASELINE,w);
-        school.leader().habitat(MoodScenes.OCEAN); school.follower(0).habitat(MoodScenes.OCEAN);
+        school.leader().habitat(MoodPresets.OCEAN); school.follower(0).habitat(MoodPresets.OCEAN);
         school.follower(1).habitat(new Habitat(Set.of("zone:nether"),Map.of(),Map.of(),1,Habitat.Climate.HOT));
-        w=w.withAmbient(MoodScenes.PLAINS.withPlace(Set.of("zone:ocean"),0.8f)); school.step(w);
+        w=w.withAmbient(MoodPresets.PLAINS.withPlace(Set.of("zone:ocean"),0.8f)); school.step(w);
         assertTrue(school.leader().emotes().stream().anyMatch(e->e.kind()==Emote.Kind.HOMECOMING));
         assertTrue(school.follower(0).emotes().stream().anyMatch(e->e.kind()==Emote.Kind.HOMECOMING));
         assertTrue(school.follower(1).emotes().stream().noneMatch(e->e.kind()==Emote.Kind.HOMECOMING));
-        w=w.withAmbient(MoodScenes.PLAINS.withPlace(Set.of("snow"),0)).withFeatures(List.of(WorldFeature.warmth(1,w.owner().chest())));
+        w=w.withAmbient(MoodPresets.PLAINS.withPlace(Set.of("snow"),0)).withFeatures(List.of(WorldFeature.warmth(1,w.owner().chest())));
         for(int i=0;i<200;i++) school.step(w);
         assertTrue(school.leader().mood().warmed()); assertTrue(school.follower(0).mood().warmed());
     }
@@ -200,9 +200,9 @@ class WorldFeatureTest {
         OwnerScript script=OwnerScript.named("idle_fixed",1); CompanionWorld w=script.nextWorld();
         BenthicGroup group=new BenthicGroup(CompanionTunables.defaults(),1,0.3f,Temperament.BASELINE,GroundGait.CRAWL,3,BenthicGroup.Formation.LINE,w);
         group.member(0).habitat(new Habitat(Set.of("zone:nether"),Map.of(),Map.of(),1,Habitat.Climate.HOT));
-        group.member(1).habitat(MoodScenes.OCEAN);
+        group.member(1).habitat(MoodPresets.OCEAN);
         group.member(2).habitat(new Habitat(Set.of("minecraft:snowy_plains"),Map.of(),Map.of(),1,Habitat.Climate.COLD));
-        Ambient snow=MoodScenes.PLAINS.withPlace(Set.of("minecraft:snowy_plains"),0.2f).withWeather(Ambient.Weather.RAIN);
+        Ambient snow=MoodPresets.PLAINS.withPlace(Set.of("minecraft:snowy_plains"),0.2f).withWeather(Ambient.Weather.RAIN);
         int ownShiver=0,contentDroop=0;
         for(int i=0;i<300;i++) {
             // Dry temperate air glums the HOT leader; snow cold-weights need an explicit snowy ambient next.
@@ -223,9 +223,9 @@ class WorldFeatureTest {
                 CompanionWorld world=script.nextWorld();
                 CompanionAgent legacy=new CompanionAgent(CompanionTunables.defaults(),2,motion,length,world);
                 CompanionAgent indexed=new CompanionAgent(CompanionTunables.defaults(),2,motion,length,world);
-                legacy.habitat(MoodScenes.OCEAN); indexed.habitat(MoodScenes.OCEAN);
+                legacy.habitat(MoodPresets.OCEAN); indexed.habitat(MoodPresets.OCEAN);
                 Vec fire=world.owner().feet().add(0.5,0.5,3.5);
-                Ambient cold=MoodScenes.PLAINS.withPlace(Set.of("snow"),0);
+                Ambient cold=MoodPresets.PLAINS.withPlace(Set.of("snow"),0);
                 for(int tick=0;tick<1000;tick++) {
                     world=script.nextWorld();
                     legacy.step(world.withAmbient(cold.withWarmth(List.of(fire))));

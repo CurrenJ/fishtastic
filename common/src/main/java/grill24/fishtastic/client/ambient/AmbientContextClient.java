@@ -314,6 +314,15 @@ public final class AmbientContextClient {
         return responsePackets;
     }
 
+    /** Ticks measured so far, and their total cost: for a windowed mean across a harness phase. */
+    public static long ticks() {
+        return ticks;
+    }
+
+    public static double totalTickMillis() {
+        return totalTickMillis;
+    }
+
     public static String lastResponseSummary() {
         return lastResponseSummary;
     }

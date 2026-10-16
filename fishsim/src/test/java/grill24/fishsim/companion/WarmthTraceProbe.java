@@ -12,7 +12,7 @@ class WarmthTraceProbe {
     @Test
     void trace() {
         CompanionRun run = new CompanionRun("idle_fixed", 3, Locomotion.FREE_SWIM, CompanionTunables.defaults(), true);
-        MoodScenes.apply(run, MoodScenes.named("warm"), run.owner.feet());
+        MoodScenes.apply(run, MoodPresets.named("warm"), run.owner.feet());
         Vec fire = run.script.ambient.warmth().get(0);
         for (int i = 0; i < 2400; i++) {
             run.run(1);

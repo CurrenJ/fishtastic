@@ -109,10 +109,15 @@ shadowJar {
     exclude 'grill24/fishtastic/neoforge/mcp/**'
 
     // fishsim's render/harness/viewer packages are dev-only verification tooling (headless PNG/GIF
-    // export, the desktop viewer) — only core/ and domain/ are reachable from the mod at runtime.
+    // export, the desktop viewer); the rest of fishsim (core, domain, ambient, companion) ships and runs.
     exclude 'grill24/fishsim/render/**'
     exclude 'grill24/fishsim/harness/**'
     exclude 'grill24/fishsim/viewer/**'
+
+    // The client self-test harness (RenderSelfTest) is dev-only too. Its entry points outside the
+    // package (both loaders' client tick) check DevEnvironmentCheck first. Ambient activation has
+    // no dependency on the excluded harness; it accepts an injected development view instead.
+    exclude 'grill24/fishtastic/client/selftest/**'
 }
 
 // Redirect components.java to publish the shadow jar instead of the plain jar.

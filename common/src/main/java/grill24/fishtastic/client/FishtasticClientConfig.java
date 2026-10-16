@@ -108,7 +108,10 @@ public final class FishtasticClientConfig {
 
     public static boolean isAmbientFishEnabled() {
         Boolean override = TEST_OVERRIDES.get(AMBIENT_FISH_ENABLED_KEY);
-        if (override != null) return override;
+        return override != null ? override : storedAmbientFishEnabled();
+    }
+
+    private static boolean storedAmbientFishEnabled() {
         if (ambientFishEnabled == null) {
             ambientFishEnabled = Boolean.parseBoolean(load().getProperty(AMBIENT_FISH_ENABLED_KEY, "true"));
         }
@@ -116,7 +119,10 @@ public final class FishtasticClientConfig {
     }
 
     public static int getAmbientFishDensity() {
-        if (ambientDensityTestOverride != null) return ambientDensityTestOverride;
+        return ambientDensityTestOverride != null ? ambientDensityTestOverride : storedAmbientFishDensity();
+    }
+
+    private static int storedAmbientFishDensity() {
         if (ambientFishDensity == null) {
             try {
                 ambientFishDensity = Mth.clamp(Integer.parseInt(load().getProperty("ambientFishDensity", "50")), 0, 100);
@@ -142,6 +148,27 @@ public final class FishtasticClientConfig {
     @ExpectPlatform
     public static Path getConfigDirectory() {
         throw new AssertionError();
+    }
+
+    /** Unit tests only: a directory used in place of the platform's (which needs a running loader). */
+    static Path testConfigDirectory;
+
+    private static Path configDirectory() {
+        return testConfigDirectory != null ? testConfigDirectory : getConfigDirectory();
+    }
+
+    /** Unit tests only: forget every cached value so the next read goes back to the file. */
+    static void resetCacheForTest() {
+        ambientFishEnabled = null;
+        ambientFishDensity = null;
+        tankWaterFillEnabled = null;
+        tankInteriorLight = null;
+        notificationVolume = null;
+        shapeGalleryOpen = null;
+        reducedCelebrationEffects = null;
+        hideOtherCompanions = null;
+        hideOwnCompanionFirstPerson = null;
+        clearTestOverrides();
     }
 
     public static boolean isTankWaterFillEnabled() {
@@ -244,7 +271,10 @@ public final class FishtasticClientConfig {
     /** Whether other players' fish companions are hidden. */
     public static boolean hideOtherCompanions() {
         Boolean override = TEST_OVERRIDES.get(HIDE_OTHER_COMPANIONS_KEY);
-        if (override != null) return override;
+        return override != null ? override : storedHideOtherCompanions();
+    }
+
+    private static boolean storedHideOtherCompanions() {
         if (hideOtherCompanions == null) {
             hideOtherCompanions = Boolean.parseBoolean(load().getProperty(HIDE_OTHER_COMPANIONS_KEY, "false"));
         }
@@ -254,7 +284,10 @@ public final class FishtasticClientConfig {
     /** Whether your own companions are hidden in first person. */
     public static boolean hideOwnCompanionFirstPerson() {
         Boolean override = TEST_OVERRIDES.get(HIDE_OWN_COMPANION_FIRST_PERSON_KEY);
-        if (override != null) return override;
+        return override != null ? override : storedHideOwnCompanionFirstPerson();
+    }
+
+    private static boolean storedHideOwnCompanionFirstPerson() {
         if (hideOwnCompanionFirstPerson == null) {
             hideOwnCompanionFirstPerson = Boolean.parseBoolean(load().getProperty(HIDE_OWN_COMPANION_FIRST_PERSON_KEY, "false"));
         }
@@ -276,19 +309,20 @@ public final class FishtasticClientConfig {
     /**
      * Writes every setting back to the properties file. Each value is read through its own getter
      * so an untouched setting round-trips its on-disk value rather than being reset to a default.
+     * Overridable settings are read past their self-test overrides, so a test value never reaches disk.
      */
     private static void persist() {
-        Path file = getConfigDirectory().resolve(FILE_NAME);
+        Path file = configDirectory().resolve(FILE_NAME);
         Properties props = load();
-        props.setProperty(AMBIENT_FISH_ENABLED_KEY, String.valueOf(isAmbientFishEnabled()));
-        props.setProperty("ambientFishDensity", String.valueOf(getAmbientFishDensity()));
+        props.setProperty(AMBIENT_FISH_ENABLED_KEY, String.valueOf(storedAmbientFishEnabled()));
+        props.setProperty("ambientFishDensity", String.valueOf(storedAmbientFishDensity()));
         props.setProperty(NOTIFICATION_VOLUME_KEY, String.valueOf(getNotificationVolume()));
         props.setProperty(TANK_WATER_FILL_KEY, String.valueOf(isTankWaterFillEnabled()));
         props.setProperty(TANK_INTERIOR_LIGHT_KEY, String.valueOf(getTankInteriorLight()));
         props.setProperty(SHAPE_GALLERY_OPEN_KEY, String.valueOf(isShapeGalleryOpen()));
         props.setProperty(REDUCED_CELEBRATION_EFFECTS_KEY, String.valueOf(isReducedCelebrationEffects()));
-        props.setProperty(HIDE_OTHER_COMPANIONS_KEY, String.valueOf(hideOtherCompanions()));
-        props.setProperty(HIDE_OWN_COMPANION_FIRST_PERSON_KEY, String.valueOf(hideOwnCompanionFirstPerson()));
+        props.setProperty(HIDE_OTHER_COMPANIONS_KEY, String.valueOf(storedHideOtherCompanions()));
+        props.setProperty(HIDE_OWN_COMPANION_FIRST_PERSON_KEY, String.valueOf(storedHideOwnCompanionFirstPerson()));
         props.remove(RETIRED_COMPANION_WAITS_AT_BOBBER_KEY);
         try (var out = Files.newOutputStream(file)) {
             props.store(out, "Fishtastic client-side visual toggles.");
@@ -299,7 +333,7 @@ public final class FishtasticClientConfig {
     }
 
     private static Properties load() {
-        Path file = getConfigDirectory().resolve(FILE_NAME);
+        Path file = configDirectory().resolve(FILE_NAME);
         if (!Files.exists(file)) {
             writeDefault(file);
         }

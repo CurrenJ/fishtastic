@@ -222,7 +222,8 @@ public final class ClientCompanion {
     BlockPos featureOwner() { return BlockPos.containing(featureEye()); }
 
     CompanionWorld world(ClientLevel level, CompanionWorldAdapter.LevelBlocks blocks, List<PointOfInterest> companions,
-                         List<PointOfInterest> devPoints, Ambient ownerAmbient) {
+                         List<PointOfInterest> devPoints, Ambient ownerAmbient,
+                         @Nullable CompanionWorldAdapter.OwnerPoints ownerPoints) {
         OwnerState ownerState;
         boolean hurt;
         CompanionWorld.Held held;
@@ -231,7 +232,8 @@ public final class ClientCompanion {
             ownerState = tracker.owner(owner, isLocal());
             hurt = tracker.hurt(owner);
             held = CompanionWorldAdapter.held(owner.getMainHandItem(), stacks[0]);
-            points = CompanionWorldAdapter.points(level, owner, companions);
+            points = ownerPoints != null ? ownerPoints.with(companions)
+                    : CompanionWorldAdapter.points(level, owner, companions);
         } else {
             boolean wet = level.getFluidState(BlockPos.containing(phantomEye.subtract(0, OwnerState.CHEST_DROP, 0)))
                     .is(FluidTags.WATER);
@@ -253,7 +255,7 @@ public final class ClientCompanion {
         WorldFeatureIndex index = ClientCompanions.featureIndex();
         Ambient amb = ownerAmbient;
         Habitat h = null;
-        ClientCompanions.DevMood dev = isLocal() ? ClientCompanions.devMood() : null;
+        ClientCompanionsDev.DevMood dev = isLocal() ? ClientCompanionsDev.devMood() : null;
         if (dev != null) {
             // A forced mood (dev trigger): the preset's world and species, with the real warm things
             // and, for "warm", the campfire the command placed.
@@ -746,7 +748,7 @@ public final class ClientCompanion {
             }
         }
         lines.add(CompanionAmbient.describe(lastAmbient, habitatNow)
-                + (ClientCompanions.devMood() != null && isLocal() ? "  [dev mood " + ClientCompanions.devMood().preset().name() + "]" : ""));
+                + (ClientCompanionsDev.devMood() != null && isLocal() ? "  [dev mood " + ClientCompanionsDev.devMood().preset().name() + "]" : ""));
         lines.addAll(partyDetailLines(a));
         if (gait != null) {
             lines.add(String.format(Locale.ROOT, "ground gait %s  group %d %s  beat %s (overtakes %d roadsides %d)"

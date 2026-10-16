@@ -71,6 +71,9 @@ Temporary Items
 /docsOut
 
 # Logs
+**/hs_err_pid*.log
+**/replay_pid*.log
+/common/logs/
 Xplat/logs/latest.log
 src/generated/resources/assets/potionsplus/lang/GENERATED_en_us.json
 

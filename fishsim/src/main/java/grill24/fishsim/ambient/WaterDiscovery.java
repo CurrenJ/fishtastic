@@ -123,6 +123,49 @@ public final class WaterDiscovery {
         }
     }
 
+    /** One patch's columns and a version that moves whenever any of them changes. */
+    private static final class PatchColumns {
+        final java.util.Set<Entry> entries = new java.util.HashSet<>();
+        long version;
+    }
+
+    /** Monotonic across patches, so a key that comes back never repeats an old version. */
+    private long nextVersion = 1;
+
+    private void attach(Entry e) {
+        nearestDistances = null;
+        PatchColumns pc = byPatch.computeIfAbsent(e.patchKey, k -> new PatchColumns());
+        pc.entries.add(e);
+        pc.version = nextVersion++;
+    }
+
+    private void detach(Entry e) {
+        nearestDistances = null;
+        PatchColumns pc = byPatch.get(e.patchKey);
+        if (pc == null) return;
+        pc.entries.remove(e);
+        if (pc.entries.isEmpty()) byPatch.remove(e.patchKey);
+        else pc.version = nextVersion++;
+    }
+
+    private void touch(long patchKey) {
+        nearestDistances = null;
+        PatchColumns pc = byPatch.get(patchKey);
+        if (pc != null) pc.version = nextVersion++;
+    }
+
+    private void putColumn(Entry e) {
+        columns.put(cellKey(e.x, e.z), e);
+        attach(e);
+        columnSnapshot = null;
+    }
+
+    private void removeColumn(Entry e) {
+        columns.remove(cellKey(e.x, e.z));
+        detach(e);
+        columnSnapshot = null;
+    }
+
     private static final class Entry {
         final int x;
         final int z;
@@ -140,6 +183,15 @@ public final class WaterDiscovery {
 
     private final Map<Long, Entry> columns = new HashMap<>();
     private final Map<Long, Patch> patches = new HashMap<>();
+    /**
+     * Each patch's columns, kept in step with {@link #columns}, so per-patch queries never scan the
+     * whole cache. Holds only patches with at least one column.
+     */
+    private final Map<Long, PatchColumns> byPatch = new HashMap<>();
+    private Map<Long, Integer> nearestDistances;
+    private int nearestX, nearestZ;
+    /** {@link #columns}' values in iteration order, rebuilt only after a structural change. */
+    private Object[] columnSnapshot;
     private final Counters counters = new Counters();
     private final float[] scratchLo = new float[96];
     private final float[] scratchHi = new float[96];
@@ -248,6 +300,9 @@ public final class WaterDiscovery {
     public void reset() {
         columns.clear();
         patches.clear();
+        byPatch.clear();
+        nearestDistances = null;
+        columnSnapshot = null;
         counters.reset();
         nextInstance = 1; // never zero: a zero key means "no patch"
         ring = 0;
@@ -288,7 +343,50 @@ public final class WaterDiscovery {
         return out;
     }
 
-    /** Discovered columns of one patch, as a snapshot. */
+    /**
+     * Discovered columns of one patch, as a snapshot, in no particular order — read from the patch's
+     * own index, so it costs the patch's size rather than the whole cache's.
+     */
+    public List<Column> patchColumns(long patchKey) {
+        PatchColumns pc = byPatch.get(patchKey);
+        if (pc == null) return new ArrayList<>();
+        List<Column> out = new ArrayList<>(pc.entries.size());
+        for (Entry e : pc.entries) out.add(new Column(e.x, e.z, e.water, e.patchKey, java.util.Objects.hashCode(e.contextKey)));
+        return out;
+    }
+
+    /**
+     * A number that changes whenever any column of the patch is added, removed, re-read with
+     * different water or re-keyed — and is otherwise stable, so a caller can cache anything derived
+     * from {@link #patchColumns} against it. Zero for a patch with no columns.
+     */
+    public long patchVersion(long patchKey) {
+        PatchColumns pc = byPatch.get(patchKey);
+        return pc == null ? 0L : pc.version;
+    }
+
+    /**
+     * The squared horizontal distance from {@code (x, z)} to the nearest discovered column of every
+     * patch that has one — the same figure a scan of {@link #columns()} would fold, without the copy.
+     */
+    public Map<Long, Integer> nearestSquaredDistances(int x, int z) {
+        if (nearestDistances != null && nearestX == x && nearestZ == z) return nearestDistances;
+        Map<Long, Integer> out = new HashMap<>(byPatch.size() * 2);
+        for (Map.Entry<Long, PatchColumns> pe : byPatch.entrySet()) {
+            int best = Integer.MAX_VALUE;
+            for (Entry e : pe.getValue().entries) {
+                int dx = e.x - x, dz = e.z - z;
+                best = Math.min(best, dx * dx + dz * dz);
+            }
+            out.put(pe.getKey(), best);
+        }
+        nearestX = x;
+        nearestZ = z;
+        nearestDistances = Map.copyOf(out);
+        return nearestDistances;
+    }
+
+    /** Discovered columns of one patch, as a snapshot, in the whole cache's iteration order. */
     public List<Column> columnsOf(long patchKey) {
         List<Column> out = new ArrayList<>();
         for (Entry e : columns.values()) {
@@ -480,7 +578,7 @@ public final class WaterDiscovery {
         long patchKey = patchKeyFor(x, z, col, contextKey, tick);
         Entry entry = new Entry(x, z, col, patchKey);
         entry.contextKey = contextKey;
-        columns.put(cellKey(x, z), entry);
+        putColumn(entry);
         bumpPatch(patchKey, 1, tick);
     }
 
@@ -565,8 +663,12 @@ public final class WaterDiscovery {
         if (loser == winner || !patches.containsKey(loser)) return;
         counters.patchMerges++;
         Patch p = patches.get(loser);
-        for (Entry e : columns.values()) {
-            if (e.patchKey == loser) e.patchKey = winner;
+        PatchColumns moved = byPatch.remove(loser);
+        if (moved != null) {
+            for (Entry e : moved.entries) {
+                e.patchKey = winner;
+                attach(e);
+            }
         }
         patches.remove(loser);
         bumpPatch(winner, p == null ? 0 : p.columns(), tick);
@@ -607,20 +709,21 @@ public final class WaterDiscovery {
         }
         counters.columnsChanged++;
         if (fresh.isEmpty()) {
-            columns.remove(cellKey(x, z));
+            removeColumn(e);
             bumpPatch(e.patchKey, -1, tick);
             return true;
         }
         if (fresh.truncated()) counters.truncatedColumns++;
         if (contextChanged) {
             bumpPatch(e.patchKey, -1, tick);
-            columns.remove(cellKey(x, z));
+            removeColumn(e);
             e.patchKey = patchKeyFor(x, z, fresh, contextKey, tick);
             e.contextKey = contextKey;
-            columns.put(cellKey(x, z), e);
+            putColumn(e);
             bumpPatch(e.patchKey, 1, tick);
         }
         e.water = fresh;
+        touch(e.patchKey);
         bumpPatch(e.patchKey, 0, tick);
         return true;
     }
@@ -629,7 +732,8 @@ public final class WaterDiscovery {
     public int revalidateSome(WaterSource source, int py, int budget, long tick) {
         int n = columns.size();
         if (n == 0 || budget <= 0) return 0;
-        Object[] snapshot = columns.values().toArray();
+        if (columnSnapshot == null) columnSnapshot = columns.values().toArray();
+        Object[] snapshot = columnSnapshot;
         int changed = 0;
         int count = Math.min(budget, n);
         for (int i = 0; i < count; i++) {
@@ -647,7 +751,7 @@ public final class WaterDiscovery {
         int toDrop = columns.size() - maxColumns;
         for (int i = 0; i < toDrop && i < order.size(); i++) {
             Entry e = order.get(i).getValue();
-            columns.remove(cellKey(e.x, e.z));
+            removeColumn(e);
             bumpPatch(e.patchKey, -1, tick);
             counters.columnsEvicted++;
         }
@@ -670,7 +774,7 @@ public final class WaterDiscovery {
         }
         if (dropped != null) {
             for (Entry e : dropped) {
-                columns.remove(cellKey(e.x, e.z));
+                removeColumn(e);
                 bumpPatch(e.patchKey, -1, tick);
                 counters.columnsEvicted++;
             }

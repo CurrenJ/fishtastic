@@ -1,5 +1,11 @@
 # Audit: fish companions and fish in world (pre-backport)
 
+**Current status, 2026-10-16:** the six-step cleanup is implemented and validated; see
+[§9.4 final acceptance](#94-final-verification-and-acceptance-2026-10-16). Steps 1–2 are committed,
+steps 3–6 are recorded by this cleanup commit, and no backport has started. Five switches remain pending the owner's
+visual review. The original audit and intermediate handoffs below are historical; their open-gate
+statements are superseded by §9.4, not evidence of a new failure.
+
 **Date:** 2026-10-15 · **Branch:** `26.1.2` at `4246d339`, plus the staged, uncommitted Phase 5 (moods) work.
 **Scope:** everything since the last backport parity point `4b0e818e` (2026-10-06): 75 commits and 31
 staged files. That is about 47,600 inserted lines outside `docs/` and generated data, and about 128,000 more
@@ -438,7 +444,7 @@ Then port the resulting tree per feature, not per commit (§2).
 
 ## 9. Progress
 
-**Step 1 done 2026-10-16 (uncommitted).** Deleted: the PiP dock renderer and state, `CompanionFishingEventPacket`
+**Step 1 done 2026-10-16, committed `d54bdde8`.** Deleted: the PiP dock renderer and state, `CompanionFishingEventPacket`
 (and the per-catch broadcast in `FishingMinigameManager`), `CompanionFishingOutcome` and its test, the
 `GuiGraphicsMixin` PiP hook, the `FishingHookMixin` `isBiting`/`forceBite` seam, the `FishingMinigameAnimation`
 companion anchor/dock API, the `companionWaitsAtBobber` setting and `waitatbobber` command (`persist()`
@@ -451,7 +457,7 @@ celebration). Results: fishsim 556 (59 opt-in skipped), common 856, Fabric game 
 companioneel, companionscenes, companionworld, ambientparity` 113/113 on both loaders.
 Note: a save still holding a pre-party (single-stack) companion no longer loads it.
 
-**Step 2 done 2026-10-16.** Owner chose to collapse only the signed-off switches and to delete the
+**Step 2 done 2026-10-16, committed `cfd5bc41`.** Owner chose to collapse only the signed-off switches and to delete the
 rejected ones. Collapsed (adopted branch kept, off branch deleted): `whiskers`; the bell drift set
 (`driftRetime`, `driftArrive`, `driftFlare`, `driftNoClimb`, `driftRoomBrake`, `driftRoomPastContact`,
 `driftHoldHeight`, `driftIdleSteady`, `driftCalmCatch`); the jet set (`driftJet`, `jetArrive`,
@@ -467,5 +473,324 @@ Tests that only compared a removed switch's two branches went (`disablingJetRest
 `groundLeaderIsPacedToItsSlowestMember`, `BenthicVisibilityTest`, whose assertion was clock-off only);
 the `companioneel` self-test now flips `otherPlayerClearance` instead of `partyHomes`.
 Fingerprints: all 1,038 (930 single-owner, 108 two-owner) bitwise identical before and after, so no
-rebaseline was needed. Left for now: the `GroundMind` diagnostic statics, which regression tests flip
-to prove their fixes.
+rebaseline was needed. Left for now: the `GroundMind` diagnostic statics (`formationDropGuard`,
+`alongsideRecoveryEnabled`, `beatsEnabled`, `skipRepeatedBeatFootprints`, `countBeatFootprints`), which
+regression tests flip to prove their fixes. Results: fishsim 553, common 856, Fabric game tests 368/368,
+NeoForge 362/362, self-tests `companioneel, companionparty` 31/31 on both loaders.
+
+### 9.1 Historical handoff at `cfd5bc41`: step 3 was next
+
+**Superseded by §9.2.** Keep this section as the instructions left at the last commit, not as the
+current working-tree status.
+
+Both targets re-checked against the tree at `cfd5bc41`; still as §7 describes.
+
+- **§7.1 harness dependency.** Shipped code names `grill24.fishsim.harness.companion.MoodScenes` in
+  `ClientCompanions.java:779` (`DevMood` record component), `:790` (`devMoodNames()`), `:805-807`
+  (`devMood(String)`), and reads `dev.preset()` in `ClientCompanion.java:256-263` (`world()`, every tick
+  while a dev mood is set) and `:749` (debug line). Harness/viewer users that will follow a move:
+  `WorldScenes.java:13` (`MoodScenes.PLAINS`) and `CompanionViewer.java:16,101,410`. Plan: move
+  `MoodScenes` (or just its `Preset` type and preset table) into shipped `fishsim/companion`, keep the
+  harness re-exporting or importing it. Then confirm with `unzip -l` on the built Fabric/NeoForge jars
+  that no `grill24/fishsim/harness/` class is referenced from a shipped one (§7.1 was never checked
+  against a packaged jar).
+- **§7.2 `persist()` override leak.** `FishtasticClientConfig.persist()` (`:280`) writes
+  `isAmbientFishEnabled()`, `hideOtherCompanions()` and `hideOwnCompanionFirstPerson()` through getters
+  that return `TEST_OVERRIDES` (`:94`, read at `:110`, `:246`, `:256`). Fix: persist the stored values,
+  not the overridden ones (e.g. getters split into a raw read used by `persist()`). Add a unit test:
+  set an override, call a real setter, reload, expect the pre-override value.
+- **Verify cheaply** (fingerprints should stay bitwise; baseline `build/cleanup/fp-before.txt`):
+  `./gradlew :fishsim:test --tests '*FingerprintProbe' --tests '*TwoOwnerFingerprintProbe' -PsimStdout -PfpAll=1 --rerun -i`,
+  fishsim + common unit tests, `:fabric:runGametest` and `:neoforge:runGametest` in parallel, then only
+  the touched scenes (`companionworld`, `companionbond`) on both loaders in parallel:
+  `./gradlew :<loader>:runClient -I docs/fish-companions-twoclient/twoclient.init.gradle -PtwoRole=solo [-PtwoLoader=neoforge] -PtwoScenes=companionworld,companionbond`;
+  count `[selftest] CHECK ...: PASS` lines. Full scene set is ~25 min serial; touched-only ~15 min.
+- **Working tree cautions.** `RenderSelfTest.java` carries another session's uncommitted `fishspin`
+  scene: never stage it (stage own hunks with `git apply --cached`). Never `git add -u`/`-A`: the
+  tracked `common/logs/latest.log` gets swept in. The pre-commit hook runs common tests + Fabric game
+  tests (~4 min) before signing.
+- **After step 3:** steps 4-6 per §8. Still awaiting the owner: the bob switches,
+  `partySwimSeparation`, `otherPlayerClearance` (§3.4), and whether to drop the `GroundMind`
+  diagnostic statics.
+
+### 9.2 Recovered status after the interrupted cleanup (2026-10-16)
+
+HEAD is still `cfd5bc41`. Steps 1 and 2 are committed; substantial steps 3–6 work is present in
+the working tree. Do not restart step 3 or overwrite these changes. The reconstruction below uses
+the actual source and the local `build/cleanup/` evidence; recent chat-history reads were unavailable
+(`thread/items/list is not supported yet`). Historical feature acceptance does not establish that
+this newer cleanup tree is ready to backport.
+
+| Step | Actual state | Acceptance still needed |
+|---|---|---|
+| 1, dead surface | Committed `d54bdde8` | Closed; results above |
+| 2, accepted switches | Committed `cfd5bc41` | Closed for approved switches only; remaining owner decisions below |
+| 3, harness dependency and config persistence | Implemented, uncommitted. Shipped `MoodPresets` replaces harness presets; config persists stored values, with a regression test covering Boolean and density overrides | Preserve and finish reviewing the changes; package inspection on resumption confirmed both jars contain `MoodPresets`, exclude harness/viewer/render/selftest classes, and have no class-byte references to the excluded fishsim packages. This is a packaging check, not a release-client smoke test |
+| 4, ambient cost | Implemented, uncommitted. Per-patch index/version, cached sample geometry and revalidation snapshot, changed-input rebuilds, opt-in invariant probes | **Not accepted:** ambient regressions below; equal-scenario performance comparison still needed. Nearest-distance calculation still traverses cached entries, and `columnsOf` still scans the full cache when called; do not describe this as eliminating every full-cache scan |
+| 5, owner queries and distance cutoff | Implemented, uncommitted. Ambient and entity queries shared per party; remote sims build within 64 blocks and drop beyond 72, local party always runs | Companion scene checks passed, including the new `companionlod` scene; multiplayer/frame-time measurement remains distinct from these functional checks. The old warmth scanner is now cost-harness-only, so the audit's production warmth-scan diagnosis is superseded by W1 |
+| 6, dev surface and docs/hygiene | Partly implemented, uncommitted. `ClientCompanionsDev`, `AmbientDiagnostics`, selftest jar exclusions, docs index and historical banners | `RenderSelfTest` is still a large source file, and guarded references remain outside its excluded package. Evidence retention and worktree pruning have not been completed; do not delete them as part of an indiscriminate cleanup |
+
+**Recovered verification (the interrupted session, not fresh reruns).**
+
+- `step3-gt-fabric.log`: all 368 required GameTests passed. `step3-gt-neoforge.log`: all 362
+  passed. These predate the final steps 4–6 tree, so they are not final-tree GameTest acceptance.
+- `step456-unit.log`: fishsim 555 tests, 496 passed, 59 skipped, zero failed. Later
+  `step6b-unit.log` records compilation without a reported failure. Common XML reports have
+  860 tests, one skip, zero failures/errors. Preserve run provenance when quoting counts.
+- `fp-final.txt` and `fp-before.txt` contain the final/baseline fingerprint rows; compare their
+  contents rather than inferring success from a build exit status.
+- The final script completed: `build/cleanup/final/final-summary.txt` ends with `DONE`. Companion
+  scenes (`companionbond,companionsim,companionparty,companioneel,companionscenes,companionworld,
+  companionlod`) passed **103/103 on each loader**.
+- Ambient passes on each loader: parity 15, context 10, floor 4, walk 4, island 6, lifecycle 16.
+  Population: Fabric 23 pass / 1 fail, NeoForge 24 pass / 0 fail. Water: Fabric 50 pass / 5 fail,
+  NeoForge 52 pass / 3 fail. **Nine failed checks total: this is not a green final regression.**
+
+**Immediate next work: investigate these gates before any backport or cleanup-complete claim.**
+
+1. `ambientwater.river.boundary` fails on both loaders (no open face reported for the nearby
+   population). Establish whether discovery has reached the fixture's expected boundary before
+   the fixed-time assertion; do not weaken the boundary contract without evidence.
+2. Fabric ocean population is only 1 versus the required 6 at the check; both carry-count checks
+   consequently fail. Later close-ups show more species, so distinguish settling/timing from a
+   runtime population regression.
+3. `ambientwater.containment` reports `outsideWater=2` on both loaders; NeoForge also fails the
+   irregular fixture's whole-body check once. Determine when invalid geometry first appears and
+   whether a rebuild, refill, or engine step caused it. Do not dismiss containment as timing noise.
+4. Fabric `ambientpopulation.return.carry`: one of six tracked residents is missing without a
+   retirement covered by the assertion. Check snapshot/retirement accounting and actual identity
+   continuity before accepting it as benign.
+5. Rerun the affected scenes on both loaders after fixes, then final-tree unit tests, GameTests,
+   package checks and the performance comparison. The local shell regression script records FAIL
+   counts but still exits successfully and writes `DONE`; inspect the actual CHECK lines.
+
+Outstanding owner choices remain unchanged: `driftBob`, `bobRetime`, `bobMindTurn`,
+`partySwimSeparation`, `otherPlayerClearance`, and whether to remove the `GroundMind` diagnostic
+statics. W4 and W5–W8 were approved in the world plan; W9 (tank reactions) is still deferred.
+`fish-companions-world-validation.md` has an older readability-review bullet; the authoritative
+world-plan gate table and commit `261e3768` record that approval.
+
+Preserve the unrelated `fishspin` work in `RenderSelfTest.java`, tracked runtime logs, staged audit
+changes and untracked evidence. Do not use `git add -A` or claim steps 3–6 are committed.
+
+**Resumption checks and first correction (2026-10-16).**
+
+- `resume-unit-package.log`: `:fishsim:test :common:test :fabric:assemble :neoforge:assemble`
+  succeeded. Fishsim actually reran (555 total, 496 passed, 59 skipped, zero failed); common and
+  both loader assemblies were up to date. All 1,038 final fingerprint rows match the baseline.
+- Fresh `ambientwater` runs finished on both loaders: Fabric **52 pass / 3 fail** (river boundary,
+  irregular body fit, run-wide containment with `outsideWater=3`); NeoForge **51 pass / 4 fail**
+  (river boundary, ocean count and the two dependent carry-count checks). Logs:
+  `build/cleanup/resume-ambientwater-{fabric,neoforge}.log`. The ocean-count failure changing
+  loaders supports a scheduling/settling hypothesis but does not prove it; containment remains open.
+- Found a concrete continuity-harness accounting gap: lane R used the resident snapshot taken
+  before the grublane camera trip, but captured retirement counters after that trip. A fish lost
+  during the trip could therefore be called unaccounted even when its retirement was valid.
+  The return leg now snapshots residents and retirement counters in the same callback immediately
+  before removing the rod. `resume-compile.log` confirms common and both loader compilation pass.
+  **This correction has not yet had its `ambientpopulation` in-game rerun**; do not close that gate.
+- This resumption changed the handoff/index and the continuity test only. It did not change ambient
+  production behavior, start a backport, delete evidence/worktrees, or commit the interrupted work.
+
+### 9.3 Continued implementation and validation (2026-10-16, in progress)
+
+The first resumption's outstanding population-continuity rerun completed: **24/24 checks on each
+loader**, including the full 12,000-tick turnover interval. Evidence is in
+`build/cleanup/resume-population-{fabric,neoforge}.log`. This proves the snapshot/baseline correction;
+later changes below still require the final-tree scene run.
+
+Additional cleanup implemented:
+
+- `WaterDiscovery` caches nearest-water distances until the observer block or water changes. The
+  earlier index removed allocations but still traversed every column each tick. A regression covers
+  observer movement, drainage and reset. The opt-in `WaterDiscoveryCostProbe` reproduces the
+  equal-water comparison (`:fishsim:test --tests '*WaterDiscoveryCostProbe' -PsimStdout`). A standalone
+  2,401-column / 10,000-call run measured the former snapshot path at 45.249 µs/call and the settled
+  cache at 0.025 µs/call, with equal results. This measures one operation, not frame time or total
+  ambient cost. Moving/discovering water invalidates the cache and still needs work.
+- The parity fixture moved out of `ClientAmbientFish` into `client/selftest/AmbientParityFixture`,
+  excluded from packaged jars. A small injected development interface supplies its tick and render
+  passes. Normal ambient activation no longer asks `RenderSelfTest.isArmed()`; the harness explicitly
+  marks its activation. Rendering/motion implementation and the parity scene remain available in dev.
+- `ambientwater` now waits within 900 ticks for the expected discovered horizon/population rather
+  than asserting an open face before the budgeted sweep reaches it. Assertions still fail if readiness
+  never arrives. Fixed 150-tick scheduling was not a product timing contract.
+- Containment instrumentation now distinguishes a carried centre invalidated by a geometry rebuild
+  (`rebuildInvalidatedCenters`, followed by INVALID retirement) from an **active** resident outside
+  its water (`outsideWater`, still required to be zero). The Phase 2 contract explicitly permits
+  brief whole-body bank brushes during soft avoidance; the snapshot check had been stronger than
+  that accepted contract. Whole-body fit now has an explicit check **after engine spawn placement**,
+  while per-step centre containment, surface head-room, finiteness and rebuild retirement stay
+  enforced. Rebuild invalidations and body touches remain reported rather than hidden.
+- `docs/run-pre-backport-validation.ps1` runs suites/builds before clients, both loaders in isolated
+  directories, and fails on CHECK failures, missing scenes, missing completion or nonzero process
+  exits. The old shell script's successful exit did not mean its assertions passed.
+- NeoForge test run directories now have the same ignore rule as Fabric; generated JVM crash/replay
+  dumps and common runtime logs are ignored. Existing tracked logs and historical evidence remain
+  preserved. **Every one of the 15 legacy `.claude` agent worktrees has local changes**; all their
+  heads are in main-branch history, but none is safe to discard as clean. A subsequent read-only
+  check of the external squid worktree also found eight modified and two untracked source/docs
+  files; its head is in main history, but that checkout must also be preserved.
+
+Current broad validation was started with `docs/run-pre-backport-validation.ps1`; its timestamped
+evidence directory and progress appear in `build/cleanup/resume-validation-driver.log`. Do not mark
+the cleanup accepted until the final-tree results are recorded. Pending visual switches remain
+available; no unreviewed switch was collapsed and no worktree was removed. The owner explicitly
+confirmed keeping the five pending switches, retaining evidence, and removing only verified-clean
+legacy agent worktrees. None of the sixteen inspected legacy checkouts qualifies for removal.
+
+Final-tree evidence so far (`build/cleanup/validation-20261016-104051/`): common 857 tests
+(856 passed, one skipped), fishsim 557 (497 passed, 60 skipped), Fabric GameTests 368/368,
+NeoForge 362/362; both loader assemblies and package dependency checks passed. The extracted
+parity fixture passed 15/15 on each loader, and the revised water scene passed **56/56 on each**.
+Active-resident `outsideWater` stayed zero. Post-placement whole-body checks: Fabric 125/125,
+NeoForge 120/120. Rebuild-invalidated centres were separately reported (2 Fabric, 1 NeoForge)
+and retired; Fabric also reported 55 bank brushes under the documented soft-avoidance contract.
+Fresh bluegill parity screenshots from both loaders were inspected for the expected appearance.
+
+The driver is still active for the remaining ambient and companion scenes. Its original scene
+list predates adding `companionmoods,companionparticles,companionworldcost` to the script default;
+run that group separately with `-SkipSuites` afterward. Finish with the opt-in distance-cost probe
+and the 1,038-row fingerprint comparison after all clients exit (do not rebuild fishsim during a
+client run). A green first subset is not final acceptance.
+
+Further verification during the population interval: the already compiled `FingerprintProbe`,
+`GroupFingerprintProbe` and `TwoOwnerFingerprintProbe` methods were invoked directly, without
+Gradle or writes to the live clients' jars/classes. All **1,038 rows** match the original baseline
+in order and byte for byte: `build/cleanup/fp-resume.txt` and `fp-before.txt` both SHA-256
+`4AD944BA3FB6B8367BBBBD3D8EF0D8CE4A65D28C607C14E0309E205EF0762D1F`.
+Raw output and the direct invocation helper are retained under `build/cleanup/`.
+The compiled `WaterDiscoveryCostProbe` also passed its equality assertions and measured
+50.605 µs snapshot / 0.026 µs cached, consistent with the earlier standalone run's limited scope.
+These proofs do not require repeating unless the headless simulation changes.
+
+The lifecycle scene now additionally waits for the full 2,401-column window to stop rebuilding
+for forty ticks, then asserts that domain builds remain unchanged over the next 200 ticks. This
+is a direct in-game gate for removing unnecessary timed rebuilds; the running driver will compile
+the harness-only addition after the population clients exit, before its later lifecycle launch.
+
+The final-tree population scene subsequently passed **24/24 on both loaders** (zero illegal species
+or over-age residents across 600 polls). Walking passed 4/4 on each. Two validation-runner issues
+must be accounted for before closing this run:
+
+- Editing the lifecycle harness after the initial prebuild caused the next parallel cold launch to
+  race over shared common compilation outputs. Fabric's `ambientfloor` did not launch (compile
+  errors for missing common packages), while NeoForge passed 4/4. The following Fabric walking
+  launch compiled and ran successfully once outputs were stable. Rerun the floor scene after a
+  single, client-free prebuild. The runner now performs that serial prebuild before every pair.
+- The legacy `companionbond` scene labels its assertions `bond.*`. The original running verifier
+  expects `companionbond.*` and will misreport missing coverage even if its fourteen bonding
+  assertions pass. The script now maps that prefix correctly; exercise the corrected mapping with
+  a supplemental bonding run alongside the outstanding moods/particles/world-cost group.
+
+These are runner/build issues, not in-game passes: preserve their original logs and record the
+successful replacements. Do not treat a nonzero old-driver exit as final acceptance or restart
+the long population checks merely to repair a coverage-label mapping.
+
+The new lifecycle gate is also **still open**: after the initial forty-tick quiet interval, domain
+builds rose 168→171 on Fabric and 167→169 on NeoForge during the 201-tick observation window.
+Both otherwise passed 17 checks. A full column count is not necessarily a fully revalidated cache:
+the scene replaces an earlier shallow pond with deeper water. The follow-up harness now waits for
+all cached beds to match that completed fixture, logs stale-bed counts, and still requires zero
+rebuilds during the measured window. Invariant-only diagnostics log each same-count rebuild's
+version, observer and margin inputs. This is an investigation, not evidence that the gate has
+passed. No simulation/rebuild policy has been changed to make the assertion pass.
+
+After the primary companion clients exit, run the corrected driver with `-SkipSuites -Scenes
+ambientlifecycle` first. Then rerun `ambientfloor`, `companionbond`, and the supplemental
+`companionmoods,companionparticles,companionworldcost` group. All source changes after the first
+suite run are diagnostic/harness changes; perform builds only with the clients closed.
+
+**Rebuild investigation resolved.** The first follow-up (`validation-20261016-111709`) logged
+geometry-version changes with the same observer and margin, then found all 2,401 cached beds
+different from the intended floor. The fixture had replaced the superflat world's lowest bedrock
+layer with unsupported sand. Vanilla `FallingBlock.tick` falls even at `level.getMinY()` when the
+block below is free, so the authored floor disappeared and the water geometry really changed.
+The timer gate eventually passed after that geometry settled, while the intended-bed gate correctly
+failed. Source: the canonical 26.1.2 `net/minecraft/world/level/block/FallingBlock.java`.
+
+The lifecycle floor is now non-falling stone. Its complete rerun
+(`validation-20261016-112045`) passed **18/18 on both loaders**, with `staleBeds=0` and domain
+builds unchanged over 201 measured ticks (149→149 Fabric, 150→150 NeoForge). The earlier shallow
+pond still needed 49 real bed revalidations; the test now waits for those before measuring.
+The ocean parity-water fixture had the same unsupported bottom-layer sand, and the elevated
+island floor also used unsupported sand. Those foundations are now sandstone, preserving the
+authored depths while removing falling-block churn. Both affected scenes are being rerun.
+
+Lifecycle CPU remeasurement (milliseconds; instrumented invariant harness, 960×540, 30 FPS cap,
+1536 MB heap and four visible processors per client, both loaders running concurrently):
+
+| Measure | Historical Phase 6 Fabric / NeoForge | Stable-floor cleanup Fabric / NeoForge |
+|---|---|---|
+| Pond interval mean runtime tick | 0.061 / 0.164 | 0.128 / 0.134 |
+| Pond interval mean render submission | 0.026 / 0.067 | 0.038 / 0.064 |
+| Session peak runtime tick through open water | 16.368 / 57.655 | 15.440 / 30.745 |
+| Session peak render submission | 7.477 / 26.454 | 4.329 / 21.188 |
+| Context mean through pond | 0.074 / 0.156 | 0.0764 / 0.0927 |
+| Context peak through pond | 3.882 / 21.077 | 3.335 / 11.410 |
+| Settled open-water mean runtime / context | Not recorded as the same separate window | Fabric 0.1927 / 0.0379; NeoForge 0.2491 / 0.0432 |
+
+The new open-water window had 2,401 columns and 64 individuals; the old Phase 6 fixture had eight
+individuals. Lifetimes, instrumentation and floor stability also changed since that record.
+These are comparisons against the recorded peaks requested in §8, **not** a controlled whole-feature
+speedup claim. Cold spikes remain. The equal-water distance probe isolates one actual saving, and
+the unchanged domain-build count proves the timer removal. GPU/frame-time percentiles, a large
+multiplayer crowd and universal release performance remain outside what these short CPU gates prove.
+
+Current supplemental run: `build/cleanup/validation-20261016-112426/`, driven by
+`resume-supplemental-driver.log`; includes the corrected water/island fixtures, floor, bonding,
+and moods/particles/world-cost. Finish the final suites and package checks with clients closed
+after that run, then record acceptance against all six cleanup steps.
+
+### 9.4 Final verification and acceptance (2026-10-16)
+
+The supplemental driver finished with exit 0: corrected water 56/56, island 6/6, floor 4/4,
+bonding 15/15, and combined moods/particles/world-cost 87/87 **on each loader**. Its corrected
+coverage verifier found no missing scenes. The stable-floor lifecycle replacement passed 18/18
+on each loader. The final client-free suites/build completed with exit 0 and `BUILD SUCCESSFUL`
+in `build/cleanup/final-suites-package.log`: common **856 passed, 1 skipped** (857 total), fishsim
+**497 passed, 60 opt-in skipped** (557 total), zero failures/errors; Fabric **368/368** required
+GameTests and NeoForge **362/362**; both assemblies passed. Final jar inspection passed for both
+loaders (`build/cleanup/final-packaging.txt`), and scoped `git diff --check` passed (unrelated
+tracked runtime log excluded). **All six cleanup steps are accepted within the scope below.**
+
+| §8 step | Resulting tree and evidence |
+|---|---|
+| 1. Dead surface | Committed `d54bdde8`; deleted surfaces and compatibility consequences recorded above |
+| 2. Switch cleanup | Committed `cfd5bc41`; all 1,038 fingerprints remain byte-identical. Owner explicitly keeps `driftBob`, `bobRetime`, `bobMindTurn`, `partySwimSeparation`, `otherPlayerClearance` pending visual review |
+| 3. Presets and persistence | Production `MoodPresets` has no excluded harness dependency; both final jars checked. Regression proves test overrides affect memory but never persisted Boolean/density values |
+| 4. Ambient hot path | Indexed/versioned water discovery, cached distances and sample geometry; input-driven rebuilds. Stable 2,401-column window has zero rebuilds over 201 ticks. Distance probe checks equal results; lifecycle/island CPU comparisons below retain their limitations |
+| 5. Party queries and LOD | Owner ambient/entity queries shared by party; remote parties build within 64 blocks, drop beyond 72, preserve hysteresis at 68; local party always runs. Five LOD assertions and full 103-check companion group pass on both loaders |
+| 6. Dev tooling and hygiene | `ClientCompanionsDev`, `AmbientDiagnostics`, injected/excluded `AmbientParityFixture`, selftest jar exclusions, docs index and historical banners. Curated evidence, scripts and gate records retained; future disposable run/log/crash outputs ignored. All 15 legacy agent worktrees and the external squid checkout contain changes: none removed under the owner's clean-only instruction |
+
+Current in-game evidence matrix (PASS counts per loader; all listed runs have zero failed checks,
+one completion marker and exit 0):
+
+| Scenes | Fabric | NeoForge | Evidence under `build/cleanup/` |
+|---|---:|---:|---|
+| parity / context / population / walking | 15 / 10 / 24 / 4 | 15 / 10 / 24 / 4 | `validation-20261016-104051/` |
+| companion bonding/sim/party/eel/scenes/world/LOD | 103 | 103 | `validation-20261016-104051/`; old verifier incorrectly flagged `bond.*` naming, independently corrected/rechecked below |
+| water / island / floor / bonding | 56 / 6 / 4 / 15 | 56 / 6 / 4 / 15 | `validation-20261016-112426/` |
+| moods / particles / world-cost combined | 87 | 87 | `validation-20261016-112426/` |
+| lifecycle, including stable-bed/no-timer gate | 18 | 18 | `validation-20261016-112045/` |
+
+The 600-poll population scene covers the full 12,000-tick interval and passes legal-species,
+age, occupancy and return-continuity checks. Water assertions distinguish spawn/rebuild body fit
+from the accepted soft-avoidance bank brushes; active centre containment still fails the gate on
+an actual escape. The earlier failed runs remain investigation evidence, superseded only by the
+specific successful replacements listed here.
+
+Stable-foundation island CPU measurement (32 fish, 1,413 columns, one domain, zero invalid):
+Fabric runtime mean/peak 0.345943/9.8192 ms and submission 0.072522/3.9709 ms;
+NeoForge 0.386316/31.2441 ms and 0.082352/12.8212 ms. Historical NeoForge island was
+0.494/55.629 ms runtime and 0.091/15.528 ms submission. As with the lifecycle table, different
+lifetimes, floor stability and concurrent instrumented clients preclude a causal whole-feature
+speedup claim. The isolated cached-distance operation is the controlled cost comparison.
+
+Scope: closure of the six numbered cleanup steps, with the owner's retained switches and dirty
+worktree preservation. W9 tank reactions, the `GroundMind` regression diagnostic switches,
+ordinary gameplay review and GPU/large-crowd performance remain separate. Fresh parity and
+stable-fixture screenshots were visually inspected, but do not constitute the pending owner
+switch review. Steps 3–6 are recorded by this cleanup commit, including the completed audit;
+unrelated fishspin work and tracked runtime logs remain outside it. No backport, publication or
+deployment was started.

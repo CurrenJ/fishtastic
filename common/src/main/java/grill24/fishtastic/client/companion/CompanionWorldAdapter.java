@@ -155,7 +155,27 @@ public final class CompanionWorldAdapter {
      * players' companions, already built by the caller).
      */
     public static List<PointOfInterest> points(ClientLevel level, Player owner, List<PointOfInterest> companions) {
-        List<PointOfInterest> points = new ArrayList<>();
+        return ownerPoints(level, owner).with(companions);
+    }
+
+    /**
+     * Everything {@link #points} finds round one owner — the entities and the players near them —
+     * which depends on the owner alone, so a party's units share one query (audit §6.2).
+     */
+    public record OwnerPoints(List<PointOfInterest> entities, List<PointOfInterest> players) {
+
+        /** One unit's points: the owner's entities, then {@code companions}, then the nearby players. */
+        public List<PointOfInterest> with(List<PointOfInterest> companions) {
+            List<PointOfInterest> points = new ArrayList<>(entities.size() + companions.size() + players.size());
+            points.addAll(entities);
+            points.addAll(companions);
+            points.addAll(players);
+            return points;
+        }
+    }
+
+    public static OwnerPoints ownerPoints(ClientLevel level, Player owner) {
+        List<PointOfInterest> entities = new ArrayList<>();
         AABB box = AABB.ofSize(owner.getEyePosition(), POINT_RANGE * 2, POINT_HEIGHT * 2, POINT_RANGE * 2);
         for (Entity e : level.getEntities(owner, box, e -> e.isAlive() && !(e instanceof Player))) {
             PointOfInterest.Kind kind;
@@ -163,16 +183,16 @@ public final class CompanionWorldAdapter {
             else if (e instanceof Enemy) kind = PointOfInterest.Kind.HOSTILE;
             else if (e instanceof ItemEntity) kind = PointOfInterest.Kind.DROPPED_ITEM;
             else continue;
-            points.add(point(kind, e.getId(), e));
+            entities.add(point(kind, e.getId(), e));
         }
-        points.addAll(companions);
+        List<PointOfInterest> players = new ArrayList<>();
         for (Player player : level.players()) {
             if (player == owner || !player.isAlive() || player.distanceToSqr(owner) > 16) continue;
             PointOfInterest body = point(PointOfInterest.Kind.PLAYER, player.getId(), player);
-            points.add(new PointOfInterest(body.kind(), body.id(),
+            players.add(new PointOfInterest(body.kind(), body.id(),
                     new Vec(player.getX(), player.getY(), player.getZ()), body.vel(), body.radius()));
         }
-        return points;
+        return new OwnerPoints(List.copyOf(entities), List.copyOf(players));
     }
 
     /** An entity as a point of interest: its centre, its tick-to-tick velocity and half its width. */

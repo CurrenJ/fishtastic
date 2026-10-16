@@ -1,5 +1,12 @@
 # Fish in World — continuation handoff
 
+**2026-10-16 cleanup status:** the phase acceptance below is historical. The pre-backport changes
+passed final validation: unit suites, both loaders' GameTests, targeted companion/ambient scenes
+and final jar inspection. The water, population-continuity and stable-water rebuild gates are closed.
+Resume from [audit §9.4](audit-2026-10-15-companions-and-fish-in-world.md#94-final-verification-and-acceptance-2026-10-16)
+for the complete evidence matrix and remaining limitations. Steps 3–6 are recorded by the cleanup commit; no backport
+has started. Five switches await owner visual review, and all dirty legacy worktrees are preserved.
+
 Updated 2026-10-13. **Phases 0–7 implemented; automated gates complete.** The interrupted Phase 5
 population work was finished, then client settings, production activation, lifecycle cleanup,
 context boundaries, performance counters and final acceptance were completed. No publication,
@@ -53,7 +60,8 @@ suppresses ordinary activation in older fixture scenes.
 - Observable time/weather/moon and cast-session/hook changes request bounded context refreshes.
 
 Shared tank visuals and motion stay in use. The visual mixture is 75% raw / 25% square-root
-probability, lifetimes are 300–700 ticks for new choices, retirement is 40 ticks after acceptance,
+probability, lifetimes were 300–700 ticks for new choices (now 1800–3000, `AmbientTuning`, after the
+2026-10-13 playtest tuning), retirement is 40 ticks after acceptance,
 and retained state is bounded to 600 ticks / sixteen patches / four contexts × thirty-two slots.
 
 ## Final validation

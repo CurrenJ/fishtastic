@@ -72,6 +72,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.ClientTooltipComponentCallbac
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 import grill24.fishtastic.client.companion.ClientCompanions;
+import grill24.fishtastic.client.companion.ClientCompanionsDev;
 import grill24.fishtastic.client.ambient.ClientAmbientFish;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -265,9 +266,11 @@ public final class FishtasticFabricClient implements ClientModInitializer {
 
         // Dev-only: the rendering self-test, inert unless its marker file exists (see RenderSelfTest).
         // Registered separately from the handler below so it also runs with no level loaded, which is
-        // what lets it create its own world from the title screen.
-        ClientTickEvents.END_CLIENT_TICK.register(
-                client -> grill24.fishtastic.client.selftest.RenderSelfTest.tick(client, "fabric"));
+        // what lets it create its own world from the title screen. Not in the shipped jar, hence the guard.
+        if (DevEnvironmentCheck.isDevelopmentEnvironment()) {
+            ClientTickEvents.END_CLIENT_TICK.register(
+                    client -> grill24.fishtastic.client.selftest.RenderSelfTest.tick(client, "fabric"));
+        }
 
         // Register client tick event handler for animations
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -308,7 +311,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             if (animation != null && animation.isActive()) {
                 animation.render(mc, graphics, deltaTracker.getGameTimeDeltaPartialTick(false));
             }
-            ClientCompanions.renderHud(graphics, deltaTracker.getGameTimeDeltaPartialTick(false));
+            ClientCompanionsDev.renderHud(graphics, deltaTracker.getGameTimeDeltaPartialTick(false));
         });
 
         // Fish companions and fish in world draw from the level submit hook.

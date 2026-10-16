@@ -10,7 +10,7 @@ public final class WorldScenes {
     public static CompanionWorld apply(CompanionWorld world, String name, Vec anchor, long tick) {
         if (name == null) return world;
         Vec source = anchor.add(0.7, 0, 2.5);
-        Ambient ambient = MoodScenes.PLAINS;
+        Ambient ambient = MoodPresets.PLAINS;
         List<WorldFeature> features = switch(name) {
             case "water" -> List.of(WorldFeature.water(1,source,"ocean"));
             case "light" -> List.of(WorldFeature.light(2,source.add(0,0.8,0),14));

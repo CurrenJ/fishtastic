@@ -74,6 +74,7 @@ import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent;
 import grill24.fishtastic.client.companion.ClientCompanions;
+import grill24.fishtastic.client.companion.ClientCompanionsDev;
 import grill24.fishtastic.client.ambient.ClientAmbientFish;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.common.NeoForge;
@@ -295,8 +296,11 @@ public final class FishtasticNeoForgeClient {
         Minecraft mc = Minecraft.getInstance();
         // Dev-only: the rendering self-test, inert unless its marker file exists (see RenderSelfTest).
         // Deliberately outside the paused/level guard below so it also runs with no level loaded,
-        // which is what lets it create its own world from the title screen.
-        grill24.fishtastic.client.selftest.RenderSelfTest.tick(mc, "neoforge");
+        // which is what lets it create its own world from the title screen. Not in the shipped jar,
+        // hence the guard.
+        if (DevEnvironmentCheck.isDevelopmentEnvironment()) {
+            grill24.fishtastic.client.selftest.RenderSelfTest.tick(mc, "neoforge");
+        }
         // Deliberately outside the paused/level guard below - the MCP orbit preview has to be able to
         // release its texture while the player sits in a menu, which is when the HUD isn't drawing.
         // Production builds exclude grill24.fishtastic.mcp from the jar (dev-only tooling).
@@ -346,7 +350,7 @@ public final class FishtasticNeoForgeClient {
         if (animation != null && animation.isActive()) {
             animation.render(mc, event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
         }
-        ClientCompanions.renderHud(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
+        ClientCompanionsDev.renderHud(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
         // Render quest progress notifications (after fishing minigame)
         QuestProgressNotificationManager.getInstance().render(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
         // Dev tooling: brief preview of the MCP bridge's stitched orbit sheet. Production builds exclude

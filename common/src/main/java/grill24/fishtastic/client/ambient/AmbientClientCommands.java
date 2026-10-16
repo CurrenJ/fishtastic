@@ -33,7 +33,7 @@ public final class AmbientClientCommands {
                                     return 1;
                                 })))
                 .then(LiteralArgumentBuilder.<S>literal("debug").executes(ctx -> {
-                    feedback.accept(ctx.getSource(), ClientAmbientFish.natural().debugState());
+                    feedback.accept(ctx.getSource(), ClientAmbientFish.natural().diagnostics().debugState());
                     feedback.accept(ctx.getSource(), AmbientContextClient.debugState());
                     return 1;
                 })));

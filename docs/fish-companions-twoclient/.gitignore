@@ -1,3 +1,4 @@
 /run-fabric-*/
+/run-neoforge-*/
 /*.log
 /*.sh.log

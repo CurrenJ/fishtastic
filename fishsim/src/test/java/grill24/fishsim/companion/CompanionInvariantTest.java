@@ -144,7 +144,7 @@ class CompanionInvariantTest {
                 }
             }
             // Moods (plan §5 Phase 5) are bounded as temperaments are: by the baseline's own spread.
-            for (MoodScenes.Preset p : MoodScenes.ALL) {
+            for (MoodPresets.Preset p : MoodPresets.ALL) {
                 for (Locomotion c : TEMPERAMENT_CLASSES) {
                     for (String script : OwnerScript.NAMES) {
                         for (long seed : SEEDS) {

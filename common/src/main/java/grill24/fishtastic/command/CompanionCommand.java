@@ -119,15 +119,15 @@ public class CompanionCommand {
                 .then(Commands.literal("debug")
                         // Which party slot the overlay and the dev triggers act on (the lead by default).
                         .then(Commands.literal("slot").then(slotArgument().executes(ctx -> client(ctx,
-                                () -> grill24.fishtastic.client.companion.ClientCompanions.devSlot(slotOf(ctx))))))
+                                () -> grill24.fishtastic.client.companion.ClientCompanionsDev.devSlot(slotOf(ctx))))))
                         .then(Commands.argument("value", BoolArgumentType.bool()).executes(ctx -> client(ctx,
-                                () -> grill24.fishtastic.client.companion.ClientCompanions.devOverlay(
+                                () -> grill24.fishtastic.client.companion.ClientCompanionsDev.devOverlay(
                                         BoolArgumentType.getBool(ctx, "value"))))))
                 // Party switches, live (party spec Phase 3c): list, set one, or reset them all.
                 .then(Commands.literal("switch")
-                        .executes(ctx -> client(ctx, grill24.fishtastic.client.companion.ClientCompanions::devSwitchList))
+                        .executes(ctx -> client(ctx, grill24.fishtastic.client.companion.ClientCompanionsDev::devSwitchList))
                         .then(Commands.literal("reset").executes(ctx -> client(ctx,
-                                grill24.fishtastic.client.companion.ClientCompanions::devSwitchReset)))
+                                grill24.fishtastic.client.companion.ClientCompanionsDev::devSwitchReset)))
                         .then(Commands.argument("name", StringArgumentType.word())
                                 .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
                                         grill24.fishsim.companion.CompanionTunables.DEV_SWITCHES, builder))
@@ -136,12 +136,12 @@ public class CompanionCommand {
                                                 "anchoredPredatorDuckSeconds".equals(StringArgumentType.getString(ctx, "name"))
                                                         ? java.util.List.of("0", "2") : java.util.List.of("on", "off"), builder))
                                         .executes(ctx -> client(ctx,
-                                                () -> grill24.fishtastic.client.companion.ClientCompanions.devSwitch(
+                                                () -> grill24.fishtastic.client.companion.ClientCompanionsDev.devSwitch(
                                                         StringArgumentType.getString(ctx, "name"),
                                                         StringArgumentType.getString(ctx, "value")))))))
                 .then(Commands.literal("temperament")
                         .then(Commands.literal("species").executes(ctx -> client(ctx,
-                                () -> grill24.fishtastic.client.companion.ClientCompanions.devTemperament(null))))
+                                () -> grill24.fishtastic.client.companion.ClientCompanionsDev.devTemperament(null))))
                         .then(Commands.argument("id", StringArgumentType.word())
                                 .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
                                         java.util.stream.Stream.concat(java.util.stream.Stream.of("baseline"),
@@ -149,7 +149,7 @@ public class CompanionCommand {
                                                         .map(grill24.fishsim.companion.Temperament::name)),
                                         builder))
                                 .executes(ctx -> client(ctx,
-                                        () -> grill24.fishtastic.client.companion.ClientCompanions.devTemperament(
+                                        () -> grill24.fishtastic.client.companion.ClientCompanionsDev.devTemperament(
                                                 StringArgumentType.getString(ctx, "id"))))))
                 .then(Commands.literal("fake")
                         .then(Commands.argument("kind", StringArgumentType.word())
@@ -161,11 +161,11 @@ public class CompanionCommand {
                                         ctx.getSource().sendFailure(Component.literal("Unknown fake: " + kind));
                                         return 0;
                                     }
-                                    return client(ctx, () -> grill24.fishtastic.client.companion.ClientCompanions.devFake(kind));
+                                    return client(ctx, () -> grill24.fishtastic.client.companion.ClientCompanionsDev.devFake(kind));
                                 })))
                 // The predator scene (party D21, G4) now: your predator laps you, its prey hides.
                 .then(Commands.literal("predatorscene").executes(ctx -> client(ctx,
-                        grill24.fishtastic.client.companion.ClientCompanions::devPredatorScene)))
+                        grill24.fishtastic.client.companion.ClientCompanionsDev::devPredatorScene)))
                 // The ghost owner (party spec §28.3, D31): cross-player scenes, alone.
                 .then(Commands.literal("ghost")
                         .then(Commands.literal("add")
@@ -198,9 +198,9 @@ public class CompanionCommand {
                             return 1;
                         }))
                 .then(Commands.literal("hurt").executes(ctx -> client(ctx,
-                        grill24.fishtastic.client.companion.ClientCompanions::devHurt)))
+                        grill24.fishtastic.client.companion.ClientCompanionsDev::devHurt)))
                 .then(Commands.literal("drowsy").executes(ctx -> client(ctx,
-                        grill24.fishtastic.client.companion.ClientCompanions::devDrowsy)))
+                        grill24.fishtastic.client.companion.ClientCompanionsDev::devDrowsy)))
                 .then(Commands.literal("feature")
                         .then(Commands.argument("kind", StringArgumentType.word())
                                 .suggests((c, b) -> SharedSuggestionProvider.suggest(
@@ -212,14 +212,14 @@ public class CompanionCommand {
                                         java.util.List.of("cold", "warm", "glum", "glee", "sleepy", "moon", "off"), b))
                                 .executes(ctx -> {
                                     String mood = StringArgumentType.getString(ctx, "mood");
-                                    return client(ctx, () -> grill24.fishtastic.client.companion.ClientCompanions.devMood(mood));
+                                    return client(ctx, () -> grill24.fishtastic.client.companion.ClientCompanionsDev.devMood(mood));
                                 })))
                 .then(Commands.literal("ground").executes(ctx -> client(ctx,
-                        grill24.fishtastic.client.companion.ClientCompanions::devGround)))
+                        grill24.fishtastic.client.companion.ClientCompanionsDev::devGround)))
                 .then(Commands.literal("climb").executes(ctx -> client(ctx,
-                        grill24.fishtastic.client.companion.ClientCompanions::devClimb)))
+                        grill24.fishtastic.client.companion.ClientCompanionsDev::devClimb)))
                 .then(Commands.literal("tumble").executes(ctx -> client(ctx,
-                        grill24.fishtastic.client.companion.ClientCompanions::devTumble)))
+                        grill24.fishtastic.client.companion.ClientCompanionsDev::devTumble)))
                 .then(Commands.literal("swell")
                         .executes(ctx -> client(ctx, () -> "Upright benthic swell gain: "
                                 + grill24.fishtastic.client.renderer.CompanionRender.uprightSwell
@@ -243,12 +243,12 @@ public class CompanionCommand {
                             });
                         })))
                 .then(Commands.literal("catchdemo").executes(ctx -> client(ctx,
-                        grill24.fishtastic.client.companion.ClientCompanions::devOpenCatchDemo)))
+                        grill24.fishtastic.client.companion.ClientCompanionsDev::devOpenCatchDemo)))
                 .then(Commands.literal("catch").executes(ctx -> client(ctx,
-                        grill24.fishtastic.client.companion.ClientCompanions::devForceCatch)))
+                        grill24.fishtastic.client.companion.ClientCompanionsDev::devForceCatch)))
                 .then(Commands.literal("phantom")
                         .then(Commands.literal("off").executes(ctx -> client(ctx, () -> {
-                            grill24.fishtastic.client.companion.ClientCompanions.clearPhantoms();
+                            grill24.fishtastic.client.companion.ClientCompanionsDev.clearPhantoms();
                             return "Dev phantoms removed";
                         })))
                         .then(Commands.argument("species", IdentifierArgument.id())
@@ -318,7 +318,7 @@ public class CompanionCommand {
         }
         ItemStack fish = new ItemStack(item.get());
         size.ifPresent(cm -> ItemSizeHelper.setSize(fish, cm));
-        return client(ctx, () -> grill24.fishtastic.client.companion.ClientCompanions.devAddPhantom(fish));
+        return client(ctx, () -> grill24.fishtastic.client.companion.ClientCompanionsDev.devAddPhantom(fish));
     }
 
     /** Dev: sets one species' catch count, so a scene can park a species just below or at its gate. */

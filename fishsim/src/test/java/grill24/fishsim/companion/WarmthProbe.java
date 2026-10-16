@@ -15,7 +15,7 @@ class WarmthProbe {
             for (String script : java.util.List.of("idle_fixed", "idle_looking")) {
                 for (long seed = 1; seed <= 3; seed++) {
                     CompanionRun run = new CompanionRun(script, seed, c, CompanionTunables.defaults(), true);
-                    MoodScenes.apply(run, MoodScenes.named("warm"), run.owner.feet());
+                    MoodScenes.apply(run, MoodPresets.named("warm"), run.owner.feet());
                     Vec fire = run.script.ambient.warmth().get(0);
                     int first = -1, baskTicks = 0, entries = 0;
                     double minD = 99;

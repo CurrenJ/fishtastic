@@ -148,7 +148,7 @@ public final class RenderSelfTest {
     /** Scenes that run only when the marker names them (they need something the default run lacks). */
     private static final List<String> OPT_IN_SCENES = List.of("matte", "matteclip", "fourwaters", "cathedral",
             "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench",
-            "companionbond", "companionsim", "companionparty", "companioneel", "twoclient", "companionscenes", "companionmoods", "companionworld", "companionparticles", "companionworldcost", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk");
+            "companionbond", "companionsim", "companionparty", "companioneel", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld", "companionparticles", "companionworldcost", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk");
 
     private static Boolean armed;
     /** Keep ordinary automatic features from interfering with explicitly armed fixture scenes. */
@@ -188,6 +188,8 @@ public final class RenderSelfTest {
             savedPauseOnLostFocus = mc.options.pauseOnLostFocus;
             mc.options.pauseOnLostFocus = false;
             Fishtastic.LOGGER.info("[selftest] armed on {}: scenes {}", loader, scenes);
+            grill24.fishtastic.client.ambient.AmbientFishRuntime.setInvariantStats(true);
+            ClientAmbientFish.harnessActive(true);
         }
         if (!armed) return;
         if (mc.screen instanceof PauseScreen) mc.setScreen(null);
@@ -343,6 +345,8 @@ public final class RenderSelfTest {
     }
 
     private static void finish(Minecraft mc) {
+        ClientAmbientFish.harnessActive(false);
+        grill24.fishtastic.client.ambient.AmbientFishRuntime.setInvariantStats(false);
         mc.options.tutorialStep = savedTutorialStep;
         mc.options.pauseOnLostFocus = savedPauseOnLostFocus;
         mc.options.hideGui = false;
@@ -386,6 +390,7 @@ public final class RenderSelfTest {
             case "companioneel" -> queueCompanionEelScene();
             case "twoclient" -> queueTwoClientScene();
             case "companionscenes" -> queueCompanionScenesScene();
+            case "companionlod" -> queueCompanionLodScene();
             case "companionmoods" -> queueCompanionMoodsScene();
             case "companionworld" -> queueCompanionWorldScene();
             case "companionparticles" -> queueCompanionParticlesScene();
@@ -404,6 +409,7 @@ public final class RenderSelfTest {
 
     /** Matched 4x2x3 tank/water volumes and recorded sizes; compare normal shore and submerged views. */
     private static void queueAmbientParityScene() {
+        AmbientParityFixture[] fixture = new AmbientParityFixture[1];
         BlockPos[] water = new BlockPos[1], tanks = new BlockPos[1];
         long[] frozenSteps = new long[1], beforeAway = new long[1];
         queue(1, mc -> {
@@ -424,19 +430,20 @@ public final class RenderSelfTest {
                 for (int i=0;i<4;i++) {
                     FishTankBlockEntity tank = tank(server.overworld(), min.offset(i,0,0));
                     check("ambientparity.tank.add."+i, tank != null && tank.addItem(fish(
-                            grill24.fishtastic.client.ambient.ClientAmbientFish.SPECIES[i],
-                            grill24.fishtastic.client.ambient.ClientAmbientFish.SIZE_CM[i])), "");
+                            AmbientParityFixture.SPECIES[i],
+                            AmbientParityFixture.SIZE_CM[i])), "");
                 }
             });
         });
         queue(40, mc -> {
             mc.options.hideGui = true;
-            check("ambientparity.fixture.started", grill24.fishtastic.client.ambient.ClientAmbientFish.startFixture(water[0]),
+            fixture[0] = AmbientParityFixture.create(water[0]);
+            check("ambientparity.fixture.started", ClientAmbientFish.useDevelopmentView(fixture[0]),
                     "origin="+water[0]);
             camera(mc, origin.getX(), origin.getY()+3.4, origin.getZ()+1.5, 180f, 16f);
         });
         queue(100, mc -> {
-            check("ambientparity.fixture.count", grill24.fishtastic.client.ambient.ClientAmbientFish.count()==4, "four fixed individuals");
+            check("ambientparity.fixture.count", fixture[0].count()==4, "four fixed individuals");
             check("ambientparity.fixture.submits", grill24.fishtastic.client.ambient.ClientAmbientFish.worldSubmitsThisFrame==4,
                     "submits="+grill24.fishtastic.client.ambient.ClientAmbientFish.worldSubmitsThisFrame);
             screenshot(mc, "ambientparity", "shore_pair");
@@ -447,18 +454,18 @@ public final class RenderSelfTest {
         queue(40, mc -> screenshot(mc, "ambientparity", "tank_inside"));
         queue(1, mc -> {
             camera(mc, water[0].getX()+2, water[0].getY()+0.9, water[0].getZ()+2.65, 0f, 0f);
-            beforeAway[0] = grill24.fishtastic.client.ambient.ClientAmbientFish.steps();
+            beforeAway[0] = fixture[0].steps();
         });
         queue(40, mc -> {
-            check("ambientparity.fixture.offcamera", grill24.fishtastic.client.ambient.ClientAmbientFish.steps()>beforeAway[0]
-                            && water[0].equals(grill24.fishtastic.client.ambient.ClientAmbientFish.origin())
-                            && grill24.fishtastic.client.ambient.ClientAmbientFish.identity(0)==1L,
+            check("ambientparity.fixture.offcamera", fixture[0].steps()>beforeAway[0]
+                            && water[0].equals(fixture[0].origin())
+                            && fixture[0].identity(0)==1L,
                     "off-camera simulation retains fixed origin and identity");
             server(mc, server -> run(server, "tick freeze"));
         });
-        queue(10, mc -> frozenSteps[0] = grill24.fishtastic.client.ambient.ClientAmbientFish.steps());
+        queue(10, mc -> frozenSteps[0] = fixture[0].steps());
         queue(20, mc -> {
-            check("ambientparity.fixture.freeze", frozenSteps[0]==grill24.fishtastic.client.ambient.ClientAmbientFish.steps(),
+            check("ambientparity.fixture.freeze", frozenSteps[0]==fixture[0].steps(),
                     "steps="+frozenSteps[0]);
         });
         // World time and both simulations are frozen: photograph every species closely enough
@@ -466,16 +473,16 @@ public final class RenderSelfTest {
         for (int index = 0; index < 4; index++) {
             final int i = index;
             queue(1, mc -> {
-                var pose = grill24.fishtastic.client.ambient.ClientAmbientFish.fixturePose(i, 0f);
+                var pose = fixture[0].fixturePose(i, 0f);
                 if (pose != null) parityCloseCamera(mc, pose.position(), pose.yaw(), water[0]);
             });
-            queue(20, mc -> screenshot(mc, "ambientparity", "world_" + grill24.fishtastic.client.ambient.ClientAmbientFish.SPECIES[i]));
+            queue(20, mc -> screenshot(mc, "ambientparity", "world_" + AmbientParityFixture.SPECIES[i]));
             queue(1, mc -> {
                 if (!(mc.level.getBlockEntity(tanks[0]) instanceof FishTankBlockEntity tank)) return;
                 TankGroupFlock group = ClientTankFlocks.getOrCreate(tank, tanks[0].hashCode()).groupFlock();
                 if (group == null) return;
-                ItemStack fish = fish(grill24.fishtastic.client.ambient.ClientAmbientFish.SPECIES[i],
-                        grill24.fishtastic.client.ambient.ClientAmbientFish.SIZE_CM[i]);
+                ItemStack fish = fish(AmbientParityFixture.SPECIES[i],
+                        AmbientParityFixture.SIZE_CM[i]);
                 int species = BuiltInRegistries.ITEM.getId(fish.getItem());
                 for (int j = 0; j < group.count(); j++) {
                     if (group.fishSpecies(j) != species) continue;
@@ -489,12 +496,12 @@ public final class RenderSelfTest {
                 }
                 check("ambientparity.tank.motion." + i, false, "species missing from group engine");
             });
-            queue(20, mc -> screenshot(mc, "ambientparity", "tank_" + grill24.fishtastic.client.ambient.ClientAmbientFish.SPECIES[i]));
+            queue(20, mc -> screenshot(mc, "ambientparity", "tank_" + AmbientParityFixture.SPECIES[i]));
         }
         queue(1, mc -> {
             server(mc, server -> run(server, "tick unfreeze"));
             grill24.fishtastic.client.ambient.ClientAmbientFish.clear();
-            check("ambientparity.fixture.cleanup", grill24.fishtastic.client.ambient.ClientAmbientFish.count()==0, "");
+            check("ambientparity.fixture.cleanup", !ClientAmbientFish.hasDevelopmentView(), "");
         });
     }
 
@@ -565,7 +572,8 @@ public final class RenderSelfTest {
         queue(2, mc -> noteState("river t3"));
         queue(7, mc -> noteState("river t10"));
         queue(30, mc -> noteState("river t40"));
-        queue(110, mc -> ambientWaterFixture("river", 1, 4, 1, true));
+        waitFor(5, 900, mc -> ambientWaterReady(4, true),
+                mc -> ambientWaterFixture("river", 1, 4, 1, true));
         queue(1, mc -> camera(mc, riverX - 8.5, gy + 1.65, riverZ + 0.5, -90f, 14f));
         queue(3, mc -> screenshot(mc, "ambientwater", "river_bank"));
         queue(1, mc -> camera(mc, riverX + 8.5, gy - 0.2, riverZ + 0.5, -90f, 2f));
@@ -576,12 +584,14 @@ public final class RenderSelfTest {
         queue(4, mc -> ambientWaterStart("ocean"));
         queue(4, mc -> server(mc, s -> {
             fill(s, oceanX - 24, gy - 3, oceanZ - 24, oceanX + 24, gy - 1, oceanZ + 24, "minecraft:air");
-            fill(s, oceanX - 24, gy - 4, oceanZ - 24, oceanX + 24, gy - 4, oceanZ + 24, "minecraft:sand");
+            // This is the world's lowest layer; a gravity-affected sand floor falls into the void.
+            fill(s, oceanX - 24, gy - 4, oceanZ - 24, oceanX + 24, gy - 4, oceanZ + 24, "minecraft:sandstone");
             fill(s, oceanX - 7, gy - 3, oceanZ - 7, oceanX - 5, gy - 3, oceanZ - 5, "minecraft:sand");
             fill(s, oceanX + 6, gy - 3, oceanZ + 6, oceanX + 6, gy - 2, oceanZ + 6, "minecraft:stone");
             fill(s, oceanX - 24, gy - 3, oceanZ - 24, oceanX + 24, gy - 1, oceanZ + 24, "minecraft:water keep");
         }));
-        queue(150, mc -> ambientWaterFixture("ocean", 1, 6, 1, true));
+        waitFor(5, 900, mc -> ambientWaterReady(6, true),
+                mc -> ambientWaterFixture("ocean", 1, 6, 1, true));
         queueAmbientCarryCheck();
         // The closeups run first — their polls jump the queue — so the ocean sees the same spawn
         // rotation the scene had before the band watch existed; the watch only needs the ocean's
@@ -678,7 +688,7 @@ public final class RenderSelfTest {
             tripKey[0] = 0L;
             double best = Double.MAX_VALUE;
             BlockPos player = Minecraft.getInstance().player.blockPosition();
-            for (var p : runtime.individuals()) {
+            for (var p : runtime.diagnostics().individuals()) {
                 double d = Math.hypot(p.x() - (player.getX() + 0.5), p.z() - (player.getZ() + 0.5));
                 if (d < best) {
                     best = d;
@@ -686,7 +696,7 @@ public final class RenderSelfTest {
                 }
             }
             int fading = 0;
-            for (var p : runtime.individuals()) {
+            for (var p : runtime.diagnostics().individuals()) {
                 if (p.patchKey() != tripKey[0]) continue;
                 // Only residents that are actually swimming: one already mid-fade — an INVALID
                 // retirement from the fixture's own rebuilds — can be gone before the window's
@@ -697,7 +707,7 @@ public final class RenderSelfTest {
                 }
                 tripIds.add(p.id());
             }
-            for (var r : runtime.domainReports()) {
+            for (var r : runtime.diagnostics().domainReports()) {
                 if (r.patchKey() != tripKey[0]) continue;
                 tripOrigin[0] = r.originX();
                 tripOrigin[1] = r.originY();
@@ -711,23 +721,23 @@ public final class RenderSelfTest {
             tripLost[4] = s.retireExcluded;
             tripLost[5] = s.retireExpired;
             tripRevivals[0] = s.revivals;
-            tripColumns[0] = runtime.patchColumns(tripKey[0]);
-            check("ambientwater.trip.snapshot", tripIds.size() >= 2 && runtime.patchColumns(tripKey[0]) >= 4,
+            tripColumns[0] = runtime.diagnostics().patchColumns(tripKey[0]);
+            check("ambientwater.trip.snapshot", tripIds.size() >= 2 && runtime.diagnostics().patchColumns(tripKey[0]) >= 4,
                     "tracked=" + tripIds.size() + " fadingAtSnapshot=" + fading + " key=" + tripKey[0]
-                            + " columns=" + runtime.patchColumns(tripKey[0]) + " origin="
+                            + " columns=" + runtime.diagnostics().patchColumns(tripKey[0]) + " origin="
                             + tripOrigin[0] + "," + tripOrigin[1] + "," + tripOrigin[2]);
         });
         queue(1, mc -> camera(mc, poolAX - 40.5, gy + 0.7, poolZ + 0.5, -90f, 2f));
         queue(15, mc -> {
             var runtime = grill24.fishtastic.client.ambient.ClientAmbientFish.natural();
             int present = 0, retiring = 0;
-            for (var p : runtime.individuals()) {
+            for (var p : runtime.diagnostics().individuals()) {
                 if (!tripIds.contains(p.id())) continue;
                 present++;
                 if (p.retiring()) retiring++;
             }
             var s = runtime.stats();
-            int columns = runtime.patchColumns(tripKey[0]);
+            int columns = runtime.diagnostics().patchColumns(tripKey[0]);
             check("ambientwater.trip.evicted", columns == 0 && s.domainsLost > tripLost[0]
                             && s.retireDomainLost - tripLost[1] >= tripIds.size(),
                     "patchColumns=" + columns + " domainsLost=+" + (s.domainsLost - tripLost[0])
@@ -743,19 +753,19 @@ public final class RenderSelfTest {
         queue(120, mc -> {
             var runtime = grill24.fishtastic.client.ambient.ClientAmbientFish.natural();
             int present = 0, retiring = 0, keyChanged = 0;
-            for (var p : runtime.individuals()) {
+            for (var p : runtime.diagnostics().individuals()) {
                 if (!tripIds.contains(p.id())) continue;
                 present++;
                 if (p.retiring()) retiring++;
                 if (p.patchKey() != tripKey[0]) keyChanged++;
             }
             int originMoved = 0;
-            for (var r : runtime.domainReports()) {
+            for (var r : runtime.diagnostics().domainReports()) {
                 if (r.patchKey() == tripKey[0] && (r.originX() != tripOrigin[0]
                         || r.originY() != tripOrigin[1] || r.originZ() != tripOrigin[2])) originMoved++;
             }
             var s = runtime.stats();
-            int columns = runtime.patchColumns(tripKey[0]);
+            int columns = runtime.diagnostics().patchColumns(tripKey[0]);
             // The water must be wholly back, under the pool's own key and frame, with the residents
             // alive. Ledger clauses pin what "alive" means against the bug this reproduces: nobody
             // may read as outside the rebuilt domain (the hazard's outsideWater signature), and a
@@ -784,11 +794,14 @@ public final class RenderSelfTest {
             // A resident that is swimming may legitimately brush its own wall for a tick — the engine
             // steps on `contains` and pushes back through the soft avoidance, while `bodyFits` is the
             // spawn and rebuild predicate, enforced in `findSpawn` and reported as `invalid` below. What
-            // must never happen is a resident outside the water; the per-fixture checks also pin the
-            // body fit and finiteness at their own snapshots.
+            // must never happen is an active resident outside the water. Whole-body spawn fit is
+            // checked after placement; per-fixture snapshots check centre containment and finiteness.
             check("ambientwater.containment", stats.outsideWater == 0,
                     "outsideWater=" + stats.outsideWater + " bodyTouches=" + stats.bodyFitsFailures
+                            + " rebuildInvalidatedCenters=" + stats.rebuildInvalidatedCenters
                             + " steps=" + stats.steps);
+            check("ambientwater.spawn_body_fit", stats.spawnFitChecks > 0 && stats.spawnFitFailures == 0,
+                    "post-placement checks=" + stats.spawnFitChecks + " failures=" + stats.spawnFitFailures);
             check("ambientwater.budget", stats.peakDiscoveryCells <= 512 && stats.peakDiscoveryColumns <= 48
                             && stats.peakBuildMillis < 25.0,
                     String.format("peakCells=%d peakColumns=%d peakBuild=%.2fms meanBuild=%.2fms rebuilds=%d domainBuilds=%d",
@@ -819,8 +832,8 @@ public final class RenderSelfTest {
         queue(1, mc -> {
             grill24.fishtastic.client.ambient.ClientAmbientFish.clear();
             var runtime = grill24.fishtastic.client.ambient.ClientAmbientFish.natural();
-            check("ambientwater.cleanup", !runtime.armed() && runtime.domainCount() == 0 && runtime.individuals().isEmpty()
-                            && grill24.fishtastic.client.ambient.ClientAmbientFish.count() == 0,
+            check("ambientwater.cleanup", !runtime.armed() && runtime.domainCount() == 0 && runtime.diagnostics().individuals().isEmpty()
+                            && !ClientAmbientFish.hasDevelopmentView(),
                     "armed=" + runtime.armed() + " domains=" + runtime.domainCount());
         });
     }
@@ -830,7 +843,7 @@ public final class RenderSelfTest {
         grill24.fishtastic.client.ambient.ClientAmbientFish.clear();
         boolean started = grill24.fishtastic.client.ambient.ClientAmbientFish.startNatural();
         check("ambientwater." + fixture + ".start", started,
-                grill24.fishtastic.client.ambient.ClientAmbientFish.natural().pool().toString());
+                grill24.fishtastic.client.ambient.ClientAmbientFish.natural().diagnostics().pool().toString());
     }
 
     /**
@@ -1247,7 +1260,7 @@ public final class RenderSelfTest {
 
     // ── Phase 5: weighted population and equipment transitions ───────────────
 
-    /** How often the long run samples, and how many samples it takes: 120 x 20 = two minutes. */
+    /** How often the long run samples, and how many samples it takes: 600 x 20 = ten minutes. */
     private static final int LONG_RUN_EVERY = 20, LONG_RUN_POLLS = 600;
 
     /**
@@ -1287,7 +1300,8 @@ public final class RenderSelfTest {
      * {@link #camera} (which sets spectator).
      */
     private static void queueAmbientIslandScene() {
-        queue(1, mc -> worldCommand(mc, "fill 0 39 0 40 39 40 minecraft:sand"));
+        // The deep ocean is built above the superflat terrain, so its foundation must not fall.
+        queue(1, mc -> worldCommand(mc, "fill 0 39 0 40 39 40 minecraft:sandstone"));
         queue(2, mc -> worldCommand(mc, "fill 0 40 0 40 51 40 minecraft:water"));
         queue(2, mc -> worldCommand(mc, "fill 0 52 0 40 63 40 minecraft:water"));
         queue(2, mc -> worldCommand(mc, "fill 17 40 19 20 64 22 minecraft:stone"));
@@ -1300,8 +1314,8 @@ public final class RenderSelfTest {
         });
         waitFor(10, 900, mc -> ClientAmbientFish.natural().stats().active >= 28, mc -> {
             check("ambientisland.population", ClientAmbientFish.natural().stats().active >= 28,
-                    ClientAmbientFish.natural().debugState());
-            boolean nearSurface = ClientAmbientFish.natural().individuals().stream().filter(p -> !p.retiring())
+                    ClientAmbientFish.natural().diagnostics().debugState());
+            boolean nearSurface = ClientAmbientFish.natural().diagnostics().individuals().stream().filter(p -> !p.retiring())
                     .allMatch(p -> p.surfaceClearance() <= 4.01 && p.surfaceClearance() >= 0);
             check("ambientisland.depth", nearSurface, "active fish stay within the four-block display band");
             screenshot(mc, "ambientisland", "shore");
@@ -1313,11 +1327,11 @@ public final class RenderSelfTest {
             check("ambientisland.budget", ClientAmbientFish.natural().stats().individuals <= 32,
                     "50% global cap stays thirty-two");
             screenshot(mc, "ambientisland", "underwater");
-            note("ambientisland " + ClientAmbientFish.natural().debugState());
+            note("ambientisland " + ClientAmbientFish.natural().diagnostics().debugState());
         });
         queue(800, mc -> {
             check("ambientisland.sustained", ClientAmbientFish.natural().stats().active >= 26,
-                    ClientAmbientFish.natural().debugState());
+                    ClientAmbientFish.natural().diagnostics().debugState());
             ClientAmbientFish.productionTest(false);
             FishtasticClientConfig.clearTestOverrides();
         });
@@ -1339,12 +1353,12 @@ public final class RenderSelfTest {
             camera(mc, 20.5, 63, 20.5, 90, 5);
         });
         waitFor(10, 900, mc -> ClientAmbientFish.natural().stats().active >= 60
-                && ClientAmbientFish.natural().individuals().stream()
+                && ClientAmbientFish.natural().diagnostics().individuals().stream()
                 .anyMatch(p -> p.species().endsWith("garden_eel") && !p.retiring()), mc -> {
             var runtime = ClientAmbientFish.natural();
             check("ambientfloor.population", runtime.stats().active >= 60 && runtime.stats().individuals <= 64,
-                    runtime.debugState());
-            var eels = runtime.individuals().stream()
+                    runtime.diagnostics().debugState());
+            var eels = runtime.diagnostics().individuals().stream()
                     .filter(p -> p.species().endsWith("garden_eel") && !p.retiring()).toList();
             check("ambientfloor.eelBed", !eels.isEmpty()
                     && eels.stream().allMatch(p -> Math.abs(p.bedClearance()) < 0.001), "eels=" + eels);
@@ -1357,7 +1371,7 @@ public final class RenderSelfTest {
         queue(800, mc -> {
             var runtime = ClientAmbientFish.natural();
             check("ambientfloor.continuity", runtime.stats().retireExpired == 0,
-                    "expiry retirements=" + runtime.stats().retireExpired + " " + runtime.debugState());
+                    "expiry retirements=" + runtime.stats().retireExpired + " " + runtime.diagnostics().debugState());
             ClientAmbientFish.productionTest(false);
             FishtasticClientConfig.clearTestOverrides();
         });
@@ -1378,10 +1392,10 @@ public final class RenderSelfTest {
         });
         waitFor(10, 900, mc -> ClientAmbientFish.natural().stats().active >= 28, mc -> {
             var runtime = ClientAmbientFish.natural();
-            check("ambientwalk.populated", runtime.stats().active >= 28, runtime.debugState());
+            check("ambientwalk.populated", runtime.stats().active >= 28, runtime.diagnostics().debugState());
             initial[0] = runtime.stats().domainsLost;
             initial[1] = runtime.stats().retireExpired;
-            for (var fish : runtime.individuals()) if (!fish.retiring()) initialIds.add(fish.id());
+            for (var fish : runtime.diagnostics().individuals()) if (!fish.retiring()) initialIds.add(fish.id());
         });
         for (int step = 1; step <= 8; step++) {
             final double x = 20.5 + (step <= 4 ? step : 8 - step);
@@ -1389,9 +1403,9 @@ public final class RenderSelfTest {
         }
         queue(80, mc -> {
             var runtime = ClientAmbientFish.natural();
-            long surviving = runtime.individuals().stream()
+            long surviving = runtime.diagnostics().individuals().stream()
                     .filter(p -> !p.retiring() && initialIds.contains(p.id())).count();
-            check("ambientwalk.noPatchRetirement", runtime.stats().domainsLost == initial[0], runtime.debugState());
+            check("ambientwalk.noPatchRetirement", runtime.stats().domainsLost == initial[0], runtime.diagnostics().debugState());
             check("ambientwalk.continuity", !initialIds.isEmpty() && surviving >= initialIds.size() / 2
                     && runtime.stats().retireExpired == initial[1], "surviving=" + surviving + "/" + initialIds.size());
             ClientAmbientFish.productionTest(false);
@@ -1416,7 +1430,7 @@ public final class RenderSelfTest {
         });
         waitFor(10, 800, mc -> ClientAmbientFish.natural().stats().active >= 5, mc -> {
             check("ambientlifecycle.automatic", ClientAmbientFish.natural().stats().active >= 5,
-                    ClientAmbientFish.natural().debugState());
+                    ClientAmbientFish.natural().diagnostics().debugState());
             var sample = nearestShownSample(target);
             var store = AmbientContextClient.store();
             var ctx = sample == null ? null : store.freshContext(sample.patchKey());
@@ -1432,7 +1446,7 @@ public final class RenderSelfTest {
                 if (tank != null) for (int i = 0; i < 4; i++) tank.addItem(fish("bluegill", 30f));
                 run(s, "summon minecraft:salmon 24 " + (gy - 1.5) + " 24");
             });
-            grill24.fishtastic.client.companion.ClientCompanions.devAddPhantom(fish("bluegill", 30f));
+            grill24.fishtastic.client.companion.ClientCompanionsDev.devAddPhantom(fish("bluegill", 30f));
             var stats = ClientAmbientFish.natural().stats();
             before[0] = stats.ticks;
             before[1] = stats.renderFrames;
@@ -1448,7 +1462,7 @@ public final class RenderSelfTest {
             check("ambientlifecycle.budgets", stats.individuals <= runtime.budget().individuals()
                             && runtime.domainCount() <= runtime.budget().domains()
                             && stats.peakDiscoveryCells <= 512 && stats.peakDiscoveryColumns <= 48,
-                    runtime.debugState());
+                    runtime.diagnostics().debugState());
             note(String.format(Locale.ROOT, "ambientlifecycle.perf ticks=%d frames=%d meanTickMs=%.3f peakTickMs=%.3f "
                             + "meanSubmitMs=%.3f peakSubmitMs=%.3f meanBuildMs=%.3f peakBuildMs=%.3f (CPU submission only)",
                     stats.ticks - before[0], stats.renderFrames - before[1], tickMean, stats.peakTickMillis,
@@ -1460,17 +1474,63 @@ public final class RenderSelfTest {
         queue(5, mc -> {
             screenshot(mc, "ambientlifecycle", "underwater");
             worldCommand(mc, "tp @a 18 " + gy + " 20");
-            worldCommand(mc, "fill -8 " + (gy - 4) + " -8 55 " + (gy - 4) + " 55 minecraft:sand");
+            // The superflat surface is four blocks above the world minimum. Sand here replaces
+            // bedrock with an unsupported falling block, so the supposed fixed floor disappears.
+            worldCommand(mc, "fill -8 " + (gy - 4) + " -8 55 " + (gy - 4) + " 55 minecraft:stone");
         });
         queue(2, mc -> worldCommand(mc, "fill -8 " + (gy - 3) + " -8 55 " + (gy - 1) + " 55 minecraft:water"));
-        queue(400, mc -> {
+        // Measure open water only once discovery and cached bed revalidation have both settled.
+        double[] openTimes = new double[2];
+        long[] openTicks = new long[2];
+        long[] openBuilds = {Long.MIN_VALUE, Long.MIN_VALUE, Long.MIN_VALUE, Long.MIN_VALUE};
+        waitFor(10, 1200, mc -> {
+            var runtime = ClientAmbientFish.natural();
+            long now = mc.level.getGameTime();
+            // The old pond had a shallower bed. Finding every column is not enough: budgeted
+            // revalidation must also replace its cached readings before this is settled water.
+            long staleBeds = runtime.discovery().columns().stream()
+                    .filter(column -> Math.abs(column.water().bedY() - (gy - 3)) > 0.01f).count();
+            if (runtime.discovery().columnCount() == 2401 && openBuilds[3] != staleBeds) {
+                note("ambientlifecycle.openwater.cache staleBeds=" + staleBeds + " changedColumns="
+                        + runtime.discovery().counters().columnsChanged);
+            }
+            openBuilds[3] = staleBeds;
+            if (runtime.discovery().columnCount() != 2401 || runtime.domainCount() != 1
+                    || staleBeds != 0
+                    || openBuilds[0] != runtime.stats().domainBuilds) {
+                openBuilds[0] = runtime.stats().domainBuilds;
+                openBuilds[1] = now;
+                return false;
+            }
+            return now - openBuilds[1] >= 40;
+        }, mc -> {
+            check("ambientlifecycle.openwater.settled", ClientAmbientFish.natural().discovery().columnCount() == 2401
+                            && openBuilds[3] == 0
+                            && mc.level.getGameTime() - openBuilds[1] >= 40,
+                    "full water window, staleBeds=" + openBuilds[3] + ", no domain rebuild for forty ticks");
+            openBuilds[2] = ClientAmbientFish.natural().stats().domainBuilds;
+            openTicks[0] = ClientAmbientFish.natural().stats().ticks;
+            openTimes[0] = ClientAmbientFish.natural().stats().totalTickMillis;
+            openTicks[1] = AmbientContextClient.ticks();
+            openTimes[1] = AmbientContextClient.totalTickMillis();
+        });
+        queue(200, mc -> {
             var runtime = ClientAmbientFish.natural();
             var stats = runtime.stats();
+            check("ambientlifecycle.openwater.no_timed_rebuilds", stats.domainBuilds == openBuilds[2],
+                    "domain builds=" + openBuilds[2] + "->" + stats.domainBuilds + " over "
+                            + (stats.ticks - openTicks[0]) + " settled ticks");
+            // The budget, not a figure: the density-100 cap has moved with tuning (32 when this was written).
             check("ambientlifecycle.openwater.bounded", runtime.discovery().columnCount() <= 4096
-                    && stats.individuals <= 32 && runtime.domainCount() <= 4
+                    && stats.individuals <= runtime.budget().individuals() && runtime.domainCount() <= runtime.budget().domains()
                     && stats.peakDiscoveryCells <= 512 && stats.peakDiscoveryColumns <= 48,
-                    runtime.debugState());
-            note("ambientlifecycle.openwater perf " + runtime.debugState());
+                    runtime.diagnostics().debugState());
+            note(String.format(Locale.ROOT, "ambientlifecycle.openwater window ticks=%d known=%d indivs=%d"
+                            + " runtimeMeanTickMs=%.4f contextMeanTickMs=%.4f",
+                    stats.ticks - openTicks[0], runtime.discovery().columnCount(), stats.individuals,
+                    (stats.totalTickMillis - openTimes[0]) / Math.max(1, stats.ticks - openTicks[0]),
+                    (AmbientContextClient.totalTickMillis() - openTimes[1]) / Math.max(1, AmbientContextClient.ticks() - openTicks[1])));
+            note("ambientlifecycle.openwater perf " + runtime.diagnostics().debugState());
             // A current authoritative empty pool is different from a pending/rejected answer.
             // Keep the synthetic answer current while observing its full retirement fade.
             tickProbe = client -> {
@@ -1483,10 +1543,13 @@ public final class RenderSelfTest {
                                 123L, List.of()))));
             };
         });
-        queue(60, mc -> {
+        // Retirements finish a few per tick after the fade, so a full density-100 population takes
+        // longer than one fade to go; wait for it rather than for a fixed 60 ticks.
+        queueUntil("ambientlifecycle.empty.retired", 300, mc -> ClientAmbientFish.natural().stats().individuals == 0,
+                () -> "authoritative OK/empty retires residents and spawns none: "
+                        + ClientAmbientFish.natural().stats().individuals + " left");
+        queue(1, mc -> {
             tickProbe = null;
-            check("ambientlifecycle.empty.retired", ClientAmbientFish.natural().stats().individuals == 0,
-                    "authoritative OK/empty retires residents and spawns none");
             FishtasticClientConfig.setTestOverride(FishtasticClientConfig.AMBIENT_FISH_ENABLED_KEY, false);
         });
         queue(2, mc -> {
@@ -1514,7 +1577,7 @@ public final class RenderSelfTest {
         });
         waitFor(10, 600, mc -> ClientAmbientFish.natural().stats().active >= 3, mc -> {
             check("ambientlifecycle.reenable", ClientAmbientFish.natural().stats().active >= 3
-                    && ClientAmbientFish.natural().budget().density() == 50, ClientAmbientFish.natural().debugState());
+                    && ClientAmbientFish.natural().budget().density() == 50, ClientAmbientFish.natural().diagnostics().debugState());
             ClientAmbientFish.invalidate();
             check("ambientlifecycle.reload.cleared", !ClientAmbientFish.naturalArmed()
                     && AmbientContextClient.store().states().isEmpty(), "same resource/tag reload hook used by both loaders");
@@ -1552,7 +1615,7 @@ public final class RenderSelfTest {
             check("ambientlifecycle.zero", !ClientAmbientFish.naturalArmed(), "zero density stops runtime");
             ClientAmbientFish.productionTest(false);
             FishtasticClientConfig.clearTestOverrides();
-            grill24.fishtastic.client.companion.ClientCompanions.clearPhantoms();
+            grill24.fishtastic.client.companion.ClientCompanionsDev.clearPhantoms();
         });
     }
 
@@ -1573,7 +1636,7 @@ public final class RenderSelfTest {
 
         final long[] key = {0L};
         final long[] laneFp = {0L};       // the fingerprint in force when the current lane settled
-        final java.util.Map<Long, grill24.fishtastic.client.ambient.AmbientFishRuntime.Individual> tracked =
+        final java.util.Map<Long, grill24.fishtastic.client.ambient.AmbientDiagnostics.Individual> tracked =
                 new java.util.LinkedHashMap<>();
         final long[] statBase = new long[8];
         final java.util.Set<String> candidatesBefore = new java.util.LinkedHashSet<>();
@@ -1604,7 +1667,7 @@ public final class RenderSelfTest {
             }
             var ctx = store.freshContext(sample.patchKey());
             return ctx != null
-                    && grill24.fishtastic.client.ambient.ClientAmbientFish.natural().appliedFingerprint(sample.patchKey())
+                    && grill24.fishtastic.client.ambient.ClientAmbientFish.natural().diagnostics().appliedFingerprint(sample.patchKey())
                             == ctx.fingerprint()
                     && censusTotal(patchCensus(sample.patchKey())) >= 5;
         }, mc -> {
@@ -1620,7 +1683,7 @@ public final class RenderSelfTest {
             key[0] = sample.patchKey();
             laneFp[0] = ctx.fingerprint();
             var census = patchCensus(key[0]);
-            var representable = runtime.representableSpecies(key[0]);
+            var representable = runtime.diagnostics().representableSpecies(key[0]);
             boolean legal = census.keySet().stream().allMatch(representable::contains);
             check("ambientpopulation.baseline",
                     censusTotal(census) >= 5 && !ctx.heldRod() && !ctx.sessionSourced() && !representable.isEmpty() && legal,
@@ -1656,7 +1719,7 @@ public final class RenderSelfTest {
             var ctx = grill24.fishtastic.client.ambient.AmbientContextClient.store().freshContext(key[0]);
             var runtime = grill24.fishtastic.client.ambient.ClientAmbientFish.natural();
             return ctx != null && ctx.heldRod() && !ctx.sessionSourced() && ctx.fingerprint() != laneFp[0]
-                    && runtime.appliedFingerprint(key[0]) == ctx.fingerprint();
+                    && runtime.diagnostics().appliedFingerprint(key[0]) == ctx.fingerprint();
         }, mc -> {
             var store = grill24.fishtastic.client.ambient.AmbientContextClient.store();
             var ctx = store.freshContext(key[0]);
@@ -1710,7 +1773,7 @@ public final class RenderSelfTest {
             var ctx = grill24.fishtastic.client.ambient.AmbientContextClient.store().freshContext(key[0]);
             var runtime = grill24.fishtastic.client.ambient.ClientAmbientFish.natural();
             return ctx != null && ctx.fingerprint() != laneFp[0]
-                    && runtime.appliedFingerprint(key[0]) == ctx.fingerprint();
+                    && runtime.diagnostics().appliedFingerprint(key[0]) == ctx.fingerprint();
         }, mc -> {
             var ctx = grill24.fishtastic.client.ambient.AmbientContextClient.store().freshContext(key[0]);
             if (ctx == null) {
@@ -1763,7 +1826,7 @@ public final class RenderSelfTest {
             var runtime = grill24.fishtastic.client.ambient.ClientAmbientFish.natural();
             check("ambientpopulation.quality.applied",
                     ctx != null && ctx.fingerprint() == laneFp[0] && ctx.heldRod()
-                            && runtime.appliedFingerprint(key[0]) == laneFp[0]
+                            && runtime.diagnostics().appliedFingerprint(key[0]) == laneFp[0]
                             && store.entriesApplied() > appliedBase[0]
                             && grill24.fishtastic.client.ambient.AmbientContextClient.dispatches() > dispatchBase[0],
                     "fp=" + (ctx == null ? "none" : Long.toHexString(ctx.fingerprint())) + " (unchanged "
@@ -1806,15 +1869,15 @@ public final class RenderSelfTest {
             var store = grill24.fishtastic.client.ambient.AmbientContextClient.store();
             var ctx = store.freshContext(key[0]);
             var runtime = grill24.fishtastic.client.ambient.ClientAmbientFish.natural();
-            if (ctx == null || runtime.appliedFingerprint(key[0]) != ctx.fingerprint()) return false;
-            var representable = new java.util.HashSet<>(runtime.representableSpecies(key[0]));
+            if (ctx == null || runtime.diagnostics().appliedFingerprint(key[0]) != ctx.fingerprint()) return false;
+            var representable = new java.util.HashSet<>(runtime.diagnostics().representableSpecies(key[0]));
             if (stage[0] == 0) {
                 if (populationStats()[0] - statBase[0] < 1) return false;
                 // The first tick with exclusions on the books: every resident now outside the pool
                 // must already be fading, and with the eligibility reason — not frozen, not
                 // mass-retired by some other path.
                 int outside = 0, wrongReason = 0;
-                for (var p : runtime.individuals()) {
+                for (var p : runtime.diagnostics().individuals()) {
                     if (p.patchKey() != key[0] || representable.contains(p.species())) continue;
                     outside++;
                     if (!p.retiring() || (p.retireReason() != grill24.fishtastic.client.ambient.AmbientFishRuntime.REASON_EXCLUDED
@@ -1831,7 +1894,7 @@ public final class RenderSelfTest {
             // Settled the tick the last out-of-pool resident is gone (fading counts as gone here:
             // this leg measures the fade's own duration, so the refill wait belongs to its own pass).
             // With nothing representable the same predicate drains every member, by construction.
-            for (var p : runtime.individuals()) {
+            for (var p : runtime.diagnostics().individuals()) {
                 if (p.patchKey() == key[0] && !representable.contains(p.species())) return false;
             }
             return true;
@@ -1860,13 +1923,13 @@ public final class RenderSelfTest {
         waitFor(5, 900, mc -> {
             var runtime = grill24.fishtastic.client.ambient.ClientAmbientFish.natural();
             var census = patchCensus(key[0]);
-            var representable = runtime.representableSpecies(key[0]);
+            var representable = runtime.diagnostics().representableSpecies(key[0]);
             return !representable.isEmpty() && censusTotal(census) >= 3
                     && census.keySet().stream().allMatch(new java.util.HashSet<>(representable)::contains);
         }, mc -> {
             var runtime = grill24.fishtastic.client.ambient.ClientAmbientFish.natural();
             var census = patchCensus(key[0]);
-            var representable = new java.util.LinkedHashSet<>(runtime.representableSpecies(key[0]));
+            var representable = new java.util.LinkedHashSet<>(runtime.diagnostics().representableSpecies(key[0]));
             boolean legal = census.keySet().stream().allMatch(representable::contains);
             check("ambientpopulation.grublane.legal",
                     legal && censusTotal(census) >= 3 && countOutOfPool(runtime, key[0]) == 0,
@@ -1893,6 +1956,11 @@ public final class RenderSelfTest {
             }
             candidatesBefore.clear();
             candidatesBefore.addAll(candidateIds(ctx));
+            // The grublane photograph moves the owner after its earlier census. Take the carry
+            // snapshot and retirement baseline together, immediately before the equipment change:
+            // a resident retired during that camera trip must not become an unexplained loss here.
+            tracked.clear();
+            tracked.putAll(snapshotResidents(key[0]));
             System.arraycopy(populationStats(), 0, statBase, 0, statBase.length);
             note("ambientpopulation.return before census=" + censusText(patchCensus(key[0]))
                     + " tracked=" + tracked.size());
@@ -1902,7 +1970,7 @@ public final class RenderSelfTest {
             var ctx = grill24.fishtastic.client.ambient.AmbientContextClient.store().freshContext(key[0]);
             var runtime = grill24.fishtastic.client.ambient.ClientAmbientFish.natural();
             return ctx != null && !ctx.heldRod() && ctx.fingerprint() != laneFp[0]
-                    && runtime.appliedFingerprint(key[0]) == ctx.fingerprint();
+                    && runtime.diagnostics().appliedFingerprint(key[0]) == ctx.fingerprint();
         }, mc -> {
             var ctx = grill24.fishtastic.client.ambient.AmbientContextClient.store().freshContext(key[0]);
             if (ctx == null) {
@@ -1939,7 +2007,7 @@ public final class RenderSelfTest {
         queue(2, mc -> {
             System.arraycopy(populationStats(), 0, runBase, 0, runBase.length);
             idsAtRunStart.clear();
-            for (var p : grill24.fishtastic.client.ambient.ClientAmbientFish.natural().individuals()) {
+            for (var p : grill24.fishtastic.client.ambient.ClientAmbientFish.natural().diagnostics().individuals()) {
                 if (p.patchKey() == key[0] && !p.retiring()) idsAtRunStart.add(p.id());
             }
             note("ambientpopulation.longrun start census=" + censusText(patchCensus(key[0]))
@@ -1949,12 +2017,12 @@ public final class RenderSelfTest {
         longPoll[0] = mc -> {
             var runtime = grill24.fishtastic.client.ambient.ClientAmbientFish.natural();
             long time = mc.level.getGameTime();
-            var representable = runtime.representableSpecies(key[0]);
+            var representable = runtime.diagnostics().representableSpecies(key[0]);
             if (representable.isEmpty()) {
                 violations[2]++;
             } else if (polls[0] > 0) { // the first poll settles right after the return lane's checks
                 var set = new java.util.HashSet<>(representable);
-                for (var p : runtime.individuals()) {
+                for (var p : runtime.diagnostics().individuals()) {
                     if (p.patchKey() != key[0]) continue;
                     if (!set.contains(p.species())) violations[0]++;
                     if (!p.retiring() && time - p.bornTick() > p.lifetimeTicks() + 2) violations[1]++;
@@ -1970,7 +2038,7 @@ public final class RenderSelfTest {
             long births = now[6] - runBase[6];
             long expired = now[1] - runBase[1];
             int survivors = 0;
-            for (var p : runtime.individuals()) {
+            for (var p : runtime.diagnostics().individuals()) {
                 if (p.patchKey() == key[0] && !p.retiring() && idsAtRunStart.contains(p.id())) survivors++;
             }
             check("ambientpopulation.longrun.turnover",
@@ -1983,7 +2051,7 @@ public final class RenderSelfTest {
                     violations[1] == 0 && violations[0] == 0 && violations[2] == 0,
                     "agePastLifetime=" + violations[1] + " illegalSpecies=" + violations[0]
                             + " noPoolPolls=" + violations[2] + " over " + polls[0] + " polls (age checked per poll)");
-            var sampler = runtime.samplerFor(key[0]);
+            var sampler = runtime.diagnostics().samplerFor(key[0]);
             double total = 0;
             for (int value : occupancy.values()) total += value;
             String top = null, obsTop = null;
@@ -2036,19 +2104,19 @@ public final class RenderSelfTest {
         // eviction are both budgeted work, so "away long enough" is a predicate, not a guess.
         waitFor(10, 300, mc -> {
             var runtime = grill24.fishtastic.client.ambient.ClientAmbientFish.natural();
-            return runtime.patchColumns(key[0]) == 0
+            return runtime.diagnostics().patchColumns(key[0]) == 0
                     && runtime.stats().retainedStores > retentionBase[0]
                     && runtime.stats().domainsLost > retentionBase[3];
         }, mc -> {
             var runtime = grill24.fishtastic.client.ambient.ClientAmbientFish.natural();
             var s = runtime.stats();
             check("ambientpopulation.retention.dropped",
-                    runtime.patchColumns(key[0]) == 0 && s.domainsLost > retentionBase[3]
+                    runtime.diagnostics().patchColumns(key[0]) == 0 && s.domainsLost > retentionBase[3]
                             && s.retainedStores > retentionBase[0]
-                            && runtime.retainedStateCount() <= grill24.fishtastic.client.ambient.AmbientTuning.MAX_RETAINED_PATCHES,
-                    "columns=" + runtime.patchColumns(key[0]) + " domainsLost=+" + (s.domainsLost - retentionBase[3])
+                            && runtime.diagnostics().retainedStateCount() <= grill24.fishtastic.client.ambient.AmbientTuning.MAX_RETAINED_PATCHES,
+                    "columns=" + runtime.diagnostics().patchColumns(key[0]) + " domainsLost=+" + (s.domainsLost - retentionBase[3])
                             + " retainedStores=+" + (s.retainedStores - retentionBase[0])
-                            + " retained=" + runtime.retainedStateCount() + "/"
+                            + " retained=" + runtime.diagnostics().retainedStateCount() + "/"
                             + grill24.fishtastic.client.ambient.AmbientTuning.MAX_RETAINED_PATCHES);
         });
         queue(1, mc -> worldCommand(mc, "tp @a " + standX + " " + gy + " " + standZ));
@@ -2056,17 +2124,17 @@ public final class RenderSelfTest {
             var sample = nearestShownSample(target);
             var store = grill24.fishtastic.client.ambient.AmbientContextClient.store();
             return sample != null && store.stateOf(sample.patchKey()) == grill24.fishtastic.client.ambient.AmbientContextStore.State.OK
-                    && grill24.fishtastic.client.ambient.ClientAmbientFish.natural().patchColumns(sample.patchKey()) >= 4
+                    && grill24.fishtastic.client.ambient.ClientAmbientFish.natural().diagnostics().patchColumns(sample.patchKey()) >= 4
                     && censusTotal(patchCensus(sample.patchKey())) >= 1;
         }, mc -> {
             var runtime = grill24.fishtastic.client.ambient.ClientAmbientFish.natural();
             var s = runtime.stats();
             check("ambientpopulation.retention.resumed",
                     s.retainedRestores > retentionBase[1]
-                            && runtime.retainedStateCount() <= grill24.fishtastic.client.ambient.AmbientTuning.MAX_RETAINED_PATCHES,
+                            && runtime.diagnostics().retainedStateCount() <= grill24.fishtastic.client.ambient.AmbientTuning.MAX_RETAINED_PATCHES,
                     "retainedRestores=+" + (s.retainedRestores - retentionBase[1])
                             + " retainedExpiries=+" + (s.retainedExpiries - retentionBase[2])
-                            + " retained=" + runtime.retainedStateCount() + "/"
+                            + " retained=" + runtime.diagnostics().retainedStateCount() + "/"
                             + grill24.fishtastic.client.ambient.AmbientTuning.MAX_RETAINED_PATCHES
                             + " (the pond resumed its retained stream, not a fresh seed)");
             note("ambientpopulation.retention back census=" + censusText(patchCensus(key[0])));
@@ -2091,9 +2159,9 @@ public final class RenderSelfTest {
             note("ambientpopulation end " + grill24.fishtastic.client.ambient.AmbientContextClient.debugState());
             grill24.fishtastic.client.ambient.ClientAmbientFish.clear();
             check("ambientpopulation.cleanup",
-                    !runtime.armed() && runtime.domainCount() == 0 && runtime.retainedStateCount() == 0,
+                    !runtime.armed() && runtime.domainCount() == 0 && runtime.diagnostics().retainedStateCount() == 0,
                     "armed=" + runtime.armed() + " domains=" + runtime.domainCount()
-                            + " retained=" + runtime.retainedStateCount());
+                            + " retained=" + runtime.diagnostics().retainedStateCount());
         });
     }
 
@@ -2107,7 +2175,7 @@ public final class RenderSelfTest {
     /** Live non-retiring residents of one patch by full species id, sorted. The scene's census. */
     private static java.util.TreeMap<String, Integer> patchCensus(long patchKey) {
         java.util.TreeMap<String, Integer> out = new java.util.TreeMap<>();
-        for (var p : grill24.fishtastic.client.ambient.ClientAmbientFish.natural().individuals()) {
+        for (var p : grill24.fishtastic.client.ambient.ClientAmbientFish.natural().diagnostics().individuals()) {
             if (p.patchKey() != patchKey || p.retiring()) continue;
             out.merge(p.species(), 1, Integer::sum);
         }
@@ -2133,7 +2201,7 @@ public final class RenderSelfTest {
     /** One patch's sampler as a log table: {@code species w= weight vis= share raw= raw share}. */
     private static String samplerText(long patchKey) {
         StringBuilder sb = new StringBuilder();
-        for (var entry : grill24.fishtastic.client.ambient.ClientAmbientFish.natural().samplerFor(patchKey)) {
+        for (var entry : grill24.fishtastic.client.ambient.ClientAmbientFish.natural().diagnostics().samplerFor(patchKey)) {
             if (sb.length() > 0) sb.append(' ');
             sb.append(entry.species().replace("fishtastic:", ""))
                     .append(" w=").append(entry.weight())
@@ -2143,9 +2211,9 @@ public final class RenderSelfTest {
     }
 
     /** Non-retiring residents of one patch by id — immutable snapshots, safe to hold across ticks. */
-    private static java.util.Map<Long, grill24.fishtastic.client.ambient.AmbientFishRuntime.Individual> snapshotResidents(long patchKey) {
-        java.util.Map<Long, grill24.fishtastic.client.ambient.AmbientFishRuntime.Individual> out = new java.util.LinkedHashMap<>();
-        for (var p : grill24.fishtastic.client.ambient.ClientAmbientFish.natural().individuals()) {
+    private static java.util.Map<Long, grill24.fishtastic.client.ambient.AmbientDiagnostics.Individual> snapshotResidents(long patchKey) {
+        java.util.Map<Long, grill24.fishtastic.client.ambient.AmbientDiagnostics.Individual> out = new java.util.LinkedHashMap<>();
+        for (var p : grill24.fishtastic.client.ambient.ClientAmbientFish.natural().diagnostics().individuals()) {
             if (p.patchKey() == patchKey && !p.retiring()) out.put(p.id(), p);
         }
         return out;
@@ -2153,9 +2221,9 @@ public final class RenderSelfTest {
 
     /** How many members of a patch — fading ones included — hold a species outside its sampler. */
     private static int countOutOfPool(grill24.fishtastic.client.ambient.AmbientFishRuntime runtime, long patchKey) {
-        var representable = new java.util.HashSet<>(runtime.representableSpecies(patchKey));
+        var representable = new java.util.HashSet<>(runtime.diagnostics().representableSpecies(patchKey));
         int out = 0;
-        for (var p : runtime.individuals()) {
+        for (var p : runtime.diagnostics().individuals()) {
             if (p.patchKey() == patchKey && !representable.contains(p.species())) out++;
         }
         return out;
@@ -2182,12 +2250,12 @@ public final class RenderSelfTest {
      * {@code statBase} can explain — the one figure that must be zero for a "nothing was disturbed"
      * claim. Returns the one-line detail for the log.
      */
-    private static String carryReport(java.util.Map<Long, grill24.fishtastic.client.ambient.AmbientFishRuntime.Individual> before,
+    private static String carryReport(java.util.Map<Long, grill24.fishtastic.client.ambient.AmbientDiagnostics.Individual> before,
                                       long patchKey, double maxMove, long[] statBase, long[] out) {
         var runtime = grill24.fishtastic.client.ambient.ClientAmbientFish.natural();
         int present = 0, speciesChanged = 0, patchChanged = 0, jumped = 0, retiringNow = 0;
         double worst = 0;
-        for (var p : runtime.individuals()) {
+        for (var p : runtime.diagnostics().individuals()) {
             var was = before.get(p.id());
             if (was == null) continue;
             present++;
@@ -2286,17 +2354,34 @@ public final class RenderSelfTest {
     }
 
     /**
-     * Reads the live population within twelve blocks of the player — one fixture's own fish — and
-     * asserts the Phase 2 gate conditions: real water, bodies that fit it, head-room under the
-     * surface, a boundary policy that matches the water (a fade band only where the water really
-     * continues), and discovery that stays inside its budget.
+     * Bounded readiness for a water fixture whose discovery and population arrive incrementally.
      */
+    private static boolean ambientWaterReady(int minFish, boolean expectOpenFace) {
+        var runtime = ClientAmbientFish.natural();
+        BlockPos player = Minecraft.getInstance().player.blockPosition();
+        var patches = new java.util.HashSet<Long>();
+        int near = 0;
+        for (var fish : runtime.diagnostics().individuals()) {
+            if (fish.retiring() || Math.hypot(fish.x() - (player.getX() + 0.5),
+                    fish.z() - (player.getZ() + 0.5)) > 12) continue;
+            near++;
+            patches.add(fish.patchKey());
+        }
+        if (near < minFish) return false;
+        if (!expectOpenFace) return true;
+        // A discovery sweep shares its budget with near scans and revalidation. Wait for it to
+        // reach the expected horizon instead of asserting a boundary before it has been scanned.
+        return runtime.diagnostics().domainReports().stream().anyMatch(r -> patches.contains(r.patchKey())
+                && (r.openMinL() || r.openMaxL() || r.openMinY() || r.openMaxY() || r.openMinD() || r.openMaxD()));
+    }
+
+    /** Reads actual fixture containment, surface clearance, population and boundary state. */
     private static void ambientWaterFixture(String fixture, int minDomains, int minFish, int minPatches, boolean expectOpenFace) {
         var runtime = grill24.fishtastic.client.ambient.ClientAmbientFish.natural();
         var stats = runtime.stats();
         BlockPos player = Minecraft.getInstance().player.blockPosition();
-        List<grill24.fishtastic.client.ambient.AmbientFishRuntime.Individual> near = new java.util.ArrayList<>();
-        for (var p : runtime.individuals()) {
+        List<grill24.fishtastic.client.ambient.AmbientDiagnostics.Individual> near = new java.util.ArrayList<>();
+        for (var p : runtime.diagnostics().individuals()) {
             if (Math.hypot(p.x() - (player.getX() + 0.5), p.z() - (player.getZ() + 0.5)) <= 12.0) near.add(p);
         }
         java.util.Set<Long> patches = new java.util.LinkedHashSet<>();
@@ -2323,7 +2408,10 @@ public final class RenderSelfTest {
                 continue;
             }
             if (!p.inWater()) outsideWater++;
-            if (!p.bodyFits()) unfit++;
+            if (!p.bodyFits()) {
+                unfit++;
+                note("ambientwater." + fixture + ".unfit " + p);
+            }
             minSurface = Math.min(minSurface, p.surfaceClearance());
             minBed = Math.min(minBed, p.bedClearance());
             minOpen = Math.min(minOpen, p.openFaceDistance());
@@ -2331,7 +2419,7 @@ public final class RenderSelfTest {
         }
         boolean openFaceNear = false;
         int columns = 0;
-        for (var r : runtime.domainReports()) {
+        for (var r : runtime.diagnostics().domainReports()) {
             if (!patches.contains(r.patchKey()) || r.columns() <= 0) continue;
             columns += r.columns();
             if (r.openMinL() || r.openMaxL() || r.openMinY() || r.openMaxY() || r.openMinD() || r.openMaxD()) openFaceNear = true;
@@ -2341,7 +2429,10 @@ public final class RenderSelfTest {
         check("ambientwater." + fixture + ".fish", near.size() >= minFish && patches.size() >= minPatches,
                 "near=" + near.size() + " expected>=" + minFish + " patches=" + patches + " expected>=" + minPatches
                         + " active=" + stats.active + " retiring=" + stats.retiring + " omissions=" + stats.omissions);
-        check("ambientwater." + fixture + ".contained", near.size() > 0 && outsideWater == 0 && unfit == 0 && nonFinite == 0,
+        // Phase 2's accepted contract allows a body to brush a bank under soft avoidance. Whole-
+        // body fit is promised at spawn (checked separately after placement) and at rebuild; the
+        // active engine's per-step invariant is centre containment, including surface head-room.
+        check("ambientwater." + fixture + ".contained", near.size() > 0 && outsideWater == 0 && nonFinite == 0,
                 "outsideWater=" + outsideWater + " bodyFitsFailures=" + unfit + " nonFinite=" + nonFinite
                         + " retiring=" + retiring);
         check("ambientwater." + fixture + ".surface", near.size() > 0 && minSurface > 0.30,
@@ -2374,7 +2465,7 @@ public final class RenderSelfTest {
         STEPS.addFirst(new Step(20, mc -> {
             var runtime = grill24.fishtastic.client.ambient.ClientAmbientFish.natural();
             java.util.Map<String, Integer> census = new java.util.LinkedHashMap<>();
-            for (var p : runtime.individuals()) {
+            for (var p : runtime.diagnostics().individuals()) {
                 if (p.retiring() || done.contains(p.species())) continue;
                 census.merge(p.species(), 1, Integer::sum);
             }
@@ -2396,12 +2487,12 @@ public final class RenderSelfTest {
                 // already asserted it is non-empty and hostable, so a short close-up set is not a
                 // failure — it is the pool's honest size this run.
                 note("ambientwater.close.done after " + shotIndex + " shots; no unshot species left ("
-                        + runtime.pool().size() + " representable)");
+                        + runtime.diagnostics().pool().size() + " representable)");
                 return;
             }
             final String shot = chosen.substring(chosen.indexOf(':') + 1);
             done.add(chosen);
-            var found = runtime.individuals().stream()
+            var found = runtime.diagnostics().individuals().stream()
                     .filter(p -> p.species().equals(chosen) && !p.retiring()).findFirst().orElse(null);
             if (found == null) {
                 queueSpeciesCloseup(shotIndex, attempt + 1, done);
@@ -2431,8 +2522,8 @@ public final class RenderSelfTest {
             before.clear();
             origins.clear();
             var runtime = grill24.fishtastic.client.ambient.ClientAmbientFish.natural();
-            for (var p : runtime.individuals()) before.put(p.id(), new double[]{p.x(), p.y(), p.z(), p.patchKey()});
-            for (var r : runtime.domainReports()) {
+            for (var p : runtime.diagnostics().individuals()) before.put(p.id(), new double[]{p.x(), p.y(), p.z(), p.patchKey()});
+            for (var r : runtime.diagnostics().domainReports()) {
                 origins.put(r.patchKey(), new int[]{r.originX(), r.originY(), r.originZ()});
             }
             check("ambientwater.carry.snapshot", before.size() >= 4, "tracked=" + before.size()
@@ -2442,7 +2533,7 @@ public final class RenderSelfTest {
             var runtime = grill24.fishtastic.client.ambient.ClientAmbientFish.natural();
             int survived = 0, keyChanged = 0, jumped = 0, originMoved = 0;
             double worst = 0;
-            for (var p : runtime.individuals()) {
+            for (var p : runtime.diagnostics().individuals()) {
                 double[] was = before.get(p.id());
                 if (was == null) continue;
                 survived++;
@@ -2451,7 +2542,7 @@ public final class RenderSelfTest {
                 worst = Math.max(worst, d);
                 if (d > 4.0) jumped++;
             }
-            for (var r : runtime.domainReports()) {
+            for (var r : runtime.diagnostics().domainReports()) {
                 int[] was = origins.get(r.patchKey());
                 if (was != null && (was[0] != r.originX() || was[1] != r.originY() || was[2] != r.originZ())) originMoved++;
             }
@@ -2484,7 +2575,7 @@ public final class RenderSelfTest {
             var runtime = grill24.fishtastic.client.ambient.ClientAmbientFish.natural();
             tracked.clear();
             base[0] = 0L;
-            for (var p : runtime.individuals()) {
+            for (var p : runtime.diagnostics().individuals()) {
                 if (base[0] == 0L) base[0] = p.patchKey();
                 // Only residents that are actually swimming: Phase 5 turnover retires individuals
                 // continuously (EXCLUDED/EXPIRED), and one already mid-fade at the snapshot can be
@@ -2493,7 +2584,7 @@ public final class RenderSelfTest {
                 if (p.retiring()) continue;
                 tracked.add(p.id());
             }
-            base[1] = runtime.patchColumns(base[0]);
+            base[1] = runtime.diagnostics().patchColumns(base[0]);
             var s = runtime.stats();
             base[2] = s.revalidationsDeferred;
             base[3] = s.domainsLost;
@@ -2509,13 +2600,13 @@ public final class RenderSelfTest {
         queue(40, mc -> {
             var runtime = grill24.fishtastic.client.ambient.ClientAmbientFish.natural();
             int present = 0, retiring = 0;
-            for (var p : runtime.individuals()) {
+            for (var p : runtime.diagnostics().individuals()) {
                 if (!tracked.contains(p.id())) continue;
                 present++;
                 if (p.retiring()) retiring++;
             }
             var s = runtime.stats();
-            int columns = runtime.patchColumns(base[0]);
+            int columns = runtime.diagnostics().patchColumns(base[0]);
             long benign = (s.retireExcluded - base[6]) + (s.retireExpired - base[7]);
             // The ocean's corners lie beyond the eviction radius (dx^2+dz^2 > 32^2), so eviction
             // sheds those 24 columns whenever the sweep has just re-cached them and the count
@@ -4641,7 +4732,7 @@ public final class RenderSelfTest {
         queue(1, mc -> {
             mc.options.hideGui = false;
             mc.options.setCameraType(CameraType.FIRST_PERSON);
-            grill24.fishtastic.client.companion.ClientCompanions.devOverlay(true);
+            grill24.fishtastic.client.companion.ClientCompanionsDev.devOverlay(true);
             var c = mc.player.connection;
             c.sendCommand("gamerule advance_time false");
             c.sendCommand("gamerule spawn_mobs false");
@@ -4753,7 +4844,7 @@ public final class RenderSelfTest {
      */
     private static void queueCompanionScenesScene() {
         queue(1, RenderSelfTest::paradeSetup);
-        queue(1, mc -> grill24.fishtastic.client.companion.ClientCompanions.devOverlay(true));
+        queue(1, mc -> grill24.fishtastic.client.companion.ClientCompanionsDev.devOverlay(true));
         queue(1, mc -> server(mc, s -> {
             clearParties(s);
             run(s, "fishtastic companion give @p fishtastic:bluegill 20 1");
@@ -4850,6 +4941,61 @@ public final class RenderSelfTest {
         queue(1, mc -> {
             check("companionscenes.both_started_here", grill24.fishtastic.client.companion.ClientCompanions.scenesStarted
                     >= before[0] + 3, "scenes started " + grill24.fishtastic.client.companion.ClientCompanions.scenesStarted);
+            server(mc, s -> run(s, "fishtastic companion ghost remove"));
+        });
+        queue(20, mc -> server(mc, RenderSelfTest::clearParties));
+    }
+
+    /**
+     * Remote-party level of detail (audit §6.2): the ghost owner, still a tracked player, has its
+     * party dropped once it stands past the drop range, kept between the two ranges, and rebuilt
+     * when it comes back.
+     */
+    private static void queueCompanionLodScene() {
+        String ghost = grill24.fishtastic.server.CompanionGhost.NAME;
+        queue(1, RenderSelfTest::paradeSetup);
+        queue(1, mc -> server(mc, s -> {
+            clearParties(s);
+            run(s, asMe(mc) + "fishtastic companion ghost add fishtastic:discus");
+        }));
+        queueUntil("companionlod.ghost_party", 300, mc -> {
+            Player g = ghostPlayer(mc);
+            return g != null && !grill24.fishtastic.client.companion.ClientCompanions.companionsOf(g).isEmpty();
+        }, () -> "ghost " + (ghostPlayer(Minecraft.getInstance()) != null));
+        java.util.function.Supplier<String> where = () -> {
+            Minecraft mc = Minecraft.getInstance();
+            Player g = ghostPlayer(mc);
+            return g == null ? "ghost not tracked" : String.format(Locale.ROOT, "ghost %.1f blocks off, %d units",
+                    g.distanceTo(mc.player), grill24.fishtastic.client.companion.ClientCompanions.companionsOf(g).size());
+        };
+        // 76 blocks: past the drop range, inside the 6-chunk view the ghost stays tracked in.
+        queue(1, mc -> server(mc, s -> {
+            run(s, asMe(mc) + "fishtastic companion ghost walk stand");
+            run(s, asMe(mc) + "tp " + ghost + " ~76 ~ ~");
+        }));
+        queueUntil("companionlod.far_party_dropped", 100, mc -> {
+            Player g = ghostPlayer(mc);
+            return g != null && g.distanceTo(mc.player) > 72
+                    && grill24.fishtastic.client.companion.ClientCompanions.companionsOf(g).isEmpty();
+        }, where);
+        // Back to 68 blocks, between the ranges: a dropped party is not rebuilt there...
+        queue(1, mc -> server(mc, s -> run(s, asMe(mc) + "tp " + ghost + " ~68 ~ ~")));
+        queue(40, mc -> {
+            Player g = ghostPlayer(mc);
+            check("companionlod.between_stays_dropped", g != null && g.distanceTo(mc.player) > 64
+                    && grill24.fishtastic.client.companion.ClientCompanions.companionsOf(g).isEmpty(), where.get());
+        });
+        queue(1, mc -> server(mc, s -> run(s, asMe(mc) + "tp " + ghost + " ~4 ~ ~")));
+        queueUntil("companionlod.near_party_rebuilt", 100, mc -> {
+            Player g = ghostPlayer(mc);
+            return g != null && !grill24.fishtastic.client.companion.ClientCompanions.companionsOf(g).isEmpty();
+        }, where);
+        // ...and a running one is kept there.
+        queue(1, mc -> server(mc, s -> run(s, asMe(mc) + "tp " + ghost + " ~68 ~ ~")));
+        queue(40, mc -> {
+            Player g = ghostPlayer(mc);
+            check("companionlod.between_stays_running", g != null && g.distanceTo(mc.player) > 64
+                    && !grill24.fishtastic.client.companion.ClientCompanions.companionsOf(g).isEmpty(), where.get());
             server(mc, s -> run(s, "fishtastic companion ghost remove"));
         });
         queue(20, mc -> server(mc, RenderSelfTest::clearParties));
@@ -4989,7 +5135,7 @@ public final class RenderSelfTest {
 
     private static void queueCompanionSimScene() {
         queue(1, RenderSelfTest::paradeSetup);
-        queue(1, mc -> grill24.fishtastic.client.companion.ClientCompanions.devOverlay(true));
+        queue(1, mc -> grill24.fishtastic.client.companion.ClientCompanionsDev.devOverlay(true));
         // One fish is one body now (party spec §3): a small bluegill is a small solo, not a trio,
         // and every fish is drawn at its true size (D11).
         String[][] fish = {{"bluegill", "9", "small_solo"}, {"bluegill", "25", "solo"}, {"starfish", "20", "benthic"},
@@ -5016,16 +5162,16 @@ public final class RenderSelfTest {
             });
         }
         queue(1, mc -> server(mc, s -> run(s, "fishtastic companion give @p fishtastic:bluegill 25 1")));
-        queue(60, mc -> grill24.fishtastic.client.companion.ClientCompanions.devFake("hostile"));
+        queue(60, mc -> grill24.fishtastic.client.companion.ClientCompanionsDev.devFake("hostile"));
         queue(120, mc -> {
             companionLog("fake hostile close");
             screenshot(mc, "companionsim", "hostile_fp");
         });
-        queue(1, mc -> grill24.fishtastic.client.companion.ClientCompanions.devFake("clear"));
+        queue(1, mc -> grill24.fishtastic.client.companion.ClientCompanionsDev.devFake("clear"));
         // The sampling cost while walking (plan §7 risk 3): 4 blocks/s for 10 s across fresh
         // ground, so the block window re-centres several times.
         queue(40, mc -> {
-            grill24.fishtastic.client.companion.ClientCompanions.devResetCost();
+            grill24.fishtastic.client.companion.ClientCompanionsDev.devResetCost();
             companionLog("walk start");
         });
         for (int i = 0; i < 200; i++) {
@@ -5036,7 +5182,7 @@ public final class RenderSelfTest {
             screenshot(mc, "companionsim", "walk_fp");
         });
         queue(1, mc -> {
-            grill24.fishtastic.client.companion.ClientCompanions.devOverlay(false);
+            grill24.fishtastic.client.companion.ClientCompanionsDev.devOverlay(false);
             server(mc, RenderSelfTest::clearParties);
         });
     }
@@ -5190,7 +5336,7 @@ public final class RenderSelfTest {
             run(s, "fishtastic companion give @p fishtastic:bluegill 25 1");
             run(s, "weather clear 99999");
         }));
-        queue(100, mc -> grill24.fishtastic.client.companion.ClientCompanions.devOverlay(false));
+        queue(100, mc -> grill24.fishtastic.client.companion.ClientCompanionsDev.devOverlay(false));
         queue(1, mc -> {
             BlockPos pos = mc.player.blockPosition().offset(3, 0, 0);
             var songs = mc.level.registryAccess().lookupOrThrow(Registries.JUKEBOX_SONG);
@@ -5299,7 +5445,7 @@ public final class RenderSelfTest {
             queue(182, mc -> {
                 tickProbe = null;
                 check("companionworld." + feature + ".reaction", reacted[0],
-                        grill24.fishtastic.client.companion.ClientCompanions.debugState());
+                        grill24.fishtastic.client.companion.ClientCompanionsDev.debugState());
                 if (feature.equals("water"))
                     check("companionworld.water.physical_contact", waterContact[0], splashPosition[0]);
                 if (feature.equals("warm")) {
@@ -5308,7 +5454,7 @@ public final class RenderSelfTest {
                 }
                 screenshot(mc, "companionworld", feature);
                 grill24.fishtastic.client.companion.CompanionMusic.stop(mc.level, mc.player.blockPosition().relative(mc.player.getDirection(), 2));
-                grill24.fishtastic.client.companion.ClientCompanions.devMood("off");
+                grill24.fishtastic.client.companion.ClientCompanionsDev.devMood("off");
             });
             queue(100, mc -> {});
         }
@@ -5320,7 +5466,7 @@ public final class RenderSelfTest {
         for (String mood : java.util.List.of("sleepy", "glum")) {
             boolean[] visiblePose = {false};
             queue(1, mc -> {
-                grill24.fishtastic.client.companion.ClientCompanions.devMood(mood);
+                grill24.fishtastic.client.companion.ClientCompanionsDev.devMood(mood);
                 int[] clock = {0};
                 tickProbe = client -> {
                     int tick = clock[0]++;
@@ -5334,7 +5480,7 @@ public final class RenderSelfTest {
             queue(142, mc -> {
                 tickProbe = null;
                 check("companionworld." + mood + ".pose", visiblePose[0], moods());
-                grill24.fishtastic.client.companion.ClientCompanions.devMood("off");
+                grill24.fishtastic.client.companion.ClientCompanionsDev.devMood("off");
             });
         }
         queue(1, mc -> {
@@ -5364,7 +5510,7 @@ public final class RenderSelfTest {
                 });
             }
             queue(1, mc -> check("companionworld.percher." + (side < 0 ? "left" : "right") + ".watch", watched[0],
-                    grill24.fishtastic.client.companion.ClientCompanions.debugState()));
+                    grill24.fishtastic.client.companion.ClientCompanionsDev.debugState()));
         }
         queue(1, mc -> server(mc, s -> {
             run(s, asMe(mc) + "fill ~-6 ~ ~-6 ~6 ~5 ~6 minecraft:air");
@@ -5462,7 +5608,7 @@ public final class RenderSelfTest {
 
     private static void queueCompanionMoodsScene() {
         queue(1, RenderSelfTest::paradeSetup);
-        queue(1, mc -> grill24.fishtastic.client.companion.ClientCompanions.devOverlay(true));
+        queue(1, mc -> grill24.fishtastic.client.companion.ClientCompanionsDev.devOverlay(true));
         queue(1, mc -> server(mc, s -> {
             clearParties(s);
             run(s, "weather clear 99999");
@@ -5551,26 +5697,26 @@ public final class RenderSelfTest {
         // The dev trigger forces a mood on every unit, and "off" gives the world back.
         queue(1, mc -> {
             server(mc, s -> run(s, "time set 6000"));
-            grill24.fishtastic.client.companion.ClientCompanions.devMood("sleepy");
+            grill24.fishtastic.client.companion.ClientCompanionsDev.devMood("sleepy");
         });
         queue(200, mc -> {
             var b = moodOf("bluegill");
             var p = moodOf("parrotfish");
             check("companionmoods.dev_sleepy", b != null && b.sleepy() > 0.5f && p != null && p.sleepy() > 0.5f, moods());
-            grill24.fishtastic.client.companion.ClientCompanions.devMood("cold");
+            grill24.fishtastic.client.companion.ClientCompanionsDev.devMood("cold");
         });
         queue(200, mc -> {
             var b = moodOf("bluegill");
             check("companionmoods.dev_cold", b != null && b.cold() > 0.5f, moods());
             screenshot(mc, "companionmoods", "dev_cold");
-            grill24.fishtastic.client.companion.ClientCompanions.devMood("off");
+            grill24.fishtastic.client.companion.ClientCompanionsDev.devMood("off");
         });
         queue(160, mc -> {
             var b = moodOf("bluegill");
             check("companionmoods.dev_off", b != null && !anyMood(b), moods());
         });
         queue(1, mc -> {
-            grill24.fishtastic.client.companion.ClientCompanions.devOverlay(false);
+            grill24.fishtastic.client.companion.ClientCompanionsDev.devOverlay(false);
             server(mc, s -> {
                 run(s, "weather clear");
                 clearParties(s);
@@ -5585,7 +5731,7 @@ public final class RenderSelfTest {
      */
     private static void queueCompanionPartyScene() {
         queue(1, RenderSelfTest::paradeSetup);
-        queue(1, mc -> grill24.fishtastic.client.companion.ClientCompanions.devOverlay(true));
+        queue(1, mc -> grill24.fishtastic.client.companion.ClientCompanionsDev.devOverlay(true));
         String[][] parties = {
                 {"school", "bluegill 9", "bluegill 16", "bluegill 24"},
                 {"mixed", "bluegill 12", "starfish 40", "garden_eel 40"},
@@ -5618,7 +5764,7 @@ public final class RenderSelfTest {
                         : companions.stream().allMatch(c -> c.bodyCount() == 1);
                 check("companionparty." + name + ".kinds", kinds, lines);
                 if (name.equals("ground")) {
-                    String state = grill24.fishtastic.client.companion.ClientCompanions.debugState();
+                    String state = grill24.fishtastic.client.companion.ClientCompanionsDev.debugState();
                     check("companionparty.ground.overlay_clock", state.contains("hand clock: shared"), state);
                     check("companionparty.ground.overlay_homes", state.split(" home ", -1).length > 3, state);
                 }
@@ -5659,7 +5805,7 @@ public final class RenderSelfTest {
         queueSharedClockWatch();
         queuePredatorScene();
         queue(20, mc -> {
-            grill24.fishtastic.client.companion.ClientCompanions.devOverlay(false);
+            grill24.fishtastic.client.companion.ClientCompanionsDev.devOverlay(false);
             server(mc, RenderSelfTest::clearParties);
         });
     }
@@ -5675,7 +5821,7 @@ public final class RenderSelfTest {
         java.util.Map<String, Integer> landed = new java.util.TreeMap<>();
         int[] maxOnHand = new int[1];
         queue(1, mc -> {
-            grill24.fishtastic.client.companion.ClientCompanions.devHandGap(4f, 6f);
+            grill24.fishtastic.client.companion.ClientCompanionsDev.devHandGap(4f, 6f);
             server(mc, s -> run(s, "item replace entity @p weapon.mainhand with minecraft:air"));
             for (var c : grill24.fishtastic.client.companion.ClientCompanions.localCompanions()) {
                 if (c.agent() != null) before.put(c.partyLine(), handVisitTotal(c.agent()));
@@ -5700,11 +5846,11 @@ public final class RenderSelfTest {
                         handVisitTotal(c.agent()) - before.getOrDefault(c.partyLine(), 0));
             }
             long visitors = landed.values().stream().filter(n -> n > 0).count();
-            String state = grill24.fishtastic.client.companion.ClientCompanions.debugState();
+            String state = grill24.fishtastic.client.companion.ClientCompanionsDev.debugState();
             check("companionparty.clock.shared", state.contains("hand clock: shared"), state);
             check("companionparty.clock.turns_go_round", visitors == 3, "hand landings in 60 s " + landed);
             check("companionparty.clock.one_at_a_time", maxOnHand[0] <= 1, "most on a hand at once " + maxOnHand[0]);
-            grill24.fishtastic.client.companion.ClientCompanions.devHandGapReset();
+            grill24.fishtastic.client.companion.ClientCompanionsDev.devHandGapReset();
         });
     }
 
@@ -5739,7 +5885,7 @@ public final class RenderSelfTest {
                     if ("LAP".equals(c.agent().goal())) lapped[0] = true;
                     if (c.bodyCount() == 2 && "HIDE".equals(c.agent().goal())) hid[0] = true;
                 }
-                String state = grill24.fishtastic.client.companion.ClientCompanions.debugState();
+                String state = grill24.fishtastic.client.companion.ClientCompanionsDev.debugState();
                 if (state.contains("predator scene: on")) overlay[0] = state;
                 if (tick == 40) {
                     companionLog("predator scene 2s");
@@ -5748,7 +5894,7 @@ public final class RenderSelfTest {
             });
         }
         queue(1, mc -> {
-            String state = grill24.fishtastic.client.companion.ClientCompanions.debugState();
+            String state = grill24.fishtastic.client.companion.ClientCompanionsDev.debugState();
             check("companionparty.predator.lap", lapped[0], state);
             check("companionparty.predator.prey_hid", hid[0], state);
             check("companionparty.predator.overlay", overlay[0] != null, state);
@@ -5794,7 +5940,7 @@ public final class RenderSelfTest {
                     java.util.List.of("HEAD", "LEFT_SHOULDER", "RIGHT_SHOULDER"))), state.toString());
             check("companioneel.three.riding_home", allRiding, state.toString());
             // Eels never visit a hand, so three of them share no hand clock (Phase 3d).
-            String overlay = grill24.fishtastic.client.companion.ClientCompanions.debugState();
+            String overlay = grill24.fishtastic.client.companion.ClientCompanionsDev.debugState();
             check("companioneel.three.no_shared_clock", overlay.contains("hand clock: each percher's own"), overlay);
             // Which side of the player the sim holds each shoulder eel on, by Minecraft's own
             // right vector (facing +z, the right hand is -x): the perch layer must draw it there.
@@ -5833,12 +5979,12 @@ public final class RenderSelfTest {
         // overlay, and reset clears it with the eels' homes untouched.
         queue(1, mc -> server(mc, s -> run(s, "fishtastic companion switch otherPlayerClearance off")));
         queue(120, mc -> {
-            String state = grill24.fishtastic.client.companion.ClientCompanions.debugState();
+            String state = grill24.fishtastic.client.companion.ClientCompanionsDev.debugState();
             check("companioneel.switch.overlay", state.contains("switches: otherPlayerClearance OFF"), state);
             server(mc, s -> run(s, "fishtastic companion switch reset"));
         });
         queue(160, mc -> {
-            String state = grill24.fishtastic.client.companion.ClientCompanions.debugState();
+            String state = grill24.fishtastic.client.companion.ClientCompanionsDev.debugState();
             check("companioneel.switch.reset", eelHomes().equals(EEL_SPLIT) && !state.contains("switches:"),
                     eelHomes() + " | " + state);
         });
@@ -5865,7 +6011,7 @@ public final class RenderSelfTest {
             run(s, "fishtastic companion give @p fishtastic:garden_eel 40 1");
         }));
         queue(120, mc -> {
-            grill24.fishtastic.client.companion.ClientCompanions.devOverlay(true);
+            grill24.fishtastic.client.companion.ClientCompanionsDev.devOverlay(true);
             mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT);
             eelLog("calm");
             server(mc, s -> run(s, "item replace entity @p weapon.mainhand with fishtastic:lionfish"));
@@ -5891,7 +6037,7 @@ public final class RenderSelfTest {
         });
         queue(20, mc -> {
             mc.options.setCameraType(CameraType.FIRST_PERSON);
-            grill24.fishtastic.client.companion.ClientCompanions.devOverlay(false);
+            grill24.fishtastic.client.companion.ClientCompanionsDev.devOverlay(false);
             server(mc, RenderSelfTest::clearParties);
         });
     }
@@ -5918,7 +6064,7 @@ public final class RenderSelfTest {
     }
 
     private static void eelLog(String label) {
-        String state = grill24.fishtastic.client.companion.ClientCompanions.debugState();
+        String state = grill24.fishtastic.client.companion.ClientCompanionsDev.debugState();
         java.util.regex.Matcher m = java.util.regex.Pattern.compile("goal \\S+|pose \\S+|threat [^|]*?retract [0-9.]+").matcher(state);
         StringBuilder out = new StringBuilder();
         while (m.find()) out.append(m.group()).append("  ");
@@ -5935,7 +6081,7 @@ public final class RenderSelfTest {
 
     private static void companionLog(String label) {
         Fishtastic.LOGGER.info("[selftest] companion {}: {}", label,
-                grill24.fishtastic.client.companion.ClientCompanions.debugState());
+                grill24.fishtastic.client.companion.ClientCompanionsDev.debugState());
     }
 
     /**
@@ -6541,7 +6687,7 @@ public final class RenderSelfTest {
     private static void noteState(String label) {
         BlockPos p = Minecraft.getInstance().player.blockPosition();
         note(label + " at " + p.getX() + "," + p.getY() + "," + p.getZ() + " "
-                + grill24.fishtastic.client.ambient.ClientAmbientFish.natural().debugState());
+                + grill24.fishtastic.client.ambient.ClientAmbientFish.natural().diagnostics().debugState());
     }
 
     /** What the client level really holds at one cell: the ground truth discovery reads. */

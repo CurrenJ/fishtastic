@@ -13,6 +13,7 @@ public final class AmbientPatchSelection {
     private AmbientPatchSelection() {}
     public record Selection(List<WaterDiscovery.Patch> patches, Map<Long, Integer> distances) {}
 
+    /** As {@link #select(List, Map, Set, int)}, folding the distances from a column list. */
     public static Selection select(List<WaterDiscovery.Patch> patches, List<WaterDiscovery.Column> columns,
                                    Set<Long> occupied, int x, int z, int limit) {
         Map<Long, Integer> distances = new HashMap<>();
@@ -20,6 +21,15 @@ public final class AmbientPatchSelection {
             int dx = column.x() - x, dz = column.z() - z;
             distances.merge(column.patchKey(), dx * dx + dz * dz, Math::min);
         }
+        return select(patches, distances, occupied, limit);
+    }
+
+    /**
+     * Ranks {@code patches} for the display slots; {@code distances} is each patch's squared
+     * distance from the player to its nearest cached water ({@link WaterDiscovery#nearestSquaredDistances}).
+     */
+    public static Selection select(List<WaterDiscovery.Patch> patches, Map<Long, Integer> distances,
+                                   Set<Long> occupied, int limit) {
         List<WaterDiscovery.Patch> ranked = new ArrayList<>(patches);
         ranked.sort(Comparator.<WaterDiscovery.Patch>comparingInt(p ->
                         occupied.contains(p.key()) && distances.getOrDefault(p.key(), Integer.MAX_VALUE) <= 100 ? 0 : 1)

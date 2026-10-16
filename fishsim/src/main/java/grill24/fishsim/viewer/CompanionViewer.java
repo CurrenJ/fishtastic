@@ -13,7 +13,7 @@ import grill24.fishsim.companion.Temperament;
 import grill24.fishsim.companion.Vec;
 import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.harness.companion.CompanionRun;
-import grill24.fishsim.harness.companion.MoodScenes;
+import grill24.fishsim.companion.MoodPresets;
 import grill24.fishsim.harness.companion.OwnerScript;
 import grill24.fishsim.harness.companion.PartyRun;
 import grill24.fishsim.harness.companion.TwoOwnerRun;
@@ -98,7 +98,7 @@ public final class CompanionViewer {
     private OwnerScript.Pilot pilot;     // manual mode
     private CompanionAgent agent;
     /** The mood preset V has cycled to (Phase 5), or null for none; and its ambient, placed where the owner stood. */
-    private MoodScenes.Preset mood;
+    private MoodPresets.Preset mood;
     private String featureScene;
     private Vec featureAnchor = Vec.ZERO;
     private long featureTick;
@@ -407,7 +407,7 @@ public final class CompanionViewer {
      * 3.5 blocks ahead of where the owner faces now.
      */
     private void nextMood() {
-        List<MoodScenes.Preset> all = MoodScenes.ALL;
+        List<MoodPresets.Preset> all = MoodPresets.ALL;
         int i = mood == null ? 0 : all.indexOf(mood) + 1;
         mood = i < all.size() ? all.get(i) : null;
         if (mood != null) {

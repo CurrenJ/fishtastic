@@ -21,7 +21,7 @@ class ForestFadeProbe {
         for (String name : new String[]{"sleepy", "glum"}) {
             for (long seed = 1; seed <= 40; seed++) {
                 CompanionRun r = new CompanionRun("forest", seed, Locomotion.BENTHIC, CompanionTunables.defaults(), true);
-                MoodScenes.apply(r, MoodScenes.named(name), r.owner.feet());
+                MoodScenes.apply(r, MoodPresets.named(name), r.owner.feet());
                 long prev = 0;
                 for (int i = 0; i < 2400; i++) {
                     r.run(1);

@@ -22,8 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class MoodTest {
 
     private static final Vec CHEST = new Vec(0, 65.4, 0);
-    private static final Habitat OCEAN = MoodScenes.OCEAN;
-    private static final Ambient PLAINS = MoodScenes.PLAINS;
+    private static final Habitat OCEAN = MoodPresets.OCEAN;
+    private static final Ambient PLAINS = MoodPresets.PLAINS;
 
     /** {@code seconds} of updates at one ambient. */
     private static Mood feel(Habitat h, Ambient a, double seconds) {
@@ -223,7 +223,7 @@ class MoodTest {
         CompanionRun run = new CompanionRun(script, seed, c, CompanionTunables.defaults(), true);
         Vec fire = null;
         if (preset != null) {
-            MoodScenes.apply(run, MoodScenes.named(preset), run.owner.feet());
+            MoodScenes.apply(run, MoodPresets.named(preset), run.owner.feet());
             if (!run.script.ambient.warmth().isEmpty()) fire = run.script.ambient.warmth().get(0);
         }
         int shiver = 0, moon = 0, basks = 0, rest = 0, firstRest = -1;
@@ -286,7 +286,7 @@ class MoodTest {
                     at + " settled at " + sleepy.firstRest / 20.0 + "s vs " + base.firstRest / 20.0 + "s");
             // World rework deliberately removed hidden dwell/curiosity/band multipliers.
             CompanionRun look = new CompanionRun(s, seed, Locomotion.FREE_SWIM, CompanionTunables.defaults(), true);
-            MoodScenes.apply(look, MoodScenes.named("sleepy"), look.owner.feet());
+            MoodScenes.apply(look, MoodPresets.named("sleepy"), look.owner.feet());
             look.run(600);
             assertTrue(look.samples.stream().filter(sample -> sample.pose().equals("SLEEPY")).count() > 200,
                     at + " sleepy has its own sustained, drawn pose");
@@ -322,10 +322,10 @@ class MoodTest {
     void seenAndFadesHold() {
         StringBuilder fails = new StringBuilder();
         for (Locomotion c : List.of(Locomotion.FREE_SWIM, Locomotion.BENTHIC, Locomotion.DRIFT)) {
-            double[] seen = new double[MoodScenes.ALL.size() + 1];
-            long[] fades = new long[MoodScenes.ALL.size() + 1];
-            for (int k = 0; k <= MoodScenes.ALL.size(); k++) {
-                MoodScenes.Preset p = k == 0 ? null : MoodScenes.ALL.get(k - 1);
+            double[] seen = new double[MoodPresets.ALL.size() + 1];
+            long[] fades = new long[MoodPresets.ALL.size() + 1];
+            for (int k = 0; k <= MoodPresets.ALL.size(); k++) {
+                MoodPresets.Preset p = k == 0 ? null : MoodPresets.ALL.get(k - 1);
                 int n = 0;
                 for (String s : OwnerScript.NAMES) {
                     for (long seed = 1; seed <= 5; seed++) {
@@ -340,8 +340,8 @@ class MoodTest {
                 }
                 seen[k] /= n;
             }
-            for (int k = 1; k <= MoodScenes.ALL.size(); k++) {
-                String name = c + "/" + MoodScenes.ALL.get(k - 1).name();
+            for (int k = 1; k <= MoodPresets.ALL.size(); k++) {
+                String name = c + "/" + MoodPresets.ALL.get(k - 1).name();
                 if (seen[k] < seen[0] - 0.01) {
                     fails.append(String.format("%s seen %.1f%% vs %.1f%%%n", name, seen[k] * 100, seen[0] * 100));
                 }

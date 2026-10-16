@@ -115,7 +115,7 @@ public final class AmbientFishRuntime {
     public static final int REASON_EXPIRED = 4;
 
     /** One spawned individual: its engine index, its spec, and its retirement state. */
-    private static final class Member {
+    static final class Member {
         final long id;
         final String species;
         final FishSpec spec;
@@ -162,7 +162,7 @@ public final class AmbientFishRuntime {
     }
 
     /** One shown patch: its fixed frame, its water, its engine, and the individuals in it. */
-    private static final class DomainState {
+    static final class DomainState {
         final long patchKey;
         final FlockEngine engine = new FlockEngine(Tunables.GROUP);
         final List<Member> members = new ArrayList<>();
@@ -197,6 +197,10 @@ public final class AmbientFishRuntime {
         float topMargin;
         /** The margin the current domain was built with; a mismatch marks it stale. */
         float builtTopMargin = Float.NaN;
+        /** The patch version ({@link WaterDiscovery#patchVersion}) the current domain was built from. */
+        long builtVersion = Long.MIN_VALUE;
+        /** The player block the current domain's open faces were judged from. */
+        int builtPx, builtPy, builtPz;
         double waterVolume;
 
         DomainState(WaterDiscovery.Patch patch, long seed) {
@@ -213,19 +217,6 @@ public final class AmbientFishRuntime {
     /** A dropped patch's retained random state, waiting out {@link AmbientTuning#RETENTION_TICKS}. */
     private record Retained(long streamState, int spawnCount, long storedTick, AmbientPopulationRolls rolls) {
     }
-
-    /** What one individual looks like right now — the harness's window into the population. */
-    public record Individual(long id, long patchKey, String species, double length, double x, double y,
-                             double z, float yaw, boolean retiring, int retireReason, float fade,
-                             long bornTick, int lifetimeTicks,
-                             double openFaceDistance, double surfaceClearance, double bedClearance,
-                             boolean inWater, boolean bodyFits) {}
-
-    /** Per-domain summary, for the harness log. */
-    public record DomainReport(long patchKey, int columns, int originX, int originY, int originZ,
-                               int individuals, int retiring, long builds, double buildMillis,
-                               boolean openMinL, boolean openMaxL, boolean openMinY, boolean openMaxY,
-                               boolean openMinD, boolean openMaxD) {}
 
     /** Totals and peaks the harness asserts on. */
     public static final class Stats {
@@ -271,6 +262,10 @@ public final class AmbientFishRuntime {
         public double minBedClearance = Double.MAX_VALUE;
         public double minOpenFaceDistance = Double.MAX_VALUE;
         public long outsideWater;
+        /** Carried centres invalidated by changed geometry, retired before the next step. */
+        public long rebuildInvalidatedCenters;
+        /** Post-placement verification, only populated by the invariant harness. */
+        public long spawnFitChecks, spawnFitFailures;
         public long bodyFitsFailures;
         public long steps;
         public long worldReads;
@@ -303,10 +298,10 @@ public final class AmbientFishRuntime {
         }
     }
 
-    private final WaterDiscovery discovery = new WaterDiscovery();
+    final WaterDiscovery discovery = new WaterDiscovery();
     private final AmbientWaterSource source = new AmbientWaterSource();
-    private final Map<Long, DomainState> domains = new LinkedHashMap<>();
-    private final Stats stats = new Stats();
+    final Map<Long, DomainState> domains = new LinkedHashMap<>();
+    final Stats stats = new Stats();
     private final Random random = new Random(20261013L);
     private final Random poseRandom = new Random(7L);
     /** Resolved species visuals, by {@code namespace:path} — built lazily from the context's ids. */
@@ -314,18 +309,18 @@ public final class AmbientFishRuntime {
     /** Species ids that resolved to nothing drawable; never re-attempted within a session. */
     private final java.util.Set<String> unrepresentable = new java.util.LinkedHashSet<>();
     /** Patch random states kept across brief absences, bounded by count and by age. */
-    private final Map<Long, Retained> retained = new LinkedHashMap<>();
+    final Map<Long, Retained> retained = new LinkedHashMap<>();
     private final List<Member> scratchMembers = new ArrayList<>();
     private float[] depthScratch = new float[0];
     private int[] orderScratch = new int[0];
     private ClientLevel level;
-    private long lastTick = Long.MIN_VALUE;
+    long lastTick = Long.MIN_VALUE;
     private long nextId = 1;
-    private boolean armed;
-    private AmbientBudget budget = AmbientBudget.forDensity(100);
-    private int worldSubmitsThisFrame;
+    boolean armed;
+    AmbientBudget budget = AmbientBudget.forDensity(100);
+    int worldSubmitsThisFrame;
     /** Why this tick's spawn attempt did nothing: diagnosis for {@link #debugState()}. */
-    private String lastSpawnSkip = "not-ticked";
+    String lastSpawnSkip = "not-ticked";
 
     // ------------------------------------------------------------------ lifecycle
 
@@ -355,6 +350,7 @@ public final class AmbientFishRuntime {
 
     public void clear() {
         patchDistances = Map.of();
+        sampleGeometry.clear();
         armed = false;
         domains.clear();
         discovery.reset();
@@ -381,6 +377,13 @@ public final class AmbientFishRuntime {
         return stats;
     }
 
+    private final AmbientDiagnostics diagnostics = new AmbientDiagnostics(this);
+
+    /** The harness's read-only view of the population (individuals, domains, pools, the debug line). */
+    public AmbientDiagnostics diagnostics() {
+        return diagnostics;
+    }
+
     public WaterDiscovery discovery() {
         return discovery;
     }
@@ -401,127 +404,8 @@ public final class AmbientFishRuntime {
         return stats.steps;
     }
 
-    /**
-     * Every species any shown patch's sampler can currently draw, in first-seen order — the union
-     * of the live visual populations. Before the first context arrives, or where nothing is
-     * representable, this is empty: the runtime shows only what an authoritative pool named.
-     */
-    public List<String> pool() {
-        List<String> out = new ArrayList<>();
-        for (DomainState st : domains.values()) {
-            if (st.sampler == null) continue;
-            for (VisualSampler.Entry entry : st.sampler.entries()) {
-                if (!out.contains(entry.species())) out.add(entry.species());
-            }
-        }
-        return List.copyOf(out);
-    }
-
-    /**
-     * The species one patch's sampler may draw, in candidate order — the harness's legality window
-     * ("every live individual's species must be in here"). Empty when the patch has no usable
-     * context or nothing representable.
-     */
-    public List<String> representableSpecies(long patchKey) {
-        DomainState st = domains.get(patchKey);
-        if (st == null || st.sampler == null) return List.of();
-        List<String> out = new ArrayList<>(st.sampler.size());
-        for (VisualSampler.Entry entry : st.sampler.entries()) out.add(entry.species());
-        return List.copyOf(out);
-    }
-
-    /** One patch's sampler entries (shares included), for the scene log; empty when unusable. */
-    public List<VisualSampler.Entry> samplerFor(long patchKey) {
-        DomainState st = domains.get(patchKey);
-        return st == null || st.sampler == null ? List.of() : st.sampler.entries();
-    }
-
-    /** The fingerprint a patch's applied sampler was built from, or {@link Long#MIN_VALUE}. */
-    public long appliedFingerprint(long patchKey) {
-        DomainState st = domains.get(patchKey);
-        return st == null ? Long.MIN_VALUE : st.appliedFingerprint;
-    }
-
-    /** Patch random states currently held for a quick return (bounded; diagnostics). */
-    public int retainedStateCount() {
-        return retained.size();
-    }
-
-    /**
-     * One line of internal state for the harness log: the population, and for each shown domain why
-     * it is or is not taking fish. Diagnosis only — nothing in the sim reads it.
-     */
-    public String debugState() {
-        StringBuilder sb = new StringBuilder(160);
-        WaterDiscovery.Counters c = discovery.counters();
-        int knownNear = 0, waterNear = 0;
-        BlockPos at = Minecraft.getInstance().player != null
-                ? Minecraft.getInstance().player.blockPosition() : BlockPos.ZERO;
-        for (WaterDiscovery.Column col : discovery.columns()) {
-            if (Math.abs(col.x() - at.getX()) > 8 || Math.abs(col.z() - at.getZ()) > 8) continue;
-            knownNear++;
-            if (!col.water().isEmpty()) waterNear++;
-        }
-        sb.append("armed=").append(armed).append(" indivs=").append(stats.individuals)
-                .append('/').append(budget.individuals()).append(" density=").append(budget.density())
-                .append(" tickMs[mean=").append(stats.totalTickMillis / Math.max(1, stats.ticks))
-                .append(" peak=").append(stats.peakTickMillis).append("] submitMs[mean=")
-                .append(stats.totalSubmitMillis / Math.max(1, stats.renderFrames))
-                .append(" peak=").append(stats.peakSubmitMillis).append("] species=").append(pool().size())
-                .append(" retained=").append(retained.size()).append('/').append(AmbientTuning.MAX_RETAINED_PATCHES)
-                .append(" domains=").append(domains.size())
-                .append(" livePatches=").append(discovery.livePatches().size())
-                .append(" submits=").append(worldSubmitsThisFrame)
-                .append(" retired[face=").append(stats.retireOpenFace).append(" invalid=").append(stats.retireInvalid)
-                .append(" domain=").append(stats.retireDomainLost).append(" excluded=").append(stats.retireExcluded)
-                .append(" expired=").append(stats.retireExpired).append(']')
-                .append(" known=").append(discovery.columns().size())
-                .append(" nearKnown=").append(knownNear).append(" nearWater=").append(waterNear)
-                .append(" scansThisTick=").append(c.scansThisTick)
-                .append(" cellsThisTick=").append(c.cellsThisTick)
-                .append(" cursor=").append(c.cursorStepsThisTick)
-                .append(" spawnSkip=").append(lastSpawnSkip);
-        int shown = 0;
-        for (DomainState st : domains.values()) {
-            if (shown++ == 4) break;
-            WaterDiscovery.Patch now = discovery.patch(st.patchKey);
-            int omitted = st.sampler == null ? 0 : st.sampler.omitted().size();
-            int representable = st.sampler == null ? 0 : st.sampler.size();
-            sb.append(" [key=").append(st.patchKey)
-                    .append(" patchCols=").append(st.patch == null ? -1 : st.patch.columns())
-                    .append(" mapCols=").append(now == null ? -1 : now.columns())
-                    .append(" builtCols=").append(st.builtColumns)
-                    .append(" water=").append(st.domain == null ? "none" : "built")
-                    .append(" refilling=").append(st.refilling)
-                    .append(" ctx=").append(st.contextOk ? "ok" : "none")
-                    .append(" pool=").append(representable).append('/').append(representable + omitted)
-                    .append(" fp=").append(st.appliedFingerprint == Long.MIN_VALUE ? "-"
-                            : Long.toHexString(st.appliedFingerprint))
-                    .append(" top=").append(String.format(java.util.Locale.ROOT, "%.2f", st.topMargin))
-                    .append(" members=").append(st.members.size()).append('/').append(targetFor(st))
-                    .append(" spawn=").append(skipReason(st))
-                    .append(']');
-        }
-        individuals().stream().sorted(Comparator.comparingDouble(p -> at.distToCenterSqr(p.x(), p.y(), p.z())))
-                .limit(3).forEach(p -> sb.append(String.format(java.util.Locale.ROOT,
-                        " [fish=%s xyz=%.1f,%.1f,%.1f depth=%.1f fade=%.2f reason=%d]",
-                        p.species(), p.x(), p.y(), p.z(), p.surfaceClearance(), p.fade(), p.retireReason())));
-        return sb.toString();
-    }
-
-    /** Why {@link #spawnOne} would skip this domain, in one word; {@code -} means eligible. */
-    private String skipReason(DomainState st) {
-        if (st.dying) return "dying";
-        if (st.domain == null) return "unbuilt";
-        if (st.members.size() >= targetFor(st)) return "full";
-        if (!st.contextOk) return "ctxx";
-        if (st.sampler == null || st.sampler.isEmpty()) return "norep";
-        if (recent(st.lastOmissionTick, lastTick, OMISSION_RETRY_TICKS)) return "retry";
-        return "-";
-    }
-
     /** Whether {@code tick} is a real timestamp within {@code window} of {@code now}. */
-    private static boolean recent(long tick, long now, long window) {
+    static boolean recent(long tick, long now, long window) {
         // A "never" marker is Long.MIN_VALUE, and `now - Long.MIN_VALUE` overflows back to a
         // negative number, so every such comparison has to test the marker before subtracting.
         return tick != Long.MIN_VALUE && now - tick < window;
@@ -531,34 +415,6 @@ public final class AmbientFishRuntime {
     private int spawnSkip(String why) {
         lastSpawnSkip = why;
         return 0;
-    }
-
-    public List<DomainReport> domainReports() {
-        List<DomainReport> out = new ArrayList<>();
-        for (DomainState st : domains.values()) {
-            int retiring = 0;
-            for (Member m : st.members) {
-                if (m.retiring()) retiring++;
-            }
-            WaterDomain d = st.domain;
-            out.add(new DomainReport(st.patchKey, st.patch == null ? 0 : st.patch.columns(),
-                    st.originX(), st.originY(), st.originZ(), st.members.size(), retiring,
-                    st.builtColumns < 0 ? 0 : 1, st.buildNanos / 1_000_000.0,
-                    d != null && d.openFace(WaterDomain.FACE_MIN_L), d != null && d.openFace(WaterDomain.FACE_MAX_L),
-                    d != null && d.openFace(WaterDomain.FACE_MIN_Y), d != null && d.openFace(WaterDomain.FACE_MAX_Y),
-                    d != null && d.openFace(WaterDomain.FACE_MIN_D), d != null && d.openFace(WaterDomain.FACE_MAX_D)));
-        }
-        return out;
-    }
-
-    /**
-     * Live cached column count for a patch key, straight from the discovery cache. Unlike
-     * {@link #domainReports()}, which shows the stale count held by the last successful build,
-     * this drops to zero as soon as the patch's columns are evicted — the harness's window into
-     * "this water is gone / this water is back".
-     */
-    public int patchColumns(long patchKey) {
-        return discovery.columnCount(patchKey);
     }
 
     /**
@@ -581,7 +437,58 @@ public final class AmbientFishRuntime {
             PatchSample sample = sampleOf(st.patchKey);
             if (sample != null) out.add(sample);
         }
+        sampleGeometry.keySet().removeIf(key -> !domains.containsKey(key));
         return List.copyOf(out);
+    }
+
+    /**
+     * What {@link #sampleOf} derives from a patch's columns alone — the sorted set, its signature
+     * and the column nearest the seed — kept until the patch's version or seed moves, so the
+     * context manager's per-tick compare costs a lookup instead of a scan, a sort and a hash.
+     */
+    private record SampleGeometry(long version, int seedX, int seedZ, List<WaterDiscovery.Column> sorted,
+                                  long signature, @Nullable WaterDiscovery.Column nearest) {}
+
+    private final Map<Long, SampleGeometry> sampleGeometry = new java.util.HashMap<>();
+
+    private SampleGeometry sampleGeometry(WaterDiscovery.Patch patch) {
+        long version = discovery.patchVersion(patch.key());
+        SampleGeometry g = sampleGeometry.get(patch.key());
+        if (g != null && g.version() == version && g.seedX() == patch.seedX() && g.seedZ() == patch.seedZ()) return g;
+        List<WaterDiscovery.Column> columns = discovery.patchColumns(patch.key());
+        columns.sort(Comparator.comparingInt(WaterDiscovery.Column::x).thenComparingInt(WaterDiscovery.Column::z));
+        g = new SampleGeometry(version, patch.seedX(), patch.seedZ(), List.copyOf(columns),
+                geometrySignature(columns), nearestToSeed(patch, columns, false));
+        sampleGeometry.put(patch.key(), g);
+        return g;
+    }
+
+    /**
+     * The column nearest the patch seed, ties to the lower x then z — among the loaded ones when
+     * {@code loadedOnly}. Sorted input, so the first of equals wins either way.
+     */
+    @Nullable
+    private WaterDiscovery.Column nearestToSeed(WaterDiscovery.Patch patch, List<WaterDiscovery.Column> sorted,
+                                                boolean loadedOnly) {
+        WaterDiscovery.Column best = null;
+        long bestDistance = Long.MAX_VALUE;
+        for (WaterDiscovery.Column c : sorted) {
+            if (c.water().isEmpty()) continue;
+            if (loadedOnly && !loaded(c)) continue;
+            long dx = c.x() - patch.seedX(), dz = c.z() - patch.seedZ();
+            long distance = dx * dx + dz * dz;
+            if (best == null || distance < bestDistance
+                    || (distance == bestDistance && (c.x() < best.x() || (c.x() == best.x() && c.z() < best.z())))) {
+                best = c;
+                bestDistance = distance;
+            }
+        }
+        return best;
+    }
+
+    private boolean loaded(WaterDiscovery.Column c) {
+        return level != null && level.hasChunkAt(new BlockPos(c.x(),
+                (int) Math.floor(c.water().surfaceY() - 1e-4), c.z()));
     }
 
     /**
@@ -595,25 +502,14 @@ public final class AmbientFishRuntime {
     private PatchSample sampleOf(long patchKey) {
         WaterDiscovery.Patch patch = discovery.patch(patchKey);
         if (patch == null) return null;
-        List<WaterDiscovery.Column> columns = discovery.columnsOf(patchKey);
-        columns.sort(Comparator.comparingInt(WaterDiscovery.Column::x).thenComparingInt(WaterDiscovery.Column::z));
-        WaterDiscovery.Column best = null;
-        long bestDistance = Long.MAX_VALUE;
-        for (WaterDiscovery.Column c : columns) {
-            if (c.water().isEmpty()) continue;
-            if (level == null || !level.hasChunkAt(new BlockPos(c.x(),
-                    (int) Math.floor(c.water().surfaceY() - 1e-4), c.z()))) continue;
-            long dx = c.x() - patch.seedX(), dz = c.z() - patch.seedZ();
-            long distance = dx * dx + dz * dz;
-            if (best == null || distance < bestDistance
-                    || (distance == bestDistance && (c.x() < best.x() || (c.x() == best.x() && c.z() < best.z())))) {
-                best = c;
-                bestDistance = distance;
-            }
-        }
+        SampleGeometry g = sampleGeometry(patch);
+        // The nearest column overall is the nearest loaded one whenever it is loaded itself — the
+        // usual case; only an unloaded nearest sends the pick back through the whole set.
+        WaterDiscovery.Column best = g.nearest() != null && loaded(g.nearest()) ? g.nearest()
+                : nearestToSeed(patch, g.sorted(), true);
         if (best == null) return null;
         int y = (int) Math.floor(best.water().surfaceY() - 1e-4);
-        return new PatchSample(patchKey, new BlockPos(best.x(), y, best.z()), geometrySignature(columns));
+        return new PatchSample(patchKey, new BlockPos(best.x(), y, best.z()), g.signature());
     }
 
     private static long geometrySignature(List<WaterDiscovery.Column> sortedColumns) {
@@ -630,30 +526,6 @@ public final class AmbientFishRuntime {
             }
         }
         return hash;
-    }
-
-    /** Snapshot of every individual, in world coordinates with its clearance figures. */
-    public List<Individual> individuals() {
-        List<Individual> out = new ArrayList<>();
-        for (DomainState st : domains.values()) {
-            for (int i = 0; i < st.members.size(); i++) out.add(snapshot(st, i));
-        }
-        return out;
-    }
-
-    private Individual snapshot(DomainState st, int i) {
-        Member m = st.members.get(i);
-        float l = st.engine.posL()[i], y = st.engine.posY()[i], d = st.engine.posD()[i];
-        WaterDomain dom = st.domain;
-        boolean inWater = dom != null && dom.contains(l, y, d);
-        boolean fits = dom != null && dom.bodyFits(l, y, d, m.body);
-        double open = dom == null ? Float.MAX_VALUE : dom.openFaceDistance(l, y, d);
-        double surface = dom == null ? Double.MAX_VALUE : dom.surfaceAt(l, d) - y;
-        double bed = dom == null ? Double.MAX_VALUE : y - dom.bedAt(l, d);
-        return new Individual(m.id, st.patchKey, m.species, m.spec.length(),
-                st.originX() + l, st.originY() + y, st.originZ() + d, st.engine.yawDeg[i],
-                m.retiring(), m.retireReason, m.fade, m.bornTick, m.lifetimeTicks,
-                open, surface, bed, inWater, fits);
     }
 
     // ------------------------------------------------------------------ pool
@@ -892,7 +764,8 @@ public final class AmbientFishRuntime {
         for (DomainState st : domains.values()) {
             if (!st.dying && !st.members.isEmpty()) occupied.add(st.patchKey);
         }
-        var selection = AmbientPatchSelection.select(live, discovery.columns(), occupied, px, pz, budget.domains());
+        var selection = AmbientPatchSelection.select(live, discovery.nearestSquaredDistances(px, pz), occupied,
+                budget.domains());
         live = selection.patches();
         patchDistances = selection.distances();
 
@@ -941,9 +814,16 @@ public final class AmbientFishRuntime {
             int distance = patchDistance(st.patch);
             // A margin the domain was not built with is as much a staleness as a moved column:
             // the reserved head-room is what keeps a tall species' spawns inside the water.
-            boolean stale = st.builtColumns != st.patch.columns()
+            // Anything else a rebuild reads — the columns' water and context (the patch version)
+            // and the player block its open faces are judged from — is picked up at most once per
+            // interval, as the old timed rebuild did; a domain none of that has moved for is not
+            // rebuilt at all.
+            boolean inputsMoved = st.builtVersion != discovery.patchVersion(st.patchKey)
+                    || st.builtPx != px || st.builtPy != py || st.builtPz != pz;
+            boolean stale = st.builtTick == Long.MIN_VALUE
+                    || st.builtColumns != st.patch.columns()
                     || st.builtTopMargin != st.topMargin
-                    || !recent(st.builtTick, time, REBUILD_INTERVAL_TICKS);
+                    || (inputsMoved && !recent(st.builtTick, time, REBUILD_INTERVAL_TICKS));
             if (stale && distance < bestDistance) {
                 bestDistance = distance;
                 dirtiest = st;
@@ -988,10 +868,15 @@ public final class AmbientFishRuntime {
 
     /** Rebuilds one domain's water and re-seeds its engine, carrying every resident's state. */
     private void rebuild(DomainState st, long time, int px, int py, int pz) {
+        if (invariantStats) diagnostics.rebuilding(st, time, px, py, pz);
         List<WaterDiscovery.Column> columns = discovery.columnsOf(st.patchKey);
         st.builtTick = time;
         st.builtColumns = st.patch.columns();
         st.builtTopMargin = st.topMargin;
+        st.builtVersion = discovery.patchVersion(st.patchKey);
+        st.builtPx = px;
+        st.builtPy = py;
+        st.builtPz = pz;
         if (columns.isEmpty()) {
             beginDying(st, time);
             return;
@@ -1077,7 +962,15 @@ public final class AmbientFishRuntime {
                 continue;
             }
             if (!built.contains(st.engine.posL()[i], st.engine.posY()[i], st.engine.posD()[i])) {
-                stats.outsideWater++;
+                // Geometry may disappear underneath a carried resident. That resident is retired
+                // below; it is not an active fish escaping containment during an engine step.
+                stats.rebuildInvalidatedCenters++;
+                if (invariantStats) {
+                    grill24.fishtastic.Fishtastic.LOGGER.info(
+                            "[ambient-invariant] rebuild invalidated id={} species={} columns={} refilling={} xyz={}/{}/{}",
+                            m.id, m.species, st.builtColumns, st.refilling,
+                            st.engine.posL()[i], st.engine.posY()[i], st.engine.posD()[i]);
+                }
             }
             if (!built.bodyFits(st.engine.posL()[i], st.engine.posY()[i], st.engine.posD()[i], m.body)) {
                 // A fish whose water went away fades where it is while the new domain holds it
@@ -1327,11 +1220,16 @@ public final class AmbientFishRuntime {
         reseed(best);
         int index = best.members.size() - 1;
         best.engine.placeFish(index, found[0], found[1], found[2]);
+        if (invariantStats) {
+            stats.spawnFitChecks++;
+            if (!best.domain.bodyFits(best.engine.posL()[index], best.engine.posY()[index],
+                    best.engine.posD()[index], body)) stats.spawnFitFailures++;
+        }
         stats.spawns++;
         return 1;
     }
 
-    private int targetFor(DomainState st) {
+    int targetFor(DomainState st) {
         return budget.target(st.waterVolume);
     }
 
@@ -1389,6 +1287,17 @@ public final class AmbientFishRuntime {
         }
     }
 
+    /**
+     * Whether {@link #recordStats} also probes every resident against its water (containment, body
+     * fit, clearances, open-face distance). Those figures exist for the self-test's assertions, and
+     * the probes cost five domain queries per fish per tick, so they run only while it is armed.
+     */
+    private static boolean invariantStats;
+
+    public static void setInvariantStats(boolean enabled) {
+        invariantStats = enabled;
+    }
+
     /** Per-tick headline figures: totals, the discovery budget's peaks, and clearance minima. */
     private void recordStats() {
         WaterDiscovery.Counters c = discovery.counters();
@@ -1414,7 +1323,7 @@ public final class AmbientFishRuntime {
                 }
                 active++;
                 WaterDomain d = st.domain;
-                if (d == null) continue;
+                if (d == null || !invariantStats) continue;
                 float l = st.engine.posL()[i], y = st.engine.posY()[i], dz = st.engine.posD()[i];
                 if (!d.contains(l, y, dz)) stats.outsideWater++;
                 if (!d.bodyFits(l, y, dz, m.body)) stats.bodyFitsFailures++;

@@ -1,5 +1,9 @@
 # Fish Companions
 
+> **Mostly history (2026-10-16).** Current truth for companions is listed in [README.md](README.md):
+> the sim plan, the party spec and the world rework. §2–§3 (trio/solo, display modes) and the v1
+> as-built notes in §13–§21 describe code that has since been deleted.
+
 > **2026-10-11: motion is being rebuilt as a headless simulation.** See
 > [fish-companions-sim-plan.md](fish-companions-sim-plan.md). It replaces this doc's motion approach
 > (§1, §11 Motion, §19–22) and phase table (§12). Fishing reactions (§5) are deferred.

@@ -791,6 +791,111 @@ class WaterDiscoveryTest {
         return hash;
     }
 
+    // ── Per-patch index (pre-backport cleanup step 4) ───────────────────────
+
+    @Test
+    void nearestWaterDistancesFollowThePlayerDrainingAndSessionReset() {
+        SyntheticWater world = pond(10, 14, 10, 14, 3);
+        WaterDiscovery d = discovery(10, 48, 512);
+        for (int t = 0; t < 200; t++) d.tick(world, 12, 65, 12, t);
+        long key = d.patchKeyAt(10, 10);
+        assertEquals(Map.of(key, 0), d.nearestSquaredDistances(10, 10));
+        assertEquals(Map.of(key, 9), d.nearestSquaredDistances(7, 10),
+                "moving the observer changes the nearest distance without changing the water");
+        assertEquals(Map.of(key, 0), d.nearestSquaredDistances(10, 10));
+
+        world.water(10, 10, TOP, 0);
+        assertTrue(d.revalidate(world, 10, 10, 65, 201));
+        assertEquals(Map.of(key, 1), d.nearestSquaredDistances(10, 10),
+                "a cached nearest column cannot survive removal");
+
+        d.reset();
+        assertEquals(Map.of(), d.nearestSquaredDistances(10, 10),
+                "a new session must not reuse the old distance map");
+    }
+
+    @Test
+    void thePatchIndexAgreesWithAFullScanThroughMergesDrainsContextFlipsAndEviction() {
+        // Two ponds that a channel later joins (a merge), a column that drains and refills, a
+        // context boundary that flips, a player walk that evicts one pond, and a cap low enough to
+        // trim: after every tick the indexed queries must say exactly what a scan of every column says.
+        SyntheticWater wet = pond(0, 4, 0, 4, 3);
+        for (int x = 8; x <= 12; x++) for (int z = 0; z <= 4; z++) wet.water(x, z, TOP, 3);
+        boolean[] boundary = {false};
+        WaterSource source = new WaterSource() {
+            public int flags(int x, int y, int z) { return wet.flags(x, y, z); }
+            public float fluidTop(int x, int y, int z) { return wet.fluidTop(x, y, z); }
+            public float collisionTop(int x, int y, int z) { return wet.collisionTop(x, y, z); }
+            public Object contextKey(int x, int y, int z) { return boundary[0] && z >= 3 ? "river" : "ocean"; }
+        };
+        WaterDiscovery d = discovery(12, 48, 512);
+        d.setMaxColumns(60);
+        int px = 6;
+        for (int t = 0; t < 600; t++) {
+            if (t == 120) for (int x = 5; x <= 7; x++) wet.water(x, 2, TOP, 3); // the channel: a merge
+            if (t == 200) wet.dry(2, 2);
+            if (t == 260) wet.water(2, 2, TOP, 3);
+            if (t == 300) boundary[0] = true;
+            if (t == 380) boundary[0] = false;
+            if (t >= 420 && t % 10 == 0 && px < 40) px += 2; // walk away: eviction
+            d.tick(source, px, 65, 2, t);
+            assertIndexMatchesScan(d, px, 2, "tick " + t);
+        }
+        WaterDiscovery.Counters c = d.counters();
+        assertTrue(c.patchMerges > 0, "the scenario must merge patches");
+        assertTrue(c.columnsChanged > 0, "the scenario must re-read changed columns");
+        assertTrue(c.columnsEvicted > 0, "the scenario must evict or trim columns");
+    }
+
+    @Test
+    void aPatchVersionHoldsWhileItsWaterStandsStillAndMovesWhenAColumnChanges() {
+        SyntheticWater world = pond(10, 14, 10, 14, 3);
+        WaterDiscovery d = discovery(10, 48, 512);
+        for (int t = 0; t < 200; t++) d.tick(world, 12, 65, 12, t);
+        long key = d.patchKeyAt(12, 12);
+        long version = d.patchVersion(key);
+        assertTrue(version != 0L, "a patch with columns has a version");
+        for (int t = 200; t < 1200; t++) {
+            d.tick(world, 12, 65, 12, t);
+            assertEquals(version, d.patchVersion(key), "still water must keep its version (tick " + t + ")");
+        }
+        world.cellFluid(12, TOP, 12, 0.5f); // a lowered surface in one column
+        boolean moved = false;
+        for (int t = 1200; t < 1400 && !moved; t++) {
+            d.tick(world, 12, 65, 12, t);
+            moved = d.patchVersion(key) != version;
+        }
+        assertTrue(moved, "a re-read column with different water moves the version");
+        assertEquals(0L, d.patchVersion(12345L), "an unknown patch has version zero");
+    }
+
+    private static void assertIndexMatchesScan(WaterDiscovery d, int x, int z, String when) {
+        Map<Long, List<String>> scan = new HashMap<>();
+        Map<Long, Integer> nearest = new HashMap<>();
+        for (WaterDiscovery.Column c : d.columns()) {
+            scan.computeIfAbsent(c.patchKey(), k -> new ArrayList<>()).add(describe(c));
+            int dx = c.x() - x, dz = c.z() - z;
+            nearest.merge(c.patchKey(), dx * dx + dz * dz, Math::min);
+        }
+        assertEquals(nearest, d.nearestSquaredDistances(x, z), when + ": nearest distances");
+        for (Map.Entry<Long, List<String>> e : scan.entrySet()) {
+            List<String> indexed = new ArrayList<>();
+            for (WaterDiscovery.Column c : d.patchColumns(e.getKey())) indexed.add(describe(c));
+            List<String> scanned = new ArrayList<>(e.getValue());
+            indexed.sort(null);
+            scanned.sort(null);
+            assertEquals(scanned, indexed, when + ": columns of patch " + e.getKey());
+            assertTrue(d.patchVersion(e.getKey()) != 0L, when + ": a patch with columns has a version");
+        }
+        for (WaterDiscovery.Patch p : d.livePatches()) {
+            assertEquals(p.columns(), d.patchColumns(p.key()).size(), when + ": count of patch " + p.key());
+        }
+    }
+
+    private static String describe(WaterDiscovery.Column c) {
+        return c.x() + "," + c.z() + " " + c.patchKey() + " " + c.contextSignature() + " " + c.water();
+    }
+
     @Test
     void keysRoundTripThroughTheirPacking() {
         long k = WaterDiscovery.packKey(-37, 91, 5);

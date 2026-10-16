@@ -14,8 +14,8 @@ The implementation scattered fish through the whole discovered vertical band, up
 blocks below the player, and capped every connected patch at eight individuals. That produced
 an unnecessarily sparse, deep display in a large ocean. The adjustment keeps the visual domain
 in the upper four blocks of each water column and allows one large patch to use the existing
-global density budget. Default 50% remains at most sixteen individuals; full density remains
-at most thirty-two. Small pools still scale by volume. The artificial lower face is marked open
+global density budget. Default 50% remained at most sixteen individuals and full density at most
+thirty-two in this build (the caps were raised to 32 / 64 later the same day, see below). Small pools still scale by volume. The artificial lower face is marked open
 and supplies no invented seabed, so bottom-associated species below that display band are omitted.
 Fishing weights, eligibility, RNG and rewards are unchanged.
 

@@ -28,7 +28,7 @@ class MoodProbe {
     /** Scripts that fade the fish on purpose (the owner outruns it); the rest are unforced fades. */
     static final java.util.Set<String> FORCED = java.util.Set.of("teleport", "elytra", "creative_flight");
 
-    static Pooled pool(Locomotion c, MoodScenes.Preset preset, int seeds, List<String> scripts) {
+    static Pooled pool(Locomotion c, MoodPresets.Preset preset, int seeds, List<String> scripts) {
         double seen = 0, speed = 0, pose = 0, rest = 0, height = 0;
         long fades = 0, freeFades = 0, laps = 0, basks = 0;
         int n = 0;
@@ -71,7 +71,7 @@ class MoodProbe {
         for (Locomotion c : CLASSES) {
             Pooled base = pool(c, null, seeds, scripts);
             System.out.println(line(c, "none", base, base));
-            for (MoodScenes.Preset p : MoodScenes.ALL) System.out.println(line(c, p.name(), pool(c, p, seeds, scripts), base));
+            for (MoodPresets.Preset p : MoodPresets.ALL) System.out.println(line(c, p.name(), pool(c, p, seeds, scripts), base));
         }
     }
 
@@ -83,7 +83,7 @@ class MoodProbe {
         Locomotion c = Locomotion.valueOf(cls);
         int seeds = Integer.getInteger("sweepSeeds", 10);
         for (String name : System.getProperty("tweakList", "warm").split(",")) {
-            MoodScenes.Preset p = MoodScenes.named(name);
+            MoodPresets.Preset p = MoodPresets.named(name);
             for (String script : OwnerScript.NAMES) {
                 if (FORCED.contains(script)) continue;
                 StringBuilder seedsHit = new StringBuilder();
@@ -111,11 +111,11 @@ class MoodProbe {
         if (cls == null || System.getProperty("tweakList") != null) return;
         Locomotion c = Locomotion.valueOf(cls);
         int seeds = Integer.getInteger("sweepSeeds", 40);
-        List<MoodScenes.Preset> presets = new ArrayList<>();
+        List<MoodPresets.Preset> presets = new ArrayList<>();
         presets.add(null);
-        presets.addAll(MoodScenes.ALL);
+        presets.addAll(MoodPresets.ALL);
         StringBuilder head = new StringBuilder(String.format("RATE %-16s", "script"));
-        for (MoodScenes.Preset p : presets) head.append(String.format(" %7s", p == null ? "none" : p.name()));
+        for (MoodPresets.Preset p : presets) head.append(String.format(" %7s", p == null ? "none" : p.name()));
         System.out.println(head);
         long[] totals = new long[presets.size()];
         for (String script : OwnerScript.NAMES) {
