@@ -3,6 +3,7 @@ package grill24.fishtastic.gametest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
 
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -28,7 +29,26 @@ public final class FishtasticTestSupport {
 
     private static Function<GameTestHelper, ServerPlayer> playerFactory;
 
+    private static BiConsumer<ServerPlayer, ServerPlayer> respawnHandoff;
+
     private FishtasticTestSupport() {}
+
+    /**
+     * Called once per platform. Reproduces the loader's own death-respawn hand-off from the old
+     * player to the new one: NeoForge copies attachments inside {@code restoreFrom} (its Clone
+     * event), Fabric afterwards on {@code ServerPlayerEvents.AFTER_RESPAWN}.
+     */
+    public static void installRespawnHandoff(BiConsumer<ServerPlayer, ServerPlayer> handoff) {
+        respawnHandoff = handoff;
+    }
+
+    public static BiConsumer<ServerPlayer, ServerPlayer> respawnHandoff() {
+        BiConsumer<ServerPlayer, ServerPlayer> handoff = respawnHandoff;
+        if (handoff == null) {
+            throw new IllegalStateException("No respawn hand-off installed by the platform's gametest entrypoint");
+        }
+        return handoff;
+    }
 
     /** Called once per platform, from that platform's gametest entrypoint. */
     public static void installPlayerFactory(Function<GameTestHelper, ServerPlayer> factory) {

@@ -30,6 +30,7 @@ public final class NeoForgeGameTestRegistration {
     @SubscribeEvent
     public static void onRegisterGameTests(RegisterGameTestsEvent event) {
         FishtasticTestSupport.installPlayerFactory(NeoForgeTestPlayers::makeMockServerPlayerInLevel);
+        FishtasticTestSupport.installRespawnHandoff((before, after) -> after.restoreFrom(before, false));
         event.register(FishtasticGameTests.class);
     }
 }

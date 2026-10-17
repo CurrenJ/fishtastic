@@ -1710,4 +1710,65 @@ public class FishtasticGameTests {
     public void companionQuestScanReportsEachSpeciesOnce(GameTestHelper helper) {
         CompanionQuestUnlockGameTests.questScanReportsEachSpeciesOnce(helper);
     }
+
+    @GameTest(template = "fishtastic_empty")
+    public void bondTakesTheFishFromTheInventory(GameTestHelper helper) {
+        CompanionGameTests.bondTakesTheFishFromTheInventory(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void bondTakesTheFishFromInsideAPile(GameTestHelper helper) {
+        CompanionGameTests.bondTakesTheFishFromInsideAPile(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void bondFromATwoFishPileLeavesTheOtherFishLoose(GameTestHelper helper) {
+        CompanionGameTests.bondFromATwoFishPileLeavesTheOtherFishLoose(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void bondWithAFishThePlayerDoesNotCarryChangesNothing(GameTestHelper helper) {
+        CompanionGameTests.bondWithAFishThePlayerDoesNotCarryChangesNothing(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void bondRefusesSomethingThatIsNotAFish(GameTestHelper helper) {
+        CompanionGameTests.bondRefusesSomethingThatIsNotAFish(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void unequipReturnsTheIdenticalFish(GameTestHelper helper) {
+        CompanionGameTests.unequipReturnsTheIdenticalFish(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void unequipWithAFullInventoryDropsTheFish(GameTestHelper helper) {
+        CompanionGameTests.unequipWithAFullInventoryDropsTheFish(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void bondingASecondFishFillsTheNextSlot(GameTestHelper helper) {
+        CompanionGameTests.bondingASecondFishFillsTheNextSlot(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void bondIntoAFullPartyIsRefused(GameTestHelper helper) {
+        CompanionGameTests.bondIntoAFullPartyIsRefused(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void bondIntoANamedSlotReturnsItsFish(GameTestHelper helper) {
+        CompanionGameTests.bondIntoANamedSlotReturnsItsFish(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void threeOfOneSpeciesFillTheParty(GameTestHelper helper) {
+        CompanionGameTests.threeOfOneSpeciesFillTheParty(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionIsKeptOnDeath(GameTestHelper helper) {
+        CompanionGameTests.companionIsKeptOnDeath(helper, FishtasticTestSupport.playerSupplier(helper),
+                FishtasticTestSupport.respawnHandoff());
+    }
 }

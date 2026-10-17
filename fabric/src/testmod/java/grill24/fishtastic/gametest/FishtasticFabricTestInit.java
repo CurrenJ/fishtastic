@@ -14,5 +14,9 @@ public class FishtasticFabricTestInit {
 
     public FishtasticFabricTestInit() {
         FishtasticTestSupport.installPlayerFactory(helper -> helper.makeMockServerPlayerInLevel());
+        FishtasticTestSupport.installRespawnHandoff((before, after) -> {
+            after.restoreFrom(before, false);
+            net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents.AFTER_RESPAWN.invoker().afterRespawn(before, after, false);
+        });
     }
 }
