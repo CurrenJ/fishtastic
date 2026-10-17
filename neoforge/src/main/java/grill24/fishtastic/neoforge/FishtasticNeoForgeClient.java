@@ -89,13 +89,17 @@ public final class FishtasticNeoForgeClient {
         QuestSyncPacket.registerClientHandler(packet ->
                 QuestClientCache.update(packet.questProgress(), packet.tokenBalance(), packet.triggeringItems(),
                         packet.purchaseCounts(), packet.cleanupGoal(), packet.serverGameTime(),
-                        packet.baitDepletedItem(), packet.firstCatchItems(), packet.shopRefreshCount()));
+                        packet.baitDepletedItem(), packet.firstCatchItems(), packet.shopRefreshCount(),
+                        packet.unlockedCompanions(), packet.newlyUnlockedCompanions()));
 
         // Register tutorial sync packet client handler
         TutorialSyncPacket.registerClientHandler(TutorialClientHandler.PACKET_HANDLER);
 
         // Register encyclopedia tutorial sync packet client handler
         EncyclopediaTutorialSyncPacket.registerClientHandler(EncyclopediaTutorialClientHandler.PACKET_HANDLER);
+
+        // Register companion bond/rename feedback handler (tutorial and scene handlers arrive with F15/F11)
+        grill24.fishtastic.network.CompanionFeedbackPacket.registerClientHandler(grill24.fishtastic.client.CompanionClientState.PACKET_HANDLER);
 
         // Register fish encyclopedia sync packet client handler
         FishEncyclopediaSyncPacket.registerClientHandler(packet ->
@@ -218,6 +222,7 @@ public final class FishtasticNeoForgeClient {
         event.register(FishtasticKeyBinds.openQuestLog);
         event.register(FishtasticKeyBinds.openFishEncyclopedia);
         event.register(FishtasticKeyBinds.openLeaderboards);
+        event.register(FishtasticKeyBinds.bondCompanion);
         Fishtastic.LOGGER.info("Fishtastic key mappings registered.");
     }
 
@@ -237,6 +242,7 @@ public final class FishtasticNeoForgeClient {
     }
 
     public static void registerMenuScreens(final RegisterMenuScreensEvent event) {
+        event.register(FishtasticClientSetup.companionMenuType(), grill24.fishtastic.client.CompanionScreen::new);
         event.register(FishtasticClientSetup.fishTankAssemblyMenuType(), grill24.fishtastic.client.FishTankAssemblyScreen::new);
         event.register(FishtasticClientSetup.electricFishOrganizerMenuType(), grill24.fishtastic.client.ElectricFishOrganizerScreen::new);
         event.register(FishtasticClientSetup.fishTankBrowserMenuType(), grill24.fishtastic.client.FishTankBrowserScreen::new);
@@ -251,6 +257,7 @@ public final class FishtasticNeoForgeClient {
         QuestClientCache.reset();
         TutorialClientHandler.reset();
         EncyclopediaTutorialClientHandler.reset();
+        grill24.fishtastic.client.CompanionClientState.reset();
         FishEncyclopediaClientCache.reset();
         grill24.fishtastic.network.SetDayRatePacket.resetClientRate();
         CosmeticCaptureClientState.reset();

@@ -136,6 +136,8 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         // Register the Fish Tank Assembly menu screen
         net.minecraft.client.gui.screens.MenuScreens.register(
                 FishtasticClientSetup.fishTankAssemblyMenuType(), grill24.fishtastic.client.FishTankAssemblyScreen::new);
+        net.minecraft.client.gui.screens.MenuScreens.register(
+                FishtasticClientSetup.companionMenuType(), grill24.fishtastic.client.CompanionScreen::new);
 
         // Register the Electric Fish Organizer menu screen
         net.minecraft.client.gui.screens.MenuScreens.register(
@@ -155,13 +157,17 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         QuestSyncPacket.registerClientHandler(packet ->
                 QuestClientCache.update(packet.questProgress(), packet.tokenBalance(), packet.triggeringItems(),
                         packet.purchaseCounts(), packet.cleanupGoal(), packet.serverGameTime(),
-                        packet.baitDepletedItem(), packet.firstCatchItems(), packet.shopRefreshCount()));
+                        packet.baitDepletedItem(), packet.firstCatchItems(), packet.shopRefreshCount(),
+                        packet.unlockedCompanions(), packet.newlyUnlockedCompanions()));
 
         // Register tutorial sync packet client handler
         TutorialSyncPacket.registerClientHandler(TutorialClientHandler.PACKET_HANDLER);
 
         // Register encyclopedia tutorial sync packet client handler
         EncyclopediaTutorialSyncPacket.registerClientHandler(EncyclopediaTutorialClientHandler.PACKET_HANDLER);
+
+        // Register companion bond/rename feedback handler (tutorial and scene handlers arrive with F15/F11)
+        grill24.fishtastic.network.CompanionFeedbackPacket.registerClientHandler(grill24.fishtastic.client.CompanionClientState.PACKET_HANDLER);
 
         // Register fish encyclopedia sync packet client handler
         FishEncyclopediaSyncPacket.registerClientHandler(packet ->
@@ -200,6 +206,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         KeyBindingHelper.registerKeyBinding(FishtasticKeyBinds.openQuestLog);
         KeyBindingHelper.registerKeyBinding(FishtasticKeyBinds.openFishEncyclopedia);
         KeyBindingHelper.registerKeyBinding(FishtasticKeyBinds.openLeaderboards);
+        KeyBindingHelper.registerKeyBinding(FishtasticKeyBinds.bondCompanion);
 
         // Register block entity renderer
         BlockEntityRendererRegistry.register(
@@ -236,6 +243,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             QuestClientCache.reset();
             TutorialClientHandler.reset();
             EncyclopediaTutorialClientHandler.reset();
+            grill24.fishtastic.client.CompanionClientState.reset();
             FishEncyclopediaClientCache.reset();
             grill24.fishtastic.network.SetDayRatePacket.resetClientRate();
             CosmeticCaptureClientState.reset();

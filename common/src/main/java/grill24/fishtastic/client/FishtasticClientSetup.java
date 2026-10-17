@@ -26,6 +26,11 @@ public final class FishtasticClientSetup {
     }
 
     @SuppressWarnings("unchecked")
+    public static MenuType<grill24.fishtastic.menu.CompanionMenu> companionMenuType() {
+        return (MenuType<grill24.fishtastic.menu.CompanionMenu>) (MenuType<?>) FishtasticMenuTypes.COMPANION.value();
+    }
+
+    @SuppressWarnings("unchecked")
     public static MenuType<FishTankBrowserMenu> fishTankBrowserMenuType() {
         return (MenuType<FishTankBrowserMenu>) (MenuType<?>) FishtasticMenuTypes.FISH_TANK_BROWSER.value();
     }
