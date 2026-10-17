@@ -34,6 +34,7 @@ public class FishtasticPackets {
     public static final ResourceLocation SET_DAY_RATE_ID = Fishtastic.id("set_day_rate");
     public static final ResourceLocation BOND_COMPANION_ID = Fishtastic.id("bond_companion");
     public static final ResourceLocation RENAME_COMPANION_ID = Fishtastic.id("rename_companion");
+    public static final ResourceLocation TAKE_PILE_FISH_ID = Fishtastic.id("take_pile_fish");
     public static final ResourceLocation COMPANION_FEEDBACK_ID = Fishtastic.id("companion_feedback");
 
     /**
@@ -143,6 +144,18 @@ public class FishtasticPackets {
                 RenameCompanionPacket.class,
                 RenameCompanionPacket.STREAM_CODEC,
                 RenameCompanionPacket::handleClientToServer
+        );
+        registrar.registerClientToServer(
+                OpenCompanionMenuPacket.TYPE,
+                OpenCompanionMenuPacket.class,
+                OpenCompanionMenuPacket.STREAM_CODEC,
+                OpenCompanionMenuPacket::handleClientToServer
+        );
+        registrar.registerClientToServer(
+                TakePileFishPacket.TYPE,
+                TakePileFishPacket.class,
+                TakePileFishPacket.STREAM_CODEC,
+                TakePileFishPacket::handleClientToServer
         );
     }
 
