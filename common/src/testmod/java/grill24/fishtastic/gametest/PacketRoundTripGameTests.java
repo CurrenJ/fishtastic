@@ -178,9 +178,11 @@ public final class PacketRoundTripGameTests {
                 new grill24.fishtastic.network.CleanupGoalProgress.Contributor(UUID.randomUUID(), "Steve", 90),
                 new grill24.fishtastic.network.CleanupGoalProgress.Contributor(UUID.randomUUID(), "Alex", 30));
 
+        List<ResourceLocation> unlockedCompanions = List.of(Ids.of("fishtastic", "bluegill"), Ids.of("fishtastic", "oscar"));
+        List<ResourceLocation> newlyUnlockedCompanions = List.of(Ids.of("fishtastic", "oscar"));
         QuestSyncPacket original = new QuestSyncPacket(progress, 150, triggeringItems, purchaseCounts,
                 new grill24.fishtastic.network.CleanupGoalProgress(120, 200, 0, contributors), 12345L,
-                baitStack, firstCatchItems, 3);
+                baitStack, firstCatchItems, 3, unlockedCompanions, newlyUnlockedCompanions);
 
         RegistryFriendlyByteBuf buf = newBuf(helper);
         QuestSyncPacket.STREAM_CODEC.encode(buf, original);
@@ -195,6 +197,10 @@ public final class PacketRoundTripGameTests {
         helper.assertTrue(decodedTriggerStack != null, "triggeringItems key must round-trip");
         assertStacksMatch(helper, triggeringStack, decodedTriggerStack, "triggeringItems[questA]");
 
+        helper.assertTrue(decoded.unlockedCompanions().equals(original.unlockedCompanions()),
+            "unlockedCompanions must round-trip, expected " + original.unlockedCompanions() + " got " + decoded.unlockedCompanions());
+        helper.assertTrue(decoded.newlyUnlockedCompanions().equals(original.newlyUnlockedCompanions()),
+            "newlyUnlockedCompanions must round-trip, expected " + original.newlyUnlockedCompanions() + " got " + decoded.newlyUnlockedCompanions());
         helper.assertTrue(decoded.cleanupGoal().equals(original.cleanupGoal()),
             "cleanupGoal (CleanupGoalProgress) must round-trip via equals(), expected " + original.cleanupGoal() + " got " + decoded.cleanupGoal());
 
@@ -221,7 +227,7 @@ public final class PacketRoundTripGameTests {
         QuestSyncPacket original = new QuestSyncPacket(
             Map.of(), 0, Map.of(), Map.of(),
             new grill24.fishtastic.network.CleanupGoalProgress(400, 200, 400, List.of()), 0L,
-            ItemStack.EMPTY, List.of(), 0);
+            ItemStack.EMPTY, List.of(), 0, List.of(), List.of());
 
         RegistryFriendlyByteBuf buf = newBuf(helper);
         QuestSyncPacket.STREAM_CODEC.encode(buf, original);
