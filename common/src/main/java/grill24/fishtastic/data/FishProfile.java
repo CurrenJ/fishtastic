@@ -38,7 +38,10 @@ public record FishProfile(
         Optional<ResourceKey<Temperament>> temperament,
         Optional<FishAnimationConfig> animation,
         SwarmConfig swarm,
-        float renderCalibration
+        float renderCalibration,
+        Optional<CompanionGroupConfig> companionGroup,
+        CompanionGait companionGait,
+        CompanionDrift companionDrift
 ) {
     public static final int DEFAULT_BASE_WEIGHT = 10;
     public static final float DEFAULT_MEAN_SIZE = 50.0f;
@@ -71,8 +74,47 @@ public record FishProfile(
             // is sqrt(2) for the diagonal-rotated modes (the 45° roll that lays a diagonally-painted
             // fish flat also widens its square texture quad's on-screen span by sqrt(2)) or 1.0
             // otherwise. See tools/fish-render-calibration.
-            Codec.FLOAT.optionalFieldOf("render_calibration", DEFAULT_RENDER_CALIBRATION).forGetter(FishProfile::renderCalibration)
+            Codec.FLOAT.optionalFieldOf("render_calibration", DEFAULT_RENDER_CALIBRATION).forGetter(FishProfile::renderCalibration),
+            CompanionGroupConfig.CODEC.optionalFieldOf("companion_group").forGetter(FishProfile::companionGroup),
+            CompanionGait.CODEC.optionalFieldOf("companion_gait", CompanionGait.CRAWL).forGetter(FishProfile::companionGait),
+            CompanionDrift.CODEC.optionalFieldOf("companion_drift", CompanionDrift.BELL).forGetter(FishProfile::companionDrift)
     ).apply(i, FishProfile::new));
+
+    /**
+     * How a benthic companion gets about on land (docs/fish-companions-benthic-follow.md §4): the
+     * scuttle-and-pause crawl, or a flatfish's smooth ripple-glide. Ignored for other classes.
+     */
+    public enum CompanionGait implements StringRepresentable {
+        CRAWL, RIPPLE;
+        public static final Codec<CompanionGait> CODEC = StringRepresentable.fromEnum(CompanionGait::values);
+        @Override public String getSerializedName() { return name().toLowerCase(Locale.ROOT); }
+    }
+
+    /**
+     * How a drifter companion propels itself (docs/fish-companions-drift.md §2): a pulsed bell, a
+     * squid's fins and mantle jets, or a man o' war's bobbing float. Ignored for other classes.
+     */
+    public enum CompanionDrift implements StringRepresentable {
+        BELL, JET, BOB;
+        public static final Codec<CompanionDrift> CODEC = StringRepresentable.fromEnum(CompanionDrift::values);
+        @Override public String getSerializedName() { return name().toLowerCase(Locale.ROOT); }
+    }
+
+    /**
+     * How a ground benthic's group walks: in a line or as a crowd. Groups come from the party now
+     * (docs/fish-companions-party.md §3): two or three of the species bonded together form one.
+     */
+    public record CompanionGroupConfig(Formation formation) {
+        public static final Codec<CompanionGroupConfig> CODEC = RecordCodecBuilder.create(i -> i.group(
+                Formation.CODEC.fieldOf("formation").forGetter(CompanionGroupConfig::formation)
+        ).apply(i, CompanionGroupConfig::new));
+
+        public enum Formation implements StringRepresentable {
+            LINE, CROWD;
+            public static final Codec<Formation> CODEC = StringRepresentable.fromEnum(Formation::values);
+            @Override public String getSerializedName() { return name().toLowerCase(Locale.ROOT); }
+        }
+    }
 
     public record SizeParams(float mean, float stdDev) {
         public static final SizeParams DEFAULT = new SizeParams(DEFAULT_MEAN_SIZE, DEFAULT_STDDEV_SIZE);

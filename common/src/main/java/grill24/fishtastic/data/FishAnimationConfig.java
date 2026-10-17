@@ -123,8 +123,22 @@ public sealed interface FishAnimationConfig
             float floorOffset,
             float rotationAmplitude,
             float rotationHertz,
-            float scuttleSquash
+            float scuttleSquash,
+            boolean diagonalTexture,
+            float ripple
     ) implements FishAnimationConfig {
+        /**
+         * @param diagonalTexture the sprite is drawn on the item's diagonal, head top-right (most
+         *                        fish items): turned 45° in its own plane so its nose leads where
+         *                        it walks. A radial creature (a starfish) doesn't care.
+         * @param ripple          a flatfish's glide, degrees: a body wag in the floor plane with a
+         *                        fin-margin width pulse a quarter-cycle behind it, on the walker's
+         *                        own ripple clock. Zero for a crawler.
+         */
+        public FloorSit(float floorOffset, float rotationAmplitude, float rotationHertz, float scuttleSquash) {
+            this(floorOffset, rotationAmplitude, rotationHertz, scuttleSquash, false, 0f);
+        }
+
         /**
          * How far the body deforms as it pushes off into a scuttle, as a fraction of its own size
          * (docs/fish-sim-locomotion.md §3.6), driven by the engine's crawl envelope
@@ -146,7 +160,9 @@ public sealed interface FishAnimationConfig
                 Codec.FLOAT.optionalFieldOf("floor_offset",       0.03f ).forGetter(FloorSit::floorOffset),
                 Codec.FLOAT.optionalFieldOf("rotation_amplitude", 8.0f  ).forGetter(FloorSit::rotationAmplitude),
                 Codec.FLOAT.optionalFieldOf("rotation_hertz",     0.004f).forGetter(FloorSit::rotationHertz),
-                Codec.FLOAT.optionalFieldOf("scuttle_squash", DEFAULT_SCUTTLE_SQUASH).forGetter(FloorSit::scuttleSquash)
+                Codec.FLOAT.optionalFieldOf("scuttle_squash", DEFAULT_SCUTTLE_SQUASH).forGetter(FloorSit::scuttleSquash),
+                Codec.BOOL.optionalFieldOf("diagonal_texture", false).forGetter(FloorSit::diagonalTexture),
+                Codec.FLOAT.optionalFieldOf("ripple", 0f).forGetter(FloorSit::ripple)
         ).apply(i, FloorSit::new));
 
         @Override public String modeName() { return "floor_sit"; }
@@ -160,8 +176,18 @@ public sealed interface FishAnimationConfig
             float plantDepth,
             float wiggleAmplitude,
             float wiggleHertz,
-            float retractFraction
+            float retractFraction,
+            float baseX
     ) implements FishAnimationConfig {
+        /**
+         * Where the art's base (the point buried in the sand) sits across the sprite, as a fraction
+         * of its width from the centre: negative is left. Measured per species, as
+         * {@code UprightSit.pivotFraction} is. A tank doesn't need it (the sand is wide), but a
+         * companion planted on its owner's shoulder or head is drawn with this point on the perch,
+         * or art whose base is off to one side hangs past the shoulder and reads as floating.
+         */
+        public static final float DEFAULT_BASE_X = 0f;
+
         /**
          * How much of its height the creature loses at a full retract — the withdrawal into the
          * burrow, driven by the engine's own startle envelope
@@ -176,13 +202,14 @@ public sealed interface FishAnimationConfig
         public static final float DEFAULT_RETRACT_FRACTION = 0.9f;
 
         public static final Planted DEFAULT =
-                new Planted(1f / 16f, 3.0f, 0.018f, DEFAULT_RETRACT_FRACTION);
+                new Planted(1f / 16f, 3.0f, 0.018f, DEFAULT_RETRACT_FRACTION, DEFAULT_BASE_X);
 
         static final MapCodec<Planted> MAP_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
                 Codec.FLOAT.optionalFieldOf("plant_depth",      1f / 16f).forGetter(Planted::plantDepth),
                 Codec.FLOAT.optionalFieldOf("wiggle_amplitude", 3.0f  ).forGetter(Planted::wiggleAmplitude),
                 Codec.FLOAT.optionalFieldOf("wiggle_hertz",     0.018f).forGetter(Planted::wiggleHertz),
-                Codec.FLOAT.optionalFieldOf("retract_fraction", DEFAULT_RETRACT_FRACTION).forGetter(Planted::retractFraction)
+                Codec.FLOAT.optionalFieldOf("retract_fraction", DEFAULT_RETRACT_FRACTION).forGetter(Planted::retractFraction),
+                Codec.FLOAT.optionalFieldOf("base_x", DEFAULT_BASE_X).forGetter(Planted::baseX)
         ).apply(i, Planted::new));
 
         @Override public String modeName() { return "planted"; }
