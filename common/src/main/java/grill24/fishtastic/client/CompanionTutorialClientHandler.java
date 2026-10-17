@@ -1,95 +1,112 @@
 package grill24.fishtastic.client;
 
+import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.network.CompanionTutorialAdvancePacket;
 import grill24.fishtastic.network.CompanionTutorialSyncPacket;
 import grill24.fishtastic.tutorial.CompanionTutorialStep;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
-import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.world.item.ItemStack;
 
-import java.util.List;
-
-/**
- * Client half of the companion FTUE (docs/fish-companions.md §8.4, R7.7). Same shape as
- * {@link EncyclopediaTutorialClientHandler}: a side panel over the encyclopedia, advanced by the
- * concrete action it asks for — here, opening the Companions tab — not a timer. The step starts
- * server-side the first time any bond unlocks.
- */
+/** Companion lesson copy and book-first discovery. The party screen owns its own guide layout. */
 public final class CompanionTutorialClientHandler {
     private CompanionTutorialClientHandler() {}
 
     private static CompanionTutorialStep currentStep = CompanionTutorialStep.COMPLETE;
+    private static boolean awaitingReply;
 
-    public static final CompanionTutorialSyncPacket.ClientHandler PACKET_HANDLER = packet -> currentStep = packet.step();
+    public static final CompanionTutorialSyncPacket.ClientHandler PACKET_HANDLER = packet -> {
+        currentStep = packet.step();
+        awaitingReply = false;
+    };
 
-    /** Call when the player opens the Companions tab — completes the INTRO step. */
-    public static void onCompanionsTabOpened() {
-        if (currentStep != CompanionTutorialStep.INTRO) return;
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null) return;
-        mc.player.connection.send(new ServerboundCustomPayloadPacket(
-                new CompanionTutorialAdvancePacket(CompanionTutorialStep.INTRO)));
+    public static CompanionTutorialStep currentStep() { return currentStep; }
+
+    /** The fishing introduction always gets priority. */
+    public static boolean isActive() {
+        return currentStep.hasOverlay() && !TutorialClientHandler.getCurrentStep().hasOverlay();
     }
 
-    // Same side-panel geometry as the encyclopedia FTUE's, on the other edge so the two never
-    // stack on top of each other if both are somehow active.
-    private static final int SIDE_PANEL_WIDTH = 150;
-    private static final int SIDE_PANEL_MARGIN = 16;
+    public static boolean awaitingReply() { return awaitingReply; }
 
-    /** Called after any screen renders; gated to the encyclopedia, the screen the panel teaches. */
+    public static Component title() {
+        return Component.translatable("tutorial.fishtastic.companion." + currentStep.name().toLowerCase(java.util.Locale.ROOT) + ".title");
+    }
+
+    public static Component body() {
+        return Component.translatable("tutorial.fishtastic.companion." + currentStep.name().toLowerCase(java.util.Locale.ROOT) + ".body");
+    }
+
+    public static void advance(boolean skip) {
+        Minecraft mc = Minecraft.getInstance();
+        if (awaitingReply || !isActive() || !(mc.screen instanceof CompanionScreen) || mc.player == null
+                || !mc.player.containerMenu.getCarried().isEmpty() || !skip && !currentStep.canContinue()) return;
+        awaitingReply = true;
+        mc.player.connection.send(new ServerboundCustomPayloadPacket(new CompanionTutorialAdvancePacket(currentStep, skip)));
+    }
+
+    public static boolean shouldHighlightBook(ItemStack stack) {
+        return isActive() && stack.is(FishtasticItems.FISHOPEDIA.value());
+    }
+
+    /** Called by each loader's HUD hook; never darkens the world or requires a custom key. */
+    public static void renderHud(GuiGraphicsExtractor graphics, float partialTick) {
+        Minecraft mc = Minecraft.getInstance();
+        if (!isActive() || mc.level == null || mc.screen != null) return;
+        if (mc.player != null) {
+            for (int slot = 0; slot < 9; slot++) {
+                if (!shouldHighlightBook(mc.player.getInventory().getItem(slot))) continue;
+                graphics.outline(mc.getWindow().getGuiScaledWidth() / 2 - 91 + slot * 20,
+                        mc.getWindow().getGuiScaledHeight() - 23, 22, 24, 0xFFFFDD44);
+            }
+        }
+        int width = Math.min(340, mc.getWindow().getGuiScaledWidth() - 32);
+        Component message = Component.translatable("tutorial.fishtastic.companion.open_book",
+                mc.options.keyUse.getTranslatedKeyMessage(), mc.options.keyInventory.getTranslatedKeyMessage());
+        drawPanel(graphics, (mc.getWindow().getGuiScaledWidth() - width) / 2,
+                mc.getWindow().getGuiScaledHeight() - 120, width,
+                Component.translatable("tutorial.fishtastic.companion.resume.title"), message);
+    }
+
+    /** Wait for the encyclopedia's own introduction before suggesting companion management. */
     public static void render(GuiGraphicsExtractor graphics, float partialTick) {
-        if (!currentStep.hasOverlay()) return;
+        if (!isActive()) return;
         Minecraft mc = Minecraft.getInstance();
-        if (!(mc.screen instanceof FishEncyclopediaScreen)) return;
-
-        Component title = Component.translatable("tutorial.fishtastic.companion_intro.title");
-        Component body = Component.translatable("tutorial.fishtastic.companion_intro.body");
-
-        Font font = mc.font;
-        int sw = mc.getWindow().getGuiScaledWidth();
-        int sh = mc.getWindow().getGuiScaledHeight();
-        int innerPad = 10;
-        int boxWidth = Math.min(SIDE_PANEL_WIDTH, sw - SIDE_PANEL_MARGIN * 2);
-        int lineH = font.lineHeight + 2;
-        int maxLineW = boxWidth - innerPad * 2;
-
-        List<FormattedCharSequence> titleLines = font.split(title.copy().withStyle(ChatFormatting.BOLD, ChatFormatting.WHITE), maxLineW);
-        List<FormattedCharSequence> bodyLines = font.split(body.copy().withStyle(ChatFormatting.GRAY), maxLineW);
-
-        int boxH = innerPad * 2 + titleLines.size() * lineH + 4 + bodyLines.size() * lineH;
-        int boxX = SIDE_PANEL_MARGIN;
-        int boxY = (sh - boxH) / 2;
-
-        graphics.fill(boxX, boxY, boxX + boxWidth, boxY + boxH, 0xD0101820);
-        graphics.fill(boxX, boxY, boxX + boxWidth, boxY + 2, 0xFF44CC88);
-        graphics.fill(boxX, boxY + boxH - 2, boxX + boxWidth, boxY + boxH, 0xFF44CC88);
-        graphics.fill(boxX, boxY, boxX + 2, boxY + boxH, 0xFF44CC88);
-        graphics.fill(boxX + boxWidth - 2, boxY, boxX + boxWidth, boxY + boxH, 0xFF44CC88);
-
-        int tx = boxX + innerPad;
-        int ty = boxY + innerPad;
-        for (FormattedCharSequence line : titleLines) {
-            graphics.text(font, line, tx, ty, 0xFFFFFFFF);
-            ty += lineH;
-        }
-        ty += 4;
-        for (FormattedCharSequence line : bodyLines) {
-            graphics.text(font, line, tx, ty, 0xFFAAAAAA);
-            ty += lineH;
+        if (mc.screen instanceof FishEncyclopediaScreen encyclopedia && !EncyclopediaTutorialClientHandler.hasActiveLesson()) {
+            encyclopedia.highlightCompanionEntryButton(graphics);
+            int width = Math.min(150, mc.getWindow().getGuiScaledWidth() / 3);
+            drawPanel(graphics, 12, 52, width,
+                    Component.translatable("tutorial.fishtastic.companion.resume.title"),
+                    Component.translatable(encyclopedia.hasCompanionEntryButton()
+                            ? "tutorial.fishtastic.companion.choose_fish" : "tutorial.fishtastic.companion.open_party"));
         }
     }
 
-    /** Dev accessor for the self-test scene. */
-    public static CompanionTutorialStep currentStep() {
-        return currentStep;
+    private static void drawPanel(GuiGraphicsExtractor graphics, int x, int y, int width, Component title, Component body) {
+        var font = Minecraft.getInstance().font;
+        var heading = font.split(title.copy().withStyle(ChatFormatting.BOLD), width - 20);
+        var lines = font.split(body, width - 20);
+        int height = 24 + (heading.size() + lines.size()) * 11;
+        y = Math.max(8, Math.min(y, Minecraft.getInstance().getWindow().getGuiScaledHeight() - height - 30));
+        graphics.fill(x, y, x + width, y + height, 0xE0101820);
+        graphics.outline(x, y, width, height, 0xFF44CC88);
+        int textY = y + 10;
+        for (var line : heading) {
+            graphics.text(font, line, x + 10, textY, 0xFFFFFFFF);
+            textY += 11;
+        }
+        textY += 4;
+        for (var line : lines) {
+            graphics.text(font, line, x + 10, textY, 0xFFDDDDDD);
+            textY += 11;
+        }
     }
 
-    /** Call on disconnect/world-leave so the overlay doesn't persist into the main menu. */
     public static void reset() {
         currentStep = CompanionTutorialStep.COMPLETE;
+        awaitingReply = false;
     }
 }

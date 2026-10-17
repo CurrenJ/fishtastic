@@ -37,14 +37,6 @@ public class FishingHookMixin implements IFishingHookExtension {
     @Final
     private int luck;
 
-    @Inject(method = "<init>(Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/level/Level;II)V",
-            at = @At("TAIL"))
-    private void fishtastic$onCreated(Player player, Level level, int luckBonus, int speedBonus, CallbackInfo ci) {
-        if (player instanceof ServerPlayer serverPlayer) {
-            TutorialManager.onHookCast(serverPlayer);
-        }
-    }
-
     // On vanilla/Fabric, shouldStopFishing checks is(Items.FISHING_ROD) which excludes modded rods.
     // NeoForge patches this to canPerformAction(), so it already works there.
     @Inject(method = "shouldStopFishing", at = @At("HEAD"), cancellable = true)
@@ -69,7 +61,8 @@ public class FishingHookMixin implements IFishingHookExtension {
             if (player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
                 grill24.fishtastic.server.FishingMinigameManager manager =
                         grill24.fishtastic.server.FishingMinigameManager.get(serverPlayer.level());
-                if (TutorialManager.isTutorialSession(serverPlayer)) {
+                if (itemStack.is(grill24.fishtastic.FishtasticItems.COPPER_FISHING_ROD.value())
+                        && TutorialManager.isTutorialSession(serverPlayer)) {
                     manager.startTutorialSession(serverPlayer);
                 } else {
                     manager.startSession(serverPlayer, 1.0f, false);

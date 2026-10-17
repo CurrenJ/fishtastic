@@ -416,7 +416,7 @@ public class FishCatchSavedData extends SavedData {
 
     public TutorialStep getTutorialStep(net.minecraft.server.level.ServerPlayer player) {
         UUID key = resolvePlayerKey(player);
-        return tutorialSteps.getOrDefault(key, TutorialStep.WAITING_FOR_CAST);
+        return tutorialSteps.getOrDefault(key, TutorialStep.NOT_STARTED);
     }
 
     public void setTutorialStep(net.minecraft.server.level.ServerPlayer player, TutorialStep step) {

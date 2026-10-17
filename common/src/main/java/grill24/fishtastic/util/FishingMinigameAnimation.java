@@ -676,7 +676,9 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
             } else if (isImpulseDown) {
                 // Apply a small continuous force each frame, scaled by deltaTime so the
                 // accumulated velocity per second is frame-rate independent.
-                minigameState.applyImpulse(HOLD_IMPULSE_STRENGTH * inputForceMultiplier * deltaTime);
+                if (!minigameState.isPaused()) {
+                    minigameState.applyImpulse(HOLD_IMPULSE_STRENGTH * inputForceMultiplier * deltaTime);
+                }
                 if (!wasImpulseKeyDown) {
                     // Fire the tutorial callback only on the initial press, not every frame.
                     TutorialClientHandler.onMinigameImpulse();

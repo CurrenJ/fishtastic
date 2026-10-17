@@ -2,7 +2,6 @@ package grill24.fishtastic.network;
 
 import grill24.fishtastic.compat.GelatinOpenMenuCompat;
 import grill24.fishtastic.server.FishCatchSavedData;
-import grill24.fishtastic.tutorial.EncyclopediaTutorialManager;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
@@ -46,8 +45,6 @@ public record RequestFishEncyclopediaPacket(boolean openMenu) implements CustomP
                 }
                 if (packet.openMenu()) {
                     GelatinOpenMenuCompat.openFishEncyclopediaMenu(serverPlayer);
-                    EncyclopediaTutorialManager.onEncyclopediaOpened(serverPlayer);
-                    grill24.fishtastic.tutorial.CompanionTutorialManager.onEncyclopediaOpened(serverPlayer);
                 }
             }
         });

@@ -8,7 +8,11 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerPlayer;
 
-public record CompanionTutorialAdvancePacket(CompanionTutorialStep fromStep) implements CustomPacketPayload {
+public record CompanionTutorialAdvancePacket(CompanionTutorialStep fromStep, boolean skip) implements CustomPacketPayload {
+
+    public CompanionTutorialAdvancePacket(CompanionTutorialStep fromStep) {
+        this(fromStep, false);
+    }
 
     public static final CustomPacketPayload.Type<CompanionTutorialAdvancePacket> TYPE =
             new CustomPacketPayload.Type<>(Fishtastic.id("companion_tutorial_advance"));
@@ -17,6 +21,8 @@ public record CompanionTutorialAdvancePacket(CompanionTutorialStep fromStep) imp
             StreamCodec.composite(
                     CompanionTutorialStep.STREAM_CODEC,
                     CompanionTutorialAdvancePacket::fromStep,
+                    net.minecraft.network.codec.ByteBufCodecs.BOOL,
+                    CompanionTutorialAdvancePacket::skip,
                     CompanionTutorialAdvancePacket::new
             );
 
@@ -28,9 +34,8 @@ public record CompanionTutorialAdvancePacket(CompanionTutorialStep fromStep) imp
     public static void handleClientToServer(CompanionTutorialAdvancePacket packet, FishtasticPackets.IPacketContext ctx) {
         ctx.enqueueWork(() -> {
             var player = ctx.getPlayer();
-            if (player instanceof ServerPlayer serverPlayer
-                    && packet.fromStep() == CompanionTutorialStep.INTRO) {
-                CompanionTutorialManager.onCompanionsTabOpened(serverPlayer);
+            if (player instanceof ServerPlayer serverPlayer) {
+                CompanionTutorialManager.advanceStep(serverPlayer, packet.fromStep(), packet.skip());
             }
         });
     }

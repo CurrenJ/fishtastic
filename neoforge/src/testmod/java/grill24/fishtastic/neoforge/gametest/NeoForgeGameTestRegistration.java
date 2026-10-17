@@ -415,6 +415,24 @@ public class NeoForgeGameTestRegistration {
             FishTankGameTests::brokenTankDropRestoresShapeWhenReplaced);
 
         // ----- TutorialManager tests -----
+        register(event, env, "companion_tutorial_real_menu_walks_all_lessons", 200,
+            helper -> grill24.fishtastic.gametest.CompanionTutorialManagerGameTests.realMenuWalksAllCompanionLessons(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_tutorial_shortcuts_and_shift_returns", 200,
+            helper -> grill24.fishtastic.gametest.CompanionTutorialManagerGameTests.shortcutsAndShiftReturnsAdvanceTheSameLessons(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_tutorial_closing_with_cursor_fish", 200,
+            helper -> grill24.fishtastic.gametest.CompanionTutorialManagerGameTests.closingWithReturnedFishResumesWithoutLosingIt(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_tutorial_rejects_stale_and_unearned_advances", 200,
+            helper -> grill24.fishtastic.gametest.CompanionTutorialManagerGameTests.stalePacketsCannotReplaceCompanionActions(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_tutorial_skip_and_replay_preserve_party", 200,
+            helper -> grill24.fishtastic.gametest.CompanionTutorialManagerGameTests.skipAndReplayKeepEarnedPartyAndUnlocks(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_tutorial_equip_from_a_pile", 200,
+            helper -> grill24.fishtastic.gametest.CompanionTutorialManagerGameTests.pileFishCanCompleteTheEquipLesson(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "only_copper_casts_start_tutorial_and_grant_books_once", 200,
+            helper -> TutorialManagerGameTests.onlyCopperCastsStartTutorialAndGrantBooksOnce(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "books_advance_tutorial_and_encyclopedia_choice_is_optional", 200,
+            helper -> TutorialManagerGameTests.booksAdvanceTutorialAndEncyclopediaChoiceIsOptional(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "interrupted_practice_resumes_at_cast_without_new_starter_items", 200,
+            helper -> TutorialManagerGameTests.interruptedPracticeResumesAtCastWithoutNewStarterItems(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "crafting_rod_from_default_step_grants_worms_and_advances", 200,
             helper -> TutorialManagerGameTests.craftingRodFromDefaultStepGrantsWormsAndAdvances(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "crafting_rod_again_after_advancing_is_no_op", 200,

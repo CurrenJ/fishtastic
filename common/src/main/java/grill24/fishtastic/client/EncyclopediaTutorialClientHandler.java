@@ -27,6 +27,8 @@ public class EncyclopediaTutorialClientHandler {
     private static EncyclopediaTutorialStep currentStep = EncyclopediaTutorialStep.COMPLETE;
     private static boolean sentAdvanceThisStep = false;
 
+    public static boolean hasActiveLesson() { return currentStep.hasOverlay(); }
+
     public static final EncyclopediaTutorialSyncPacket.ClientHandler PACKET_HANDLER = packet -> {
         currentStep = packet.step();
         sentAdvanceThisStep = false;
@@ -56,6 +58,7 @@ public class EncyclopediaTutorialClientHandler {
      */
     public static void render(GuiGraphicsExtractor graphics, float partialTick) {
         if (!currentStep.hasOverlay()) return;
+        if (TutorialClientHandler.getCurrentStep().hasOverlay()) return;
         Minecraft mc = Minecraft.getInstance();
         if (!(mc.screen instanceof FishEncyclopediaScreen)) return;
 

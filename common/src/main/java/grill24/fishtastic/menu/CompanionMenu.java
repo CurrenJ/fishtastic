@@ -43,6 +43,8 @@ public final class CompanionMenu extends AbstractContainerMenu {
     };
     private final DataSlot species = DataSlot.standalone();
     private boolean readingStorage;
+    /** Tracks a fish taken from a party slot until it is actually put back in the inventory. */
+    private ItemStack returningFish = ItemStack.EMPTY;
 
     public CompanionMenu(int id, Inventory inventory) {
         this(id, inventory, null);
@@ -111,17 +113,50 @@ public final class CompanionMenu extends AbstractContainerMenu {
 
     @Override public void clicked(int slot, int button, net.minecraft.world.inventory.ContainerInput input, Player player) {
         pullStorage();
-        if (input == net.minecraft.world.inventory.ContainerInput.QUICK_MOVE && (button == 0 || button == 1)) {
-            // Vanilla repeats quickMove while the source still contains the same item type.
-            // A one-fish companion move must run exactly once, even for same-species fish.
-            quickMoveStack(player, slot);
-            return;
+        ItemStack partyBefore = isPartySlot(slot) ? getSlot(slot).getItem().copy() : ItemStack.EMPTY;
+        ItemStack cursorBefore = getCarried().copy();
+        try {
+            if (input == net.minecraft.world.inventory.ContainerInput.QUICK_MOVE && (button == 0 || button == 1)) {
+                // Vanilla repeats quickMove while the source still contains the same item type.
+                // A one-fish companion move must run exactly once, even for same-species fish.
+                quickMoveStack(player, slot);
+                return;
+            }
+            if (isPartySlot(slot) && input == net.minecraft.world.inventory.ContainerInput.PICKUP && (button == 0 || button == 1)) {
+                clickCompanion(player, slot);
+                return;
+            }
+            super.clicked(slot, button, input, player);
+        } finally {
+            if (player instanceof ServerPlayer serverPlayer) {
+                if (!partyBefore.isEmpty() && !ItemStack.matches(partyBefore, getSlot(slot).getItem())
+                        && ItemStack.isSameItemSameComponents(partyBefore, getCarried())) {
+                    returningFish = partyBefore.copyWithCount(1);
+                }
+                boolean putAway = slot >= INVENTORY_START && slot < INVENTORY_END && !returningFish.isEmpty()
+                        && ItemStack.isSameItemSameComponents(returningFish, cursorBefore)
+                        && (!ItemStack.isSameItemSameComponents(cursorBefore, getCarried())
+                        || getCarried().getCount() < cursorBefore.getCount());
+                boolean hotbarReturn = isPartySlot(slot) && !partyBefore.isEmpty()
+                        && input == net.minecraft.world.inventory.ContainerInput.SWAP
+                        && !ItemStack.matches(partyBefore, getSlot(slot).getItem());
+                if (putAway || hotbarReturn) {
+                    grill24.fishtastic.tutorial.CompanionTutorialManager.onReturned(serverPlayer);
+                    returningFish = ItemStack.EMPTY;
+                } else if (!returningFish.isEmpty() && !ItemStack.isSameItemSameComponents(returningFish, getCarried())) {
+                    returningFish = ItemStack.EMPTY;
+                }
+            }
         }
-        if (isPartySlot(slot) && input == net.minecraft.world.inventory.ContainerInput.PICKUP && (button == 0 || button == 1)) {
-            clickCompanion(player, slot);
-            return;
+    }
+
+    @Override public void removed(Player player) {
+        boolean returning = !returningFish.isEmpty() && ItemStack.isSameItemSameComponents(returningFish, getCarried())
+                && Companions.hasRoomToReturn(player, returningFish);
+        super.removed(player);
+        if (returning && player instanceof ServerPlayer serverPlayer) {
+            grill24.fishtastic.tutorial.CompanionTutorialManager.onReturned(serverPlayer);
         }
-        super.clicked(slot, button, input, player);
     }
 
     /**
@@ -181,6 +216,7 @@ public final class CompanionMenu extends AbstractContainerMenu {
         if (isPartySlot(index)) {
             if (!moveItemStackTo(stack, INVENTORY_START, INVENTORY_END, true)) return ItemStack.EMPTY;
             source.setByPlayer(stack.isEmpty() ? ItemStack.EMPTY : stack);
+            if (player instanceof ServerPlayer serverPlayer) grill24.fishtastic.tutorial.CompanionTutorialManager.onReturned(serverPlayer);
         } else {
             Slot target = null;
             for (int i = 0; i < PARTY_SLOTS; i++) {

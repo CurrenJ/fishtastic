@@ -6,15 +6,19 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 
 /**
- * The one-step FTUE for fish companions (docs/fish-companions.md §8.4, R7.7): the first time any
- * bond becomes available, a side panel in the encyclopedia introduces the Companions tab; opening
- * that tab completes the step. Kept separate from the other tutorial state machines, like
- * {@link EncyclopediaTutorialStep}.
+ * Companion lessons. Append new steps: existing saves encode NOT_STARTED/INTRO/COMPLETE as 0/1/2.
  */
 public enum CompanionTutorialStep {
     NOT_STARTED,
     INTRO,
-    COMPLETE;
+    COMPLETE,
+    EQUIP,
+    RETURN,
+    REEQUIP,
+    LEAD,
+    RENAME,
+    GROUPS,
+    PILES;
 
     public static final Codec<CompanionTutorialStep> CODEC =
             Codec.INT.xmap(i -> values()[i], Enum::ordinal);
@@ -23,6 +27,24 @@ public enum CompanionTutorialStep {
             ByteBufCodecs.VAR_INT.map(i -> values()[i], Enum::ordinal);
 
     public boolean hasOverlay() {
-        return this == INTRO;
+        return this != NOT_STARTED && this != COMPLETE;
+    }
+
+    /** These explanations may be acknowledged without requiring extra fish or a custom name. */
+    public boolean canContinue() {
+        return this == LEAD || this == RENAME || this == GROUPS || this == PILES;
+    }
+
+    public int lessonNumber() {
+        return switch (this) {
+            case EQUIP -> 1;
+            case RETURN -> 2;
+            case REEQUIP -> 3;
+            case LEAD -> 4;
+            case RENAME -> 5;
+            case GROUPS -> 6;
+            case PILES -> 7;
+            default -> 0;
+        };
     }
 }

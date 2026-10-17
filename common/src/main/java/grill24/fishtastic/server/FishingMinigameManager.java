@@ -636,6 +636,8 @@ public class FishingMinigameManager {
             ActiveSession session = entry.getValue();
             if (currentTime - session.startTime > SESSION_TIMEOUT_TICKS) {
                 Fishtastic.LOGGER.info("Session {} timed out", session.sessionId);
+                ServerPlayer player = level.getServer().getPlayerList().getPlayer(entry.getKey());
+                if (player != null) TutorialManager.onPracticeInterrupted(player);
                 return true;
             }
             return false;
@@ -645,6 +647,7 @@ public class FishingMinigameManager {
     public void cancelSession(net.minecraft.world.entity.player.Player player) {
         ActiveSession session = activeSessions.remove(player.getUUID());
         if (session != null) {
+            if (player instanceof ServerPlayer serverPlayer) TutorialManager.onPracticeInterrupted(serverPlayer);
             Fishtastic.LOGGER.info("Cancelled session {} for player {}",
                     session.sessionId, player.getName().getString());
         }

@@ -664,6 +664,51 @@ public class FishtasticFabricGameTests {
     // -------------------------------------------------------------------------
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionTutorialRealMenuWalksAllLessons(GameTestHelper helper) {
+        CompanionTutorialManagerGameTests.realMenuWalksAllCompanionLessons(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionTutorialShortcutsAndShiftReturns(GameTestHelper helper) {
+        CompanionTutorialManagerGameTests.shortcutsAndShiftReturnsAdvanceTheSameLessons(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionTutorialClosingWithCursorFish(GameTestHelper helper) {
+        CompanionTutorialManagerGameTests.closingWithReturnedFishResumesWithoutLosingIt(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionTutorialRejectsStaleAndUnearnedAdvances(GameTestHelper helper) {
+        CompanionTutorialManagerGameTests.stalePacketsCannotReplaceCompanionActions(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionTutorialSkipAndReplayPreserveParty(GameTestHelper helper) {
+        CompanionTutorialManagerGameTests.skipAndReplayKeepEarnedPartyAndUnlocks(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionTutorialEquipFromAPile(GameTestHelper helper) {
+        CompanionTutorialManagerGameTests.pileFishCanCompleteTheEquipLesson(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void onlyCopperCastsStartTutorialAndGrantBooksOnce(GameTestHelper helper) {
+        TutorialManagerGameTests.onlyCopperCastsStartTutorialAndGrantBooksOnce(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void booksAdvanceTutorialAndEncyclopediaChoiceIsOptional(GameTestHelper helper) {
+        TutorialManagerGameTests.booksAdvanceTutorialAndEncyclopediaChoiceIsOptional(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void interruptedPracticeResumesAtCastWithoutNewStarterItems(GameTestHelper helper) {
+        TutorialManagerGameTests.interruptedPracticeResumesAtCastWithoutNewStarterItems(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void craftingRodFromDefaultStepGrantsWormsAndAdvances(GameTestHelper helper) {
         TutorialManagerGameTests.craftingRodFromDefaultStepGrantsWormsAndAdvances(helper, helper::makeMockServerPlayerInLevel);
     }

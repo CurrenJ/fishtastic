@@ -8,7 +8,11 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerPlayer;
 
-public record TutorialAdvancePacket(TutorialStep fromStep) implements CustomPacketPayload {
+public record TutorialAdvancePacket(TutorialStep fromStep, boolean showEncyclopedia) implements CustomPacketPayload {
+
+    public TutorialAdvancePacket(TutorialStep fromStep) {
+        this(fromStep, false);
+    }
 
     public static final CustomPacketPayload.Type<TutorialAdvancePacket> TYPE =
             new CustomPacketPayload.Type<>(Fishtastic.id("tutorial_advance"));
@@ -17,6 +21,8 @@ public record TutorialAdvancePacket(TutorialStep fromStep) implements CustomPack
             StreamCodec.composite(
                     TutorialStep.STREAM_CODEC,
                     TutorialAdvancePacket::fromStep,
+                    net.minecraft.network.codec.ByteBufCodecs.BOOL,
+                    TutorialAdvancePacket::showEncyclopedia,
                     TutorialAdvancePacket::new
             );
 
@@ -29,7 +35,7 @@ public record TutorialAdvancePacket(TutorialStep fromStep) implements CustomPack
         ctx.enqueueWork(() -> {
             var player = ctx.getPlayer();
             if (player instanceof ServerPlayer serverPlayer) {
-                TutorialManager.advanceStep(serverPlayer, packet.fromStep());
+                TutorialManager.advanceStep(serverPlayer, packet.fromStep(), packet.showEncyclopedia());
             }
         });
     }

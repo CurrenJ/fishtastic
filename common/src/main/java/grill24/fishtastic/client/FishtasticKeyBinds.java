@@ -4,7 +4,6 @@ import com.mojang.blaze3d.platform.InputConstants;
 import grill24.fishtastic.network.RequestFishEncyclopediaPacket;
 import grill24.fishtastic.network.RequestLeaderboardScreenPacket;
 import grill24.fishtastic.network.RequestQuestLogPacket;
-import grill24.fishtastic.client.TutorialClientHandler;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
@@ -84,7 +83,6 @@ public class FishtasticKeyBinds {
             }
         }
         if (openQuestLog != null && openQuestLog.consumeClick()) {
-            TutorialClientHandler.onQuestLogKeyPressed();
             if (minecraft.player != null && minecraft.screen == null) {
                 minecraft.player.connection.send(new ServerboundCustomPayloadPacket(new RequestQuestLogPacket()));
             }

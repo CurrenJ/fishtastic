@@ -335,6 +335,7 @@ public final class FishtasticNeoForgeClient {
 
     public static void onRenderGuiPre(RenderGuiEvent.Pre event) {
         TutorialClientHandler.render(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
+        CompanionTutorialClientHandler.renderHud(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
     }
 
     public static void onScreenRenderPost(ScreenEvent.Render.Post event) {

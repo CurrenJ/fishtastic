@@ -31,6 +31,10 @@ public final class Companions {
     /** Vanilla menu clicks already move the real item; persist that slot without returning it again. */
     public static void setFromMenu(ServerPlayer player, int slot, ItemStack fish) {
         CompanionStorage.set(player, slot, fish.isEmpty() ? ItemStack.EMPTY : fish.copyWithCount(1));
+        if (!fish.isEmpty()) {
+            if (slot == CompanionParty.LEAD) grill24.fishtastic.tutorial.CompanionTutorialManager.onLeadSelected(player);
+            grill24.fishtastic.tutorial.CompanionTutorialManager.onEquipped(player);
+        }
     }
 
     public enum BondResult { BONDED, NOT_A_FISH, LOCKED, NOT_CARRIED, INVENTORY_FULL, PARTY_FULL }
@@ -83,6 +87,7 @@ public final class Companions {
         ItemStack returned = current.copy();
         CompanionStorage.set(player, slot, ItemStack.EMPTY);
         RemoveTankEntryPacket.giveOrDrop(player, returned);
+        grill24.fishtastic.tutorial.CompanionTutorialManager.onReturned(player);
         return true;
     }
 
@@ -115,6 +120,7 @@ public final class Companions {
                     net.minecraft.network.chat.Component.literal(trimmed));
         }
         CompanionStorage.set(player, slot, renamed);
+        grill24.fishtastic.tutorial.CompanionTutorialManager.onRenamed(player);
         return true;
     }
 
@@ -127,6 +133,8 @@ public final class Companions {
         ItemStack previous = CompanionStorage.get(player, slot).copy();
         CompanionStorage.set(player, slot, fish.copyWithCount(1));
         RemoveTankEntryPacket.giveOrDrop(player, previous);
+        if (slot == CompanionParty.LEAD) grill24.fishtastic.tutorial.CompanionTutorialManager.onLeadSelected(player);
+        grill24.fishtastic.tutorial.CompanionTutorialManager.onEquipped(player);
     }
 
     /**

@@ -28,8 +28,7 @@
           "glass": "fishtastic:borderless_glass"
         }
       }
-    },
-    { "id": "fishtastic:quest_book", "count": 1 }
+    }
   ] },
   "hidden": false,
   "display_name": "First Catch",

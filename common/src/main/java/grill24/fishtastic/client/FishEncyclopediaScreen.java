@@ -76,6 +76,7 @@ import java.util.function.Supplier;
  * Structured like {@link QuestLogScreen}: a single screen class with private builder methods.
  */
 public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
+    private UIElement<?> companionEntryButton;
     private static final float DISC_RADIUS = 70f;
     private static final float DISC_SIZE = DISC_RADIUS * 2f + 32f;
     private static final float INFO_ICON_SCALE = 3.0f;
@@ -300,7 +301,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         root = new FreeformContainer();
         root.setSize(this.width, this.height);
 
-        buildTabBar();
+        companionEntryButton = null;
 
         {
             sphere = new FishSphereContainer()
@@ -360,13 +361,16 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         updateRootContentSize();
     }
 
-    /** Companion management stays reachable without a separate catalogue tab. */
-    private void buildTabBar() {
-        SpriteButton button = UI.spriteButton(110f, 14f, 0xFF666666);
-        button.text(translated("screen.fishtastic.companion.manage"), 0xFFFFFFFF);
-        button.setPosition(new Vector2f((this.width - 110f) / 2f, 12f));
-        button.onClick(e -> CompanionScreen.open(ItemStack.EMPTY));
-        root.addChild(button);
+    /** Uses the element's live bounds, including layout/animation transforms. */
+    public void highlightCompanionEntryButton(GuiGraphicsExtractor graphics) {
+        if (!hasCompanionEntryButton()) return;
+        var bounds = companionEntryButton.getBounds();
+        graphics.outline((int) bounds.getX() - 2, (int) bounds.getY() - 2,
+                (int) bounds.getWidth() + 4, (int) bounds.getHeight() + 4, 0xFFFFDD44);
+    }
+
+    public boolean hasCompanionEntryButton() {
+        return selectedFishKey != null && companionEntryButton != null;
     }
 
     /**
@@ -1059,6 +1063,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private void refreshCompanionInfo(Identifier fishId) {
         if (companionInfo == null) return;
         companionInfo.clearChildren();
+        companionEntryButton = null;
         boolean unlocked = QuestClientCache.isBondUnlocked(fishId);
         Minecraft mc = Minecraft.getInstance();
         Item item = BuiltInRegistries.ITEM.getOptional(fishId).orElse(null);
@@ -1081,6 +1086,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         companionInfo.addChild(label(status, unlocked ? 0xFFFFA4B4 : 0xFFAAAAAA));
         if (unlocked) {
             SpriteButton bond = UI.spriteButton(100f, 14f, 0xFF666666).text(translated("screen.fishtastic.companion.choose"), 0xFFFFFFFF);
+            companionEntryButton = bond;
             bond.onClick(e -> CompanionScreen.open(new ItemStack(item)));
             companionInfo.addChild(bond);
         }

@@ -301,6 +301,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         // Register tutorial overlay — must render BEFORE the minigame bar so the bar appears on top
         HudElementRegistry.addFirst(Ids.of(Fishtastic.MOD_ID, "tutorial_overlay"), (graphics, deltaTracker) -> {
             TutorialClientHandler.render(graphics, deltaTracker.getGameTimeDeltaPartialTick(false));
+            CompanionTutorialClientHandler.renderHud(graphics, deltaTracker.getGameTimeDeltaPartialTick(false));
         });
 
         // Register HUD render hook for the fishing minigame overlay

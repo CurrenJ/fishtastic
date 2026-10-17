@@ -13,7 +13,6 @@ import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.network.FishEncyclopediaSyncPacket;
 import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.server.PlayerQuestState;
-import grill24.fishtastic.tutorial.EncyclopediaTutorialManager;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Registry;
@@ -57,7 +56,6 @@ public class FishopediaItem extends Item {
             MinecraftServer server = ((ServerLevel) level).getServer();
             FishEncyclopediaSyncPacket.sendToPlayer(serverPlayer, FishCatchSavedData.getOrCreate(server));
             GelatinOpenMenuCompat.openFishEncyclopediaMenu(serverPlayer);
-            EncyclopediaTutorialManager.onEncyclopediaOpened(serverPlayer);
         }
         return level.isClientSide() ? InteractionResult.SUCCESS : InteractionResult.SUCCESS_SERVER;
     }
@@ -109,6 +107,7 @@ public class FishopediaItem extends Item {
     public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay display,
                                  Consumer<Component> builder, TooltipFlag flag) {
         super.appendHoverText(stack, context, display, builder, flag);
+        builder.accept(Component.translatable("tooltip.fishtastic.book_use").withStyle(ChatFormatting.GRAY));
 
         HolderLookup.Provider registries = context.registries();
         if (registries == null) return;

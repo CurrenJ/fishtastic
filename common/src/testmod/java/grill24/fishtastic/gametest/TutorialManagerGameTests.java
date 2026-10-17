@@ -52,6 +52,99 @@ public final class TutorialManagerGameTests {
         return total;
     }
 
+    /** Exercise real item use, including the ambiguous case of a copper rod in the other hand. */
+    public static void onlyCopperCastsStartTutorialAndGrantBooksOnce(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        for (Item rod : java.util.List.of(Items.FISHING_ROD, FishtasticItems.OBSIDIAN_FISHING_ROD.value())) {
+            ServerPlayer player = mockPlayer.get();
+            player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, new ItemStack(rod));
+            player.setItemInHand(net.minecraft.world.InteractionHand.OFF_HAND, copperRod());
+            rod.use(player.level(), player, net.minecraft.world.InteractionHand.MAIN_HAND);
+            helper.assertTrue(player.fishing != null, "Test must actually create a bobber");
+            helper.assertTrue(TutorialManager.getStep(player) == TutorialStep.NOT_STARTED,
+                    "Casting another rod must not start the tutorial, even with copper in the other hand");
+            helper.assertTrue(countItem(player, FishtasticItems.WORMS.value()) == 0, "Other rods must not grant starter items");
+            player.fishing.discard();
+        }
+        for (var hand : net.minecraft.world.InteractionHand.values()) {
+            ServerPlayer player = mockPlayer.get();
+            player.setItemInHand(hand, copperRod());
+            FishtasticItems.COPPER_FISHING_ROD.value().use(player.level(), player, hand);
+            helper.assertTrue(TutorialManager.getStep(player) == TutorialStep.BAIT_LOAD,
+                    "A given unbaited copper rod must start the same bait lesson as crafting");
+            helper.assertTrue(!TutorialManager.hasCraftedStarterRod(player), "Test must bypass crafting");
+            helper.assertTrue(player.fishing == null, "Recall the first unbaited cast to teach bait loading");
+            grill24.fishtastic.item.FishtasticFishingRodItem.setBait(player.getItemInHand(hand), new ItemStack(FishtasticItems.WORMS.value()));
+            TutorialManager.onBaitLoaded(player);
+            FishtasticItems.COPPER_FISHING_ROD.value().use(player.level(), player, hand);
+            helper.assertTrue(player.fishing != null && TutorialManager.isTutorialSession(player), "Casting after bait loading must start practice");
+            TutorialManager.onItemCrafted(player);
+            helper.assertTrue(countItem(player, FishtasticItems.WORMS.value()) == 8, "Recasts and later crafting must not duplicate starters");
+            for (Item book : java.util.List.of(FishtasticItems.QUEST_BOOK.value(), FishtasticItems.FISHOPEDIA.value(),
+                    FishtasticItems.LEADERBOARDS_BOOK.value())) {
+                helper.assertTrue(countItem(player, book) == 1, "Given copper rod must grant all three books exactly once");
+            }
+            player.fishing.discard();
+        }
+        ServerPlayer preloaded = mockPlayer.get();
+        preloaded.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, copperRod());
+        grill24.fishtastic.item.FishtasticFishingRodItem.setBait(preloaded.getMainHandItem(), new ItemStack(FishtasticItems.WORMS.value()));
+        FishtasticItems.COPPER_FISHING_ROD.value().use(preloaded.level(), preloaded, net.minecraft.world.InteractionHand.MAIN_HAND);
+        helper.assertTrue(preloaded.fishing != null && TutorialManager.isTutorialSession(preloaded),
+                "A preloaded given rod should keep its cast and go straight to practice");
+        preloaded.fishing.discard();
+        helper.succeed();
+    }
+
+    /** Books must work without custom keys, and opening the encyclopedia early must not compete. */
+    public static void booksAdvanceTutorialAndEncyclopediaChoiceIsOptional(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerPlayer player = mockPlayer.get();
+        TutorialManager.onItemCrafted(player);
+        FishtasticItems.FISHOPEDIA.value().use(player.level(), player, net.minecraft.world.InteractionHand.MAIN_HAND);
+        var data = FishCatchSavedData.getOrCreate(helper.getLevel().getServer());
+        helper.assertTrue(data.getEncyclopediaTutorialStep(player) == grill24.fishtastic.tutorial.EncyclopediaTutorialStep.NOT_STARTED,
+                "Early book access must defer its lesson until the main tutorial ends");
+        setStep(helper, player, TutorialStep.CATCH_RESULT);
+        FishtasticItems.QUEST_BOOK.value().use(player.level(), player, net.minecraft.world.InteractionHand.MAIN_HAND);
+        helper.assertTrue(TutorialManager.getStep(player) == TutorialStep.QUEST_CLAIM, "Using the Quest Book must advance without a key press");
+        TutorialManager.onQuestClaimed(player, TutorialManager.TUTORIAL_QUEST_KEY.identifier());
+        TutorialManager.advanceStep(player, TutorialStep.SHOP_BROWSE);
+        helper.assertTrue(TutorialManager.getStep(player) == TutorialStep.ENCYCLOPEDIA_OFFER, "Shop visit must offer the optional tour");
+        TutorialManager.advanceStep(player, TutorialStep.ENCYCLOPEDIA_OFFER, true);
+        helper.assertTrue(TutorialManager.getStep(player) == TutorialStep.ENCYCLOPEDIA_OPEN, "Show me must direct the player to their book");
+        FishtasticItems.FISHOPEDIA.value().use(player.level(), player, net.minecraft.world.InteractionHand.MAIN_HAND);
+        helper.assertTrue(TutorialManager.getStep(player) == TutorialStep.COMPLETE, "Opening the Fishopedia must finish the main tutorial");
+        helper.assertTrue(data.getEncyclopediaTutorialStep(player) == grill24.fishtastic.tutorial.EncyclopediaTutorialStep.INTRO,
+                "The encyclopedia tour must begin after the main tutorial hands over");
+        ServerPlayer later = mockPlayer.get();
+        setStep(helper, later, TutorialStep.ENCYCLOPEDIA_OFFER);
+        TutorialManager.advanceStep(later, TutorialStep.ENCYCLOPEDIA_OFFER, false);
+        helper.assertTrue(TutorialManager.getStep(later) == TutorialStep.COMPLETE, "Later must complete without opening another menu");
+        helper.assertTrue(data.getEncyclopediaTutorialStep(later) == grill24.fishtastic.tutorial.EncyclopediaTutorialStep.NOT_STARTED,
+                "Later must preserve the unstarted optional tour");
+        helper.succeed();
+    }
+
+    public static void interruptedPracticeResumesAtCastWithoutNewStarterItems(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerPlayer player = mockPlayer.get();
+        TutorialManager.onItemCrafted(player);
+        for (TutorialStep step : java.util.List.of(TutorialStep.HOOK_IN_WATER, TutorialStep.MINIGAME_INTRO,
+                TutorialStep.MINIGAME_CONTROL, TutorialStep.MINIGAME_CATCH)) {
+            setStep(helper, player, step);
+            TutorialManager.onPlayerJoin(player);
+            helper.assertTrue(TutorialManager.getStep(player) == TutorialStep.WAITING_FOR_CAST, "Rejoin must ask for a fresh practice cast");
+            TutorialManager.onHookCast(player, copperRod());
+            helper.assertTrue(TutorialManager.isTutorialSession(player), "Retry must retain the easy practice fish");
+        }
+        setStep(helper, player, TutorialStep.MINIGAME_CONTROL);
+        TutorialManager.onPracticeInterrupted(player);
+        helper.assertTrue(TutorialManager.getStep(player) == TutorialStep.WAITING_FOR_CAST, "Cancelled practice must return to casting");
+        helper.assertTrue(countItem(player, FishtasticItems.WORMS.value()) == 8, "Recovery must not duplicate starter items");
+        setStep(helper, player, TutorialStep.COMPLETE);
+        TutorialManager.onHookCast(player, copperRod());
+        helper.assertTrue(TutorialManager.getStep(player) == TutorialStep.COMPLETE, "Finished tutorials must never restart on a cast");
+        helper.succeed();
+    }
+
     // -------------------------------------------------------------------------
     // onItemCrafted
     // -------------------------------------------------------------------------
@@ -60,8 +153,8 @@ public final class TutorialManagerGameTests {
     public static void craftingRodFromDefaultStepGrantsWormsAndAdvances(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
         ServerPlayer player = mockPlayer.get();
         helper.assertTrue(
-            TutorialManager.getStep(player) == TutorialStep.WAITING_FOR_CAST,
-            "An untouched player must default to WAITING_FOR_CAST"
+            TutorialManager.getStep(player) == TutorialStep.NOT_STARTED,
+            "An untouched player must default to NOT_STARTED"
         );
 
         TutorialManager.onItemCrafted(player);
@@ -72,6 +165,10 @@ public final class TutorialManagerGameTests {
         );
         int wormCount = countItem(player, FishtasticItems.WORMS.value());
         helper.assertTrue(wormCount == 8, "Crafting the starter rod must grant exactly 8 worms, got " + wormCount);
+        for (Item book : java.util.List.of(FishtasticItems.QUEST_BOOK.value(), FishtasticItems.FISHOPEDIA.value(),
+                FishtasticItems.LEADERBOARDS_BOOK.value())) {
+            helper.assertTrue(countItem(player, book) == 1, "Starting must grant each access book once");
+        }
         helper.succeed();
     }
 
@@ -146,7 +243,8 @@ public final class TutorialManagerGameTests {
     /** onHookCast advances from either WAITING_FOR_CAST or BAIT_LOAD, and is a no-op otherwise. */
     public static void onHookCastOnlyAdvancesFromCastableSteps(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
         ServerPlayer waitingPlayer = mockPlayer.get();
-        TutorialManager.onHookCast(waitingPlayer);
+        setStep(helper, waitingPlayer, TutorialStep.WAITING_FOR_CAST);
+        TutorialManager.onHookCast(waitingPlayer, copperRod());
         helper.assertTrue(
             TutorialManager.getStep(waitingPlayer) == TutorialStep.HOOK_IN_WATER,
             "onHookCast must advance WAITING_FOR_CAST to HOOK_IN_WATER"
@@ -154,7 +252,7 @@ public final class TutorialManagerGameTests {
 
         ServerPlayer baitLoadPlayer = mockPlayer.get();
         setStep(helper, baitLoadPlayer, TutorialStep.BAIT_LOAD);
-        TutorialManager.onHookCast(baitLoadPlayer);
+        TutorialManager.onHookCast(baitLoadPlayer, copperRod());
         helper.assertTrue(
             TutorialManager.getStep(baitLoadPlayer) == TutorialStep.HOOK_IN_WATER,
             "onHookCast must advance BAIT_LOAD to HOOK_IN_WATER"
@@ -162,7 +260,7 @@ public final class TutorialManagerGameTests {
 
         ServerPlayer questPlayer = mockPlayer.get();
         setStep(helper, questPlayer, TutorialStep.QUEST_INTRO);
-        TutorialManager.onHookCast(questPlayer);
+        TutorialManager.onHookCast(questPlayer, copperRod());
         helper.assertTrue(
             TutorialManager.getStep(questPlayer) == TutorialStep.QUEST_INTRO,
             "onHookCast must be a no-op from steps other than WAITING_FOR_CAST/BAIT_LOAD"
@@ -202,7 +300,7 @@ public final class TutorialManagerGameTests {
         TutorialManager.onBaitLoaded(player);
         helper.assertTrue(TutorialManager.getStep(player) == TutorialStep.WAITING_FOR_CAST, "Expected WAITING_FOR_CAST after bait load");
 
-        TutorialManager.onHookCast(player);
+        TutorialManager.onHookCast(player, copperRod());
         helper.assertTrue(TutorialManager.getStep(player) == TutorialStep.HOOK_IN_WATER, "Expected HOOK_IN_WATER after hook cast");
         helper.assertTrue(TutorialManager.isTutorialSession(player), "isTutorialSession must be true while HOOK_IN_WATER");
 
@@ -221,13 +319,15 @@ public final class TutorialManagerGameTests {
         TutorialManager.advanceStep(player, TutorialStep.CATCH_RESULT);
         helper.assertTrue(TutorialManager.getStep(player) == TutorialStep.QUEST_INTRO, "Expected QUEST_INTRO");
 
-        TutorialManager.advanceStep(player, TutorialStep.QUEST_INTRO);
+        TutorialManager.onQuestLogOpened(player);
         helper.assertTrue(TutorialManager.getStep(player) == TutorialStep.QUEST_CLAIM, "Expected QUEST_CLAIM");
 
         TutorialManager.onQuestClaimed(player, TutorialManager.TUTORIAL_QUEST_KEY.identifier());
         helper.assertTrue(TutorialManager.getStep(player) == TutorialStep.SHOP_BROWSE, "Expected SHOP_BROWSE after claiming the tutorial quest");
 
         TutorialManager.advanceStep(player, TutorialStep.SHOP_BROWSE);
+        helper.assertTrue(TutorialManager.getStep(player) == TutorialStep.ENCYCLOPEDIA_OFFER, "Shop visit offers the optional encyclopedia tour");
+        TutorialManager.advanceStep(player, TutorialStep.ENCYCLOPEDIA_OFFER);
         helper.assertTrue(TutorialManager.getStep(player) == TutorialStep.COMPLETE, "Expected COMPLETE as the final step");
 
         helper.succeed();
@@ -360,7 +460,7 @@ public final class TutorialManagerGameTests {
         );
 
         // Simulate a debug /tutorial reset, then re-craft the rod.
-        setStep(helper, player, TutorialStep.WAITING_FOR_CAST);
+        setStep(helper, player, TutorialStep.NOT_STARTED);
         TutorialManager.revokeRodCraftedAdvancement(player);
         player.getAdvancements().award(rodAdvancement, TutorialManager.TUTORIAL_ROD_ADVANCEMENT_CRITERION);
 
