@@ -18,10 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class CompanionStorage {
     private CompanionStorage() {}
 
-    /**
-     * What a client knows about parties. TODO(F09): filled by the party sync packet once the client
-     * companion layer lands; until then a client reads every party as empty.
-     */
+    /** What a client knows about parties, fed by {@code CompanionPartySyncPacket}. */
     private static final Map<UUID, CompanionParty> CLIENT_PARTIES = new ConcurrentHashMap<>();
 
     /** The player's party, never null. */
@@ -40,6 +37,33 @@ public final class CompanionStorage {
             return;
         }
         CompanionPartySavedData.getOrCreate(server).set(player.getUUID(), party);
+        // Every client needs every player's party (perched companions are visible to onlookers).
+        grill24.fishtastic.network.NetworkApiSided.broadcast(server,
+                new grill24.fishtastic.network.CompanionPartySyncPacket(player.getUUID(), party),
+                grill24.fishtastic.network.CompanionPartySyncPacket.STREAM_CODEC);
+    }
+
+    /** Client side of the sync packet: an empty party drops the entry. */
+    public static void applyClientParty(UUID owner, CompanionParty party) {
+        if (party.isEmpty()) CLIENT_PARTIES.remove(owner);
+        else CLIENT_PARTIES.put(owner, party);
+    }
+
+    /**
+     * A player joined (or data packs reloaded): they get every online player's party, their own
+     * included even when empty so a stale entry from another world is cleared, and everyone else
+     * gets theirs.
+     */
+    public static void onPlayerJoin(net.minecraft.server.level.ServerPlayer joined) {
+        MinecraftServer server = joined.getServer();
+        if (server == null) return;
+        CompanionPartySavedData data = CompanionPartySavedData.getOrCreate(server);
+        for (net.minecraft.server.level.ServerPlayer other : server.getPlayerList().getPlayers()) {
+            grill24.fishtastic.network.CompanionPartySyncPacket.sendToPlayer(joined, other.getUUID(), data.get(other.getUUID()));
+            if (other != joined) {
+                grill24.fishtastic.network.CompanionPartySyncPacket.sendToPlayer(other, joined.getUUID(), data.get(joined.getUUID()));
+            }
+        }
     }
 
     /** The fish in {@code slot}, or {@link ItemStack#EMPTY}. Never mutate the returned stack. */

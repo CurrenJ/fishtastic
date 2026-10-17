@@ -6,6 +6,8 @@
   "plugin": "grill24.fishtastic.mixin.FishtasticMixinExtrasPlugin",
   "client": [
     "AbstractContainerScreenMixin",
+    "AvatarRendererMixin",
+    "ClientLevelCompanionMixin",
     "ClientLevelTickTimeMixin",
     "FishingHookRendererMixin",
     "GameRendererMixin",
@@ -14,9 +16,13 @@
     "ItemInHandLayerMixin",
     "ItemRendererMixin",
     "ItemStackMixin",
+    "LevelEventCompanionMixin",
+    "LevelRendererMixin",
     "MinecraftFrameBenchMixin",
+    "NoteBlockCompanionMixin",
     "RenderBuffersMixin",
-    "accessor.BufferSourceAccessor"
+    "accessor.BufferSourceAccessor",
+    "accessor.LivingEntityRendererInvoker"
   ],
   "injectors": {
     "defaultRequire": 1

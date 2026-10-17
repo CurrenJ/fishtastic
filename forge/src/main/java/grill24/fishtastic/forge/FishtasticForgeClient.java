@@ -114,6 +114,10 @@ public final class FishtasticForgeClient {
 
         // Register companion bond/rename feedback handler (tutorial and scene handlers arrive with F15/F11)
         grill24.fishtastic.network.CompanionFeedbackPacket.registerClientHandler(grill24.fishtastic.client.CompanionClientState.PACKET_HANDLER);
+        grill24.fishtastic.network.CompanionScenePacket.registerClientHandler(packet ->
+                grill24.fishtastic.client.companion.ClientCompanions.onScenePacket(
+                        packet.scene(), packet.first(), packet.firstSlot(), packet.second(), packet.secondSlot(),
+                        packet.startTime()));
 
         // Register fish encyclopedia sync packet client handler
         FishEncyclopediaSyncPacket.registerClientHandler(packet ->
@@ -243,6 +247,8 @@ public final class FishtasticForgeClient {
      * {@code RenderGuiEvent.Pre}-then-{@code Post} order.
      */
     public static void registerGuiOverlays(RegisterGuiOverlaysEvent event) {
+        event.registerAboveAll("companion_dev", (gui, graphics, partialTick, width, height) ->
+                grill24.fishtastic.client.companion.ClientCompanionsDev.renderHud(graphics, partialTick));
         event.registerAboveAll("tutorial", (gui, graphics, partialTick, width, height) -> {
             // PORT-ONLY: with no screen open, drawn after vanilla's toasts instead (FishtasticHudLayers).
             if (!FishtasticHudLayers.drawnInHudPass()) return;
@@ -314,6 +320,7 @@ public final class FishtasticForgeClient {
         if (mc.level != null && !mc.isPaused()) {
             ClientTickHandler.tick(1.0f);
             ClientTankFlocks.tickAll();
+            grill24.fishtastic.client.companion.ClientCompanions.tick();
             TutorialClientHandler.tick();
             // Handle key presses
             FishtasticKeyBinds.handleKeyPress(mc);
@@ -332,6 +339,9 @@ public final class FishtasticForgeClient {
         }
         CosmeticCaptureClientState.render(event.getPoseStack(),
                 Minecraft.getInstance().renderBuffers().bufferSource(), event.getCamera().getPosition());
+        // Fish companions draw here: PORT-ONLY, 1.20.1 has no submit queue (26.1's SubmitCustomGeometryEvent).
+        grill24.fishtastic.client.companion.ClientCompanions.submitWorld(event.getPoseStack(),
+                Minecraft.getInstance().renderBuffers().bufferSource(), event.getPartialTick());
         // Highlight the tank cell a held cosmetic would be placed in
         CosmeticPlacementPreview.render(event.getPoseStack(),
                 Minecraft.getInstance().renderBuffers().bufferSource(), event.getCamera().getPosition());

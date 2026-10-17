@@ -115,6 +115,7 @@ public final class FishtasticForge {
         MinecraftForge.EVENT_BUS.addListener((OnDatapackSyncEvent event) -> {
             if (event.getPlayer() == null) return;
             QuestSyncPacket.sendToPlayer(event.getPlayer(), FishCatchSavedData.getOrCreate(((ServerLevel) event.getPlayer().level()).getServer()));
+            grill24.fishtastic.companion.CompanionStorage.onPlayerJoin(event.getPlayer());
             grill24.fishtastic.tutorial.TutorialManager.onPlayerJoin(event.getPlayer());
             grill24.fishtastic.server.SunsetExtensionHandler.onPlayerJoin(event.getPlayer());
         });

@@ -33,6 +33,8 @@ public class FishtasticPackets {
     public static final ResourceLocation REMOVE_TANK_ENTRY_ID = Fishtastic.id("remove_tank_entry");
     public static final ResourceLocation SET_DAY_RATE_ID = Fishtastic.id("set_day_rate");
     public static final ResourceLocation BOND_COMPANION_ID = Fishtastic.id("bond_companion");
+    public static final ResourceLocation COMPANION_SCENE_ID = Fishtastic.id("companion_scene");
+    public static final ResourceLocation COMPANION_PARTY_SYNC_ID = Fishtastic.id("companion_party_sync");
     public static final ResourceLocation RENAME_COMPANION_ID = Fishtastic.id("rename_companion");
     public static final ResourceLocation TAKE_PILE_FISH_ID = Fishtastic.id("take_pile_fish");
     public static final ResourceLocation COMPANION_FEEDBACK_ID = Fishtastic.id("companion_feedback");
@@ -247,6 +249,18 @@ public class FishtasticPackets {
                 CompanionFeedbackPacket.STREAM_CODEC,
                 CompanionFeedbackPacket::handleServerToClient
         );
+        registrar.registerServerToClient(
+                CompanionPartySyncPacket.TYPE,
+                CompanionPartySyncPacket.class,
+                CompanionPartySyncPacket.STREAM_CODEC,
+                CompanionPartySyncPacket::handleServerToClient
+        );
+        registrar.registerServerToClient(
+                CompanionScenePacket.TYPE,
+                CompanionScenePacket.class,
+                CompanionScenePacket.STREAM_CODEC,
+                CompanionScenePacket::handleServerToClient
+        );
     }
 
     /**
@@ -272,6 +286,8 @@ public class FishtasticPackets {
         registrar.accept(ReducedEffectsSyncPacket.TYPE, ReducedEffectsSyncPacket.STREAM_CODEC);
         registrar.accept(ReactionBoostSyncPacket.TYPE, ReactionBoostSyncPacket.STREAM_CODEC);
         registrar.accept(CompanionFeedbackPacket.TYPE, CompanionFeedbackPacket.STREAM_CODEC);
+        registrar.accept(CompanionPartySyncPacket.TYPE, CompanionPartySyncPacket.STREAM_CODEC);
+        registrar.accept(CompanionScenePacket.TYPE, CompanionScenePacket.STREAM_CODEC);
     }
 
 }
