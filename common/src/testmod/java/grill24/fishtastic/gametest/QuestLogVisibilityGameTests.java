@@ -35,7 +35,7 @@ public final class QuestLogVisibilityGameTests {
                 : Optional.of(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY,
                         Ids.parse(prerequisite)));
         return new Quest(QuestCategory.MASTERY, QuestDifficulty.BRONZE, objective, new QuestReward(0, List.of()),
-                prereq, hidden, "Test Quest", "");
+                prereq, hidden, "Test Quest", "", Optional.empty());
     }
 
     /** A quest that isn't hidden is always listed, whatever its progress or chain position. */
