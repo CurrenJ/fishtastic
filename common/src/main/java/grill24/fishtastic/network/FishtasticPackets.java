@@ -35,6 +35,8 @@ public class FishtasticPackets {
     public static final ResourceLocation SET_DAY_RATE_ID = Fishtastic.id("set_day_rate");
     public static final ResourceLocation BOND_COMPANION_ID = Fishtastic.id("bond_companion");
     public static final ResourceLocation COMPANION_SCENE_ID = Fishtastic.id("companion_scene");
+    public static final ResourceLocation AMBIENT_CONTEXT_REQUEST_ID = Fishtastic.id("ambient_context_request");
+    public static final ResourceLocation AMBIENT_CONTEXT_RESPONSE_ID = Fishtastic.id("ambient_context_response");
     public static final ResourceLocation RENAME_COMPANION_ID = Fishtastic.id("rename_companion");
     public static final ResourceLocation TAKE_PILE_FISH_ID = Fishtastic.id("take_pile_fish");
     public static final ResourceLocation COMPANION_FEEDBACK_ID = Fishtastic.id("companion_feedback");
@@ -51,6 +53,8 @@ public class FishtasticPackets {
      * Register client-to-server packets
      */
     public static void registerClientToServerPackets(IPacketRegistrar registrar) {
+        registrar.registerClientToServer(AmbientContextRequestPacket.TYPE, AmbientContextRequestPacket.STREAM_CODEC,
+                AmbientContextRequestPacket::handleClientToServer);
         registrar.registerClientToServer(OpenCompanionMenuPacket.TYPE, OpenCompanionMenuPacket.STREAM_CODEC,
                 OpenCompanionMenuPacket::handleClientToServer);
         registrar.registerClientToServer(TakePileFishPacket.TYPE, TakePileFishPacket.STREAM_CODEC,
@@ -216,6 +220,11 @@ public class FishtasticPackets {
                 CompanionScenePacket.STREAM_CODEC,
                 CompanionScenePacket::handleServerToClient
         );
+        registrar.registerServerToClient(
+                AmbientContextResponsePacket.TYPE,
+                AmbientContextResponsePacket.STREAM_CODEC,
+                AmbientContextResponsePacket::handleServerToClient
+        );
     }
 
     /**
@@ -242,6 +251,7 @@ public class FishtasticPackets {
         registrar.accept(ReactionBoostSyncPacket.TYPE, ReactionBoostSyncPacket.STREAM_CODEC);
         registrar.accept(CompanionFeedbackPacket.TYPE, CompanionFeedbackPacket.STREAM_CODEC);
         registrar.accept(CompanionScenePacket.TYPE, CompanionScenePacket.STREAM_CODEC);
+        registrar.accept(AmbientContextResponsePacket.TYPE, AmbientContextResponsePacket.STREAM_CODEC);
     }
 
     /**
