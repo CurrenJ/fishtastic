@@ -1,0 +1,19 @@
+// Loom resets JavaExec.workingDir when it launches, so select the world explicitly.
+// A fresh universe also keeps progression accumulated by prior runs out of backups.
+tasks.named('runGametest') {
+    def universeRoot = layout.buildDirectory.dir('gametest-worlds').get().asFile
+    def universe
+    doFirst {
+        universe = new File(universeRoot, UUID.randomUUID().toString())
+        universe.mkdirs()
+        args '--universe', universe.absolutePath
+        logger.lifecycle("GameTest isolated universe: ${universe}")
+    }
+    doLast {
+        // Only successful runs reach here. Failed worlds remain available for diagnosis.
+        if (universe.canonicalFile.parentFile != universeRoot.canonicalFile) {
+            throw new GradleException("Refusing to remove unexpected GameTest universe: ${universe}")
+        }
+        project.delete(universe)
+    }
+}

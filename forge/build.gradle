@@ -226,3 +226,4 @@ tasks.named("runClient") {
 // sync. Without this, a fresh checkout fails the first `runGametest` invocation with
 // "Working directory '...\build\gametest' does not exist".
 file("build/gametest").mkdirs()
+apply from: rootProject.file('gradle/gametest-world.gradle')
