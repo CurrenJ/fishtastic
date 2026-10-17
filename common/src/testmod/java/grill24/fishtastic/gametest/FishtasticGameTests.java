@@ -1601,6 +1601,21 @@ public class FishtasticGameTests {
     }
 
     @GameTest(template = "fishtastic_empty")
+    public void companionPickerGroupsIdenticalFish(GameTestHelper helper) {
+        CarriedFishGameTests.identicalFishCollapseWithTheirTotalCount(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionPickerSplitsAnyComponentDifference(GameTestHelper helper) {
+        CarriedFishGameTests.anyComponentDifferenceSplitsTheRow(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionPickerIgnoresEmptyStacks(GameTestHelper helper) {
+        CarriedFishGameTests.emptyStacksAreIgnored(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
     public void companionQuestUnlocksOnlyOnceDone(GameTestHelper helper) {
         CompanionQuestUnlockGameTests.questUnlocksOnlyOnceDone(helper);
     }
