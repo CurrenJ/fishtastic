@@ -1,11 +1,3 @@
 {
-  "lore": "The common octopus is a mollusk of class Cephalopoda. This cephalopod hunts crabs, lobsters, and bivalves at dusk, while boasting a highly evolved brain and nervous system.",
-  "thresholds": {
-    "name_reveal_catches": 1,
-    "stats_catches": 1,
-    "types_catches": 2,
-    "spawn_conditions_catches": 1,
-    "lore_catches": 6
-  }
+  "lore": "The common octopus is a mollusk of class Cephalopoda. This cephalopod hunts crabs, lobsters, and bivalves at dusk, while boasting a highly evolved brain and nervous system."
 }
-

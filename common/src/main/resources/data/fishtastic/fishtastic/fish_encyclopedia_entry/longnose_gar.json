@@ -1,11 +1,3 @@
 {
-  "lore": "The longnose gar, also known as longnore garpike or billy gar, is a slender gar with a long needle-like snout. It preys on small fish and crustaceans by night. The genus is believed to have existed in North America for 100 million years.",
-  "thresholds": {
-    "name_reveal_catches": 1,
-    "stats_catches": 1,
-    "types_catches": 2,
-    "spawn_conditions_catches": 1,
-    "lore_catches": 6
-  }
+  "lore": "The longnose gar, also known as longnore garpike or billy gar, is a slender gar with a long needle-like snout. It preys on small fish and crustaceans by night. The genus is believed to have existed in North America for 100 million years."
 }
-

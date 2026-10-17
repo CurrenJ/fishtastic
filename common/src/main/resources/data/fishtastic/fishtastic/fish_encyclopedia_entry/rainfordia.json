@@ -1,11 +1,3 @@
 {
-  "lore": "The rainfordia, also known as the flathead perch, is a species of marine fish. It has an orange colour with bordered black stripes running along its flank. It is the only species in its monotypic genus",
-  "thresholds": {
-    "name_reveal_catches": 1,
-    "stats_catches": 1,
-    "types_catches": 2,
-    "spawn_conditions_catches": 1,
-    "lore_catches": 6
-  }
+  "lore": "The rainfordia, also known as the flathead perch, is a species of marine fish. It has an orange colour with bordered black stripes running along its flank. It is the only species in its monotypic genus"
 }
-

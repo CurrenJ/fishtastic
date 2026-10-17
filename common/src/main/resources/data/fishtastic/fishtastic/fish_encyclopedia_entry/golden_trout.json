@@ -1,11 +1,3 @@
 {
-  "lore": "The brightly colored golden trout is native to Californian rivers. It has a yellow ventral surface with a distinct red horizontal band alongs its lateral side.",
-  "thresholds": {
-    "name_reveal_catches": 1,
-    "stats_catches": 1,
-    "types_catches": 2,
-    "spawn_conditions_catches": 1,
-    "lore_catches": 6
-  }
+  "lore": "The brightly colored golden trout is native to Californian rivers. It has a yellow ventral surface with a distinct red horizontal band alongs its lateral side."
 }
-

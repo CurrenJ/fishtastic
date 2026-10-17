@@ -1,11 +1,3 @@
 {
-  "lore": "Trapania scurra is a species of sea slug. It is a nudibranch, a gastropod mollusc in the family Goniodorididae. It feeds on goblet worms that grown on sponges.",
-  "thresholds": {
-    "name_reveal_catches": 1,
-    "stats_catches": 1,
-    "types_catches": 2,
-    "spawn_conditions_catches": 1,
-    "lore_catches": 6
-  }
+  "lore": "Trapania scurra is a species of sea slug. It is a nudibranch, a gastropod mollusc in the family Goniodorididae. It feeds on goblet worms that grown on sponges."
 }
-

@@ -10,6 +10,7 @@ import grill24.fishtastic.client.effects.CoinArcEffect;
 import grill24.fishtastic.client.renderer.ZoneIconTextures;
 import grill24.fishtastic.component.CharmEffect;
 import grill24.fishtastic.data.EncyclopediaRewardSection;
+import grill24.fishtastic.data.EncyclopediaTiers;
 import grill24.fishtastic.data.FishEncyclopediaEntry;
 import grill24.fishtastic.data.FishMoonPhase;
 import grill24.fishtastic.data.FishProfile;
@@ -580,9 +581,11 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         if (selectedFishKey == null || selectedProfile == null) return;
         ResourceLocation fishId = selectedFishKey.location();
         int catchCount = FishEncyclopediaClientCache.getCatchCount(fishId);
-        FishEncyclopediaEntry.UnlockThresholds thresholds = selectedEntry.thresholds();
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null) return;
+        FishEncyclopediaEntry.UnlockThresholds thresholds = EncyclopediaTiers.thresholdsFor(mc.level.registryAccess(), selectedFishKey);
 
-        boolean nameRevealed = catchCount >= thresholds.nameRevealCatches();
+        boolean nameRevealed = isSectionUnlocked(fishId, EncyclopediaRewardSection.NAME_REVEAL, catchCount, thresholds.nameRevealCatches());
         String displayName = nameRevealed
                 ? BuiltInRegistries.ITEM.getOptional(fishId).map(item -> item.getName(new ItemStack(item))).map(Component::getString)
                         .orElseGet(() -> Utility.prettyName(fishId.getPath()))
@@ -898,7 +901,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private VBox buildGatedSection(String title, int currentCatches, int targetCatches, ResourceLocation fishId,
                                     EncyclopediaRewardSection rewardSection, Supplier<VBox> unlockedContentBuilder) {
         VBox section = UI.vbox().spacing(3).alignment(VBox.Alignment.CENTER);
-        boolean unlocked = currentCatches >= targetCatches;
+        boolean unlocked = isSectionUnlocked(fishId, rewardSection, currentCatches, targetCatches);
 
         if (unlocked && !FishEncyclopediaClientCache.isRewardClaimed(fishId, rewardSection)) {
             HBox titleRow = UI.hbox().spacing(4).alignment(HBox.Alignment.CENTER);
@@ -921,6 +924,14 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
                     Math.max(0, targetCatches - currentCatches), title, currentCatches, targetCatches), 0xFF888888));
         }
         return section;
+    }
+
+    /**
+     * A section is open once the catch count reaches its threshold, or for good once its reward
+     * has been claimed — so a claimed section never re-locks if the derived thresholds move.
+     */
+    private static boolean isSectionUnlocked(ResourceLocation fishId, EncyclopediaRewardSection section, int catchCount, int threshold) {
+        return catchCount >= threshold || FishEncyclopediaClientCache.isRewardClaimed(fishId, section);
     }
 
     /** Claim button for one fish's reward slot; disappearance is driven by the next server sync, not optimistically. */

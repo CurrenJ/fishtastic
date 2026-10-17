@@ -1,11 +1,3 @@
 {
-  "lore": "The Indian glassy fish, also known as Indian X-ray fish, is a transparent-bodied freshwater fish native to South Asia. Its bones and internal organs are visible through its clear body. It feeds on crustaceans and worms.",
-  "thresholds": {
-    "name_reveal_catches": 1,
-    "stats_catches": 1,
-    "types_catches": 2,
-    "spawn_conditions_catches": 1,
-    "lore_catches": 6
-  }
+  "lore": "The Indian glassy fish, also known as Indian X-ray fish, is a transparent-bodied freshwater fish native to South Asia. Its bones and internal organs are visible through its clear body. It feeds on crustaceans and worms."
 }
-
