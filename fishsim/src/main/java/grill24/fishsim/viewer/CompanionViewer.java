@@ -1,0 +1,897 @@
+package grill24.fishsim.viewer;
+
+import grill24.fishsim.companion.Ambient;
+import grill24.fishsim.companion.CompanionAgent;
+import grill24.fishsim.companion.CompanionTunables;
+import grill24.fishsim.companion.CompanionWorld;
+import grill24.fishsim.companion.GroundGait;
+import grill24.fishsim.companion.Habitat;
+import grill24.fishsim.companion.LocalVoxels;
+import grill24.fishsim.companion.OwnerState;
+import grill24.fishsim.companion.PointOfInterest;
+import grill24.fishsim.companion.Temperament;
+import grill24.fishsim.companion.Vec;
+import grill24.fishsim.core.Locomotion;
+import grill24.fishsim.harness.companion.CompanionRun;
+import grill24.fishsim.companion.MoodPresets;
+import grill24.fishsim.harness.companion.OwnerScript;
+import grill24.fishsim.harness.companion.PartyRun;
+import grill24.fishsim.harness.companion.TwoOwnerRun;
+import grill24.fishsim.harness.companion.VoxelScene;
+import grill24.fishsim.render.CompanionRenderer;
+
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSlider;
+import javax.swing.SwingUtilities;
+import javax.swing.Timer;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+/**
+ * The companion playground (docs/fish-companions-sim-plan.md §4.3): walk an owner around a scene
+ * with the keyboard and mouse and watch the fish decide what to do — in first person, as a player
+ * would see it, beside a top-down map with its drives, goal and trail.
+ *
+ * <pre>
+ *   ./gradlew :fishsim:runCompanionViewer
+ *
+ *   WASD move · Shift sprint · drag mouse or arrow keys to look · F first/third person
+ *   T teleport 60 blocks ahead · Space pause · N step one tick · R reseed the fish
+ *   Things to react to (manual owner): H cycle the held item · Z a zombie walks up · C a cat
+ *   strolls over · I drop an item ahead · O another companion swims past · K get hurt
+ *   X clear them all
+ *   Benthics on the ground: J jump · M get on / off a mount · E start / stop gliding (elytra)
+ *   G ground · P climb · B tumble · K hurt
+ *   The terrain scenes (half_stairs, slab_path, terraces, trench, cliff, door_wall,
+ *   benthic_park) and the ground owner scripts are in the dropdowns.
+ *   The "PARTY ..." classes run a whole party (docs/fish-companions-party.md §6, PartyRun.PARTIES):
+ *   the overlay and dev keys follow the lead's unit, the others are drawn too (teal on the map).
+ *   "mixed shoal" off groups them by the pre-D13 rule, on the same seed, for A/B.
+ *   The "PAIR ..." classes run two owners' parties (§28.3, TwoOwnerRun.PAIRS) on a pair_* owner
+ *   script: the view is owner A's; owner B is the blue box, and B's fish are drawn and marked B1-B3.
+ *   Scenes (§28) start as the server would start them; Q starts one now. The top line shows it.
+ * </pre>
+ *
+ * The "owner" dropdown switches between manual control and any headless owner script (played
+ * live); the sliders write straight into the running fish's tunables.
+ */
+public final class CompanionViewer {
+
+    private static final int FP_W = 960, FP_H = 540, TOP_W = 400;
+    private static final int TRAIL = 160;
+    private static final String MANUAL = "manual (WASD)";
+
+    private final CompanionTunables tunables = CompanionTunables.defaults();
+    private final LocalVoxels renderCache = new LocalVoxels();
+    private final ArrayDeque<Vec> trail = new ArrayDeque<>();
+    private final Set<Integer> keys = new HashSet<>();
+    private final List<Runnable> sliderRefreshers = new ArrayList<>();
+
+    private VoxelScene scene;
+    private OwnerScript script;          // null in manual mode
+    private OwnerScript.Pilot pilot;     // manual mode
+    private CompanionAgent agent;
+    /** The mood preset V has cycled to (Phase 5), or null for none; and its ambient, placed where the owner stood. */
+    private MoodPresets.Preset mood;
+    private String featureScene;
+    private Vec featureAnchor = Vec.ZERO;
+    private long featureTick;
+    private Ambient moodAmbient = Ambient.NEUTRAL;
+    private OwnerState owner;
+    private long seed = 1;
+    private Locomotion locomotion = Locomotion.FREE_SWIM;
+    /** A benthic's ground gait and length (the class dropdown's crab, plaice, slug, spider crab). */
+    private GroundGait gait = GroundGait.CRAWL;
+    /** A drifter's style (docs/fish-companions-drift.md §2): the class dropdown's flapjack, squid, man o' war. */
+    private grill24.fishsim.companion.DriftStyle driftStyle = grill24.fishsim.companion.DriftStyle.BELL;
+    private float benthicLength = CompanionRun.lengthOf(Locomotion.BENTHIC);
+    private boolean jumpNext;
+    private Temperament temperament = Temperament.BASELINE;
+
+    /** Something placed from the keyboard: it walks toward the owner and stops, or travels on, or lies there. */
+    private static final class Placed {
+        final PointOfInterest.Kind kind;
+        final int id;
+        Vec pos, vel = Vec.ZERO;
+        final double speed, stopAt, radius, height;
+        final Vec travel;
+
+        Placed(PointOfInterest.Kind kind, int id, Vec pos, double speed, double stopAt, double radius, double height, Vec travel) {
+            this.kind = kind;
+            this.id = id;
+            this.pos = pos;
+            this.speed = speed;
+            this.stopAt = stopAt;
+            this.radius = radius;
+            this.height = height;
+            this.travel = travel;
+        }
+    }
+
+    private final List<Placed> placed = new ArrayList<>();
+    private int nextPlacedId = 1000;
+    private CompanionWorld.Held held = CompanionWorld.Held.NONE;
+    private boolean hurtNext;
+    /** A trio of small free swimmers, or null for a solo companion. */
+    private grill24.fishsim.companion.CompanionGroup group;
+    private boolean trio;
+    private grill24.fishsim.companion.BenthicGroup benthicGroup;
+    private grill24.fishsim.companion.BenthicGroup.Formation benthicFormation;
+    /**
+     * A party-built group's member lengths, leader first (docs/fish-companions-party.md §3), or null
+     * for the old identical-member trio and benthic groups.
+     */
+    private float[] memberLengths;
+    /** The chosen "PARTY ..." class's party, or null for a single unit. */
+    private PartyRun.Party partyChoice;
+    /** D13's switch for the PARTY classes: off keeps different-species free swimmers apart (A/B). */
+    private boolean mixedShoal = true;
+    /** The chosen "PAIR ..." class (two owners, §28.3), or null; it plays on {@link #pairScript}. */
+    private TwoOwnerRun.Pair pairChoice;
+    private String pairScript = OwnerScript.PAIR_NAMES.get(0);
+    /** The running two-owner sim; its owner A's party is {@link #party}. */
+    private TwoOwnerRun.Sim twoSim;
+    /** The running party; {@link #agent}, {@link #group} and {@link #benthicGroup} are its lead unit's. */
+    private grill24.fishsim.companion.PartyLayer party;
+    private float lookYaw, lookPitch;
+    private boolean paused, stepOnce, teleportNext;
+    private long lastNanos = System.nanoTime();
+    private double accumulator;
+    private int dragX, dragY;
+
+    private String[] launchArgs = new String[0];
+
+    private final JPanel canvas = new JPanel() {
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            paintView((Graphics2D) g);
+        }
+    };
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new CompanionViewer().open(args));
+    }
+
+    /**
+     * Launch args (-PsimArgs): {@code --party <name part>} opens on the first PARTY class whose name
+     * contains it, {@code --pair <name part>} on the first PAIR class, {@code --owner <script>} on
+     * that owner script.
+     */
+    private void open(String[] args) {
+        launchArgs = args;
+        reset("open", MANUAL);
+
+        JFrame frame = new JFrame("Fish companion — playground");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setLayout(new BorderLayout());
+
+        canvas.setPreferredSize(new Dimension(FP_W + TOP_W, FP_H));
+        canvas.setFocusable(true);
+        canvas.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                keys.add(e.getKeyCode());
+                switch (e.getKeyCode()) {
+                    case KeyEvent.VK_SPACE -> paused = !paused;
+                    case KeyEvent.VK_N -> stepOnce = true;
+                    case KeyEvent.VK_F -> pilotOrScript().firstPerson = !pilotOrScript().firstPerson;
+                    case KeyEvent.VK_T -> teleportNext = true;
+                    case KeyEvent.VK_R -> {
+                        seed++;
+                        agent = newAgent();
+                        trail.clear();
+                    }
+                    case KeyEvent.VK_H -> {
+                        CompanionWorld.Held[] all = CompanionWorld.Held.values();
+                        held = all[(held.ordinal() + 1) % all.length];
+                    }
+                    case KeyEvent.VK_Z -> place(PointOfInterest.Kind.HOSTILE, 10, 20, 2.0, 1.6, 0.35, 1.0, null);
+                    case KeyEvent.VK_C -> place(PointOfInterest.Kind.CAT, 6, 70, 1.4, 1.8, 0.3, 0.3, null);
+                    case KeyEvent.VK_I -> place(PointOfInterest.Kind.DROPPED_ITEM, 2.5, 0, 0, 0, 0.15, 0.15, null);
+                    case KeyEvent.VK_O -> place(PointOfInterest.Kind.COMPANION, 6, -60, 1.5, 0, 0.2, 1.2, Vec.ZERO);
+                    case KeyEvent.VK_K -> hurtNext = true;
+                    case KeyEvent.VK_V -> nextMood();
+                    case KeyEvent.VK_U -> {
+                        var names = grill24.fishsim.harness.companion.WorldScenes.NAMES;
+                        int index = featureScene == null ? 0 : names.indexOf(featureScene)+1;
+                        featureScene = index < names.size() ? names.get(index) : null;
+                        featureAnchor = owner.feet(); featureTick = 0;
+                        if (featureScene != null) {
+                            agent.habitat(grill24.fishsim.harness.companion.WorldScenes.habitat(featureScene));
+                            if (featureScene.equals("water")) scene.addWorldWater(featureAnchor.add(0.7,0,2.5));
+                        }
+                    }
+                    case KeyEvent.VK_X -> placed.clear();
+                    case KeyEvent.VK_Q -> { if (twoSim != null && !twoSim.sceneOn()) twoSim.startScene(); }
+                    case KeyEvent.VK_J -> jumpNext = true;
+                    case KeyEvent.VK_M -> pilotOrScript().riding = !pilotOrScript().riding;
+                    case KeyEvent.VK_E -> pilotOrScript().gliding = !pilotOrScript().gliding;
+                    case KeyEvent.VK_G -> { if (benthicGroup != null) benthicGroup.devGround(); else agent.devGround(); }
+                    case KeyEvent.VK_P -> { if (benthicGroup != null) benthicGroup.devPerch(); else agent.devPerch(); }
+                    case KeyEvent.VK_B -> { if (benthicGroup != null) benthicGroup.devTumble(); else agent.devTumble(); }
+                    default -> { }
+                }
+            }
+
+            @Override
+            public void keyReleased(KeyEvent e) {
+                keys.remove(e.getKeyCode());
+            }
+        });
+        MouseAdapter mouse = new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                dragX = e.getX();
+                dragY = e.getY();
+                canvas.requestFocusInWindow();
+            }
+
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                lookYaw += (e.getX() - dragX) * 0.3f;
+                lookPitch = Math.max(-90f, Math.min(90f, lookPitch + (e.getY() - dragY) * 0.3f));
+                dragX = e.getX();
+                dragY = e.getY();
+            }
+        };
+        canvas.addMouseListener(mouse);
+        canvas.addMouseMotionListener(mouse);
+        frame.add(canvas, BorderLayout.CENTER);
+        frame.add(controls(), BorderLayout.EAST);
+        frame.pack();
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
+        canvas.requestFocusInWindow();
+
+        new Timer(15, e -> {
+            advance();
+            canvas.repaint();
+        }).start();
+    }
+
+    /**
+     * Places something {@code dist} blocks from the owner at {@code angle}° from where they look.
+     * It walks up to {@code stopAt} at {@code speed}; a non-null {@code travel} sends it across the
+     * owner's view instead (another companion swimming past).
+     */
+    private void place(PointOfInterest.Kind kind, double dist, double angle, double speed, double stopAt, double radius,
+                       double height, Vec travel) {
+        if (owner == null) return;
+        Vec dir = Vec.fromYawPitch((float) (owner.yawDeg() + angle), 0);
+        Vec at = owner.feet().add(dir.scale(dist)).add(0, height, 0);
+        Vec across = travel == null ? null : Vec.fromYawPitch((float) (owner.yawDeg() + angle + 110), 0).scale(speed);
+        placed.add(new Placed(kind, nextPlacedId++, at, speed, stopAt, radius, height, across));
+        canvas.requestFocusInWindow();
+    }
+
+    /** Moves everything placed from the keyboard on by a tick. */
+    private void movePlaced() {
+        for (Placed p : placed) {
+            if (p.travel != null) {
+                p.vel = p.travel;
+            } else if (p.speed > 0) {
+                Vec to = owner.feet().sub(p.pos).horizontal();
+                double d = to.length();
+                p.vel = d > p.stopAt ? to.normalize().scale(Math.min(p.speed, (d - p.stopAt) * 20)) : Vec.ZERO;
+            }
+            p.pos = p.pos.add(p.vel.scale(CompanionAgent.DT));
+            p.pos = new Vec(p.pos.x(), p.travel != null ? p.pos.y() : owner.feet().y() + p.height, p.pos.z());
+        }
+        placed.removeIf(p -> p.pos.distanceTo(owner.chest()) > 24
+                || (p.kind == PointOfInterest.Kind.DROPPED_ITEM && p.pos.sub(owner.feet()).horizontalLength() < 1.0));
+    }
+
+    private OwnerScript.Pilot pilotOrScript() {
+        return script != null ? script.pilot() : pilot;
+    }
+
+    private void reset(String sceneName, String ownerMode) {
+        twoSim = null;
+        if (OwnerScript.PAIR_NAMES.contains(ownerMode) && pairChoice == null) pairChoice = TwoOwnerRun.PAIRS.get(0);
+        if (pairChoice != null) {
+            // Two owners on a pair script; any other owner mode plays the first pair script.
+            pairScript = OwnerScript.PAIR_NAMES.contains(ownerMode) ? ownerMode : OwnerScript.PAIR_NAMES.get(0);
+            agent = newAgent();
+            trail.clear();
+            accumulator = 0;
+            return;
+        }
+        if (ownerMode.equals(MANUAL)) {
+            script = null;
+            scene = VoxelScene.named(sceneName);
+            Vec start = switch (sceneName) {
+                case "corridor" -> new Vec(0.5, scene.feetY(), -6.5);
+                case "forest" -> new Vec(4, scene.feetY(), 4);
+                case "stairwell" -> new Vec(1.5, scene.feetY(), -4.5);
+                default -> new Vec(0.5, scene.feetY(), 0.5);
+            };
+            pilot = new OwnerScript.Pilot(start, 0f);
+            pilot.world = scene;
+            pilot.terrain = true;
+            lookYaw = 0f;
+            lookPitch = 0f;
+            pilot.beginTick();
+            owner = pilot.endTick();
+            scriptWorld = null;
+        } else {
+            script = OwnerScript.named(ownerMode, seed);
+            scene = script.scene;
+            scriptWorld = script.nextWorld();
+            owner = scriptWorld.owner();
+        }
+        agent = newAgent();
+        trail.clear();
+        accumulator = 0;
+    }
+
+    private CompanionAgent newAgent() {
+        benthicGroup = null;
+        party = null;
+        if (pairChoice != null) {
+            twoSim = new TwoOwnerRun.Sim(pairChoice, pairScript, seed, tunables, temperament).autoScenes(true);
+            script = twoSim.a.script;
+            scene = script.scene;
+            scriptWorld = twoSim.a.base();
+            owner = scriptWorld.owner();
+            party = twoSim.a.layer;
+            grill24.fishsim.companion.PartyLayer.Unit lead = party.unit(0);
+            group = lead.school();
+            benthicGroup = lead.ground();
+            return lead.leader();
+        }
+        if (partyChoice != null) {
+            party = partyChoice.build(tunables, temperament, seed, world(), mixedShoal);
+            // Unit 0 holds slot 1, the party lead (spec §4).
+            grill24.fishsim.companion.PartyLayer.Unit lead = party.unit(0);
+            group = lead.school();
+            benthicGroup = lead.ground();
+            return lead.leader();
+        }
+        if (trio) {
+            group = memberLengths != null
+                    ? new grill24.fishsim.companion.CompanionGroup(tunables, seed, memberLengths, temperament, world())
+                    : new grill24.fishsim.companion.CompanionGroup(tunables, seed, CompanionRun.TRIO_LENGTH, temperament, world());
+            return group.leader();
+        }
+        group = null;
+        float length = locomotion == Locomotion.BENTHIC ? benthicLength : CompanionRun.lengthOf(locomotion);
+        if (locomotion == Locomotion.BENTHIC && benthicFormation != null) {
+            benthicGroup = memberLengths != null
+                    ? new grill24.fishsim.companion.BenthicGroup(tunables, seed, memberLengths, temperament,
+                            gait, benthicFormation, world())
+                    : new grill24.fishsim.companion.BenthicGroup(tunables, seed, length, temperament,
+                            gait, 3, benthicFormation, world());
+            return benthicGroup.leader();
+        }
+        return new CompanionAgent(tunables, seed, locomotion, length, temperament, gait, driftStyle, world());
+    }
+
+    /** What the companion perceives: the owner and the scene, plus the script's points of interest when one plays. */
+    private CompanionWorld world() {
+        if (twoSim != null) return pairView();
+        if (scriptWorld != null) return grill24.fishsim.harness.companion.WorldScenes.apply(mood == null ? scriptWorld : scriptWorld.withAmbient(moodAmbient), featureScene, featureAnchor, featureTick);
+        List<PointOfInterest> points = new ArrayList<>();
+        for (Placed p : placed) points.add(new PointOfInterest(p.kind, p.id, p.pos, p.vel, p.radius));
+        return grill24.fishsim.harness.companion.WorldScenes.apply(new CompanionWorld(owner, scene, points, held, hurtNow, mood == null ? Ambient.NEUTRAL : moodAmbient), featureScene, featureAnchor, featureTick);
+    }
+
+    /**
+     * V: the next mood preset (none, cold, warm, glum, glee, sleepy, moon). "warm" puts its campfire
+     * 3.5 blocks ahead of where the owner faces now.
+     */
+    private void nextMood() {
+        List<MoodPresets.Preset> all = MoodPresets.ALL;
+        int i = mood == null ? 0 : all.indexOf(mood) + 1;
+        mood = i < all.size() ? all.get(i) : null;
+        if (mood != null) {
+            Vec ahead = owner.flatForward().scale(mood.warmAt() == null ? 0 : mood.warmAt().z());
+            moodAmbient = mood.warmAt() == null ? mood.ambient()
+                    : mood.ambient().withWarmth(List.of(owner.feet().add(ahead).add(0, mood.warmAt().y(), 0)));
+        }
+        giveMood();
+    }
+
+    /** Every agent feels the current preset (a reseed builds new ones). */
+    private void giveMood() {
+        Habitat h = mood == null ? Habitat.NONE : mood.habitat();
+        for (CompanionAgent a : allAgents()) if (a.habitat() != h) a.habitat(h);
+    }
+
+    /**
+     * What owner A's lead saw, plus owner B's feet as a PLAYER point however far off, so the views
+     * always draw the other owner (the party only sees them within 4 blocks).
+     */
+    private CompanionWorld pairView() {
+        CompanionWorld w = twoSim.a.seen(0);
+        for (PointOfInterest p : w.points()) if (p.kind() == PointOfInterest.Kind.PLAYER) return w;
+        List<PointOfInterest> points = new ArrayList<>(w.points());
+        OwnerState b = twoSim.b.owner();
+        points.add(new PointOfInterest(PointOfInterest.Kind.PLAYER, TwoOwnerRun.OWNER_B, b.feet(), b.velocity(),
+                TwoOwnerRun.PLAYER_RADIUS));
+        return w.withPoints(points);
+    }
+
+    /** The owner was hurt this tick (K). */
+    private boolean hurtNow;
+
+    private CompanionWorld scriptWorld;
+    private int sceneVersion;
+
+    /** Runs whole 20 Hz ticks for the real time that has passed, then interpolates the remainder. */
+    private void advance() {
+        long now = System.nanoTime();
+        double elapsed = Math.min(0.25, (now - lastNanos) / 1e9);
+        lastNanos = now;
+        if (paused && !stepOnce) {
+            interpolate((float) (accumulator / CompanionAgent.DT));
+            return;
+        }
+        accumulator += paused ? CompanionAgent.DT : elapsed;
+        stepOnce = false;
+        while (accumulator >= CompanionAgent.DT) {
+            accumulator -= CompanionAgent.DT;
+            tick();
+        }
+        interpolate((float) (accumulator / CompanionAgent.DT));
+    }
+
+    private void interpolate(float alpha) {
+        if (twoSim != null) twoSim.b.layer.interpolate(alpha);
+        if (party != null) party.interpolate(alpha);
+        else if (benthicGroup != null) benthicGroup.interpolate(alpha);
+        else if (group != null) group.interpolate(alpha); else agent.interpolate(alpha);
+    }
+
+    private void tick() {
+        featureTick++;
+        if (twoSim != null) {
+            twoSim.step();
+            owner = twoSim.a.owner();
+            scriptWorld = twoSim.a.base();
+            trail.addLast(agent.position());
+            if (trail.size() > TRAIL) trail.removeFirst();
+            return;
+        }
+        scriptWorld = null;
+        if (script != null) {
+            scriptWorld = script.nextWorld();
+            owner = scriptWorld.owner();
+        } else {
+            float yawStep = (keys.contains(KeyEvent.VK_LEFT) ? -5f : 0f) + (keys.contains(KeyEvent.VK_RIGHT) ? 5f : 0f);
+            float pitchStep = (keys.contains(KeyEvent.VK_UP) ? -4f : 0f) + (keys.contains(KeyEvent.VK_DOWN) ? 4f : 0f);
+            lookYaw += yawStep;
+            lookPitch = Math.max(-90f, Math.min(90f, lookPitch + pitchStep));
+
+            pilot.beginTick();
+            pilot.look(lookYaw, lookPitch);
+            Vec fwd = Vec.fromYawPitch(lookYaw, 0), right = fwd.cross(Vec.UP);
+            double f = (keys.contains(KeyEvent.VK_W) ? 1 : 0) - (keys.contains(KeyEvent.VK_S) ? 1 : 0);
+            double r = (keys.contains(KeyEvent.VK_D) ? 1 : 0) - (keys.contains(KeyEvent.VK_A) ? 1 : 0);
+            Vec move = fwd.scale(f).add(right.scale(r)).normalize();
+            boolean sprint = keys.contains(KeyEvent.VK_SHIFT) && f > 0;
+            pilot.move(move.scale(sprint ? OwnerScript.SPRINT : OwnerScript.WALK));
+            if (jumpNext) {
+                pilot.jump();
+                jumpNext = false;
+            }
+            if (teleportNext) {
+                pilot.teleport(pilot.feet.add(fwd.scale(60)));
+                teleportNext = false;
+            }
+            owner = pilot.endTick();
+            movePlaced();
+        }
+        hurtNow = hurtNext;
+        hurtNext = false;
+        // A scripted door shuts once the fish isn't in the doorway.
+        scene.applyDoor(d -> {
+            for (CompanionAgent member : allAgents()) {
+                Vec p = member.position();
+                double r = member.radius();
+                boolean clear = p.x() + r < d[0] || p.x() - r > d[3] || p.y() + r < d[1] || p.y() - r > d[4]
+                        || p.z() + r < d[2] || p.z() - r > d[5];
+                if (!clear) return false;
+            }
+            return true;
+        });
+        if (scene.version() != sceneVersion) {
+            sceneVersion = scene.version();
+            if (party != null) party.invalidateBlocks();
+            else if (benthicGroup != null) benthicGroup.invalidateBlocks();
+            else if (group != null) group.invalidateBlocks();
+            else agent.voxels().invalidate();
+            renderCache.invalidate();
+        }
+        giveMood();
+        if (party != null) party.step(world());
+        else if (benthicGroup != null) benthicGroup.step(world());
+        else if (group != null) group.step(world()); else agent.step(world());
+        trail.addLast(agent.position());
+        if (trail.size() > TRAIL) trail.removeFirst();
+    }
+
+    private void paintView(Graphics2D g) {
+        renderCache.update(scene, owner.eye());
+        BufferedImage fp = CompanionRenderer.firstPerson(FP_W, FP_H, owner, renderCache, agent, true, world());
+        if (group != null) CompanionRenderer.drawFollowers(fp, owner, renderCache, group);
+        if (benthicGroup != null) CompanionRenderer.drawBenthicFollowers(fp, owner, renderCache, benthicGroup);
+        if (party != null) drawPartyMates(fp);
+        if (twoSim != null) drawOtherParty(fp);
+        BufferedImage top = CompanionRenderer.topView(TOP_W, FP_H, owner, renderCache, agent, tunables, trail, 30, world());
+        if (party != null) CompanionRenderer.drawTopMarks(top, owner, 30, partyMarks());
+        if (twoSim != null) CompanionRenderer.drawTopMarks(top, owner, 30, otherMarks());
+        g.drawImage(fp, 0, 0, null);
+        g.drawImage(top, FP_W, 0, null);
+        if (agent.landMode() != null) {
+            g.setColor(Color.WHITE);
+            g.drawString("Land: " + agent.landMode() + "  climbs=" + agent.climbs()
+                    + " dismounts=" + agent.dismounts() + " tumbles=" + agent.tumbles()
+                    + "  beat=" + (agent.beat() == null ? "-" : agent.beat())
+                    + " overtakes=" + agent.overtakes() + " roadsides=" + agent.roadsides(), 8, 20);
+        }
+        g.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+        g.setColor(new Color(0, 0, 0, 140));
+        g.fillRect(0, FP_H - 22, FP_W, 22);
+        g.setColor(Color.WHITE);
+        g.drawString("WASD move · Shift sprint · J jump · drag/arrows look · F view · T teleport · M mount · E glide · G ground"
+                + " · P climb · B tumble · K hurt · V mood · Space pause · N step · R reseed" + (paused ? "   [PAUSED]" : ""), 8, FP_H - 7);
+        if (mood != null) {
+            g.setColor(new Color(0, 0, 0, 140));
+            g.fillRect(0, 26, FP_W, 18);
+            g.setColor(new Color(0xFFD27F));
+            g.drawString("mood: " + mood.name() + "  " + agent.moodDescription() + "  pose " + agent.poseHint(), 8, 39);
+        }
+    }
+
+    /** Every full agent the viewer runs: the whole party's, a ground formation's, or the one fish. */
+    private List<CompanionAgent> allAgents() {
+        if (party != null) {
+            List<CompanionAgent> out = new ArrayList<>();
+            for (var u : party.units()) out.addAll(u.agents());
+            return out;
+        }
+        if (benthicGroup != null) {
+            List<CompanionAgent> out = new ArrayList<>();
+            for (int i = 0; i < benthicGroup.count(); i++) out.add(benthicGroup.member(i));
+            return out;
+        }
+        return List.of(agent);
+    }
+
+    /** The party's other units in first person, and a line per unit (slots, kind, goal, seen). */
+    private void drawPartyMates(BufferedImage fp) {
+        for (int u = 1; u < party.size(); u++) {
+            var unit = party.unit(u);
+            CompanionRenderer.drawAgents(fp, owner, renderCache, unit.agents());
+            if (unit.school() != null) CompanionRenderer.drawFollowers(fp, owner, renderCache, unit.school());
+        }
+        Graphics2D g = fp.createGraphics();
+        g.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 11));
+        int x = FP_W - 330, y = 18;
+        g.setColor(new Color(0, 0, 0, 120));
+        g.fillRect(x - 4, 4, 326, 14 * party.size() + 8);
+        g.setColor(Color.WHITE);
+        for (int u = 0; u < party.size(); u++, y += 14) {
+            var unit = party.unit(u);
+            CompanionAgent l = unit.leader();
+            int[] slots = unit.group().slots();
+            StringBuilder names = new StringBuilder();
+            for (int sl : slots) names.append(names.length() == 0 ? "" : ",").append(sl + 1);
+            String state = l.perchState() != null && l.goal().equals("PERCH") ? l.perchState() : l.goal();
+            g.drawString(String.format("%s %-6s %-6s %-9s %s%s", u == 0 ? ">" : " ", names,
+                    unit.group().kind(), state, l.seen() ? "seen" : "unseen",
+                    l.riding() ? " on " + l.perchSlot() : ""), x, y);
+        }
+        g.dispose();
+    }
+
+    /** Owner B's party in owner A's first-person view, and the scene line. */
+    private void drawOtherParty(BufferedImage fp) {
+        for (var unit : twoSim.b.layer.units()) {
+            CompanionRenderer.drawAgents(fp, owner, renderCache, unit.agents());
+            if (unit.school() != null) CompanionRenderer.drawFollowers(fp, owner, renderCache, unit.school());
+        }
+        String a = twoSim.a.layer.crossSceneLine(), b = twoSim.b.layer.crossSceneLine();
+        String line = a == null && b == null ? "no scene (Q starts one)  " + twoSim.scenesStarted() + " so far"
+                : "A " + (a == null ? "-" : a) + "   B " + (b == null ? "-" : b);
+        Graphics2D g = fp.createGraphics();
+        g.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+        g.setColor(new Color(0, 0, 0, 140));
+        g.fillRect(0, FP_H - 44, FP_W, 20);
+        g.setColor(Color.WHITE);
+        g.drawString(line, 8, FP_H - 29);
+        g.dispose();
+    }
+
+    /** Owner B's bodies on the map, B1-B3 by slot, and owner B, "B". */
+    private List<CompanionRenderer.Mark> otherMarks() {
+        List<CompanionRenderer.Mark> out = new ArrayList<>();
+        for (var unit : twoSim.b.layer.units()) {
+            int[] slots = unit.group().slots();
+            if (unit.school() != null) {
+                var s = unit.school();
+                out.add(new CompanionRenderer.Mark(s.leader().renderPos(), s.leader().renderYaw(), s.leaderLength(),
+                        "B" + (slots[0] + 1)));
+                for (int i = 0; i < s.followerCount(); i++) {
+                    var f = s.follower(i);
+                    out.add(new CompanionRenderer.Mark(f.renderPos(), f.renderYaw(), f.length(), "B" + (slots[i + 1] + 1)));
+                }
+            } else {
+                List<CompanionAgent> agents = unit.agents();
+                for (int i = 0; i < agents.size(); i++) {
+                    CompanionAgent a = agents.get(i);
+                    out.add(new CompanionRenderer.Mark(a.renderPos(), a.renderYaw(), a.length(), "B" + (slots[i] + 1)));
+                }
+            }
+        }
+        OwnerState b = twoSim.b.owner();
+        out.add(new CompanionRenderer.Mark(b.feet().add(0, 1, 0), b.yawDeg(), 0.6f, "B"));
+        return out;
+    }
+
+    /**
+     * Every party body on the map but the one the view follows (the lead unit's leader), labelled by
+     * slot (1-based, as the menu shows).
+     */
+    private List<CompanionRenderer.Mark> partyMarks() {
+        List<CompanionRenderer.Mark> out = new ArrayList<>();
+        for (int u = 0; u < party.size(); u++) {
+            var unit = party.unit(u);
+            int[] slots = unit.group().slots();
+            if (unit.school() != null) {
+                var s = unit.school();
+                if (u > 0) out.add(new CompanionRenderer.Mark(s.leader().renderPos(), s.leader().renderYaw(), s.leaderLength(),
+                        String.valueOf(slots[0] + 1)));
+                for (int i = 0; i < s.followerCount(); i++) {
+                    var f = s.follower(i);
+                    out.add(new CompanionRenderer.Mark(f.renderPos(), f.renderYaw(), f.length(),
+                            String.valueOf(slots[i + 1] + 1)));
+                }
+            } else {
+                List<CompanionAgent> agents = unit.agents();
+                for (int i = u == 0 ? 1 : 0; i < agents.size(); i++) {
+                    CompanionAgent a = agents.get(i);
+                    out.add(new CompanionRenderer.Mark(a.renderPos(), a.renderYaw(), a.length(),
+                            String.valueOf(slots[i] + 1)));
+                }
+            }
+        }
+        return out;
+    }
+
+    /** Party-built groups (docs/fish-companions-party.md §3): same-species members of different sizes. */
+    private static final String SCHOOL_MIXED = "SCHOOL bluegill 9/16/24 cm", SCHOOL_PAIR = "SCHOOL pair 16/24 cm",
+            SCHOOL_BIG = "SCHOOL big 25/40/60 cm", STARFISH_PAIR = "BENTHIC starfish pair 30/45 cm",
+            SLUG_CROWD_MIXED = "BENTHIC slug crowd 8/12/18 cm";
+    private static final String PARTY_PREFIX = "PARTY ", PAIR_PREFIX = "PAIR ";
+
+    /** Member lengths, leader first, for a party-built group class, or null for every other class. */
+    private static float[] partyLengths(String c) {
+        return switch (c) {
+            case SCHOOL_MIXED -> CompanionRun.SCHOOL_MIXED;
+            case SCHOOL_PAIR -> CompanionRun.SCHOOL_PAIR;
+            case SCHOOL_BIG -> CompanionRun.SCHOOL_BIG;
+            case STARFISH_PAIR -> CompanionRun.STARFISH_PAIR;
+            case SLUG_CROWD_MIXED -> CompanionRun.SLUG_CROWD_MIXED;
+            default -> null;
+        };
+    }
+
+    private JPanel controls() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
+
+        JComboBox<String> sceneBox = new JComboBox<>(VoxelScene.NAMES.toArray(new String[0]));
+        List<String> modes = new ArrayList<>();
+        modes.add(MANUAL);
+        modes.addAll(OwnerScript.NAMES);
+        modes.addAll(OwnerScript.GROUND_NAMES);
+        modes.addAll(OwnerScript.PAIR_NAMES);
+        JComboBox<String> ownerBox = new JComboBox<>(modes.toArray(new String[0]));
+        Runnable apply = () -> {
+            reset((String) sceneBox.getSelectedItem(), (String) ownerBox.getSelectedItem());
+            canvas.requestFocusInWindow();
+        };
+        JComboBox<String> classBox = new JComboBox<>(new String[]{"FREE_SWIM", "TRIO", "GLIDE",
+                "DRIFT bell (flapjack)", "DRIFT jet (squid)", "DRIFT bob (man o' war)",
+                "BENTHIC", "BENTHIC plaice", "BENTHIC slug", "BENTHIC spider crab",
+                "BENTHIC starfish line", "BENTHIC slug crowd", "ANCHORED",
+                SCHOOL_MIXED, SCHOOL_PAIR, SCHOOL_BIG, STARFISH_PAIR, SLUG_CROWD_MIXED});
+        for (PartyRun.Party p : PartyRun.PARTIES) classBox.addItem(PARTY_PREFIX + p.name());
+        for (TwoOwnerRun.Pair p : TwoOwnerRun.PAIRS) classBox.addItem(PAIR_PREFIX + p.name());
+        classBox.addActionListener(e -> {
+            String c = (String) classBox.getSelectedItem();
+            partyChoice = null;
+            pairChoice = null;
+            if (c.startsWith(PAIR_PREFIX)) {
+                for (TwoOwnerRun.Pair p : TwoOwnerRun.PAIRS) if (c.equals(PAIR_PREFIX + p.name())) pairChoice = p;
+                trio = false;
+                memberLengths = null;
+                apply.run();
+                return;
+            }
+            if (c.startsWith(PARTY_PREFIX)) {
+                for (PartyRun.Party p : PartyRun.PARTIES) if (c.equals(PARTY_PREFIX + p.name())) partyChoice = p;
+                trio = false;
+                memberLengths = null;
+                apply.run();
+                return;
+            }
+            memberLengths = partyLengths(c);
+            trio = c.equals("TRIO") || c.startsWith("SCHOOL");
+            gait = c.equals("BENTHIC plaice") ? GroundGait.RIPPLE : GroundGait.CRAWL;
+            driftStyle = c.startsWith("DRIFT jet") ? grill24.fishsim.companion.DriftStyle.JET
+                    : c.startsWith("DRIFT bob") ? grill24.fishsim.companion.DriftStyle.BOB
+                    : grill24.fishsim.companion.DriftStyle.BELL;
+            benthicFormation = c.equals("BENTHIC starfish line") || c.equals(STARFISH_PAIR)
+                    ? grill24.fishsim.companion.BenthicGroup.Formation.LINE
+                    : c.equals("BENTHIC slug crowd") || c.equals(SLUG_CROWD_MIXED)
+                    ? grill24.fishsim.companion.BenthicGroup.Formation.CROWD : null;
+            benthicLength = switch (c) {
+                case "BENTHIC plaice" -> 0.35f;
+                case "BENTHIC slug" -> 0.12f;
+                case "BENTHIC slug crowd" -> 0.12f;
+                case "BENTHIC starfish line" -> 0.4f;
+                case "BENTHIC spider crab" -> 0.6f;
+                default -> CompanionRun.lengthOf(Locomotion.BENTHIC);
+            };
+            locomotion = trio ? Locomotion.FREE_SWIM : c.startsWith("BENTHIC") ? Locomotion.BENTHIC
+                    : c.startsWith("DRIFT") ? Locomotion.DRIFT : Locomotion.valueOf(c);
+            apply.run();
+        });
+        sceneBox.addActionListener(e -> apply.run());
+        ownerBox.addActionListener(e -> apply.run());
+        List<String> temperNames = new ArrayList<>();
+        temperNames.add(Temperament.BASELINE.name());
+        for (Temperament tm : Temperament.ALL) temperNames.add(tm.name());
+        JComboBox<String> temperBox = new JComboBox<>(temperNames.toArray(new String[0]));
+        temperBox.addActionListener(e -> {
+            temperament = Temperament.named((String) temperBox.getSelectedItem());
+            apply.run();
+        });
+        panel.add(row(new JLabel("class"), classBox));
+        panel.add(row(new JLabel("temper"), temperBox));
+        panel.add(row(new JLabel("scene"), sceneBox));
+        panel.add(row(new JLabel("owner"), ownerBox));
+        JCheckBox shoalBox = new JCheckBox("mixed shoal (PARTY)", mixedShoal);
+        shoalBox.addActionListener(e -> {
+            mixedShoal = shoalBox.isSelected();
+            apply.run();
+        });
+        panel.add(row(shoalBox));
+        for (int i = 0; i + 1 < launchArgs.length; i++) {
+            if (launchArgs[i].equals("--owner")) ownerBox.setSelectedItem(launchArgs[i + 1]);
+            if (launchArgs[i].equals("--pair")) {
+                for (TwoOwnerRun.Pair p : TwoOwnerRun.PAIRS) {
+                    if (p.name().contains(launchArgs[i + 1])) {
+                        classBox.setSelectedItem(PAIR_PREFIX + p.name());
+                        break;
+                    }
+                }
+            }
+            if (!launchArgs[i].equals("--party")) continue;
+            for (PartyRun.Party p : PartyRun.PARTIES) {
+                if (p.name().contains(launchArgs[i + 1])) {
+                    classBox.setSelectedItem(PARTY_PREFIX + p.name());
+                    break;
+                }
+            }
+        }
+
+        JButton defaults = new JButton("defaults");
+        defaults.addActionListener(e -> {
+            copyInto(CompanionTunables.defaults(), tunables);
+            sliderRefreshers.forEach(Runnable::run);
+            canvas.requestFocusInWindow();
+        });
+        panel.add(row(defaults));
+        panel.add(Box.createVerticalStrut(6));
+
+        CompanionTunables base = CompanionTunables.defaults();
+        for (Field f : CompanionTunables.class.getFields()) {
+            if (Modifier.isStatic(f.getModifiers())) continue;
+            try {
+                if (f.getType() == boolean.class) {
+                    JCheckBox box = new JCheckBox(f.getName(), f.getBoolean(tunables));
+                    box.addActionListener(e -> {
+                        set(f, box.isSelected());
+                        canvas.requestFocusInWindow();
+                    });
+                    sliderRefreshers.add(() -> box.setSelected(get(f, Boolean.class)));
+                    panel.add(row(box));
+                } else if (f.getType() == float.class) {
+                    float def = f.getFloat(base);
+                    float max = def > 0 ? def * 3 : 1f;
+                    JLabel label = new JLabel();
+                    label.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 11));
+                    JSlider slider = new JSlider(0, 1000, Math.round(f.getFloat(tunables) / max * 1000));
+                    slider.setPreferredSize(new Dimension(150, 20));
+                    Runnable relabel = () -> label.setText(String.format("%-22s %7.3f", f.getName(), get(f, Float.class)));
+                    slider.addChangeListener(e -> {
+                        set(f, slider.getValue() / 1000f * max);
+                        relabel.run();
+                    });
+                    slider.setFocusable(false);
+                    sliderRefreshers.add(() -> {
+                        slider.setValue(Math.round(get(f, Float.class) / max * 1000));
+                        relabel.run();
+                    });
+                    relabel.run();
+                    JPanel cell = new JPanel(new BorderLayout());
+                    cell.add(label, BorderLayout.NORTH);
+                    cell.add(slider, BorderLayout.CENTER);
+                    panel.add(cell);
+                }
+            } catch (IllegalAccessException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+        JScrollPane scroll = new JScrollPane(panel);
+        scroll.setPreferredSize(new Dimension(260, FP_H));
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
+        JPanel wrap = new JPanel(new BorderLayout());
+        wrap.add(scroll, BorderLayout.CENTER);
+        return wrap;
+    }
+
+    private static JPanel row(java.awt.Component... parts) {
+        JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
+        for (java.awt.Component c : parts) p.add(c);
+        return p;
+    }
+
+    private void set(Field f, Object value) {
+        try {
+            f.set(tunables, value);
+        } catch (IllegalAccessException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private <T> T get(Field f, Class<T> type) {
+        try {
+            return type.cast(f.get(tunables));
+        } catch (IllegalAccessException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private static void copyInto(CompanionTunables from, CompanionTunables to) {
+        for (Field f : CompanionTunables.class.getFields()) {
+            if (Modifier.isStatic(f.getModifiers())) continue;
+            try {
+                f.set(to, f.get(from));
+            } catch (IllegalAccessException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+    }
+}
