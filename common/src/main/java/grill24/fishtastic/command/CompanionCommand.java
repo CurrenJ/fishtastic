@@ -1,7 +1,8 @@
 package grill24.fishtastic.command;
 
+import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.FloatArgumentType;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -9,12 +10,11 @@ import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.companion.CompanionParty;
 import grill24.fishtastic.companion.CompanionStorage;
 import grill24.fishtastic.companion.Companions;
-import grill24.fishtastic.network.FishEncyclopediaSyncPacket;
-import grill24.fishtastic.network.QuestSyncPacket;
-import grill24.fishtastic.server.FishCatchBackups;
-import grill24.fishtastic.server.FishCatchSavedData;
+import grill24.fishtastic.util.FishingMinigameAnimation;
+import grill24.fishtastic.util.IGameRendererExtension;
 import grill24.fishtastic.util.ItemSizeHelper;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
@@ -33,22 +33,69 @@ import java.util.Optional;
  * Dev command for fish companions (docs/fish-companions.md). Registered only in development.
  *
  * <pre>
- *   /fishtastic companion on                              - bond with the held fish (the real bond path)
- *   /fishtastic companion off [slot]                      - unequip; the fish comes back
- *   /fishtastic companion give &lt;player&gt; &lt;species&gt; [size [slot]] - equip a conjured fish directly
- *   /fishtastic companion catchcount &lt;player&gt; &lt;species&gt; &lt;count&gt; - set one species' catch count
- *   /fishtastic companion unlock &lt;player&gt; &lt;species&gt;       - force-unlock a bond
- *   /fishtastic companion resetbonds &lt;player&gt;             - forget every stored bond unlock
+ *   /fishtastic companion on                              — bond with the held fish (the real bond path)
+ *   /fishtastic companion off                             — unequip; the fish comes back
+ *   /fishtastic companion give &lt;player&gt; &lt;species&gt; [size] — equip a conjured fish directly
+ *   /fishtastic companion debug &lt;bool&gt;                  — overlay: goal, drives, pose hint, temperament, sim cost
+ *   /fishtastic companion switch [reset|&lt;name&gt; &lt;value&gt;] — list, set or reset the party switches
+ *   /fishtastic companion temperament &lt;id&gt;|species      — force a temperament on your companion (or its own)
+ *   /fishtastic companion fake hostile|cat|item|companion — a scripted thing for it to react to (clear removes them)
+ *   /fishtastic companion predatorscene                   — your party's predator laps you now, its prey hides
+ *   /fishtastic companion ghost add &lt;species&gt;...         — a second player with that party walks up (party spec §28, D31)
+ *   /fishtastic companion ghost walk approach|stand|leave [blocks] — walk up (to [blocks]), stand, or walk off and leave
+ *   /fishtastic companion ghost scene g1|g2 [late ticks]  — a scene with the ghost now (a late packet joins mid-path)
+ *   /fishtastic companion ghost remove                    — the ghost logs out
+ *   /fishtastic companion hurt                            — it sees you hurt (an aggressive fish bites)
+ *   /fishtastic companion drowsy                          — as if you'd idled long enough for it to settle
+ *   /fishtastic companion ground                          — a ground benthic (and its group) comes back down off the perch
+ *   /fishtastic companion climb                           — a ground benthic climbs onto its perch (group: one after another)
+ *   /fishtastic companion tumble                          — a perched ground benthic is knocked off (waits until perched)
+ *   /fishtastic companion swell [gain]                    — show or set the upright benthics' push-off swell (default 2.5; 1 = tank's)
+ *   /fishtastic companion catchdemo                       — open a demo bar with a fish of your companion's species
+ *   /fishtastic companion catch                           — land the demo bar's first active target (celebration + greet)
+ *   /fishtastic companion phantom &lt;species&gt; [size]      — another companion, swimming round an imaginary owner ahead
+ *   /fishtastic companion phantom off                     — remove every dev phantom
+ *   /fishtastic companion minigame                        — opens a demo minigame bar
+ *   /fishtastic companion stopgame                        — closes it
+ *   /fishtastic companion catchcount &lt;player&gt; &lt;species&gt; &lt;count&gt; — set one species' catch count
+ *   /fishtastic companion unlock &lt;player&gt; &lt;species&gt;       — force-unlock a bond (fires the banner)
+ *   /fishtastic companion resetbonds &lt;player&gt;             — forget every stored bond unlock
+ *   /fishtastic companion hideothers &lt;bool&gt;              — hide other players' companions (persists)
+ *   /fishtastic companion hideown &lt;bool&gt;                 — hide your own in first person (persists)
  * </pre>
  *
- * <p>Port note (F08-4): only the server-side subcommands exist on this branch. The source's
- * client-driven triggers (debug, switch, temperament, fake, mood, ground/climb/tumble, swell,
- * squeeze, catchdemo, phantom, minigame, hideothers/hideown, feature), the predator scene and the
- * ghost owner depend on the client companion layer (F09/F10), the scene manager (F11) and the
- * tutorial (F15); they arrive with those features. {@code unlock} omits the first-bond tutorial
- * call until F15 (TODO(F15)).
+ * <p>The visual triggers ({@code debug … hideown}) drive client state directly, the same way
+ * {@link CelebrationCommand} does, so they only work in single-player — they exist so every
+ * companion animation and interaction can be seen solo, without a second player or a headless run.
+ *
+ * <p>This class must never <i>use</i> {@code mc.player} beyond the null-compare in
+ * {@link #client} — no method calls on it, no passing it as an argument. Doing so forces
+ * {@code LocalPlayer} to resolve when this class is verified, and Fabric refuses to load vanilla
+ * client classes in a server environment, which crashes {@code :fabric:runGametest} at command
+ * registration. That is why every dev action lives in
+ * {@code grill24.fishtastic.client.companion.ClientCompanions} (client-only, loaded only when a
+ * command actually runs) and this class only ever calls into it, plus the pure
+ * {@code FishtasticClientConfig} — found the hard way, after an afternoon of bisecting.
  */
 public class CompanionCommand {
+
+    private static int feature(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        String kind = StringArgumentType.getString(ctx, "kind");
+        if (kind.equals("jukebox") || kind.equals("notes"))
+            return client(ctx, () -> grill24.fishtastic.client.companion.CompanionFeatureDev.music(kind));
+        var player = ctx.getSource().getPlayerOrException();
+        var pos = player.blockPosition().relative(player.getDirection(), kind.equals("light") ? 5 : kind.equals("warm") ? 4 : 2);
+        var state = switch (kind) {
+            case "water" -> net.minecraft.world.level.block.Blocks.WATER.defaultBlockState();
+            case "light" -> net.minecraft.world.level.block.Blocks.TORCH.defaultBlockState();
+            case "warm" -> net.minecraft.world.level.block.Blocks.CAMPFIRE.defaultBlockState();
+            default -> null;
+        };
+        if (state == null) { ctx.getSource().sendFailure(Component.literal("Unknown feature: " + kind)); return 0; }
+        player.level().setBlockAndUpdate(pos, state);
+        ctx.getSource().sendSuccess(() -> Component.literal("Placed companion feature: " + kind), false);
+        return 1;
+    }
 
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         return Commands.literal("companion")
@@ -59,68 +106,268 @@ public class CompanionCommand {
                 .then(Commands.literal("give")
                         .then(Commands.argument("player", EntityArgument.player())
                                 .then(Commands.argument("species", ResourceLocationArgument.id())
-                                        .suggests(CompanionCommand::fishSuggestions)
+                                        .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                                                BuiltInRegistries.ITEM.stream()
+                                                        .filter(item -> item.builtInRegistryHolder().is(FishtasticItemTags.FISH))
+                                                        .map(item -> BuiltInRegistries.ITEM.getKey(item).toString()),
+                                                builder))
                                         .executes(ctx -> give(ctx, Optional.empty(), Optional.empty()))
                                         .then(Commands.argument("size", FloatArgumentType.floatArg(1f, 2000f))
                                                 .executes(ctx -> give(ctx, Optional.of(FloatArgumentType.getFloat(ctx, "size")), Optional.empty()))
                                                 .then(slotArgument().executes(ctx -> give(ctx,
                                                         Optional.of(FloatArgumentType.getFloat(ctx, "size")), Optional.of(slotOf(ctx)))))))))
+                .then(Commands.literal("debug")
+                        // Which party slot the overlay and the dev triggers act on (the lead by default).
+                        .then(Commands.literal("slot").then(slotArgument().executes(ctx -> client(ctx,
+                                () -> grill24.fishtastic.client.companion.ClientCompanionsDev.devSlot(slotOf(ctx))))))
+                        .then(Commands.argument("value", BoolArgumentType.bool()).executes(ctx -> client(ctx,
+                                () -> grill24.fishtastic.client.companion.ClientCompanionsDev.devOverlay(
+                                        BoolArgumentType.getBool(ctx, "value"))))))
+                // Party switches, live (party spec Phase 3c): list, set one, or reset them all.
+                .then(Commands.literal("switch")
+                        .executes(ctx -> client(ctx, grill24.fishtastic.client.companion.ClientCompanionsDev::devSwitchList))
+                        .then(Commands.literal("reset").executes(ctx -> client(ctx,
+                                grill24.fishtastic.client.companion.ClientCompanionsDev::devSwitchReset)))
+                        .then(Commands.argument("name", StringArgumentType.word())
+                                .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                                        grill24.fishsim.companion.CompanionTunables.DEV_SWITCHES, builder))
+                                .then(Commands.argument("value", StringArgumentType.word())
+                                        .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                                                "anchoredPredatorDuckSeconds".equals(StringArgumentType.getString(ctx, "name"))
+                                                        ? java.util.List.of("0", "2") : java.util.List.of("on", "off"), builder))
+                                        .executes(ctx -> client(ctx,
+                                                () -> grill24.fishtastic.client.companion.ClientCompanionsDev.devSwitch(
+                                                        StringArgumentType.getString(ctx, "name"),
+                                                        StringArgumentType.getString(ctx, "value")))))))
+                .then(Commands.literal("temperament")
+                        .then(Commands.literal("species").executes(ctx -> client(ctx,
+                                () -> grill24.fishtastic.client.companion.ClientCompanionsDev.devTemperament(null))))
+                        .then(Commands.argument("id", StringArgumentType.word())
+                                .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                                        java.util.stream.Stream.concat(java.util.stream.Stream.of("baseline"),
+                                                grill24.fishsim.companion.Temperament.ALL.stream()
+                                                        .map(grill24.fishsim.companion.Temperament::name)),
+                                        builder))
+                                .executes(ctx -> client(ctx,
+                                        () -> grill24.fishtastic.client.companion.ClientCompanionsDev.devTemperament(
+                                                StringArgumentType.getString(ctx, "id"))))))
+                .then(Commands.literal("fake")
+                        .then(Commands.argument("kind", StringArgumentType.word())
+                                .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                                        java.util.List.of("hostile", "cat", "item", "companion", "clear"), builder))
+                                .executes(ctx -> {
+                                    String kind = StringArgumentType.getString(ctx, "kind");
+                                    if (!java.util.List.of("hostile", "cat", "item", "companion", "clear").contains(kind)) {
+                                        ctx.getSource().sendFailure(Component.literal("Unknown fake: " + kind));
+                                        return 0;
+                                    }
+                                    return client(ctx, () -> grill24.fishtastic.client.companion.ClientCompanionsDev.devFake(kind));
+                                })))
+                // The predator scene (party D21, G4) now: your predator laps you, its prey hides.
+                .then(Commands.literal("predatorscene").executes(ctx -> client(ctx,
+                        grill24.fishtastic.client.companion.ClientCompanionsDev::devPredatorScene)))
+                // The ghost owner (party spec §28.3, D31): cross-player scenes, alone.
+                .then(Commands.literal("ghost")
+                        .then(Commands.literal("add")
+                                .then(Commands.argument("species", ResourceLocationArgument.id()).suggests(CompanionCommand::fishSuggestions)
+                                        .executes(ctx -> ghostAdd(ctx, 1))
+                                        .then(Commands.argument("species2", ResourceLocationArgument.id()).suggests(CompanionCommand::fishSuggestions)
+                                                .executes(ctx -> ghostAdd(ctx, 2))
+                                                .then(Commands.argument("species3", ResourceLocationArgument.id()).suggests(CompanionCommand::fishSuggestions)
+                                                        .executes(ctx -> ghostAdd(ctx, 3))))))
+                        .then(Commands.literal("walk")
+                                .then(Commands.literal("approach").executes(ctx -> ghostWalk(ctx, grill24.fishtastic.server.CompanionGhost.Mode.APPROACH, grill24.fishtastic.server.CompanionGhost.STAND_OFF))
+                                        .then(Commands.argument("blocks", FloatArgumentType.floatArg(1f, 6f)).executes(ctx -> ghostWalk(ctx,
+                                                grill24.fishtastic.server.CompanionGhost.Mode.APPROACH, FloatArgumentType.getFloat(ctx, "blocks")))))
+                                .then(Commands.literal("stand").executes(ctx -> ghostWalk(ctx, grill24.fishtastic.server.CompanionGhost.Mode.STAND, grill24.fishtastic.server.CompanionGhost.STAND_OFF)))
+                                .then(Commands.literal("leave").executes(ctx -> ghostWalk(ctx, grill24.fishtastic.server.CompanionGhost.Mode.LEAVE, grill24.fishtastic.server.CompanionGhost.STAND_OFF))))
+                        .then(Commands.literal("scene")
+                                .then(Commands.literal("g1").executes(ctx -> ghostScene(ctx, grill24.fishtastic.companion.CompanionSceneType.G1_SAME_SPECIES, 0))
+                                        .then(Commands.argument("late", com.mojang.brigadier.arguments.IntegerArgumentType.integer(0, 600))
+                                                .executes(ctx -> ghostScene(ctx, grill24.fishtastic.companion.CompanionSceneType.G1_SAME_SPECIES, com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "late")))))
+                                .then(Commands.literal("g2").executes(ctx -> ghostScene(ctx, grill24.fishtastic.companion.CompanionSceneType.G2_FREE_SWIM_EIGHT, 0))
+                                        .then(Commands.argument("late", com.mojang.brigadier.arguments.IntegerArgumentType.integer(0, 600))
+                                                .executes(ctx -> ghostScene(ctx, grill24.fishtastic.companion.CompanionSceneType.G2_FREE_SWIM_EIGHT, com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "late"))))))
+                        .then(Commands.literal("remove").executes(ctx -> {
+                            grill24.fishtastic.server.CompanionGhost.remove(ctx.getSource().getServer());
+                            ctx.getSource().sendSuccess(() -> Component.literal("Ghost removed").withStyle(ChatFormatting.GREEN), false);
+                            return 1;
+                        }))
+                        .executes(ctx -> {
+                            ctx.getSource().sendSuccess(() -> Component.literal(grill24.fishtastic.server.CompanionGhost.describe()), false);
+                            return 1;
+                        }))
+                .then(Commands.literal("hurt").executes(ctx -> client(ctx,
+                        grill24.fishtastic.client.companion.ClientCompanionsDev::devHurt)))
+                .then(Commands.literal("drowsy").executes(ctx -> client(ctx,
+                        grill24.fishtastic.client.companion.ClientCompanionsDev::devDrowsy)))
+                .then(Commands.literal("feature")
+                        .then(Commands.argument("kind", StringArgumentType.word())
+                                .suggests((c, b) -> SharedSuggestionProvider.suggest(
+                                        java.util.List.of("jukebox", "notes", "water", "light", "warm"), b))
+                                .executes(CompanionCommand::feature)))
+                .then(Commands.literal("mood")
+                        .then(Commands.argument("mood", StringArgumentType.word())
+                                .suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(
+                                        java.util.List.of("cold", "warm", "glum", "glee", "sleepy", "moon", "off"), b))
+                                .executes(ctx -> {
+                                    String mood = StringArgumentType.getString(ctx, "mood");
+                                    return client(ctx, () -> grill24.fishtastic.client.companion.ClientCompanionsDev.devMood(mood));
+                                })))
+                .then(Commands.literal("ground").executes(ctx -> client(ctx,
+                        grill24.fishtastic.client.companion.ClientCompanionsDev::devGround)))
+                .then(Commands.literal("climb").executes(ctx -> client(ctx,
+                        grill24.fishtastic.client.companion.ClientCompanionsDev::devClimb)))
+                .then(Commands.literal("tumble").executes(ctx -> client(ctx,
+                        grill24.fishtastic.client.companion.ClientCompanionsDev::devTumble)))
+                .then(Commands.literal("swell")
+                        .executes(ctx -> client(ctx, () -> "Upright benthic swell gain: "
+                                + grill24.fishtastic.client.renderer.CompanionRender.uprightSwell
+                                + " (default " + grill24.fishtastic.client.renderer.CompanionRender.DEFAULT_UPRIGHT_SWELL + ")"))
+                        .then(Commands.argument("gain", FloatArgumentType.floatArg(0f, 8f)).executes(ctx -> {
+                            float gain = FloatArgumentType.getFloat(ctx, "gain");
+                            return client(ctx, () -> {
+                                grill24.fishtastic.client.renderer.CompanionRender.uprightSwell = gain;
+                                return "Upright benthic swell gain set to " + gain;
+                            });
+                        })))
+                .then(Commands.literal("squeeze")
+                        .executes(ctx -> client(ctx, () -> "Drifter squeeze gain: "
+                                + grill24.fishtastic.client.renderer.CompanionRender.driftSqueeze
+                                + " (default " + grill24.fishtastic.client.renderer.CompanionRender.DEFAULT_DRIFT_SQUEEZE + ")"))
+                        .then(Commands.argument("gain", FloatArgumentType.floatArg(0f, 8f)).executes(ctx -> {
+                            float gain = FloatArgumentType.getFloat(ctx, "gain");
+                            return client(ctx, () -> {
+                                grill24.fishtastic.client.renderer.CompanionRender.driftSqueeze = gain;
+                                return "Drifter squeeze gain set to " + gain;
+                            });
+                        })))
+                .then(Commands.literal("catchdemo").executes(ctx -> client(ctx,
+                        grill24.fishtastic.client.companion.ClientCompanionsDev::devOpenCatchDemo)))
+                .then(Commands.literal("catch").executes(ctx -> client(ctx,
+                        grill24.fishtastic.client.companion.ClientCompanionsDev::devForceCatch)))
+                .then(Commands.literal("phantom")
+                        .then(Commands.literal("off").executes(ctx -> client(ctx, () -> {
+                            grill24.fishtastic.client.companion.ClientCompanionsDev.clearPhantoms();
+                            return "Dev phantoms removed";
+                        })))
+                        .then(Commands.argument("species", ResourceLocationArgument.id())
+                                .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                                        BuiltInRegistries.ITEM.stream()
+                                                .filter(item -> item.builtInRegistryHolder().is(FishtasticItemTags.FISH))
+                                                .map(item -> BuiltInRegistries.ITEM.getKey(item).toString()),
+                                        builder))
+                                .executes(ctx -> phantom(ctx, Optional.empty()))
+                                .then(Commands.argument("size", FloatArgumentType.floatArg(1f, 2000f))
+                                        .executes(ctx -> phantom(ctx, Optional.of(FloatArgumentType.getFloat(ctx, "size")))))))
+                .then(Commands.literal("minigame").executes(ctx -> client(ctx, () -> {
+                    ((IGameRendererExtension) Minecraft.getInstance().gameRenderer)
+                            .fishtastic$displayItemActivation(new FishingMinigameAnimation());
+                    return "Demo minigame open";
+                })))
+                .then(Commands.literal("stopgame").executes(ctx -> client(ctx, () -> {
+                    ((IGameRendererExtension) Minecraft.getInstance().gameRenderer).fishtastic$cancelCurrentAnimation();
+                    return "Demo minigame closed";
+                })))
                 .then(Commands.literal("catchcount")
                         .then(Commands.argument("player", EntityArgument.player())
                                 .then(Commands.argument("species", ResourceLocationArgument.id())
-                                        .suggests(CompanionCommand::fishSuggestions)
-                                        .then(Commands.argument("count", IntegerArgumentType.integer(0))
+                                        .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                                                BuiltInRegistries.ITEM.stream()
+                                                        .filter(item -> item.builtInRegistryHolder().is(FishtasticItemTags.FISH))
+                                                        .map(item -> BuiltInRegistries.ITEM.getKey(item).toString()),
+                                                builder))
+                                        .then(Commands.argument("count", com.mojang.brigadier.arguments.IntegerArgumentType.integer(0))
                                                 .executes(CompanionCommand::catchCount)))))
                 .then(Commands.literal("unlock")
                         .then(Commands.argument("player", EntityArgument.player())
                                 .then(Commands.argument("species", ResourceLocationArgument.id())
-                                        .suggests(CompanionCommand::fishSuggestions)
                                         .executes(CompanionCommand::unlock))))
                 .then(Commands.literal("resetbonds")
                         .then(Commands.argument("player", EntityArgument.player())
-                                .executes(CompanionCommand::resetBonds)));
+                                .executes(CompanionCommand::resetBonds)))
+                .then(Commands.literal("hideothers")
+                        .then(Commands.argument("value", BoolArgumentType.bool()).executes(ctx -> {
+                            boolean value = BoolArgumentType.getBool(ctx, "value");
+                            grill24.fishtastic.client.FishtasticClientConfig.setHideOtherCompanions(value);
+                            ctx.getSource().sendSuccess(() -> Component.literal(
+                                    "Other players' companions hidden: " + value + " (persisted)"), false);
+                            return 1;
+                        })))
+                .then(Commands.literal("hideown")
+                        .then(Commands.argument("value", BoolArgumentType.bool()).executes(ctx -> {
+                            boolean value = BoolArgumentType.getBool(ctx, "value");
+                            grill24.fishtastic.client.FishtasticClientConfig.setHideOwnCompanionFirstPerson(value);
+                            ctx.getSource().sendSuccess(() -> Component.literal(
+                                    "Own companion hidden in first person: " + value + " (persisted)"), false);
+                            return 1;
+                        })));
+    }
+
+    /**
+     * Parks a dev phantom companion (an ownerless second fish) beside the player. Validation is
+     * server-safe; the client action lives in {@code ClientCompanions} for the same reason as
+     * {@code catchdemo} (see the class note).
+     */
+    private static int phantom(CommandContext<CommandSourceStack> ctx, Optional<Float> size) throws CommandSyntaxException {
+        ResourceLocation id = ResourceLocationArgument.getId(ctx, "species");
+        Optional<Item> item = BuiltInRegistries.ITEM.getOptional(id);
+        if (item.isEmpty() || !item.get().builtInRegistryHolder().is(FishtasticItemTags.FISH)) {
+            ctx.getSource().sendFailure(Component.literal("Not a fish: " + id));
+            return 0;
+        }
+        ItemStack fish = new ItemStack(item.get());
+        size.ifPresent(cm -> ItemSizeHelper.setSize(fish, cm));
+        return client(ctx, () -> grill24.fishtastic.client.companion.ClientCompanionsDev.devAddPhantom(fish));
     }
 
     /** Dev: sets one species' catch count, so a scene can park a species just below or at its gate. */
     private static int catchCount(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerPlayer player = EntityArgument.getPlayer(ctx, "player");
         ResourceLocation id = ResourceLocationArgument.getId(ctx, "species");
-        int count = IntegerArgumentType.getInteger(ctx, "count");
-        FishCatchBackups.beforeDestructiveCommand(ctx.getSource().getServer(), "companion_catchcount");
-        var data = FishCatchSavedData.getOrCreate(ctx.getSource().getServer());
+        int count = com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "count");
+        grill24.fishtastic.server.FishCatchBackups.beforeDestructiveCommand(ctx.getSource().getServer(),
+                "companion_catchcount");
+        var data = grill24.fishtastic.server.FishCatchSavedData.getOrCreate(ctx.getSource().getServer());
         data.setCatchCount(data.resolvePlayerKey(player), player.getName().getString(), id, count);
-        FishEncyclopediaSyncPacket.sendToPlayer(player, data);
-        ctx.getSource().sendSuccess(() -> Component.literal("Set " + id.getPath() + " catch count to " + count)
+        grill24.fishtastic.network.FishEncyclopediaSyncPacket.sendToPlayer(player, data);
+        int finalCount = count;
+        ctx.getSource().sendSuccess(() -> Component.literal("Set " + id.getPath() + " catch count to " + finalCount)
                 .withStyle(ChatFormatting.GREEN), true);
         return 1;
     }
 
-    /** Dev: force-unlocks a bond the way the natural transition would - stored, banner queued. */
+    /**
+     * Dev: force-unlocks a bond the way the natural transition would — stored, banner queued, FTUE
+     * started — so a scene can exercise the unlock path without meeting the real gate.
+     */
     private static int unlock(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerPlayer player = EntityArgument.getPlayer(ctx, "player");
         ResourceLocation id = ResourceLocationArgument.getId(ctx, "species");
-        FishCatchBackups.beforeDestructiveCommand(ctx.getSource().getServer(), "companion_unlock");
-        var data = FishCatchSavedData.getOrCreate(ctx.getSource().getServer());
+        grill24.fishtastic.server.FishCatchBackups.beforeDestructiveCommand(ctx.getSource().getServer(),
+                "companion_unlock");
+        var data = grill24.fishtastic.server.FishCatchSavedData.getOrCreate(ctx.getSource().getServer());
         if (!data.getOrCreateQuestState(player).unlockCompanionBond(id)) {
             ctx.getSource().sendFailure(Component.literal(id.getPath() + " is already unlocked"));
             return 0;
         }
         data.setDirty();
         // TODO(F15): CompanionTutorialManager.onBondUnlocked(player)
-        QuestSyncPacket.sendToPlayer(player, data);
+        grill24.fishtastic.network.QuestSyncPacket.sendToPlayer(player, data);
         ctx.getSource().sendSuccess(() -> Component.literal("Unlocked the bond for " + id.getPath())
                 .withStyle(ChatFormatting.GREEN), true);
         return 1;
     }
 
-    /** Dev: forgets every stored bond, so a scene can start from a locked world. */
+    /** Dev: forgets every stored bond, so a self-test scene can start from a locked world. */
     private static int resetBonds(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerPlayer player = EntityArgument.getPlayer(ctx, "player");
-        FishCatchBackups.beforeDestructiveCommand(ctx.getSource().getServer(), "companion_resetbonds");
-        var data = FishCatchSavedData.getOrCreate(ctx.getSource().getServer());
+        grill24.fishtastic.server.FishCatchBackups.beforeDestructiveCommand(ctx.getSource().getServer(),
+                "companion_resetbonds");
+        var data = grill24.fishtastic.server.FishCatchSavedData.getOrCreate(ctx.getSource().getServer());
         data.getOrCreateQuestState(player).clearCompanionBonds();
         data.setDirty();
-        QuestSyncPacket.sendToPlayer(player, data);
+        grill24.fishtastic.network.QuestSyncPacket.sendToPlayer(player, data);
         ctx.getSource().sendSuccess(() -> Component.literal("Cleared every stored companion bond")
                 .withStyle(ChatFormatting.GREEN), true);
         return 1;
@@ -141,12 +388,12 @@ public class CompanionCommand {
 
     /** A party slot as players count it: 1 (the lead) to 3. */
     private static com.mojang.brigadier.builder.RequiredArgumentBuilder<CommandSourceStack, Integer> slotArgument() {
-        return Commands.argument("slot", IntegerArgumentType.integer(1, CompanionParty.SIZE));
+        return Commands.argument("slot", com.mojang.brigadier.arguments.IntegerArgumentType.integer(1, CompanionParty.SIZE));
     }
 
     /** The {@code slot} argument as a party index (0 = lead). */
     private static int slotOf(CommandContext<CommandSourceStack> ctx) {
-        return IntegerArgumentType.getInteger(ctx, "slot") - 1;
+        return com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "slot") - 1;
     }
 
     /** Returns one slot's companion, or with no slot named, the whole party. */
@@ -182,7 +429,7 @@ public class CompanionCommand {
         }
         int target = slot.orElseGet(() -> CompanionStorage.party(player).firstEmpty());
         if (target < 0) {
-            ctx.getSource().sendFailure(Component.literal("That party is full - name a slot (1-3) to replace"));
+            ctx.getSource().sendFailure(Component.literal("That party is full — name a slot (1-3) to replace"));
             return 0;
         }
         ItemStack fish = new ItemStack(item.get());
@@ -199,5 +446,75 @@ public class CompanionCommand {
         return SharedSuggestionProvider.suggest(BuiltInRegistries.ITEM.stream()
                 .filter(item -> item.builtInRegistryHolder().is(FishtasticItemTags.FISH))
                 .map(item -> BuiltInRegistries.ITEM.getKey(item).toString()), builder);
+    }
+
+    /** The ghost owner is a dev tool for one player's own world: a dev run or a single-player world. */
+    private static boolean ghostAllowed(CommandContext<CommandSourceStack> ctx) {
+        if (grill24.fishtastic.env.DevEnvironmentCheck.isDevelopmentEnvironment() || ctx.getSource().getServer().isSingleplayer()) return true;
+        ctx.getSource().sendFailure(Component.literal("The ghost owner is for dev runs and single-player worlds only"));
+        return false;
+    }
+
+    /** The ghost can't be its own owner (an "execute as @p" can land on it, being the nearest player). */
+    private static boolean isGhost(CommandContext<CommandSourceStack> ctx, ServerPlayer player) {
+        if (!player.getUUID().equals(grill24.fishtastic.server.CompanionGhost.ID)) return false;
+        ctx.getSource().sendFailure(Component.literal("Run this as yourself, not as the ghost"));
+        return true;
+    }
+
+    private static int ghostAdd(CommandContext<CommandSourceStack> ctx, int count) throws CommandSyntaxException {
+        if (!ghostAllowed(ctx)) return 0;
+        ServerPlayer owner = ctx.getSource().getPlayerOrException();
+        if (isGhost(ctx, owner)) return 0;
+        java.util.List<ItemStack> fish = new java.util.ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            ResourceLocation id = ResourceLocationArgument.getId(ctx, i == 0 ? "species" : "species" + (i + 1));
+            Optional<Item> item = BuiltInRegistries.ITEM.getOptional(id);
+            if (item.isEmpty() || !item.get().builtInRegistryHolder().is(FishtasticItemTags.FISH)) {
+                ctx.getSource().sendFailure(Component.literal("Not a fish: " + id));
+                return 0;
+            }
+            fish.add(new ItemStack(item.get()));
+        }
+        grill24.fishtastic.server.CompanionGhost.add(owner, fish);
+        ctx.getSource().sendSuccess(() -> Component.literal("Ghost added, walking up: " + grill24.fishtastic.server.CompanionGhost.describe())
+                .withStyle(ChatFormatting.GREEN), false);
+        return 1;
+    }
+
+    private static int ghostWalk(CommandContext<CommandSourceStack> ctx, grill24.fishtastic.server.CompanionGhost.Mode mode, double standOff) {
+        if (!ghostAllowed(ctx)) return 0;
+        if (grill24.fishtastic.server.CompanionGhost.ghost() == null) {
+            ctx.getSource().sendFailure(Component.literal("No ghost: /fishtastic companion ghost add <species> first"));
+            return 0;
+        }
+        grill24.fishtastic.server.CompanionGhost.walk(mode, standOff);
+        ctx.getSource().sendSuccess(() -> Component.literal("Ghost: " + mode.name().toLowerCase()).withStyle(ChatFormatting.GREEN), false);
+        return 1;
+    }
+
+    private static int ghostScene(CommandContext<CommandSourceStack> ctx, grill24.fishtastic.companion.CompanionSceneType type, int late) throws CommandSyntaxException {
+        if (!ghostAllowed(ctx)) return 0;
+        ServerPlayer owner = ctx.getSource().getPlayerOrException();
+        if (isGhost(ctx, owner)) return 0;
+        ServerPlayer ghost = grill24.fishtastic.server.CompanionGhost.ghost();
+        if (ghost == null) {
+            ctx.getSource().sendFailure(Component.literal("No ghost: /fishtastic companion ghost add <species> first"));
+            return 0;
+        }
+        String result = grill24.fishtastic.server.CompanionSceneManager.devForceScene(owner.serverLevel(), owner, ghost, type, late);
+        ctx.getSource().sendSuccess(() -> Component.literal(result).withStyle(ChatFormatting.GREEN), false);
+        return 1;
+    }
+
+    private static int client(CommandContext<CommandSourceStack> ctx, java.util.function.Supplier<String> action) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null || mc.player == null || mc.gameRenderer == null) {
+            ctx.getSource().sendFailure(Component.literal("Client-side only — run this in single-player."));
+            return 0;
+        }
+        String message = action.get();
+        ctx.getSource().sendSuccess(() -> Component.literal(message).withStyle(ChatFormatting.GREEN), false);
+        return 1;
     }
 }
