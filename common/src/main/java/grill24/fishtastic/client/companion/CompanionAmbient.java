@@ -85,6 +85,18 @@ public final class CompanionAmbient {
         return biome.getPrecipitationAt(pos);
     }
 
+    /**
+     * How much the sky is darkened (0 by day .. 11 at night), as the server computes it. PORT-ONLY: 26.1
+     * keeps this in step on the client; on 1.21.1 {@code Level.getSkyDarken()} is only maintained server-side
+     * (it reads 0 at midnight on the client), so it is rebuilt from the float {@code ClientLevel.getSkyDarken}
+     * the sky renderer uses (1.0 by day .. 0.2 at night).
+     */
+    public static int skyDarken(Level level) {
+        if (level instanceof net.minecraft.client.multiplayer.ClientLevel client)
+            return Math.round(Math.max(0f, Math.min(1f, (1f - client.getSkyDarken(1f)) / 0.8f)) * 11f);
+        return level.getSkyDarken();
+    }
+
     static Ambient at(Level level, net.minecraft.world.phys.Vec3 eye, List<Vec> warmth) {
         BlockPos pos = BlockPos.containing(eye);
         Holder<Biome> biome = level.getBiome(pos);
@@ -113,7 +125,7 @@ public final class CompanionAmbient {
                 FishProfile.TimeOfDay.fromGameTime(level.getDayTime()).name());
         int moon = FishMoonPhase.at(level, pos).index();
         return new Ambient(place, temperature, weather, part, moon, warmth)
-                .withDarkness(1f - level.getMaxLocalRawBrightness(pos) / 15f);
+                .withDarkness(1f - level.getMaxLocalRawBrightness(pos, skyDarken(level)) / 15f);
     }
 
     /** Lit campfires, fire and lava near {@code pos}: the nearest block of each cell, the nearest few cells. */

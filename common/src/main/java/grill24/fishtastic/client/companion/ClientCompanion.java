@@ -551,7 +551,7 @@ public final class ClientCompanion {
     /** A drifter glows at night (spec §3). */
     private boolean glowsNow() {
         Minecraft mc = Minecraft.getInstance();
-        return locomotion == Locomotion.DRIFT && mc.level != null && mc.level.getSkyDarken() >= 4;
+        return locomotion == Locomotion.DRIFT && mc.level != null && CompanionAmbient.skyDarken(mc.level) >= 4;
     }
 
     private static int light(Vec pos, boolean glow) {
