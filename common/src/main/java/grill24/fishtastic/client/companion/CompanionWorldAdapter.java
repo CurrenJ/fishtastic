@@ -5,11 +5,11 @@ import grill24.fishsim.companion.CompanionWorld;
 import grill24.fishsim.companion.OwnerState;
 import grill24.fishsim.companion.PointOfInterest;
 import grill24.fishsim.companion.Vec;
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItemTags;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.animal.feline.Cat;
@@ -146,7 +146,7 @@ public final class CompanionWorldAdapter {
         if (hand.is(species.getItem())) return CompanionWorld.Held.SAME_SPECIES;
         if (hand.is(FishtasticItemTags.PREDATOR_FISH)) return CompanionWorld.Held.PREDATOR;
         if (hand.is(Items.NAME_TAG)) return CompanionWorld.Held.NAME_TAG;
-        if (hand.get(DataComponents.FOOD) != null) return CompanionWorld.Held.FOOD;
+        if (FishtasticItemData.isFood(hand)) return CompanionWorld.Held.FOOD;
         return CompanionWorld.Held.NONE;
     }
 

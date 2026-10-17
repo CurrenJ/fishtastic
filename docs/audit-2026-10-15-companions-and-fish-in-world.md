@@ -6,11 +6,13 @@ Historical evidence links to those logs now refer to local-only files; screensho
 scripts and gate records remain tracked. This supersedes the log-retention statements below.
 Existing Git history is unchanged.
 
-**Current status, 2026-10-16:** the six-step cleanup is implemented and validated; see
-[§9.4 final acceptance](#94-final-verification-and-acceptance-2026-10-16). Steps 1–2 are committed,
-steps 3–6 are recorded by this cleanup commit, and no backport has started. Five switches remain pending the owner's
-visual review. The original audit and intermediate handoffs below are historical; their open-gate
-statements are superseded by §9.4, not evidence of a new failure.
+**Current status, 2026-10-17:** the original six-step cleanup is implemented, validated and committed;
+see [§9.4 final acceptance](#94-final-verification-and-acceptance-2026-10-16).
+The readiness follow-up in [§9.5](#95-backport-readiness-follow-up-2026-10-17) covers the subsequent
+calm bob, test-harness and guided-tutorial changes. Six switches are retained with their current
+defaults pending the owner's visual review. The new catch-up has not started; both existing ports
+are recorded through `4b0e818e`. The original audit and intermediate handoffs below are historical;
+their open-gate statements are superseded by the dated acceptance records.
 
 **Date:** 2026-10-15 · **Branch:** `26.1.2` at `f58d7316`, plus the staged, uncommitted Phase 5 (moods) work.
 **Scope:** everything since the last backport parity point `4b0e818e` (2026-10-06): 75 commits and 31
@@ -800,3 +802,68 @@ stable-fixture screenshots were visually inspected, but do not constitute the pe
 switch review. Steps 3–6 are recorded by this cleanup commit, including the completed audit;
 unrelated fishspin work and tracked runtime logs remain outside it. No backport, publication or
 deployment was started.
+
+### 9.5 Backport readiness follow-up (2026-10-17)
+
+The reviewed source snapshot is `465fe891` (90 commits after the recorded parity point
+`4b0e818e`); this preparation changeset sits on top of that snapshot. It includes the calm bob
+(`e7b7dc47`), isolated GameTest worlds/fixtures (`4dc2e956`), and guided onboarding (`465fe891`).
+Neither port's marker advances until the complete source backlog is accounted for.
+
+Preparation changes:
+
+- Companion names, food detection, tooltip styles and stack comparisons go through
+  `FishtasticItemData`. Count-sensitive comparisons remain distinct from stacking comparisons.
+- The pre-commit hook runs `:fishsim:test` alongside common and tank-shape tests, then Fabric
+  GameTests. Opt-in simulation probes remain opt-in. NeoForge's existing hook skip is unchanged;
+  the readiness driver explicitly runs both loaders.
+- The readiness driver uses `--no-parallel` for its combined suites/build invocation and includes
+  tank-shape tests plus the `tutorial` and `companiontutorial` client scenes in its defaults.
+- Attachment comments now reflect the intentional removal of the retired single-stack migration;
+  the saved-data comment describes the current guided companion lessons.
+
+The six retained A/B switches below all default to **true**. These are the values to carry into
+the backport unless the owner explicitly changes a visual decision. Retaining a default does
+not imply visual approval; no switch or alternate branch is collapsed by this follow-up.
+
+| Switch | Scope |
+|---|---|
+| `driftBob` | Man o' war bob motor |
+| `bobRetime` | Bob stroke retiming |
+| `bobMindTurn` | Bob steering in the companion mind |
+| `bobCalm` | Calm bob idle, added after the original cleanup acceptance |
+| `partySwimSeparation` | Predator/prey swimming separation |
+| `otherPlayerClearance` | Clearance around other players |
+
+The `GroundMind` diagnostic switches remain separate, as in §9.4. Dirty legacy worktrees and
+curated evidence are preserved. Existing historical acceptance records keep their original counts.
+
+Before these preparation edits, fresh validation on `465fe891` passed: common 856 passed/1 skipped;
+fishsim 500 passed/63 opt-in skipped; Fabric GameTests 378/378; NeoForge 372/372; both assemblies
+and packaging checks passed. Tank-shape tests were up to date (21,955 existing results).
+Fabric datagen completed successfully and left the working tree clean.
+
+**Preparation validation:** `build/cleanup/validation-20261017-131124/` completed with exit 0.
+The combined suites/build invocation used `--no-parallel`. Common tests passed on the edited
+sources (856 passed, 1 skipped; rerun during the first attempt, up to date on the repeat).
+Unchanged fishsim and tank-shape suites were up to date.
+Fabric GameTests passed 378/378 and NeoForge 372/372. Both assemblies and the packaging checks
+passed. Targeted client checks completed on both loaders with zero failures, no missing scenes,
+one completion marker per invocation and exit 0:
+
+| Scenes | Fabric | NeoForge |
+|---|---|---|
+| `tutorial` | 5/5 | 5/5 |
+| `companiontutorial` | 17/17 | 17/17 |
+| bonding/sim/party/eel/scenes/world/LOD combined | 103/103 | 103/103 |
+
+These targeted runs exercise the changed call sites and newly included tutorials; they do not
+repeat every unchanged ambient scene from §9.4. Shell and PowerShell syntax checks and
+`git diff --check` also passed.
+
+The first attempt (`build/cleanup/validation-20261017-130904/suites-package.log`) failed Fabric's
+`backupFixtureRestoresSharedStateAndFiles` check with "Original failure must propagate". That
+assertion hides the unexpected IOException, so its underlying cause is not established. The
+repeat passed without any intervening source changes; no backup code was changed. The failed
+world and log remain available for investigation. This is a recorded intermittent validation
+failure, not a claimed fix.

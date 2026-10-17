@@ -1,5 +1,6 @@
 package grill24.fishtastic.menu;
 
+import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.FishtasticMenuTypes;
 import grill24.fishtastic.companion.CompanionBondGate;
@@ -37,7 +38,7 @@ public final class CompanionMenu extends AbstractContainerMenu {
             super.setChanged();
             if (readingStorage || !(owner instanceof ServerPlayer player)) return;
             for (int i = 0; i < PARTY_SLOTS; i++) {
-                if (!ItemStack.matches(getItem(i), CompanionStorage.get(player, i))) Companions.setFromMenu(player, i, getItem(i));
+                if (!FishtasticItemData.matches(getItem(i), CompanionStorage.get(player, i))) Companions.setFromMenu(player, i, getItem(i));
             }
         }
     };
@@ -97,7 +98,7 @@ public final class CompanionMenu extends AbstractContainerMenu {
         try {
             for (int i = 0; i < PARTY_SLOTS; i++) {
                 ItemStack stored = CompanionStorage.get(owner, i);
-                if (!ItemStack.matches(stored, party.getItem(i))) party.setItem(i, stored.copy());
+                if (!FishtasticItemData.matches(stored, party.getItem(i))) party.setItem(i, stored.copy());
             }
         } finally {
             readingStorage = false;
@@ -129,21 +130,21 @@ public final class CompanionMenu extends AbstractContainerMenu {
             super.clicked(slot, button, input, player);
         } finally {
             if (player instanceof ServerPlayer serverPlayer) {
-                if (!partyBefore.isEmpty() && !ItemStack.matches(partyBefore, getSlot(slot).getItem())
-                        && ItemStack.isSameItemSameComponents(partyBefore, getCarried())) {
+                if (!partyBefore.isEmpty() && !FishtasticItemData.matches(partyBefore, getSlot(slot).getItem())
+                        && FishtasticItemData.isSameItemSameData(partyBefore, getCarried())) {
                     returningFish = partyBefore.copyWithCount(1);
                 }
                 boolean putAway = slot >= INVENTORY_START && slot < INVENTORY_END && !returningFish.isEmpty()
-                        && ItemStack.isSameItemSameComponents(returningFish, cursorBefore)
-                        && (!ItemStack.isSameItemSameComponents(cursorBefore, getCarried())
+                        && FishtasticItemData.isSameItemSameData(returningFish, cursorBefore)
+                        && (!FishtasticItemData.isSameItemSameData(cursorBefore, getCarried())
                         || getCarried().getCount() < cursorBefore.getCount());
                 boolean hotbarReturn = isPartySlot(slot) && !partyBefore.isEmpty()
                         && input == net.minecraft.world.inventory.ContainerInput.SWAP
-                        && !ItemStack.matches(partyBefore, getSlot(slot).getItem());
+                        && !FishtasticItemData.matches(partyBefore, getSlot(slot).getItem());
                 if (putAway || hotbarReturn) {
                     grill24.fishtastic.tutorial.CompanionTutorialManager.onReturned(serverPlayer);
                     returningFish = ItemStack.EMPTY;
-                } else if (!returningFish.isEmpty() && !ItemStack.isSameItemSameComponents(returningFish, getCarried())) {
+                } else if (!returningFish.isEmpty() && !FishtasticItemData.isSameItemSameData(returningFish, getCarried())) {
                     returningFish = ItemStack.EMPTY;
                 }
             }
@@ -151,7 +152,7 @@ public final class CompanionMenu extends AbstractContainerMenu {
     }
 
     @Override public void removed(Player player) {
-        boolean returning = !returningFish.isEmpty() && ItemStack.isSameItemSameComponents(returningFish, getCarried())
+        boolean returning = !returningFish.isEmpty() && FishtasticItemData.isSameItemSameData(returningFish, getCarried())
                 && Companions.hasRoomToReturn(player, returningFish);
         super.removed(player);
         if (returning && player instanceof ServerPlayer serverPlayer) {

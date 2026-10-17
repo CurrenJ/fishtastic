@@ -2,6 +2,7 @@ package grill24.fishtastic.companion;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
+import grill24.fishtastic.FishtasticItemData;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
@@ -64,7 +65,7 @@ public record CompanionParty(List<ItemStack> slots) {
 
     /** Same fish in the same slots, component for component. */
     public boolean matches(CompanionParty other) {
-        for (int i = 0; i < SIZE; i++) if (!ItemStack.matches(slots.get(i), other.slots.get(i))) return false;
+        for (int i = 0; i < SIZE; i++) if (!FishtasticItemData.matches(slots.get(i), other.slots.get(i))) return false;
         return true;
     }
 

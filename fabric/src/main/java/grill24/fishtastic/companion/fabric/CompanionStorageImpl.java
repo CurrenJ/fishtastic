@@ -13,8 +13,8 @@ public final class CompanionStorageImpl {
 
     /**
      * Absent when the party is empty (stored as "not attached"), persistent, kept on death, and
-     * synced to the owner and every player tracking them. The id predates the party: its codec
-     * reads the old single-stack attachment into the lead slot.
+     * synced to the owner and every player tracking them. The id predates the party, but the
+     * codec now accepts only the three-slot form; the retired single-stack form is not migrated.
      */
     private static final AttachmentType<CompanionParty> COMPANION = AttachmentRegistry.create(
             Fishtastic.id("companion"),

@@ -1,10 +1,10 @@
 #!/bin/sh
-# Blocks the commit if the common unit tests or either loader's game tests fail.
+# Blocks the commit if common, simulation, tank-shape tests or Fabric game tests fail.
 
 echo ""
 echo "=== Pre-commit: running unit tests ==="
 
-if ! ./gradlew :common:test :tools:tank-shape-gen:test; then
+if ! ./gradlew :common:test :fishsim:test :tools:tank-shape-gen:test; then
     echo ""
     echo "COMMIT BLOCKED: unit tests failed."
     exit 1

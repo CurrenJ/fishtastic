@@ -2,7 +2,7 @@ param(
     [string[]]$Scenes = @('ambientparity', 'ambientwater', 'ambientcontext', 'ambientpopulation',
         'ambientfloor', 'ambientwalk', 'ambientisland', 'ambientlifecycle',
         'companionbond,companionsim,companionparty,companioneel,companionscenes,companionworld,companionlod',
-        'companionmoods,companionparticles,companionworldcost'),
+        'companionmoods,companionparticles,companionworldcost', 'tutorial', 'companiontutorial'),
     [switch]$SkipSuites
 )
 
@@ -21,9 +21,9 @@ New-Item -ItemType Directory -Path $out -Force | Out-Null
 $wrapperArgs = @('-classpath', 'gradle/wrapper/gradle-wrapper.jar', 'org.gradle.wrapper.GradleWrapperMain')
 $tasks = @(':fabric:assemble', ':neoforge:assemble')
 if (!$SkipSuites) {
-    $tasks = @(':fishsim:test', ':common:test', ':fabric:runGametest', ':neoforge:runGametest') + $tasks
+    $tasks = @(':fishsim:test', ':common:test', ':tools:tank-shape-gen:test', ':fabric:runGametest', ':neoforge:runGametest') + $tasks
 }
-& $java @wrapperArgs @tasks --console=plain *> (Join-Path $out 'suites-package.log')
+& $java @wrapperArgs @tasks --no-parallel --console=plain *> (Join-Path $out 'suites-package.log')
 if ($LASTEXITCODE -ne 0) { throw "Suites/build failed: $out/suites-package.log" }
 & (Join-Path $PSScriptRoot 'check-cleanup-packaging.ps1') -Repo $repo |
     Tee-Object -FilePath (Join-Path $out 'packaging.txt')

@@ -442,7 +442,7 @@ public class FishCatchSavedData extends SavedData {
     }
 
     // -------------------------------------------------------------------------
-    // Companion tutorial state API — the one-step bond FTUE, see CompanionTutorialManager.
+    // Companion tutorial state API — guided party lessons, see CompanionTutorialManager.
     // -------------------------------------------------------------------------
 
     public CompanionTutorialStep getCompanionTutorialStep(net.minecraft.server.level.ServerPlayer player) {

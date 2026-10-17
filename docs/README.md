@@ -1,9 +1,11 @@
 # Docs index
 
-Where the current truth lives, and what is history. Updated 2026-10-16 after the pre-backport
-cleanup ([audit §9.4](audit-2026-10-15-companions-and-fish-in-world.md#94-final-verification-and-acceptance-2026-10-16)).
-All six cleanup steps are implemented, validated and committed; no backport
-has started. Five A/B switches remain pending owner visual review; dirty legacy worktrees are retained.
+Where the current truth lives, and what is history. Updated 2026-10-17 after the backport readiness
+review ([audit §9.5](audit-2026-10-15-companions-and-fish-in-world.md#95-backport-readiness-follow-up-2026-10-17)).
+All six original cleanup steps are implemented, validated and committed; the new backport catch-up
+has not started. Both existing ports are recorded through source commit `4b0e818e`.
+Six A/B switches are retained with their current defaults, pending owner visual review;
+dirty legacy worktrees are retained.
 When a doc and the code disagree,
 the code wins; fix the doc.
 

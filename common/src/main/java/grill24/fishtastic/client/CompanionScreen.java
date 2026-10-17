@@ -20,7 +20,6 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
@@ -129,7 +128,7 @@ public final class CompanionScreen extends AbstractContainerScreen<CompanionMenu
         editingStack = fish.copy();
         pileView = false;
         clearFeedback();
-        Component custom = fish.get(DataComponents.CUSTOM_NAME);
+        Component custom = FishtasticItemData.customName(fish);
         name.setValue(custom == null ? "" : custom.getString());
         setFocused(name);
         name.setFocused(true);
@@ -178,7 +177,7 @@ public final class CompanionScreen extends AbstractContainerScreen<CompanionMenu
             rebuildWidgets();
             return;
         }
-        if (editing >= 0 && !ItemStack.matches(menu.getSlot(editing).getItem(), editingStack)) closeEditor();
+        if (editing >= 0 && !FishtasticItemData.matches(menu.getSlot(editing).getItem(), editingStack)) closeEditor();
         var outcome = CompanionClientState.consumeRecentFeedback();
         if (outcome != null) {
             setFeedback(Component.translatable("screen.fishtastic.encyclopedia.companions.feedback."
@@ -554,7 +553,7 @@ public final class CompanionScreen extends AbstractContainerScreen<CompanionMenu
             ItemStack stack = fish.get(index).representative();
             List<Component> lines = getTooltipFromContainerItem(stack);
             lines.add(text(unlocked(stack) ? "click_pile" : "locked"));
-            graphics.setTooltipForNextFrame(font, lines, stack.getTooltipImage(), mouseX, mouseY, stack.get(DataComponents.TOOLTIP_STYLE));
+            graphics.setTooltipForNextFrame(font, lines, stack.getTooltipImage(), mouseX, mouseY, FishtasticItemData.tooltipStyle(stack));
         }
     }
 

@@ -111,12 +111,12 @@ public final class Companions {
         ItemStack renamed = current.copy();
         String trimmed = name == null ? "" : name.trim();
         if (trimmed.isEmpty()) {
-            renamed.remove(net.minecraft.core.component.DataComponents.CUSTOM_NAME);
+            FishtasticItemData.setCustomName(renamed, null);
         } else {
             if (trimmed.length() > grill24.fishtastic.network.RenameCompanionPacket.MAX_NAME_LENGTH) {
                 trimmed = trimmed.substring(0, grill24.fishtastic.network.RenameCompanionPacket.MAX_NAME_LENGTH);
             }
-            renamed.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME,
+            FishtasticItemData.setCustomName(renamed,
                     net.minecraft.network.chat.Component.literal(trimmed));
         }
         CompanionStorage.set(player, slot, renamed);
@@ -190,6 +190,6 @@ public final class Companions {
 
     /** Same fish in every component — species, size, quality, name — whatever the counts. */
     static boolean sameFish(ItemStack candidate, ItemStack wanted) {
-        return !candidate.isEmpty() && ItemStack.isSameItemSameComponents(candidate, wanted);
+        return !candidate.isEmpty() && FishtasticItemData.isSameItemSameData(candidate, wanted);
     }
 }

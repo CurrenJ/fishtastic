@@ -8,6 +8,7 @@ import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.item.ItemStack;
@@ -131,7 +132,33 @@ public final class FishtasticItemData {
         return ItemStack.isSameItemSameComponents(a, b);
     }
 
+    /** Same item, item data and count, including vanilla's empty-stack semantics. */
+    public static boolean matches(ItemStack a, ItemStack b) {
+        return ItemStack.matches(a, b);
+    }
+
     // ── Vanilla item data ─────────────────────────────────────────────────
+
+    @Nullable
+    public static Component customName(ItemStack stack) {
+        return stack.get(DataComponents.CUSTOM_NAME);
+    }
+
+    /** A null name clears the custom name, restoring the species/item name. */
+    public static void setCustomName(ItemStack stack, @Nullable Component name) {
+        if (name == null) stack.remove(DataComponents.CUSTOM_NAME);
+        else stack.set(DataComponents.CUSTOM_NAME, name);
+    }
+
+    public static boolean isFood(ItemStack stack) {
+        return stack.get(DataComponents.FOOD) != null;
+    }
+
+    /** Optional custom tooltip background; older versions can use their default background. */
+    @Nullable
+    public static Identifier tooltipStyle(ItemStack stack) {
+        return stack.get(DataComponents.TOOLTIP_STYLE);
+    }
 
     /** A pile's (bundle-style) contents, or null if the stack has none. */
     @Nullable

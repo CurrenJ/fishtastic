@@ -19,8 +19,8 @@ public final class CompanionStorageImpl {
     /**
      * Empty by default; saved only when non-empty; kept on death; synced to the owner and every
      * player tracking them ({@code setData} syncs on its own — see {@code AttachmentHolder#setData}).
-     * The id predates the party: its codec reads the old {@code {stack: ...}} attachment into the
-     * lead slot.
+     * The id predates the party, but the codec now accepts only the three-slot form; the retired
+     * {@code {stack: ...}} form is not migrated.
      */
     private static final DeferredHolder<AttachmentType<?>, AttachmentType<CompanionParty>> COMPANION =
             ATTACHMENT_TYPES.register("companion", () -> AttachmentType.builder(() -> CompanionParty.EMPTY)
