@@ -328,7 +328,8 @@ public final class FishingPoolFixture {
                                        List<FishProfile.MoonWeight> moonWeights) {
         return new FishProfile(baseWeight, FishProfile.SizeParams.DEFAULT, biomeWeights, timeWeights,
                 weatherWeights, moonWeights, zones, Optional.empty(), Optional.empty(), SwarmConfig.DEFAULT,
-                FishProfile.DEFAULT_RENDER_CALIBRATION);
+                FishProfile.DEFAULT_RENDER_CALIBRATION, Optional.empty(), FishProfile.CompanionGait.CRAWL,
+                FishProfile.CompanionDrift.BELL);
     }
 
     /**

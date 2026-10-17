@@ -29,7 +29,7 @@ public final class FishAnimator {
         if (config instanceof FishAnimationConfig.HorizontalSwim cfg) applyHorizontalSwim(poseStack, cfg, random, t, baseRotation, mirrored, 1f, 0f, Float.POSITIVE_INFINITY);
         else if (config instanceof FishAnimationConfig.UprightFloat cfg) applyUprightFloat(poseStack, cfg, random, t, baseRotation, mirrored, 0f);
         else if (config instanceof FishAnimationConfig.FloorSit cfg) applyFloorSit(poseStack, cfg, random, t, mirrored);
-        else if (config instanceof FishAnimationConfig.Planted cfg) applyPlanted(poseStack, cfg, random, t, baseRotation, scale, mirrored, 0f);
+        else if (config instanceof FishAnimationConfig.Planted cfg) applyPlanted(poseStack, cfg, random, t, baseRotation, scale, mirrored, 0f, 0f);
         else if (config instanceof FishAnimationConfig.BellyDown cfg) applyBellyDown(poseStack, cfg, random, t, baseRotation, mirrored);
         else if (config instanceof FishAnimationConfig.UprightSit cfg) applyUprightSit(poseStack, cfg, random, t, baseRotation, mirrored);
         else throw new IllegalStateException("Unhandled FishAnimationConfig: " + config);
@@ -50,10 +50,21 @@ public final class FishAnimator {
     public static void applyBenthic(PoseStack poseStack, FishAnimationConfig config, Random random,
                                     float t, float yawDeg, float baseRotation, float scale,
                                     boolean mirrored, float shapeDrive) {
+        applyBenthic(poseStack, config, random, t, yawDeg, baseRotation, scale, mirrored, shapeDrive, Float.NaN);
+    }
+
+    /**
+     * As above, for a walker with a ripple clock: {@code ripplePhase} is the engine's gait phase in
+     * radians (a flatfish's {@link FishAnimationConfig.FloorSit#ripple()} glide runs on it), or NaN.
+     */
+    public static void applyBenthic(PoseStack poseStack, FishAnimationConfig config, Random random,
+                                    float t, float yawDeg, float baseRotation, float scale,
+                                    boolean mirrored, float shapeDrive, float ripplePhase) {
         if (config instanceof FishAnimationConfig.FloorSit cfg) {
-            applyFloorSit(poseStack, cfg, random, t, mirrored, yawDeg, shapeDrive);
+            applyFloorSit(poseStack, cfg, random, t, mirrored, yawDeg, shapeDrive, ripplePhase);
         } else if (config instanceof FishAnimationConfig.UprightSit cfg) {
-            applyUprightSit(poseStack, cfg, random, t, baseRotation, mirrored, yawDeg, scale, shapeDrive);
+            applyUprightSit(poseStack, cfg, random, t, baseRotation, mirrored, yawDeg,
+                            scale, shapeDrive);
         } else {
             apply(poseStack, config, random, t, baseRotation, scale, mirrored);
         }
@@ -89,8 +100,20 @@ public final class FishAnimator {
     public static void applyAnchored(PoseStack poseStack, FishAnimationConfig config, Random random,
                                      float t, float baseRotation, float scale, boolean mirrored,
                                      float retract) {
+        applyAnchored(poseStack, config, random, t, baseRotation, scale, mirrored, retract, false);
+    }
+
+    /**
+     * @param onBase put the art's base ({@link FishAnimationConfig.Planted#baseX}) on the origin
+     *               rather than the sprite's centre line, and sway about it: a companion planted
+     *               on its owner's shoulder or head. Tanks pass false.
+     */
+    public static void applyAnchored(PoseStack poseStack, FishAnimationConfig config, Random random,
+                                     float t, float baseRotation, float scale, boolean mirrored,
+                                     float retract, boolean onBase) {
         if (config instanceof FishAnimationConfig.Planted cfg) {
-            applyPlanted(poseStack, cfg, random, t, baseRotation, scale, mirrored, retract);
+            applyPlanted(poseStack, cfg, random, t, baseRotation, scale, mirrored, retract,
+                            onBase ? cfg.baseX() * scale : 0f);
         } else {
             apply(poseStack, config, random, t, baseRotation, scale, mirrored);
         }
@@ -240,7 +263,7 @@ public final class FishAnimator {
 
     private static void applyFloorSit(PoseStack poseStack, FishAnimationConfig.FloorSit cfg,
                                        Random random, float t, boolean mirrored) {
-        applyFloorSit(poseStack, cfg, random, t, mirrored, null, 0f);
+        applyFloorSit(poseStack, cfg, random, t, mirrored, null, 0f, Float.NaN);
     }
 
     /**
@@ -250,7 +273,7 @@ public final class FishAnimator {
      */
     private static void applyFloorSit(PoseStack poseStack, FishAnimationConfig.FloorSit cfg,
                                        Random random, float t, boolean mirrored, Float crawlYaw,
-                                       float shapeDrive) {
+                                       float shapeDrive, float ripplePhase) {
         float randomPhaseRad = random.nextFloat() * (float) (2 * Math.PI);
         float yRot = (float) (Math.sin(t * cfg.rotationHertz() * 2 * Math.PI + randomPhaseRad)
                 * cfg.rotationAmplitude());
@@ -264,15 +287,30 @@ public final class FishAnimator {
         // squash, for the same reason: each wants the frame the creature actually lives in.
         float along = 1f - cfg.scuttleSquash() * shapeDrive;
         if (along != 1f && along > 0f) poseStack.scale(along, 1f / along, 1f);
+        if (cfg.ripple() != 0f && !Float.isNaN(ripplePhase)) {
+            // A flatfish's glide on a sprite that can't bend: the body wags in the floor plane and
+            // its fin margins swell a quarter-cycle behind, so the wave reads as running down it.
+            poseStack.mulPose(Axis.ZP.rotationDegrees((float) Math.sin(ripplePhase) * cfg.ripple()));
+            float width = 1f + RIPPLE_WIDTH_PER_DEGREE * cfg.ripple() * (float) Math.cos(ripplePhase);
+            poseStack.scale(1f, width, 1f);
+        }
+        // Written last, so the stack turns the sprite first: everything above (the squash and the
+        // ripple) then acts along the body, not across the texture's diagonal. +45 is the same
+        // correction the swimmers use: it maps the head-top-right corner onto the heading.
+        if (cfg.diagonalTexture()) poseStack.mulPose(Axis.ZP.rotationDegrees(45f));
     }
+
+    /** A ripple's fin-margin swell, as a fraction of the width per degree of body wag. */
+    static final float RIPPLE_WIDTH_PER_DEGREE = 0.012f;
 
     /**
      * @param retract the engine's startle envelope in [0, 1] — 0 fully out, 1 withdrawn — or 0 for
      *                a creature nothing is stepping.
      */
+    /** @param baseX where the base sits across the art, world blocks; it lands on the origin (0 for a tank) */
     private static void applyPlanted(PoseStack poseStack, FishAnimationConfig.Planted cfg,
                                       Random random, float t, float baseRotation, float scale,
-                                      boolean mirrored, float retract) {
+                                      boolean mirrored, float retract, float baseX) {
         poseStack.mulPose(Axis.YP.rotationDegrees(baseRotation + (mirrored ? 180f : 0f)));
         float randomPhaseRad = random.nextFloat() * (float) (2 * Math.PI);
         float wiggle = (float) (Math.sin(t * cfg.wiggleHertz() * 2 * Math.PI + randomPhaseRad)
@@ -294,7 +332,10 @@ public final class FishAnimator {
         // Not volume-preserving, unlike the squash-and-stretch of §3.6: an eel going into its
         // burrow gets shorter without getting fatter.
         if (height != 1f && height > 0f) poseStack.scale(1f, height, 1f);
-        poseStack.translate(0f, pivot, 0f);
+        // With a base off the centre line, (0, −p) · R · S · (−b, +p) keeps the base point (b, −p)
+        // fixed under the sway and the retract, and lands it on (0, −p). The item's fixed display
+        // turns it round, so the texture's left (negative baseX) is +x here: b = −baseX.
+        poseStack.translate(baseX, pivot, 0f);
     }
 
     private static void applyBellyDown(PoseStack poseStack, FishAnimationConfig.BellyDown cfg,
