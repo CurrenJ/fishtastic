@@ -109,7 +109,7 @@ public final class RenderSelfTest {
             "guiscale", "fixes", "hud", "gizmos", "pertank", "highlight");
 
     /** Scenes that run only when the marker names them (they need something the default run lacks). */
-    private static final List<String> OPT_IN_SCENES = List.of("cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench", "companionbond");
+    private static final List<String> OPT_IN_SCENES = List.of("cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench", "companionbond", "companionsim");
 
     private static Boolean armed;
     private static Set<String> scenes;
@@ -283,6 +283,7 @@ public final class RenderSelfTest {
             case "lighting" -> queueLightingScene();
             case "cosmeticpreview" -> queueCosmeticPreviewScene();
             case "companionbond" -> queueCompanionBondScene();
+            case "companionsim" -> queueCompanionSimScene();
             default -> throw new IllegalArgumentException(scene);
         }
     }
@@ -2418,6 +2419,77 @@ public final class RenderSelfTest {
      * hold-to-bond mixin (render-head tick + tooltip hint), the feedback packet handler, the
      * companion screen driven by real container clicks and packets, and the encyclopedia bond UI.
      */
+    private static void queueCompanionSimScene() {
+        queue(1, RenderSelfTest::paradeSetup);
+        queue(1, mc -> grill24.fishtastic.client.companion.ClientCompanionsDev.devOverlay(true));
+        // One fish is one body now (party spec §3): a small bluegill is a small solo, not a trio,
+        // and every fish is drawn at its true size (D11).
+        int[] perchBefore = {0};
+        String[][] fish = {{"bluegill", "9", "small_solo"}, {"bluegill", "25", "solo"}, {"starfish", "20", "benthic"},
+                {"garden_eel", "40", "anchored"}, {"glass_squid", "20", "drift"}, {"giant_manta_ray", "150", "glide"}};
+        queue(1, mc -> server(mc, RenderSelfTest::clearParties));
+        for (String[] f : fish) {
+            // Slot 1 (the lead) each time, so each fish replaces the last: one companion on screen.
+            queue(1, mc -> perchBefore[0] = grill24.fishtastic.client.companion.ClientCompanions.perchSubmits);
+            queue(1, mc -> server(mc, s -> run(s, "fishtastic companion give @p fishtastic:" + f[0] + " " + f[1] + " 1")));
+            queue(60, mc -> {
+                var local = grill24.fishtastic.client.companion.ClientCompanions.local();
+                check("companionsim." + f[2] + ".tracked", local != null && local.agent() != null,
+                        "local=" + local);
+                check("companionsim." + f[2] + ".oneBody",
+                        grill24.fishtastic.client.companion.ClientCompanions.localCompanions().size() == 1
+                                && local != null && local.bodyCount() == 1, "local=" + (local == null ? null : local.partyLine()));
+                companionLog(f[2] + " first person");
+                screenshot(mc, "companionsim", f[2] + "_fp");
+                mc.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_BACK);
+            });
+            queue(30, mc -> {
+                // PORT-ONLY: the world pass or the perch layer actually submitted this companion's art (a percher is only
+                // drawn in third person, never in your own first-person view).
+                check("companionsim." + f[2] + ".drawn",
+                        grill24.fishtastic.client.companion.ClientCompanions.worldSubmitsThisFrame > 0
+                                || grill24.fishtastic.client.companion.ClientCompanions.perchSubmits > perchBefore[0],
+                        "world=" + grill24.fishtastic.client.companion.ClientCompanions.worldSubmitsThisFrame
+                                + " perch=" + grill24.fishtastic.client.companion.ClientCompanions.perchSubmits);
+                companionLog(f[2] + " third person");
+                screenshot(mc, "companionsim", f[2] + "_tp");
+                // PORT-ONLY: clean (overlay-free) shots from behind and in front, so the fish itself is judged.
+                grill24.fishtastic.client.companion.ClientCompanionsDev.devOverlay(false);
+            });
+            queue(3, mc -> screenshot(mc, "companionsim", f[2] + "_clean_back"));
+            queue(1, mc -> mc.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_FRONT));
+            queue(10, mc -> {
+                screenshot(mc, "companionsim", f[2] + "_clean_front");
+                grill24.fishtastic.client.companion.ClientCompanionsDev.devOverlay(true);
+                mc.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON);
+            });
+        }
+        queue(1, mc -> server(mc, s -> run(s, "fishtastic companion give @p fishtastic:bluegill 25 1")));
+        queue(60, mc -> grill24.fishtastic.client.companion.ClientCompanionsDev.devFake("hostile"));
+        queue(120, mc -> {
+            companionLog("fake hostile close");
+            screenshot(mc, "companionsim", "hostile_fp");
+        });
+        queue(1, mc -> grill24.fishtastic.client.companion.ClientCompanionsDev.devFake("clear"));
+        // The sampling cost while walking (plan §7 risk 3): 4 blocks/s for 10 s across fresh
+        // ground, so the block window re-centres several times.
+        queue(40, mc -> {
+            grill24.fishtastic.client.companion.ClientCompanionsDev.devResetCost();
+            companionLog("walk start");
+        });
+        for (int i = 0; i < 200; i++) {
+            queue(1, mc -> mc.player.setPos(mc.player.getX(), mc.player.getY(), mc.player.getZ() - 0.2));
+        }
+        queue(1, mc -> {
+            companionLog("walk end");
+            screenshot(mc, "companionsim", "walk_fp");
+        });
+        queue(1, mc -> {
+            grill24.fishtastic.client.companion.ClientCompanionsDev.devOverlay(false);
+            server(mc, RenderSelfTest::clearParties);
+        });
+    }
+
     private static void queueCompanionBondScene() {
         queue(1, RenderSelfTest::paradeSetup);
         queue(1, mc -> server(mc, s -> {
@@ -2626,6 +2698,15 @@ public final class RenderSelfTest {
             run(s, "gamemode spectator @a");
             run(s, String.format(java.util.Locale.ROOT, "tp @a %.3f %.3f %.3f %.1f %.1f", x, feetY, z, yaw, pitch));
         });
+    }
+
+    private static void clearParties(MinecraftServer s) {
+        for (ServerPlayer player : s.getPlayerList().getPlayers()) grill24.fishtastic.companion.CompanionStorage.clear(player);
+    }
+
+    private static void companionLog(String label) {
+        Fishtastic.LOGGER.info("[selftest] companion {}: {}", label,
+                grill24.fishtastic.client.companion.ClientCompanionsDev.debugState());
     }
 
     private static void server(Minecraft mc, Consumer<MinecraftServer> action) {
