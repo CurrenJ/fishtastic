@@ -1,6 +1,6 @@
 # Party Phase 1c as built (for spec §13)
 
-Fork 1c, worktree `D:/GitHub/fishtastic/.claude/worktrees/agent-a310606aaf814cdb4`, base `b06bbb25`
+Fork 1c, worktree `D:/GitHub/fishtastic/.claude/worktrees/agent-a310606aaf814cdb4`, base `6db92f87`
 plus the parent's fork-2a fishsim patch (`build/party-2a-fishsim.patch`, applied unchanged). This
 is the client wiring that finishes Phase 1. Uncommitted. No sim behaviour was changed here.
 
@@ -129,7 +129,7 @@ is the client wiring that finishes Phase 1. Uncommitted. No sim behaviour was ch
 ## Results
 
 - `:fishsim:test` (with 2a): 470 tests, 431 passed, 0 failed, 39 skipped.
-- `FingerprintProbe -PfpAll=1`: 654/654 lines identical to the b06bbb25 baseline
+- `FingerprintProbe -PfpAll=1`: 654/654 lines identical to the 6db92f87 baseline
   (`D:/GitHub/fishtastic/build/p1b-fp.txt`).
 - `:common:test`: 859 tests, 0 failures, 1 skipped. `:fabric:build` and `:neoforge:build` pass.
 - `:fabric:runGametest`: **all 360 required tests passed**. That includes the 4 new

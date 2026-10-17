@@ -1,7 +1,7 @@
 # Party Phase 2a as built: size-picked leader (D9) and slowest-member pacing (D10)
 
 Fork 2a, worktree `D:/GitHub/fishtastic/.claude/worktrees/agent-ab3925cd07dc281da`, base
-`b06bbb25`. `:fishsim` only, uncommitted. Raw output: `build/2a/` in the worktree
+`6db92f87`. `:fishsim` only, uncommitted. Raw output: `build/2a/` in the worktree
 (`base.txt`, `on.txt`, `off.txt`, `suite.txt`, `fp-final.txt`, sorted fingerprint files).
 
 ## What changed
@@ -104,7 +104,7 @@ Under D9 a line walks smallest first, which gave **0 sprint fades on all 8 seeds
 
 - `:fishsim:test`: **470 tests, 431 passed, 0 failed, 39 skipped** (opt-in probes).
 - **Fingerprints: bitwise.** `FingerprintProbe -PfpAll=1` 654/654 and `GroupFingerprintProbe`
-  276/276 are identical to the `b06bbb25` baseline, both with the cap forced on and at the final
+  276/276 are identical to the `6db92f87` baseline, both with the cap forced on and at the final
   default (off).
 - No fingerprint row has mixed members, so no row was expected to change. D9 changes behaviour only
   for mixed-size parties built through `PartyGrouping`. The probe's explicit-length runs show the

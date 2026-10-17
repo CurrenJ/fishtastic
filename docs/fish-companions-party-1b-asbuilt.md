@@ -1,7 +1,7 @@
 # Party Phase 1b as built: sim groups from explicit members (2026-10-13)
 
 Fork 1b of docs/fish-companions-party.md (§3, groups from the party). `:fishsim` only, uncommitted,
-base `8fea393f`. The parent folds this into spec §12.
+base `43f7d6ac`. The parent folds this into spec §12.
 
 ## What changed
 

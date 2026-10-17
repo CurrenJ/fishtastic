@@ -1,7 +1,7 @@
 # Party Phase 1a as built (for spec §11)
 
 Fork 1a, worktree `D:/GitHub/fishtastic/.claude/worktrees/agent-acd3a5afecb020a61`, base
-`8fea393f`. Server, data and UI half of Phase 1 (spec §5). Uncommitted. `:fishsim` untouched.
+`43f7d6ac`. Server, data and UI half of Phase 1 (spec §5). Uncommitted. `:fishsim` untouched.
 Client companion wiring (one sim per slot, groups, names) is left to 1c.
 
 ## What changed

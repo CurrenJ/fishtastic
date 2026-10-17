@@ -5,7 +5,7 @@ Status: **merged into the main tree and accepted by the owner in the viewer on 2
 drift phase: bob (spec §10).
 
 Built in the worktree `C:/Users/curre/.codex/worktrees/companion-squid/fishtastic` (base
-`8c99327c`), then applied onto the main tree. Evidence paths below (`build/squid-validation/`,
+`8bc4cc04`), then applied onto the main tree. Evidence paths below (`build/squid-validation/`,
 `fishsim/build/squid-*preview/`) are in that worktree.
 
 ## Implementation

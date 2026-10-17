@@ -51,5 +51,5 @@ The Fabric crash at 19:29 (`Failed to load class file for ...MoodScenes`) came f
 
 - [Species traits](fish-companions-habitats.md): derived from existing fields, with no new override block. **Approved by the owner 2026-10-15 (W4 gate passed).**
 - Readability: **approved in game by the owner 2026-10-15 for W5–W8**, recorded in the world-plan
-  gate table and commit `261e3768`. The instruction to inspect captures was the earlier pending gate.
+  gate table and commit `849841ce`. The instruction to inspect captures was the earlier pending gate.
 - Tanks (W9): remain deferred until the owner decides after the rest of the work.

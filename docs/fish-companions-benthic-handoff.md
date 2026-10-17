@@ -1,4 +1,4 @@
-# Benthic follow: handoff (updated 2026-10-12, after 1f5ae08e)
+# Benthic follow: handoff (updated 2026-10-12, after d8d552f7)
 
 Benthic companions (crabs, slugs, starfish, plaice, octopus) follow their owner **on the
 ground**, in a solo or a group of up to 3, instead of always riding a shoulder. The design and
@@ -8,18 +8,18 @@ for whatever you pick up.
 
 ## Start here
 
-- **Branch `26.1.2`, HEAD `1f5ae08e`.** Everything below is committed (signed). Nothing about
+- **Branch `26.1.2`, HEAD `d8d552f7`.** Everything below is committed (signed). Nothing about
   benthic follow is uncommitted except the diagnostic `fishsim/.../BenthicShapeProbe.java`
   (untracked, harmless; commit it with the next batch or delete it).
 - **Headless sim (`fishsim`) is feature-complete for the spec's Phases 1–5**: ground walking,
   terrain, climb/dismount/tumble, groups (line/crowd), any-player scatter, ground desires,
   in-view beats, pillar recovery. **The game wires it all in** (§21), with plaice and swell fixes
-  from the owner's first playtest (aee461ea).
+  from the owner's first playtest (5b1f9645).
 - **Green at HEAD:** `:fishsim:test` 364 tests (336 passed, 28 diagnostic skips), `:common:test`,
   both loader builds, 317/317 Fabric game tests, all 447 protected fingerprints identical.
-- **Nothing since aee461ea has been seen in game.** The owner's playtest is the gating step.
+- **Nothing since 5b1f9645 has been seen in game.** The owner's playtest is the gating step.
 
-**First move next session:** ask the owner for (or wait on) the playtest of 1f5ae08e
+**First move next session:** ask the owner for (or wait on) the playtest of d8d552f7
 (checklist below), then take the top of the work queue.
 
 ## Waiting on the owner
@@ -127,10 +127,10 @@ expected to change.
 | Commit | What |
 |---|---|
 | 95a320fd | Phase 1: ground body, foot trail, catch-up/fade, plaice glide (headless) |
-| 07920354 | §12–§18: transitions, terrain repairs, groups, PLAYER scatter, ground desires, in-view beats |
-| eee6090c | §19–§21: under-feet diagnosis (no fix), formations completed, game integration |
-| aee461ea | Owner playtest fixes: plaice orientation (`diagonal_texture`), plaice `ripple`, upright swell ×2.5 |
-| 1f5ae08e | §22–§25: under-feet experiments rejected, stair edge-drop guard for formations, beat-planner scan reuse, pillar recovery |
+| adc30659 | §12–§18: transitions, terrain repairs, groups, PLAYER scatter, ground desires, in-view beats |
+| 2b6c48a4 | §19–§21: under-feet diagnosis (no fix), formations completed, game integration |
+| 5b1f9645 | Owner playtest fixes: plaice orientation (`diagonal_texture`), plaice `ripple`, upright swell ×2.5 |
+| d8d552f7 | §22–§25: under-feet experiments rejected, stair edge-drop guard for formations, beat-planner scan reuse, pillar recovery |
 
 ## Latest results in detail (§22–§25)
 
@@ -147,7 +147,7 @@ expected to change.
   cooldown; otherwise the perch fade after 60 stalled ticks. Owner movement or turning resets it.
   `BenthicAlongsideStallTest` (20 pillar seeds escape by tick 150), `AlongsideRecoveryProbe`
   (60 seeds; only spider cellar seed 15 changes). §25's closing "No commits were made" predates
-  the commit: it is in 1f5ae08e.
+  the commit: it is in d8d552f7.
 - Evidence logs (main tree `build/`): `benthic-pillar-validation.txt`,
   `benthic-pillar-fingerprints.txt`, `benthic-pillar-gametest.txt`,
   `benthic-resume-final-tests.txt`, `benthic-resume-fp-final.txt`,
@@ -155,7 +155,7 @@ expected to change.
 
 ## Leftovers on disk (not part of the build)
 
-- Six fork worktrees under `.claude/worktrees/agent-*` (bases 07920354 or aee461ea). Their useful
+- Six fork worktrees under `.claude/worktrees/agent-*` (bases adc30659 or 5b1f9645). Their useful
   outcomes are committed; they still hold evidence (fork D's `build/` logs: `d-final60-all.txt`,
   `d-final-release2.txt`, `d-trace15-final.txt`) and probes not in the main tree (`StairsFadeProbe`,
   `GroupAnkleProbe` in `agent-a13ae92a64bc41c84`; `BenthicSpikeAttributionProbe`, `cap-sweep.*` in

@@ -771,7 +771,7 @@ beats: `./gradlew :fishsim:runCompanionViewer`, BENTHIC (sprinter for frequent o
 ## 19. Come-alongside round the feet (2026-10-12, uncommitted)
 
 **Outcome: no fix shipped.** Every variant shortened one tail and lengthened another on equal
-seeds, so production code is unchanged from 07920354. The experiment, with its switch and probe,
+seeds, so production code is unchanged from adc30659. The experiment, with its switch and probe,
 is saved as `docs/benthic-come-alongside-experiment.patch` (`git apply` it to resume).
 
 ### 19.1 Mechanisms (traced; mode-0 inside-owner ticks classified over 60 seeds)
@@ -892,7 +892,7 @@ The game still constructs the no-gait percher (Phase 5 is separate work).
   turn toward nearly the same point converge faster than a sideways push turns them. Neither
   validated approach (yield, earlier separation) was a clean win.
 - Line order is weakest on stairs and when backing up. Stairs line runs still fade: 5/6/7 a
-  run (seeds 1–3) at 07920354, 5/6/8 now. That's a pre-existing gap, not asserted.
+  run (seeds 1–3) at adc30659, 5/6/8 now. That's a pre-existing gap, not asserted.
 - Pace-dependent leader meander (§4 "sometimes wavy") is still not enabled (§15.2). The line's
   wave comes only from the leader's own path.
 - Crowd spread at rest vs moving (§20.2) is for the owner's eye.
@@ -904,7 +904,7 @@ fingerprints identical to `build/fp-base-p2.txt`. `:common:compileJava` passes. 
 ## 21. Game integration (2026-10-12, uncommitted)
 
 Phase 5 wiring in `common/` (fork C, worktree branch `worktree-agent-a08898232d0db3098` from
-07920354). Built and tested headless and in game tests only: **nothing here has been seen in game.**
+adc30659). Built and tested headless and in game tests only: **nothing here has been seen in game.**
 The in-game look and feel is the owner's playtest (§21.4).
 
 ### 21.1 What's wired
@@ -965,7 +965,7 @@ and along the route to the station. Both step every 0.1 blocks, mostly outside t
 window, where cells weren't cached, so each column was asked ~10 times. `LocalVoxels` now keeps
 out-of-window cells in an overflow map, cleared with the window and capped at 65,536 cells. Answers
 are identical (an out-of-window `top` is now quantized to sixteenths like in-window cells). **All
-516 fingerprints, BENTHIC included, are bitwise identical** to the 07920354 run
+516 fingerprints, BENTHIC included, are bitwise identical** to the adc30659 run
 (`build/beats-fingerprints.txt`).
 
 Open question for whoever owns the beats (not changed here): a 50-block look ahead is still the
@@ -985,7 +985,7 @@ left alone. In-game time per sample is not measured here. The overlay's cost lin
   (`CompanionProfileGameTests`, registered on both loaders): the loaded registry has plaice ripple,
   starfish a line of 3, both sea slugs crowds of 3, the spider crab a solo crawler, and no
   non-benthic species declares a group or a gait. NeoForge game tests were not run (known hang).
-- `FingerprintProbe -PsimStdout -PfpAll=1`: 516/516 identical to 07920354; 447 protected identical
+- `FingerprintProbe -PsimStdout -PfpAll=1`: 516/516 identical to adc30659; 447 protected identical
   to `build/fp-base-p2.txt`.
 - **Not run:** `runClient`, the RenderSelfTest companion scene (its "tracked and stepping" check
   should still hold: starfish is now a line), anything in the owner's world.
@@ -1021,7 +1021,7 @@ Turn on the overlay first: `/fishtastic companion debug true`. Equip with
 ## 22. Alongside stall and under-feet experiments (2026-10-12)
 
 No production change accepted. Fork D's original walkability, tangent, braking and turning
-experiments were resumed on aee461ea and rejected after equal-ground A/B. The owner playtest
+experiments were resumed on 5b1f9645 and rejected after equal-ground A/B. The owner playtest
 and the §19 under-feet gap remain open.
 
 ### 22.1 Original candidates: equal-seed rejection

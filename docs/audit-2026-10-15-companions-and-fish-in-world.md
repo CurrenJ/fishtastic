@@ -12,7 +12,7 @@ steps 3–6 are recorded by this cleanup commit, and no backport has started. Fi
 visual review. The original audit and intermediate handoffs below are historical; their open-gate
 statements are superseded by §9.4, not evidence of a new failure.
 
-**Date:** 2026-10-15 · **Branch:** `26.1.2` at `4246d339`, plus the staged, uncommitted Phase 5 (moods) work.
+**Date:** 2026-10-15 · **Branch:** `26.1.2` at `f58d7316`, plus the staged, uncommitted Phase 5 (moods) work.
 **Scope:** everything since the last backport parity point `4b0e818e` (2026-10-06): 75 commits and 31
 staged files. That is about 47,600 inserted lines outside `docs/` and generated data, and about 128,000 more
 under `docs/`.
@@ -22,7 +22,7 @@ in `common/`, the platform wiring, and the `:fishsim` companion/ambient public s
 so nothing here is measured. Performance items are judged from the code and from numbers already recorded in
 the docs. Nothing in the repo was changed apart from adding this file.
 
-Commit split: about 66 companion commits, 2 fish-in-world commits (`d3880715`, `d275b37b`, which hold all
+Commit split: about 66 companion commits, 2 fish-in-world commits (`55fd54df`, `152a0783`, which hold all
 seven phases), and 7 others (encyclopedia thresholds `703a09b1`, the NeoForge codec warm-up `9b203ace`,
 cleanup gametests, the CRLF fix for the GUI designer, `.gitignore` changes).
 
@@ -66,10 +66,10 @@ cleanup gametests, the CRLF fix for the GUI designer, `.gitignore` changes).
 | Superseded | By | What's gone |
 |---|---|---|
 | v1 companion controller, fish-companions.md §13–§21 (`76629f06`…`b6dc6407`) | sim rewrite Phase 3 (`2c4ac605`) | `CompanionFlock`, orbit/figure-eight/peek/trick paths, blend weights, docking, legacy steering seams, the wobble fix to the old controller (`94bc6612`), and the `companion`/`parade`/`peek`/`hand`/`fishing`/`scenes`/`polish` self-test scenes |
-| Encyclopedia Companions tab and modal picker (`802470b9`) | vanilla-style `CompanionMenu`/`CompanionScreen` (`4d90e0bd`), then the 3-slot party (`b06bbb25`) | the tab and picker UI (but see the orphaned keys and packet in §3.2) |
+| Encyclopedia Companions tab and modal picker (`802470b9`) | vanilla-style `CompanionMenu`/`CompanionScreen` (`ea17d298`), then the 3-slot party (`6db92f87`) | the tab and picker UI (but see the orphaned keys and packet in §3.2) |
 | Automatic trios (any small FREE_SWIM fish brought two copies) | party grouping (D8) | the rule itself (see §3.3 for the leftover) |
-| Scripted G1/G2 scenes (`c9756261`) | swum `CrossScene` (party §28, `fa207fe1`…`95ef958c`) | scripted geometry |
-| First-cut drifter | drifter rework: bell, jet, bob (`5a9156ca`, `8fea393f`, `44453d44`) | still selectable through switches (§3.4) |
+| Scripted G1/G2 scenes (`c9756261`) | swum `CrossScene` (party §28, `5154796e`…`31b55f4e`) | scripted geometry |
+| First-cut drifter | drifter rework: bell, jet, bob (`32681873`, `43f7d6ac`, `07acfa64`) | still selectable through switches (§3.4) |
 | Fish-in-world Phase 1 fixed fixture | natural runtime (Phases 2–7) | still shipped, see §3.5 |
 
 ### 2.2 Don't port at all
@@ -207,7 +207,7 @@ is rejected code that still ships.
   clutter for the ports.
 - `docs/fish-companions-twoclient/` contains about 66 MB of untracked run directories next to its tracked
   script. Its `.gitignore` covers them, so this is a local-disk issue, not a repo issue.
-- **15 stale agent worktrees** under `.claude/worktrees/agent-*` (the oldest at `07920354`, all with live
+- **15 stale agent worktrees** under `.claude/worktrees/agent-*` (the oldest at `adc30659`, all with live
   `worktree-agent-*` branches), plus `C:/Users/curre/.codex/worktrees/companion-squid`. Every grep or IDE
   index of the repo also finds their old code: searching `isTrio` returns 15 stale copies.
   Remove them with `git worktree remove`.
@@ -309,7 +309,7 @@ These overlap with §3. They're listed by decision so it's clear the code exists
 ### 5.5 Logging
 
 - `ClientCompanions` logs every scene start, drop and refusal at INFO (`:349`, `:354`, `:368`). Commit
-  `a887aab9` added the game-time diagnostic for a specific investigation. These should be DEBUG now that
+  `24f22312` added the game-time diagnostic for a specific investigation. These should be DEBUG now that
   the cause is confirmed.
 - `AmbientContextServer.handle` logs the first 10 responses and every 100th at INFO, with player names and
   fingerprints. That's acceptable on a dev server and noisy on a real one.
@@ -450,7 +450,7 @@ Then port the resulting tree per feature, not per commit (§2).
 
 ## 9. Progress
 
-**Step 1 done 2026-10-16, committed `d54bdde8`.** Deleted: the PiP dock renderer and state, `CompanionFishingEventPacket`
+**Step 1 done 2026-10-16, committed `f03f14c6`.** Deleted: the PiP dock renderer and state, `CompanionFishingEventPacket`
 (and the per-catch broadcast in `FishingMinigameManager`), `CompanionFishingOutcome` and its test, the
 `GuiGraphicsMixin` PiP hook, the `FishingHookMixin` `isBiting`/`forceBite` seam, the `FishingMinigameAnimation`
 companion anchor/dock API, the `companionWaitsAtBobber` setting and `waitatbobber` command (`persist()`
@@ -463,7 +463,7 @@ celebration). Results: fishsim 556 (59 opt-in skipped), common 856, Fabric game 
 companioneel, companionscenes, companionworld, ambientparity` 113/113 on both loaders.
 Note: a save still holding a pre-party (single-stack) companion no longer loads it.
 
-**Step 2 done 2026-10-16, committed `cfd5bc41`.** Owner chose to collapse only the signed-off switches and to delete the
+**Step 2 done 2026-10-16, committed `e3e76463`.** Owner chose to collapse only the signed-off switches and to delete the
 rejected ones. Collapsed (adopted branch kept, off branch deleted): `whiskers`; the bell drift set
 (`driftRetime`, `driftArrive`, `driftFlare`, `driftNoClimb`, `driftRoomBrake`, `driftRoomPastContact`,
 `driftHoldHeight`, `driftIdleSteady`, `driftCalmCatch`); the jet set (`driftJet`, `jetArrive`,
@@ -484,12 +484,12 @@ rebaseline was needed. Left for now: the `GroundMind` diagnostic statics (`forma
 regression tests flip to prove their fixes. Results: fishsim 553, common 856, Fabric game tests 368/368,
 NeoForge 362/362, self-tests `companioneel, companionparty` 31/31 on both loaders.
 
-### 9.1 Historical handoff at `cfd5bc41`: step 3 was next
+### 9.1 Historical handoff at `e3e76463`: step 3 was next
 
 **Superseded by §9.2.** Keep this section as the instructions left at the last commit, not as the
 current working-tree status.
 
-Both targets re-checked against the tree at `cfd5bc41`; still as §7 describes.
+Both targets re-checked against the tree at `e3e76463`; still as §7 describes.
 
 - **§7.1 harness dependency.** Shipped code names `grill24.fishsim.harness.companion.MoodScenes` in
   `ClientCompanions.java:779` (`DevMood` record component), `:790` (`devMoodNames()`), `:805-807`
@@ -521,7 +521,7 @@ Both targets re-checked against the tree at `cfd5bc41`; still as §7 describes.
 
 ### 9.2 Recovered status after the interrupted cleanup (2026-10-16)
 
-HEAD is still `cfd5bc41`. Steps 1 and 2 are committed; substantial steps 3–6 work is present in
+HEAD is still `e3e76463`. Steps 1 and 2 are committed; substantial steps 3–6 work is present in
 the working tree. Do not restart step 3 or overwrite these changes. The reconstruction below uses
 the actual source and the local `build/cleanup/` evidence; recent chat-history reads were unavailable
 (`thread/items/list is not supported yet`). Historical feature acceptance does not establish that
@@ -529,8 +529,8 @@ this newer cleanup tree is ready to backport.
 
 | Step | Actual state | Acceptance still needed |
 |---|---|---|
-| 1, dead surface | Committed `d54bdde8` | Closed; results above |
-| 2, accepted switches | Committed `cfd5bc41` | Closed for approved switches only; remaining owner decisions below |
+| 1, dead surface | Committed `f03f14c6` | Closed; results above |
+| 2, accepted switches | Committed `e3e76463` | Closed for approved switches only; remaining owner decisions below |
 | 3, harness dependency and config persistence | Implemented, uncommitted. Shipped `MoodPresets` replaces harness presets; config persists stored values, with a regression test covering Boolean and density overrides | Preserve and finish reviewing the changes; package inspection on resumption confirmed both jars contain `MoodPresets`, exclude harness/viewer/render/selftest classes, and have no class-byte references to the excluded fishsim packages. This is a packaging check, not a release-client smoke test |
 | 4, ambient cost | Implemented, uncommitted. Per-patch index/version, cached sample geometry and revalidation snapshot, changed-input rebuilds, opt-in invariant probes | **Not accepted:** ambient regressions below; equal-scenario performance comparison still needed. Nearest-distance calculation still traverses cached entries, and `columnsOf` still scans the full cache when called; do not describe this as eliminating every full-cache scan |
 | 5, owner queries and distance cutoff | Implemented, uncommitted. Ambient and entity queries shared per party; remote sims build within 64 blocks and drop beyond 72, local party always runs | Companion scene checks passed, including the new `companionlod` scene; multiplayer/frame-time measurement remains distinct from these functional checks. The old warmth scanner is now cost-harness-only, so the audit's production warmth-scan diagnosis is superseded by W1 |
@@ -574,7 +574,7 @@ Outstanding owner choices remain unchanged: `driftBob`, `bobRetime`, `bobMindTur
 `partySwimSeparation`, `otherPlayerClearance`, and whether to remove the `GroundMind` diagnostic
 statics. W4 and W5–W8 were approved in the world plan; W9 (tank reactions) is still deferred.
 `fish-companions-world-validation.md` has an older readability-review bullet; the authoritative
-world-plan gate table and commit `261e3768` record that approval.
+world-plan gate table and commit `849841ce` record that approval.
 
 Preserve the unrelated `fishspin` work in `RenderSelfTest.java`, tracked runtime logs, staged audit
 changes and untracked evidence. Do not use `git add -A` or claim steps 3–6 are committed.
@@ -762,8 +762,8 @@ tracked runtime log excluded). **All six cleanup steps are accepted within the s
 
 | §8 step | Resulting tree and evidence |
 |---|---|
-| 1. Dead surface | Committed `d54bdde8`; deleted surfaces and compatibility consequences recorded above |
-| 2. Switch cleanup | Committed `cfd5bc41`; all 1,038 fingerprints remain byte-identical. Owner explicitly keeps `driftBob`, `bobRetime`, `bobMindTurn`, `partySwimSeparation`, `otherPlayerClearance` pending visual review |
+| 1. Dead surface | Committed `f03f14c6`; deleted surfaces and compatibility consequences recorded above |
+| 2. Switch cleanup | Committed `e3e76463`; all 1,038 fingerprints remain byte-identical. Owner explicitly keeps `driftBob`, `bobRetime`, `bobMindTurn`, `partySwimSeparation`, `otherPlayerClearance` pending visual review |
 | 3. Presets and persistence | Production `MoodPresets` has no excluded harness dependency; both final jars checked. Regression proves test overrides affect memory but never persisted Boolean/density values |
 | 4. Ambient hot path | Indexed/versioned water discovery, cached distances and sample geometry; input-driven rebuilds. Stable 2,401-column window has zero rebuilds over 201 ticks. Distance probe checks equal results; lifecycle/island CPU comparisons below retain their limitations |
 | 5. Party queries and LOD | Owner ambient/entity queries shared by party; remote parties build within 64 blocks, drop beyond 72, preserve hysteresis at 68; local party always runs. Five LOD assertions and full 103-check companion group pass on both loaders |

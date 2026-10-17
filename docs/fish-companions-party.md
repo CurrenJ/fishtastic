@@ -471,7 +471,7 @@ Full record: [`fish-companions-party-2a-asbuilt.md`](fish-companions-party-2a-as
   was a trade-off there.
 - **MIXED_SPRINT_FADE closed:** lines allow no fades on any script.
 - **Verified on the merged tree:**
-  - all 654 fingerprints and 276 group fingerprints are bitwise against `b06bbb25`;
+  - all 654 fingerprints and 276 group fingerprints are bitwise against `6db92f87`;
   - `:fishsim:test`: 470 tests, 0 failed.
 - **Open:** crowd overlap (keep smallest-first, or try biggest-in-the-middle); benthics under
   10 cm all walk at one pace.
@@ -543,7 +543,7 @@ Full record: [`fish-companions-party-2a-asbuilt.md`](fish-companions-party-2a-as
   `./gradlew :fishsim:runCompanionViewer -PsimArgs="--party anchored --owner walk"` opens
   straight into a party. "3 anchored" shows the review's defect directly: all three on `BACK`.
 - **Verified:** `:fishsim:test` 476 tests, 0 failed; all 930 `FingerprintProbe -PfpAll=1` +
-  `GroupFingerprintProbe` lines bitwise against `09e026c7`.
+  `GroupFingerprintProbe` lines bitwise against `3ad4295c`.
 - **Next:** 2c, the mixed shoal (D13).
 
 ## 17. Phase 2c as built (mixed shoal, D13)
@@ -580,7 +580,7 @@ Full record: [`fish-companions-party-2a-asbuilt.md`](fish-companions-party-2a-as
 - **Verified:** `:fishsim:test` 477, 0 failed; `:common:test`; Fabric game tests 366/366, with
   the new `companion_groups_mixed_free_swimmers_shoal` (an 8 cm bridle shiner draws bigger than
   a 10 cm bluegill, so the bluegill leads); NeoForge testmod compiles (its game-test JVM never
-  exits, so it wasn't run). All 930 fingerprint lines bitwise against `b5b67c95`.
+  exits, so it wasn't run). All 930 fingerprint lines bitwise against `ae50dbfa`.
 - **Gate:** owner viewer (`-PsimArgs="--party free --owner walk_turns"`, toggle the checkbox).
   **Passed 2026-10-14:** "the mixed shoals look good". Then 2d, perch homes and leases.
 
@@ -614,7 +614,7 @@ Owner decisions before building (2026-10-14):
 - **D5** (switch `anchoredHead`, default on): an anchored fish's home is the head, solo too. This
   is the one intended fingerprint change: with it on, exactly the 69 ANCHORED rows change. With it
   off, all 930 `FingerprintProbe -PfpAll=1` + `GroupFingerprintProbe` lines are bitwise against
-  `e6cc5e8a`.
+  `f9d68c1f`.
 - **Harness:**
   - `CompanionRun`'s centre dwell no longer counts ticks riding a shoulder, the head or the back.
     That's drawn on the player model, which first person never draws, as `seen` already knew. An
@@ -776,7 +776,7 @@ while following can fix half of it at most.
   is the same-species formation, untouched. The worst runs are hostile_approach (8.5–12.3%).
 - **Scope:** the sim only. The game adopts `PartyLayer` in Phase 3.
 - **Verified:** with no second ground unit nothing runs, so all 928 `FingerprintProbe -PfpAll=1`
-  + `GroupFingerprintProbe` lines are bitwise against `fd329779`. The 7 other parties print
+  + `GroupFingerprintProbe` lines are bitwise against `e6571bf7`. The 7 other parties print
   identically on and off. `:fishsim:test` 441 passed, 0 failed (`stepOrderDoesNotChangeResults`
   caught an index tie-break, now keyed by slot).
 - **Gate:** the owner's viewer look (`-PsimArgs="--party octopus"`, toggle partyGroundSeparation).
@@ -801,7 +801,7 @@ while following can fix half of it at most.
   the same clamp.
 - **Verified:**
   - `FingerprintProbe` + `GroupFingerprintProbe` (`-PfpAll=1`): all 930 lines identical to
-    `5b89c24d`;
+    `ccffef4d`;
   - `:fishsim:test` 485 tests, 441 passed, 0 failed;
   - render self-tests `companionparty` + `companionsim`: 23/23 on Fabric and on NeoForge. The mixed party gained
     two checks: `eel_home_head` (the garden eel's home is HEAD and it rides there) and
