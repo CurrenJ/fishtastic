@@ -33,6 +33,9 @@ public class FishtasticPackets {
     public static final ResourceLocation SET_ORGANIZER_SORT_ID = Fishtastic.id("set_organizer_sort");
     public static final ResourceLocation REMOVE_TANK_ENTRY_ID = Fishtastic.id("remove_tank_entry");
     public static final ResourceLocation SET_DAY_RATE_ID = Fishtastic.id("set_day_rate");
+    public static final ResourceLocation BOND_COMPANION_ID = Fishtastic.id("bond_companion");
+    public static final ResourceLocation RENAME_COMPANION_ID = Fishtastic.id("rename_companion");
+    public static final ResourceLocation COMPANION_FEEDBACK_ID = Fishtastic.id("companion_feedback");
 
     /**
      * Initialize packet registration. Called during mod initialization.
@@ -116,6 +119,16 @@ public class FishtasticPackets {
                 RemoveTankEntryPacket.STREAM_CODEC,
                 RemoveTankEntryPacket::handleClientToServer
         );
+        registrar.registerClientToServer(
+                BondCompanionPacket.TYPE,
+                BondCompanionPacket.STREAM_CODEC,
+                BondCompanionPacket::handleClientToServer
+        );
+        registrar.registerClientToServer(
+                RenameCompanionPacket.TYPE,
+                RenameCompanionPacket.STREAM_CODEC,
+                RenameCompanionPacket::handleClientToServer
+        );
     }
 
     /**
@@ -187,6 +200,11 @@ public class FishtasticPackets {
                 ReducedEffectsSyncPacket.STREAM_CODEC,
                 ReducedEffectsSyncPacket::handleServerToClient
         );
+        registrar.registerServerToClient(
+                CompanionFeedbackPacket.TYPE,
+                CompanionFeedbackPacket.STREAM_CODEC,
+                CompanionFeedbackPacket::handleServerToClient
+        );
     }
 
     /**
@@ -211,6 +229,7 @@ public class FishtasticPackets {
         registrar.accept(TankInteriorLightSyncPacket.TYPE, TankInteriorLightSyncPacket.STREAM_CODEC);
         registrar.accept(ReducedEffectsSyncPacket.TYPE, ReducedEffectsSyncPacket.STREAM_CODEC);
         registrar.accept(ReactionBoostSyncPacket.TYPE, ReactionBoostSyncPacket.STREAM_CODEC);
+        registrar.accept(CompanionFeedbackPacket.TYPE, CompanionFeedbackPacket.STREAM_CODEC);
     }
 
     /**
