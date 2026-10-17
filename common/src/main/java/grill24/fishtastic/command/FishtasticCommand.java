@@ -57,6 +57,8 @@ public class FishtasticCommand {
             // Prints the client-side swim/hover verdict for the tank being looked at — same pattern,
             // and the only way to tell a budget-capped fish from a size-gated one on screen.
             command.then(TankSimDebugCommand.build());
+            // Fish companion dev command (docs/fish-companions.md) - same dev-only pattern; server-side subcommands only on this branch.
+            command.then(CompanionCommand.build());
         }
 
         dispatcher.register(command);
