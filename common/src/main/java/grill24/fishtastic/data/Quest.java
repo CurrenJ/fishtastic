@@ -3,6 +3,7 @@ package grill24.fishtastic.data;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import grill24.FishtasticRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 
 import java.util.Optional;
@@ -15,7 +16,8 @@ public record Quest(
         Optional<ResourceKey<Quest>> prerequisiteQuestId,
         boolean hidden,
         String displayName,
-        String description
+        String description,
+        Optional<ResourceLocation> unlocksCompanion
 ) {
     public static final Codec<Quest> CODEC = RecordCodecBuilder.create(i -> i.group(
             QuestCategory.CODEC.fieldOf("category").forGetter(Quest::category),
@@ -25,8 +27,18 @@ public record Quest(
             ResourceKey.codec(FishtasticRegistries.QUEST_REGISTRY_KEY).optionalFieldOf("prerequisite").forGetter(Quest::prerequisiteQuestId),
             Codec.BOOL.optionalFieldOf("hidden", false).forGetter(Quest::hidden),
             Codec.STRING.optionalFieldOf("display_name", "").forGetter(Quest::displayName),
-            Codec.STRING.optionalFieldOf("description", "").forGetter(Quest::description)
+            Codec.STRING.optionalFieldOf("description", "").forGetter(Quest::description),
+            ResourceLocation.CODEC.optionalFieldOf("unlocks_companion").forGetter(Quest::unlocksCompanion)
     ).apply(i, Quest::new));
+
+    /**
+     * Whether this quest's objective is done — the moment a quest with {@code unlocks_companion}
+     * unlocks its species' bond (docs/fish-companions.md §8.3). Pure so the bond-unlock scan can
+     * be unit-tested with fabricated quests; the caller supplies the progress flags.
+     */
+    public static Optional<ResourceLocation> companionUnlockedBy(Quest quest, boolean completed, boolean claimed) {
+        return (completed || claimed) ? quest.unlocksCompanion() : Optional.empty();
+    }
 
     /**
      * Whether this quest should be kept out of the quest log, given the player's progress on it

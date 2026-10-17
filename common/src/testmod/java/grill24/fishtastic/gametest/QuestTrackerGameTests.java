@@ -350,11 +350,11 @@ public final class QuestTrackerGameTests {
     // -------------------------------------------------------------------------
 
     private static Quest dailyQuest() {
-        return new Quest(QuestCategory.DAILY, QuestDifficulty.BRONZE, wildcardObjective(), new QuestReward(0, List.of()), Optional.empty(), false, "", "");
+        return new Quest(QuestCategory.DAILY, QuestDifficulty.BRONZE, wildcardObjective(), new QuestReward(0, List.of()), Optional.empty(), false, "", "", Optional.empty());
     }
 
     private static Quest tutorialQuest() {
-        return new Quest(QuestCategory.TUTORIAL, QuestDifficulty.BRONZE, wildcardObjective(), new QuestReward(0, List.of()), Optional.empty(), false, "", "");
+        return new Quest(QuestCategory.TUTORIAL, QuestDifficulty.BRONZE, wildcardObjective(), new QuestReward(0, List.of()), Optional.empty(), false, "", "", Optional.empty());
     }
 
     private static Registry<Quest> buildRegistry(int dailyCount, int tutorialCount) {
