@@ -1602,6 +1602,96 @@ public class FishtasticGameTests {
     }
 
     @GameTest(template = "fishtastic_empty")
+    public void companionMenuClickEquipsAndReturns(GameTestHelper helper) {
+        CompanionMenuGameTests.clickEquipsAndReturns(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionMenuCursorSwapExchangesCompanions(GameTestHelper helper) {
+        CompanionMenuGameTests.cursorSwapExchangesCompanions(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionMenuNumberKeySwapExchangesAndReturns(GameTestHelper helper) {
+        CompanionMenuGameTests.numberKeySwapExchangesAndReturns(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionMenuDragPlacesOneFish(GameTestHelper helper) {
+        CompanionMenuGameTests.dragPlacesOneFish(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionMenuShiftClickTakesOneFromAStack(GameTestHelper helper) {
+        CompanionMenuGameTests.shiftClickTakesOneFromAStack(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionMenuShiftClickFillsTheFirstEmptySlotOnce(GameTestHelper helper) {
+        CompanionMenuGameTests.shiftClickFillsTheFirstEmptySlotOnce(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionMenuShiftClickWithAFullPartyOrInventoryChangesNothing(GameTestHelper helper) {
+        CompanionMenuGameTests.shiftClickWithAFullPartyOrInventoryChangesNothing(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionMenuThreeSlotsEquipAndReturn(GameTestHelper helper) {
+        CompanionMenuGameTests.threeSlotsEquipAndReturn(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionMenuMovingBetweenSlotsReordersTheParty(GameTestHelper helper) {
+        CompanionMenuGameTests.movingBetweenSlotsReordersTheParty(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionMenuLockedFishIsRejected(GameTestHelper helper) {
+        CompanionMenuGameTests.lockedFishIsRejected(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionMenuClosingWithAFishOnTheCursorKeepsIt(GameTestHelper helper) {
+        CompanionMenuGameTests.closingWithAFishOnTheCursorKeepsIt(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionMenuClickAfterAnOutsideBondSeesTheNewCompanion(GameTestHelper helper) {
+        CompanionMenuGameTests.clickAfterAnOutsideBondSeesTheNewCompanion(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionMenuOutsideRenameReachesTheSlot(GameTestHelper helper) {
+        CompanionMenuGameTests.outsideRenameReachesTheSlot(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionMenuPileFishGoesToTheCursor(GameTestHelper helper) {
+        CompanionMenuGameTests.pileFishGoesToTheCursor(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionMenuPileLeftWithOneFishBecomesThatFish(GameTestHelper helper) {
+        CompanionMenuGameTests.pileLeftWithOneFishBecomesThatFish(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionMenuPileTakeNeedsAnEmptyCursor(GameTestHelper helper) {
+        CompanionMenuGameTests.pileTakeNeedsAnEmptyCursor(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionMenuPileTakeRefusesAStaleDescription(GameTestHelper helper) {
+        CompanionMenuGameTests.pileTakeRefusesAStaleDescription(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionMenuRenameSecondSlotLeavesTheLead(GameTestHelper helper) {
+        CompanionMenuGameTests.renameSecondSlotLeavesTheLead(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
     public void companionQuestScanReportsEachSpeciesOnce(GameTestHelper helper) {
         CompanionQuestUnlockGameTests.questScanReportsEachSpeciesOnce(helper);
     }
