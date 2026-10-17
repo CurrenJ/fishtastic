@@ -4,7 +4,7 @@
 # Stage: the first word of scripts/git-hooks/port-stage (tracked, raised as gates pass):
 #   none     - no checks (A1 scaffolding, before anything compiles)
 #   compile  - compile every module                                  (A1 gate onwards)
-#   unit     - compile + common and tank-shape-gen unit tests        (A2 gate onwards)
+#   unit     - compile + common, sim, tank-shape-gen unit tests         (A2 gate onwards)
 #   full     - unit + Fabric game tests, as on the primary branch    (A6.1 onwards)
 #
 # JDK: ~/.gradle/gradle.properties pins the primary branch's JDK. If the untracked,
@@ -58,7 +58,7 @@ fi
 echo ""
 echo "=== Pre-commit: running unit tests ==="
 
-if ! gradle :common:test :tools:tank-shape-gen:test; then
+if ! gradle :common:test :fishsim:test :tools:tank-shape-gen:test; then
     echo ""
     echo "COMMIT BLOCKED: unit tests failed."
     exit 1

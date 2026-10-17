@@ -218,7 +218,7 @@ public class FishCatchSavedData extends SavedData {
      * at {@code data/fishtastic/fish_catches.dat}; 1.21.1's storage only takes flat names, and saves
      * don't carry across MC versions (D4), so the id is flattened. Backups live in their own folder.
      */
-    private static final String FILE_ID = "fishtastic_fish_catches";
+    public static final String FILE_ID = "fishtastic_fish_catches";
 
     /** No DataFixTypes: {@link #CODEC} is the whole format, and vanilla's level fixers don't apply to it. */
     public static final SavedData.Factory<FishCatchSavedData> FACTORY =

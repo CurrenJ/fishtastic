@@ -60,27 +60,27 @@ public class FishtasticGameTests {
         MarineCompostGameTests.aerationReducesConversionTime(helper);
     }
 
-    @GameTest(template = "fishtastic_empty", timeoutTicks = 6100)
+    @GameTest(template = "fishtastic_empty")
     public void commonFishYield(GameTestHelper helper) {
         MarineCompostGameTests.commonFishYield(helper);
     }
 
-    @GameTest(template = "fishtastic_empty", timeoutTicks = 6100)
+    @GameTest(template = "fishtastic_empty")
     public void rareFishYield(GameTestHelper helper) {
         MarineCompostGameTests.rareFishYield(helper);
     }
 
-    @GameTest(template = "fishtastic_empty", timeoutTicks = 6100)
+    @GameTest(template = "fishtastic_empty")
     public void legendaryFishYield(GameTestHelper helper) {
         MarineCompostGameTests.legendaryFishYield(helper);
     }
 
-    @GameTest(template = "fishtastic_empty", timeoutTicks = 5000)
+    @GameTest(template = "fishtastic_empty")
     public void aerationAddsToYield(GameTestHelper helper) {
         MarineCompostGameTests.aerationAddsToYield(helper);
     }
 
-    @GameTest(template = "fishtastic_empty", timeoutTicks = 6100)
+    @GameTest(template = "fishtastic_empty")
     public void noQualityDefaultsToCommonYield(GameTestHelper helper) {
         MarineCompostGameTests.noQualityDefaultsToCommonYield(helper);
     }
@@ -200,87 +200,92 @@ public class FishtasticGameTests {
 
     @GameTest(template = "fishtastic_empty")
     public void manualBackupRoundTrips(GameTestHelper helper) throws Exception {
-        FishCatchBackupsGameTests.manualBackupRoundTrips(helper);
+        BackupTestFixture.run(helper, () -> FishCatchBackupsGameTests.manualBackupRoundTrips(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void backupFixtureRestoresSharedStateAndFiles(GameTestHelper helper) throws Exception {
+        BackupTestFixture.restoresSharedStateAndFiles(helper);
     }
 
     @GameTest(template = "fishtastic_empty")
     public void labelIsSanitisedIntoFileName(GameTestHelper helper) throws Exception {
-        FishCatchBackupsGameTests.labelIsSanitisedIntoFileName(helper);
+        BackupTestFixture.run(helper, () -> FishCatchBackupsGameTests.labelIsSanitisedIntoFileName(helper));
     }
 
     @GameTest(template = "fishtastic_empty")
     public void findRejectsTraversalAndUnknownNames(GameTestHelper helper) throws Exception {
-        FishCatchBackupsGameTests.findRejectsTraversalAndUnknownNames(helper);
+        BackupTestFixture.run(helper, () -> FishCatchBackupsGameTests.findRejectsTraversalAndUnknownNames(helper));
     }
 
     @GameTest(template = "fishtastic_empty")
     public void listIsNewestFirstAndIgnoresJunk(GameTestHelper helper) throws Exception {
-        FishCatchBackupsGameTests.listIsNewestFirstAndIgnoresJunk(helper);
+        BackupTestFixture.run(helper, () -> FishCatchBackupsGameTests.listIsNewestFirstAndIgnoresJunk(helper));
     }
 
     @GameTest(template = "fishtastic_empty")
     public void loadRejectsFileWithoutDataCompound(GameTestHelper helper) throws Exception {
-        FishCatchBackupsGameTests.loadRejectsFileWithoutDataCompound(helper);
+        BackupTestFixture.run(helper, () -> FishCatchBackupsGameTests.loadRejectsFileWithoutDataCompound(helper));
     }
 
     @GameTest(template = "fishtastic_empty")
     public void intervalBackupSkipsIdenticalContent(GameTestHelper helper) throws Exception {
-        FishCatchBackupsGameTests.intervalBackupSkipsIdenticalContent(helper);
+        BackupTestFixture.run(helper, () -> FishCatchBackupsGameTests.intervalBackupSkipsIdenticalContent(helper));
     }
 
     @GameTest(template = "fishtastic_empty")
     public void restorePlayerOnlyTouchesThatPlayer(GameTestHelper helper) throws Exception {
-        FishCatchBackupsGameTests.restorePlayerOnlyTouchesThatPlayer(helper);
+        BackupTestFixture.run(helper, () -> FishCatchBackupsGameTests.restorePlayerOnlyTouchesThatPlayer(helper));
     }
 
     @GameTest(template = "fishtastic_empty")
     public void restorePlayerAbsentFromBackupRemovesThem(GameTestHelper helper) throws Exception {
-        FishCatchBackupsGameTests.restorePlayerAbsentFromBackupRemovesThem(helper);
+        BackupTestFixture.run(helper, () -> FishCatchBackupsGameTests.restorePlayerAbsentFromBackupRemovesThem(helper));
     }
 
     @GameTest(template = "fishtastic_empty")
     public void restorePlayerRevertsCleanupContribution(GameTestHelper helper) throws Exception {
-        FishCatchBackupsGameTests.restorePlayerRevertsCleanupContribution(helper, FishtasticTestSupport.playerSupplier(helper));
+        BackupTestFixture.run(helper, () -> FishCatchBackupsGameTests.restorePlayerRevertsCleanupContribution(helper, FishtasticTestSupport.playerSupplier(helper)));
     }
 
     @GameTest(template = "fishtastic_empty")
     public void restoreAllReplacesEverything(GameTestHelper helper) throws Exception {
-        FishCatchBackupsGameTests.restoreAllReplacesEverything(helper);
+        BackupTestFixture.run(helper, () -> FishCatchBackupsGameTests.restoreAllReplacesEverything(helper));
     }
 
     @GameTest(template = "fishtastic_empty")
     public void restoreDoesNotAliasSnapshotObjects(GameTestHelper helper) throws Exception {
-        FishCatchBackupsGameTests.restoreDoesNotAliasSnapshotObjects(helper);
+        BackupTestFixture.run(helper, () -> FishCatchBackupsGameTests.restoreDoesNotAliasSnapshotObjects(helper));
     }
 
     @GameTest(template = "fishtastic_empty")
     public void summaryAndLookupApi(GameTestHelper helper) throws Exception {
-        FishCatchBackupsGameTests.summaryAndLookupApi(helper);
+        BackupTestFixture.run(helper, () -> FishCatchBackupsGameTests.summaryAndLookupApi(helper));
     }
 
     @GameTest(template = "fishtastic_empty")
     public void preCommandHookWritesLabelledBackup(GameTestHelper helper) throws Exception {
-        FishCatchBackupsGameTests.preCommandHookWritesLabelledBackup(helper);
+        BackupTestFixture.run(helper, () -> FishCatchBackupsGameTests.preCommandHookWritesLabelledBackup(helper));
     }
 
     @GameTest(template = "fishtastic_empty")
     public void preCommandPoolIsCapped(GameTestHelper helper) throws Exception {
-        FishCatchBackupsGameTests.preCommandPoolIsCapped(helper);
+        BackupTestFixture.run(helper, () -> FishCatchBackupsGameTests.preCommandPoolIsCapped(helper));
     }
 
     @GameTest(template = "fishtastic_empty")
     public void pruneDeletesAncientIntervalFilesOnDisk(GameTestHelper helper) throws Exception {
-        FishCatchBackupsGameTests.pruneDeletesAncientIntervalFilesOnDisk(helper);
+        BackupTestFixture.run(helper, () -> FishCatchBackupsGameTests.pruneDeletesAncientIntervalFilesOnDisk(helper));
     }
 
     @GameTest(template = "fishtastic_empty")
     public void schedulerWritesStartThenInterval(GameTestHelper helper) throws Exception {
-        FishCatchBackupsGameTests.schedulerWritesStartThenInterval(helper);
+        BackupTestFixture.run(helper, () -> FishCatchBackupsGameTests.schedulerWritesStartThenInterval(helper));
     }
 
     @GameTest(template = "fishtastic_empty")
     public void serverConfigWritesDefaultsAndReloads(GameTestHelper helper) throws Exception {
-        FishCatchBackupsGameTests.serverConfigWritesDefaultsAndReloads(helper);
+        BackupTestFixture.run(helper, () -> FishCatchBackupsGameTests.serverConfigWritesDefaultsAndReloads(helper));
     }
 
     @GameTest(template = "fishtastic_empty")
