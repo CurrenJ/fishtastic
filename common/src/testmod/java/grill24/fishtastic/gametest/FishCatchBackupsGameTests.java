@@ -35,10 +35,9 @@ import java.util.function.Supplier;
  * restore scopes, retention on real files, the pre-command hook, the scheduler, and the
  * {@link FishCatchSavedData} replace/summary API that restore is built on.
  *
- * <p>Every test that touches the live {@link FishCatchSavedData} does so under a fresh random
- * player key and removes it again (via {@link FishCatchSavedData#replacePlayerFrom} from an empty
- * snapshot) so tests stay independent even though they share one server. Every backup a test
- * writes is deleted at the end.
+ * <p>Both loaders run these synchronous methods inside {@link BackupTestFixture}: each gets
+ * fresh saved data and a private backup directory, restored even on failure. Real encode/file/decode
+ * paths stay covered without serializing unrelated tests' progression or pruning their backups.
  */
 public final class FishCatchBackupsGameTests {
 
@@ -309,10 +308,7 @@ public final class FishCatchBackupsGameTests {
         FishCatchSavedData live = live(helper);
         ServerPlayer player = playerFactory.get();
         UUID key = live.resolvePlayerKey(player);
-        // Land on a known cycle first: this world persists across runs and other tests credit
-        // real trash to the shared counter, so the incoming total can sit within 7 of the 200
-        // threshold, where the +3/+7 arithmetic below would roll the cycle over mid-test.
-        live.recordTrashContribution(player, live.getCleanupGoalThreshold() - live.getCleanupGoalTotal());
+        // The isolated fixture starts with an empty cleanup cycle.
         int baseTotal = live.getCleanupGoalTotal();
 
         live.recordTrashContribution(player, 3);

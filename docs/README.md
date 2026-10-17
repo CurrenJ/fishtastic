@@ -74,4 +74,19 @@ the code wins; fix the doc.
   pre-backport audit and the cleanup it led to (§9).
 - [reviews/](reviews/).
 
+## GameTests
+
+Run `./gradlew :fabric:runGametest` or `./gradlew :neoforge:runGametest`. Each invocation
+selects a new UUID universe under that loader's `build/gametest-worlds/`; successful runs remove
+their universe, while failed runs retain it at the path printed in the log. Historical worlds
+under `build/gametest/` are left alone. JUnit results are written to `<loader>/build/junit.xml`.
+When invoking both loaders together, use `--no-parallel` to avoid Architectury's shared agent-jar race.
+
+Backup GameTests run synchronously inside `BackupTestFixture`, with fresh saved data and an isolated
+backup directory. The original object and files are restored even on failure. Other gameplay tests
+create shared quest/tutorial records during a run; the disposable universe prevents those records
+from accumulating across invocations. Do not schedule delayed assertions inside the backup fixture.
+Compost yield checks load a nearly complete block entity and finish through the real ticker;
+the base and aerated timing checks still cover the entire 6,000- and 4,800-tick cycles.
+
 Backports follow the porting playbook in the modding guide (`D:\GitHub\modding-guide`, topics 19 and 20).

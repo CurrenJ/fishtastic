@@ -7,7 +7,10 @@ import grill24.fishtastic.blockentity.MarineCompostBlockEntity;
 import grill24.fishtastic.component.FishQuality;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.storage.TagValueInput;
 
 /**
  * Server-side game tests for MarineCompostBlockEntity.
@@ -135,13 +138,24 @@ public final class MarineCompostGameTests {
     // Yield calculation
     // -------------------------------------------------------------------------
 
+    /** Load a near-complete fixture; finish through the real world ticker, including the READY transition. */
+    private static void finishForYield(GameTestHelper helper, MarineCompostBlockEntity bin, int conversionTicks) {
+        CompoundTag saved = bin.saveWithoutMetadata(helper.getLevel().registryAccess());
+        saved.putInt("conversion_ticks", conversionTicks);
+        bin.loadWithComponents(TagValueInput.create(ProblemReporter.DISCARDING, helper.getLevel().registryAccess(), saved));
+        helper.assertTrue(bin.getPendingWorms() == 0, "Fixture must not already contain worms");
+    }
+
     /**
      * A COMMON fish with no aeration yields exactly 1 worm (fixed value in computeYield).
      */
     public static void commonFishYield(GameTestHelper helper) {
         MarineCompostBlockEntity bin = placeMarineCompost(helper);
         seedConverting(helper, bin, FishQuality.Quality.COMMON);
-        helper.runAfterDelay(6001, () -> {
+        finishForYield(helper, bin, 5999);
+        helper.runAfterDelay(2, () -> {
+            helper.assertTrue(helper.getBlockState(BIN_POS).getValue(MarineCompostBlock.PHASE) == MarineCompostPhase.READY,
+                    "Conversion must reach READY through the world ticker");
             int worms = bin.getPendingWorms();
             helper.assertTrue(worms == 1, "COMMON fish + 0 aerations must yield 1 worm, got " + worms);
             helper.succeed();
@@ -154,7 +168,10 @@ public final class MarineCompostGameTests {
     public static void rareFishYield(GameTestHelper helper) {
         MarineCompostBlockEntity bin = placeMarineCompost(helper);
         seedConverting(helper, bin, FishQuality.Quality.RARE);
-        helper.runAfterDelay(6001, () -> {
+        finishForYield(helper, bin, 5999);
+        helper.runAfterDelay(2, () -> {
+            helper.assertTrue(helper.getBlockState(BIN_POS).getValue(MarineCompostBlock.PHASE) == MarineCompostPhase.READY,
+                    "Conversion must reach READY through the world ticker");
             int worms = bin.getPendingWorms();
             helper.assertTrue(worms == 6, "RARE fish + 0 aerations must yield 6 worms, got " + worms);
             helper.succeed();
@@ -167,7 +184,10 @@ public final class MarineCompostGameTests {
     public static void legendaryFishYield(GameTestHelper helper) {
         MarineCompostBlockEntity bin = placeMarineCompost(helper);
         seedConverting(helper, bin, FishQuality.Quality.LEGENDARY);
-        helper.runAfterDelay(6001, () -> {
+        finishForYield(helper, bin, 5999);
+        helper.runAfterDelay(2, () -> {
+            helper.assertTrue(helper.getBlockState(BIN_POS).getValue(MarineCompostBlock.PHASE) == MarineCompostPhase.READY,
+                    "Conversion must reach READY through the world ticker");
             int worms = bin.getPendingWorms();
             helper.assertTrue(worms == 25, "LEGENDARY fish + 0 aerations must yield 25 worms, got " + worms);
             helper.succeed();
@@ -181,7 +201,10 @@ public final class MarineCompostGameTests {
         MarineCompostBlockEntity bin = placeMarineCompost(helper);
         for (int i = 0; i < 5; i++) bin.aerate((long) i * 1200);
         seedConverting(helper, bin, FishQuality.Quality.COMMON);
-        helper.runAfterDelay(4801, () -> {
+        finishForYield(helper, bin, 4799);
+        helper.runAfterDelay(2, () -> {
+            helper.assertTrue(helper.getBlockState(BIN_POS).getValue(MarineCompostBlock.PHASE) == MarineCompostPhase.READY,
+                    "Conversion must reach READY through the world ticker");
             int worms = bin.getPendingWorms();
             helper.assertTrue(worms == 6, "COMMON + 5 aerations must yield 6 worms, got " + worms);
             helper.succeed();
@@ -195,7 +218,10 @@ public final class MarineCompostGameTests {
     public static void noQualityDefaultsToCommonYield(GameTestHelper helper) {
         MarineCompostBlockEntity bin = placeMarineCompost(helper);
         seedConverting(helper, bin, null);
-        helper.runAfterDelay(6001, () -> {
+        finishForYield(helper, bin, 5999);
+        helper.runAfterDelay(2, () -> {
+            helper.assertTrue(helper.getBlockState(BIN_POS).getValue(MarineCompostBlock.PHASE) == MarineCompostPhase.READY,
+                    "Conversion must reach READY through the world ticker");
             int worms = bin.getPendingWorms();
             helper.assertTrue(worms == 1, "No quality set must default to COMMON's yield (1), got " + worms);
             helper.succeed();
