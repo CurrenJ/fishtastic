@@ -1013,6 +1013,20 @@ public final class FlockEngine {
     public float[] velY() { return velY; }
     public float[] velD() { return velD; }
 
+    /**
+     * Moves one individual to a chosen spot, carrying its previous position with it so nothing
+     * interpolates across the jump, and stopping it dead. The ambient runtime places a new fish
+     * where its own water test accepted it rather than trusting the rebuild scatter: that scatter
+     * fills the whole domain, which for a domain the size of a bay puts the shoal nowhere near the
+     * player it exists for. Everything else about the fish (seed, traits, heading) is untouched.
+     */
+    public void placeFish(int i, float lateral, float y, float depth) {
+        posL[i] = prevL[i] = lateral;
+        posY[i] = prevY[i] = y;
+        posD[i] = prevD[i] = depth;
+        velL[i] = velY[i] = velD[i] = 0f;
+    }
+
     /** Times the hard backstop clamp actually moved a fish (must stay 0 — soft containment does the work). */
     public long backstopEngagements() { return backstopEngagements; }
 
@@ -1278,7 +1292,10 @@ public final class FlockEngine {
                 placeOnFloor(specs[i], seed, i, floorScratch);
                 lateral = floorScratch[0];
                 depth = floorScratch[1];
-                y = floorHeightAt(lateral, depth);
+                // When nothing is standable the search falls back to the domain centre, whose bed
+                // is unknown — a NaN. Keep the scattered height then instead of taking the NaN.
+                float floorY = floorHeightAt(lateral, depth);
+                if (Float.isFinite(floorY)) y = floorY;
             }
 
             initFish(i, specs[i], lateral, y, depth, baseRotation, seed);
@@ -1414,10 +1431,17 @@ public final class FlockEngine {
             // inside a shipwreck, so it re-places — the one case where carry-over cannot win.
             if (floorPlaced(specs[i].locomotion()) && !standable(posL[i], posD[i])) {
                 placeOnFloor(specs[i], seeds[i], i, floorScratch);
-                posL[i] = prevL[i] = floorScratch[0];
-                posD[i] = prevD[i] = floorScratch[1];
-                posY[i] = prevY[i] = floorHeightAt(posL[i], posD[i]);
-                velL[i] = velD[i] = velY[i] = 0f;
+                // A place the search could not find is not a place: the exhaustive fallback hands
+                // back the domain centre with an unknown bed (a NaN height), and committing that
+                // would teleport the crawler into mid-water holding a NaN that separation then
+                // spreads. Keep the carried position — finite by construction — and leave the
+                // retirement to the adapter.
+                if (standable(floorScratch[0], floorScratch[1])) {
+                    posL[i] = prevL[i] = floorScratch[0];
+                    posD[i] = prevD[i] = floorScratch[1];
+                    posY[i] = prevY[i] = floorHeightAt(posL[i], posD[i]);
+                    velL[i] = velD[i] = velY[i] = 0f;
+                }
             }
 
             placedL[placed] = posL[i];
@@ -1521,6 +1545,31 @@ public final class FlockEngine {
         spinState[i] = 0f;
         // xorshift64 is dead at zero, so force an odd non-zero stream state.
         noiseState[i] = (seed * 0x2545F4914F6CDD1DL) | 1L;
+    }
+
+    /**
+     * Whether a class's own size gate passes on the engine's current domain — the same rule
+     * {@link #gate} applies inside a rebuild, exposed so an adapter can pre-check before it
+     * commits to spawning a creature. One that failed would be demoted to {@link Locomotion#STATIC}
+     * and left hovering where it was placed; the ambient path omits it instead.
+     */
+    public boolean passesGate(Locomotion declared, float length) {
+        if (domain == null || declared == Locomotion.STATIC) return false;
+        return gate(declared, length) == declared;
+    }
+
+    /**
+     * Whether the resident in slot {@code i} is still hostable by the engine's current domain: a
+     * finite position, and the same size gate a rebuild applies — which is the point, because a
+     * rebuild re-runs the gate for every carried fish, so water that shrank under a resident
+     * demotes it to {@link Locomotion#STATIC} and stops stepping it. The ambient adapter re-checks
+     * every carried resident with this after a rebuild and retires the ones that failed, instead
+     * of leaving a frozen hover in the water.
+     */
+    public boolean residentFits(int i, FishSpec spec) {
+        return i >= 0 && i < count && spec != null
+                && Float.isFinite(posL[i]) && Float.isFinite(posY[i]) && Float.isFinite(posD[i])
+                && passesGate(spec.locomotion(), spec.length());
     }
 
     /**
@@ -4205,7 +4254,11 @@ public final class FlockEngine {
             vl = 0f;
             vd = 0f;
         }
-        posY[i] = floorHeightAt(posL[i], posD[i]);
+        // The bed under a crawler is normally known — a standable position is what the move test
+        // requires — but a domain whose floor has no reading (an all-truncated patch) leaves this
+        // NaN. Writing it would scatter a NaN through separation; hold the last good height instead.
+        float floorY = floorHeightAt(posL[i], posD[i]);
+        if (Float.isFinite(floorY)) posY[i] = floorY;
 
         velL[i] = vl;
         velD[i] = vd;

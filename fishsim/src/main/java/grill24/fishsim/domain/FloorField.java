@@ -105,6 +105,42 @@ public final class FloorField {
         return new FloorField(gridMinL, gridMinD, cellsL, cellsD, height);
     }
 
+    /**
+     * The floor of natural water: one bed height per block column, spread across that block's
+     * {@link #SUBCELLS}² floor cells.
+     *
+     * <p>Unlike {@link #fromOccupancy}, which derives a block-uniform surface from a tower of
+     * occupied cells, a natural bed is wherever the collision under each column of water happens to
+     * be — sand at the bottom of a pond, a gravel bank under a river, the top of a waterlogged slab.
+     * The column heights come straight from the water spans' lower ends, so a crawler walks on the
+     * surface the water is standing on, not on a block grid that would round it away.
+     *
+     * @param blocksL,blocksD grid extents in blocks
+     * @param originL,originD local coordinate of the low corner of block (0,0)
+     * @param bedHeight       one height per block column, indexed {@code il * blocksD + id}, or NaN
+     *                        for a column with nothing to stand on
+     * @param blocked         obstacle flags at floor-cell resolution, indexed as in {@link #flat};
+     *                        null for an open floor
+     */
+    public static FloorField fromColumnHeights(int blocksL, int blocksD, float originL, float originD,
+                                               float[] bedHeight, boolean[] blocked) {
+        int cellsL = blocksL * SUBCELLS, cellsD = blocksD * SUBCELLS;
+        float[] height = new float[cellsL * cellsD];
+        for (int il = 0; il < blocksL; il++) {
+            for (int id = 0; id < blocksD; id++) {
+                float surface = bedHeight[il * blocksD + id];
+                for (int sl = 0; sl < SUBCELLS; sl++) {
+                    for (int sd = 0; sd < SUBCELLS; sd++) {
+                        int index = (il * SUBCELLS + sl) * cellsD + (id * SUBCELLS + sd);
+                        height[index] = blocked != null && index < blocked.length && blocked[index]
+                                ? Float.NaN : surface;
+                    }
+                }
+            }
+        }
+        return new FloorField(originL, originD, cellsL, cellsD, height);
+    }
+
     /** Walkable surface height at this horizontal position, or NaN where there is nothing to stand on. */
     public float heightAt(float l, float d) {
         int index = index(l, d);
