@@ -271,7 +271,8 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
                 int previousShopRefreshCount = QuestClientCache.getShopRefreshCount();
                 QuestClientCache.update(packet.questProgress(), packet.tokenBalance(), packet.triggeringItems(),
                         packet.purchaseCounts(), packet.cleanupGoal(), packet.serverGameTime(),
-                        packet.baitDepletedItem(), packet.firstCatchItems(), packet.shopRefreshCount());
+                        packet.baitDepletedItem(), packet.firstCatchItems(), packet.shopRefreshCount(),
+                        packet.unlockedCompanions(), packet.newlyUnlockedCompanions());
                 Minecraft mc = Minecraft.getInstance();
                 if (mc.screen == this) {
                     // A shop refresh changes which entries are active, not just their visuals -

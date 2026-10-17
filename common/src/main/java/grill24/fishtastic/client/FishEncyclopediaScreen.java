@@ -1,5 +1,7 @@
 package grill24.fishtastic.client;
 
+import grill24.fishtastic.companion.CompanionBondUnlocks;
+
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticDataComponents;
@@ -70,6 +72,7 @@ import java.util.function.Supplier;
  * Structured like {@link QuestLogScreen}: a single screen class with private builder methods.
  */
 public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
+    private UIElement<?> companionEntryButton;
     private static final float DISC_RADIUS = 70f;
     private static final float DISC_SIZE = DISC_RADIUS * 2f + 32f;
     private static final float INFO_ICON_SCALE = 3.0f;
@@ -124,6 +127,9 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
 
     private boolean closingScreen = false;
     private long closingAtNanos = -1L;
+
+    private java.util.Set<ResourceLocation> lastSeenUnlocks = java.util.Set.of();
+    private VBox companionInfo;
 
     // Set by another screen (e.g. QuestLogScreen's tag checklist) right before it requests the
     // encyclopedia menu reopen; consumed once by the next buildUI() to jump straight to that
@@ -251,6 +257,10 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         for (Runnable updater : zonePipUpdaters) {
             updater.run();
         }
+        if (!lastSeenUnlocks.equals(QuestClientCache.getUnlockedCompanions())) {
+            lastSeenUnlocks = QuestClientCache.getUnlockedCompanions();
+            refreshFromCache();
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -279,55 +289,63 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         loreContainer = null;
         spawnConditionPipUpdaters.clear();
         zonePipUpdaters.clear();
+        companionInfo = null;
+        lastSeenUnlocks = QuestClientCache.getUnlockedCompanions();
 
         Minecraft mc = Minecraft.getInstance();
 
         root = new FreeformContainer();
         root.setSize(this.width, this.height);
 
-        sphere = new FishSphereContainer()
-                .discRadius(DISC_RADIUS)
-                .onFishSelected(this::onFishSelected);
-        sphere.setSize(DISC_SIZE, DISC_SIZE);
-        sphere.setPosition(new Vector2f((this.width - DISC_SIZE) / 2f, (this.height - DISC_SIZE) / 2f));
+        companionEntryButton = null;
 
-        if (mc.level != null) {
-            List<Map.Entry<ResourceKey<FishProfile>, FishProfile>> fishList =
-                    FishEncyclopediaClientHelper.getAllFishProfilesSorted(mc.level.registryAccess());
+        {
+            sphere = new FishSphereContainer()
+                    .discRadius(DISC_RADIUS)
+                    .onFishSelected(this::onFishSelected);
+            sphere.setSize(DISC_SIZE, DISC_SIZE);
+            sphere.setPosition(new Vector2f((this.width - DISC_SIZE) / 2f, (this.height - DISC_SIZE) / 2f));
 
-            List<Map.Entry<ResourceKey<FishProfile>, SilhouetteItemButton>> iconItems = new ArrayList<>();
-            for (Map.Entry<ResourceKey<FishProfile>, FishProfile> entry : fishList) {
-                ResourceKey<FishProfile> fishKey = entry.getKey();
-                Item item = BuiltInRegistries.ITEM.getOptional(fishKey.location()).orElse(Items.COD);
-                boolean caught = FishEncyclopediaClientCache.getCatchCount(fishKey.location()) > 0;
+            if (mc.level != null) {
+                List<Map.Entry<ResourceKey<FishProfile>, FishProfile>> fishList =
+                        FishEncyclopediaClientHelper.getAllFishProfilesSorted(mc.level.registryAccess());
 
-                // Unlisted fish (secret one-off variants) don't even get a silhouette slot —
-                // they're absent from the disc entirely until the player has caught one.
-                if (!caught && item.builtInRegistryHolder().is(FishtasticItemTags.UNLISTED_FISH)) continue;
+                List<Map.Entry<ResourceKey<FishProfile>, SilhouetteItemButton>> iconItems = new ArrayList<>();
+                for (Map.Entry<ResourceKey<FishProfile>, FishProfile> entry : fishList) {
+                    ResourceKey<FishProfile> fishKey = entry.getKey();
+                    Item item = BuiltInRegistries.ITEM.getOptional(fishKey.location()).orElse(Items.COD);
+                    boolean caught = FishEncyclopediaClientCache.getCatchCount(fishKey.location()) > 0;
 
-                SilhouetteItemButton icon = new SilhouetteItemButton(new ItemStack(item));
-                icon.setSilhouette(!caught);
-                icon.setHasUnclaimedReward(FishEncyclopediaClientHelper.fishHasUnclaimedReward(
-                        mc.level.registryAccess(), fishKey, fishKey.location()));
-                iconItems.add(Map.entry(fishKey, icon));
-                iconRefs.put(fishKey, icon);
+                    // Unlisted fish (secret one-off variants) don't even get a silhouette slot —
+                    // they're absent from the disc entirely until the player has caught one.
+                    if (!caught && item.builtInRegistryHolder().is(FishtasticItemTags.UNLISTED_FISH)) continue;
+
+                    SilhouetteItemButton icon = new SilhouetteItemButton(new ItemStack(item));
+                    icon.setSilhouette(!caught);
+                    icon.setBondAvailable(QuestClientCache.isBondUnlocked(fishKey.location())
+                            && mc.player != null && !CarriedFish.groupsOf(mc.player, item).isEmpty());
+                    icon.setHasUnclaimedReward(FishEncyclopediaClientHelper.fishHasUnclaimedReward(
+                            mc.level.registryAccess(), fishKey, fishKey.location()));
+                    iconItems.add(Map.entry(fishKey, icon));
+                    iconRefs.put(fishKey, icon);
+                }
+                sphere.setFishItems(iconItems);
             }
-            sphere.setFishItems(iconItems);
-        }
 
-        root.addChild(sphere);
+            root.addChild(sphere);
 
-        ResourceLocation autoSelectFishId = pendingAutoSelectFishId;
-        pendingAutoSelectFishId = null;
-        if (autoSelectFishId != null) {
-            ResourceKey<FishProfile> autoSelectKey = ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, autoSelectFishId);
-            IUIElement autoSelectIcon = iconRefs.get(autoSelectKey);
-            if (autoSelectIcon != null) {
-                sphere.selectChild(autoSelectIcon);
+            ResourceLocation autoSelectFishId = pendingAutoSelectFishId;
+            pendingAutoSelectFishId = null;
+            if (autoSelectFishId != null) {
+                ResourceKey<FishProfile> autoSelectKey = ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, autoSelectFishId);
+                IUIElement autoSelectIcon = iconRefs.get(autoSelectKey);
+                if (autoSelectIcon != null) {
+                    sphere.selectChild(autoSelectIcon);
+                }
             }
-        }
 
-        scheduleRewardPipPopIns();
+            scheduleRewardPipPopIns();
+        }
 
         rewardFlyOverlay = UI.manualContainer().setSize(0, 0);
         rewardFlyOverlay.setDebugName("encyclopediaRewardCoinOverlay");
@@ -337,6 +355,18 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         uiScreen.setAutoCenterRoot(false);
         uiScreen.setScrollEnabled(true);
         updateRootContentSize();
+    }
+
+    /** Uses the element's live bounds, including layout/animation transforms. */
+    public void highlightCompanionEntryButton(net.minecraft.client.gui.GuiGraphics graphics) {
+        if (!hasCompanionEntryButton()) return;
+        var bounds = companionEntryButton.getBounds();
+        graphics.renderOutline((int) bounds.getX() - 2, (int) bounds.getY() - 2,
+                (int) bounds.getWidth() + 4, (int) bounds.getHeight() + 4, 0xFFFFDD44);
+    }
+
+    public boolean hasCompanionEntryButton() {
+        return selectedFishKey != null && companionEntryButton != null;
     }
 
     /**
@@ -355,6 +385,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         if (infoPageRoot != null) {
             infoPageRoot.forceLayout();
             contentBottom = Math.max(contentBottom, infoPageRoot.getPosition().y + infoPageRoot.getSize().y + 16f);
+
         } else if (sphere != null) {
             contentBottom = Math.max(contentBottom, sphere.getPosition().y + DISC_SIZE + 16f);
         }
@@ -367,6 +398,9 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
             ResourceKey<FishProfile> fishKey = entry.getKey();
             ResourceLocation fishId = fishKey.location();
             entry.getValue().setSilhouette(FishEncyclopediaClientCache.getCatchCount(fishId) <= 0);
+            Item species = BuiltInRegistries.ITEM.getOptional(fishId).orElse(null);
+            entry.getValue().setBondAvailable(species != null && mc.player != null
+                    && QuestClientCache.isBondUnlocked(fishId) && !CarriedFish.groupsOf(mc.player, species).isEmpty());
             if (mc.level != null) {
                 entry.getValue().setHasUnclaimedReward(
                         FishEncyclopediaClientHelper.fishHasUnclaimedReward(mc.level.registryAccess(), fishKey, fishId));
@@ -376,13 +410,14 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
             refreshInfoPage();
             updateRootContentSize();
         }
+
     }
 
-    /** Staggers unclaimed-reward pip pop-ins across the disc, in icon order. Called once on screen open only. */
+    /** Staggers reward-pip and bond-heart pop-ins across the disc, in icon order. Called once on screen open only. */
     private void scheduleRewardPipPopIns() {
         float delay = REWARD_PIP_POP_INITIAL_DELAY;
         for (SilhouetteItemButton icon : iconRefs.values()) {
-            if (!icon.hasUnclaimedReward()) continue;
+            if (!icon.hasBadge()) continue;
             icon.playPipPopIn(delay);
             delay += REWARD_PIP_POP_STAGGER;
         }
@@ -568,6 +603,9 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         loreContainer = UI.vbox().spacing(3).padding(4).alignment(VBox.Alignment.CENTER);
         page.addChild(loreContainer);
 
+        companionInfo = UI.vbox().spacing(4).alignment(VBox.Alignment.CENTER);
+        page.addChild(companionInfo);
+
         page.scaleToWidth(pageWidth);
         page.setPosition(new Vector2f((this.width - pageWidth) / 2f, startY));
         root.addChild(page);
@@ -580,6 +618,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private void refreshInfoPage() {
         if (selectedFishKey == null || selectedProfile == null) return;
         ResourceLocation fishId = selectedFishKey.location();
+        refreshCompanionInfo(fishId);
         int catchCount = FishEncyclopediaClientCache.getCatchCount(fishId);
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;
@@ -1015,6 +1054,48 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
                 List.of(new Keyframe(0f, 0f), new Keyframe(duration, 1f)),
                 v -> {},
                 () -> uiScreen.runDeferred(() -> rewardFlyOverlay.removeChild(coin))));
+    }
+
+    private void refreshCompanionInfo(ResourceLocation fishId) {
+        if (companionInfo == null) return;
+        companionInfo.clearChildren();
+        companionEntryButton = null;
+        boolean unlocked = QuestClientCache.isBondUnlocked(fishId);
+        Minecraft mc = Minecraft.getInstance();
+        Item item = BuiltInRegistries.ITEM.getOptional(fishId).orElse(null);
+        if (item == null || mc.level == null) return;
+        String status;
+        int inParty = partySlotOf(mc, item);
+        if (inParty >= 0) {
+            status = translated(inParty == grill24.fishtastic.companion.CompanionParty.LEAD
+                    ? "screen.fishtastic.companion.in_party_lead" : "screen.fishtastic.companion.in_party");
+        } else if (unlocked) {
+            boolean carried = mc.player != null && !CarriedFish.groupsOf(mc.player, item).isEmpty();
+            status = translated(carried ? "screen.fishtastic.companion.ready" : "screen.fishtastic.companion.carry", new ItemStack(item).getHoverName().getString());
+        } else if (CompanionBondUnlocks.isUnlisted(fishId)) {
+            status = translated("screen.fishtastic.encyclopedia.companions.bond_hidden_quest");
+        } else {
+            var thresholds = EncyclopediaTiers.thresholdsFor(mc.level.registryAccess(), selectedFishKey);
+            int required = java.util.Arrays.stream(EncyclopediaRewardSection.values()).mapToInt(section -> section.threshold(thresholds)).max().orElse(0);
+            status = translated("screen.fishtastic.companion.remaining", Math.max(0, required - FishEncyclopediaClientCache.getCatchCount(fishId)));
+        }
+        companionInfo.addChild(label(status, unlocked ? 0xFFFFA4B4 : 0xFFAAAAAA));
+        if (unlocked) {
+            SpriteButton bond = UI.spriteButton(100f, 14f, 0xFF666666).text(translated("screen.fishtastic.companion.choose"), 0xFFFFFFFF);
+            companionEntryButton = bond;
+            bond.onClick(e -> CompanionScreen.open(new ItemStack(item)));
+            companionInfo.addChild(bond);
+        }
+    }
+
+    /** The first party slot holding this species, or -1 (slot 0 is the lead). */
+    private static int partySlotOf(Minecraft mc, Item item) {
+        if (mc.player == null) return -1;
+        var party = grill24.fishtastic.companion.CompanionStorage.party(mc.player);
+        for (int i = 0; i < grill24.fishtastic.companion.CompanionParty.SIZE; i++) {
+            if (party.get(i).is(item)) return i;
+        }
+        return -1;
     }
 
     // -------------------------------------------------------------------------
