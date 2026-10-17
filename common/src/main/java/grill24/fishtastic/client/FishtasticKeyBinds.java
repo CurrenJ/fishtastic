@@ -5,7 +5,6 @@ import grill24.fishtastic.network.NetworkApiSided;
 import grill24.fishtastic.network.RequestFishEncyclopediaPacket;
 import grill24.fishtastic.network.RequestLeaderboardScreenPacket;
 import grill24.fishtastic.network.RequestQuestLogPacket;
-import grill24.fishtastic.client.TutorialClientHandler;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 
@@ -74,7 +73,6 @@ public class FishtasticKeyBinds {
             // Starting the minigame stays exclusively a right-click/use-item action, like vanilla.
         }
         if (openQuestLog != null && openQuestLog.consumeClick()) {
-            TutorialClientHandler.onQuestLogKeyPressed();
             if (minecraft.player != null && minecraft.screen == null) {
                 NetworkApiSided.sendToServer(new RequestQuestLogPacket(), RequestQuestLogPacket.STREAM_CODEC);
             }

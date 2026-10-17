@@ -357,27 +357,7 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
                 target.updateCatchProgress(overlapQuality);
 
                 if (target.isCaught()) {
-                    float targetYOffset = (target.getPosition() - 0.5f) * layout.itemMaxYOffset();
-                    caughtTargetIndices.add(targetIndex);
-
-                    CatchCelebration.Tier tier = resolveCelebrationTier(target);
-                    if (tier != CatchCelebration.Tier.NONE) {
-                        startCelebration(target, tier, targetYOffset);
-                    } else {
-                        spawnSparkleBurst(sparkleCountForTarget(target), targetYOffset);
-                        target.startCollectionAnimation(0, 0);
-                        playCatchSound(target);
-                    }
-
-                    if (!baitPopTriggered && equippedBaitStack != null && equippedBaitStack.getCount() == 1) {
-                        baitPopTriggered = true;
-                        if (baitWillBeSaved) {
-                            charmSpinTick = 0;
-                        } else {
-                            baitDepletedSimulation = new PhysicsSimulation(equippedBaitStack.copy(), 0, 0, sparkleRandom);
-                            equippedBaitStack = null;
-                        }
-                    }
+                    resolveTargetCaught(targetIndex, target);
                 } else if (target.hasFailed()) {
                     target.startFailAnimation();
                 } else {
@@ -432,6 +412,50 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
             }
             isHiding = true;
         }
+    }
+
+    /**
+     * Everything that happens the instant a target is caught: record its index, give it its
+     * celebration or its quiet sparkle-and-collect, and pop the bait if this catch spent it.
+     * Extracted so {@link #devCatchTarget} runs the identical path the tick loop does.
+     */
+    private void resolveTargetCaught(int targetIndex, FishingTarget target) {
+        float targetYOffset = (target.getPosition() - 0.5f) * layout.itemMaxYOffset();
+        caughtTargetIndices.add(targetIndex);
+
+        CatchCelebration.Tier tier = resolveCelebrationTier(target);
+        if (tier != CatchCelebration.Tier.NONE) {
+            startCelebration(target, tier, targetYOffset);
+        } else {
+            spawnSparkleBurst(sparkleCountForTarget(target), targetYOffset);
+            target.startCollectionAnimation(0, 0);
+            playCatchSound(target);
+        }
+
+        if (!baitPopTriggered && equippedBaitStack != null && equippedBaitStack.getCount() == 1) {
+            baitPopTriggered = true;
+            if (baitWillBeSaved) {
+                charmSpinTick = 0;
+            } else {
+                baitDepletedSimulation = new PhysicsSimulation(equippedBaitStack.copy(), 0, 0, sparkleRandom);
+                equippedBaitStack = null;
+            }
+        }
+    }
+
+    /**
+     * Dev-only (self-tests): resolves a target as caught right now, through the real catch path —
+     * the same method the tick loop calls — so a headless scene can drive catches deterministically
+     * instead of steering the bobber with impulses.
+     */
+    public void devCatchTarget(int index) {
+        List<FishingTarget> targets = minigameState.getTargets();
+        if (index < 0 || index >= targets.size()) return;
+        FishingTarget target = targets.get(index);
+        if (target.getState() != FishingTarget.TargetState.ACTIVE) return;
+        grill24.fishtastic.Fishtastic.LOGGER.info("[selftest] devCatch: tier={} rewards={} undiscovered={} celebrated={}",
+                resolveCelebrationTier(target), target.getAllRewardItems(), undiscoveredSpecies, celebratedSpecies);
+        resolveTargetCaught(index, target);
     }
 
     /**
@@ -655,7 +679,9 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
             } else if (isImpulseDown) {
                 // Apply a small continuous force each frame, scaled by deltaTime so the
                 // accumulated velocity per second is frame-rate independent.
-                minigameState.applyImpulse(HOLD_IMPULSE_STRENGTH * inputForceMultiplier * deltaTime);
+                if (!minigameState.isPaused()) {
+                    minigameState.applyImpulse(HOLD_IMPULSE_STRENGTH * inputForceMultiplier * deltaTime);
+                }
                 if (!wasImpulseKeyDown) {
                     // Fire the tutorial callback only on the initial press, not every frame.
                     TutorialClientHandler.onMinigameImpulse();

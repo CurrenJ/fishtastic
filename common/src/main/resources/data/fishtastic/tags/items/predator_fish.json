@@ -1,0 +1,22 @@
+{
+  "replace": false,
+  "values": [
+    "fishtastic:angler_fish",
+    "fishtastic:bull_trout",
+    "fishtastic:common_octopus",
+    "fishtastic:electric_eel",
+    "fishtastic:giant_manta_ray",
+    "fishtastic:giraffe_cichlid",
+    "fishtastic:glass_squid",
+    "fishtastic:golden_mahseer",
+    "fishtastic:largetooth_sawfish",
+    "fishtastic:lionfish",
+    "fishtastic:lizardfish",
+    "fishtastic:longnose_gar",
+    "fishtastic:northern_pike",
+    "fishtastic:ornate_bichir",
+    "fishtastic:oscar",
+    "fishtastic:rainbow_trout",
+    "fishtastic:red_bellied_pirahna"
+  ]
+}
