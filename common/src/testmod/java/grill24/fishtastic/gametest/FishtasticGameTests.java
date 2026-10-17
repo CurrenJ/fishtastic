@@ -1556,4 +1556,13 @@ public class FishtasticGameTests {
     public void applyQualityAndSizeOverwritesExistingQuality(GameTestHelper helper) {
         CatchCelebrationGameTests.applyQualityAndSizeOverwritesExistingQuality(helper);
     }
+
+    // -------------------------------------------------------------------------
+    // Companion party storage (platform attachment)
+    // -------------------------------------------------------------------------
+
+    @GameTest(template = "fishtastic_empty")
+    public void partyStorageSetsReadsAndClears(GameTestHelper helper) {
+        CompanionStorageGameTests.partyStorageSetsReadsAndClears(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
 }
