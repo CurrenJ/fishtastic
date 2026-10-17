@@ -64,10 +64,10 @@ public final class TankSimDebug {
         for (int slot = 0; slot < FishTankBlockEntity.CONTAINER_SIZE; slot++) {
             ItemStack stack = be.getItem(slot);
             if (stack.isEmpty()) continue;
-            FishTankBlockEntityRenderer.ResolvedFishRender render =
-                    FishTankBlockEntityRenderer.resolveFishRender(stack, level);
-            float length = TankFlockAdapter.renderedLength(stack, render.renderCalibration());
-            Locomotion locomotion = TankFlockAdapter.locomotionOf(render.animation());
+            FishVisuals.ResolvedFishRender render =
+                    FishVisuals.resolve(stack, level);
+            float length = FishVisuals.renderedLength(stack, render.renderCalibration());
+            Locomotion locomotion = FishVisuals.locomotionOf(render.animation());
             boolean joins = split.joins(locomotion, length);
             Locomotion drawn = joins ? locomotion : TankGroupFlock.GroupSplit.stayingHomeAs(locomotion);
             out.add("  slot " + slot + ": " + stack.getHoverName().getString()

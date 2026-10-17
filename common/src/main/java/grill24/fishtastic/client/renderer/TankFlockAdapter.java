@@ -16,7 +16,6 @@ import grill24.fishtastic.client.util.TankShelters;
 import grill24.fishtastic.fishtank.TankGroups;
 import grill24.fishtastic.data.FishAnimationConfig;
 import grill24.fishtastic.data.SwarmConfig;
-import grill24.fishtastic.util.ItemSizeHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -28,8 +27,8 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * The only class that knows both worlds (docs/fish-sim-engine-plan.md §1): it maps tank contents
- * down to Minecraft-free {@link FishSpec}s for the {@link FlockEngine}, and holds everything the
+ * The tank-facing bridge (docs/fish-sim-engine-plan.md §1): it maps tank contents through
+ * shared {@link FishVisuals} descriptors down to Minecraft-free {@link FishSpec}s for the {@link FlockEngine}, and holds everything the
  * engine deliberately lost in the extraction — the {@link ItemStack}s themselves and their
  * animation configs. (1.21.1 draws each fish immediately with {@code ItemRenderer.renderStatic},
  * so there is no per-fish render state to keep, unlike 26.1's deferred {@code submit}.)
@@ -116,7 +115,7 @@ public final class TankFlockAdapter {
     }
 
     /**
-     * Species id of fish #{@code i} in this tank's own engine — see {@link #speciesId(ItemStack)},
+     * Species id of fish #{@code i} in this tank's own engine — see {@link FishVisuals#speciesId(ItemStack)},
      * the opaque per-item-type id the engine carries per fish.
      */
     public int fishSpecies(int i) {
@@ -279,19 +278,19 @@ public final class TankFlockAdapter {
             if (s.isEmpty()) continue;
 
             ItemStack stack = s.copy();
-            FishTankBlockEntityRenderer.ResolvedFishRender render =
-                    FishTankBlockEntityRenderer.resolveFishRender(stack, level);
+            FishVisuals.ResolvedFishRender render =
+                    FishVisuals.resolve(stack, level);
 
             newSlots[idx] = slot;
             newStacks[idx] = stack;
             newAnims[idx] = render.animation();
 
             specs[idx] = new FishSpec(
-                    renderedLength(stack, render.renderCalibration()),
-                    locomotionOf(newAnims[idx]),
+                    FishVisuals.renderedLength(stack, render.renderCalibration()),
+                    FishVisuals.locomotionOf(newAnims[idx]),
                     be.isItemMirrored(slot),
-                    speciesId(stack),
-                    shelterUseOf(stack, level));
+                    FishVisuals.speciesId(stack),
+                    FishVisuals.shelterUseOf(stack, level));
             idx++;
         }
 
@@ -348,18 +347,6 @@ public final class TankFlockAdapter {
             }
         }
         return anySwimmer && TankObstacles.hasSolid(be, level);
-    }
-
-    /**
-     * How this fish's species uses shelters (its profile's {@code swarm.shelter}), mapped down to
-     * the engine's enum — {@link ShelterUse#NONE} unless the species opts in.
-     */
-    static ShelterUse shelterUseOf(ItemStack stack, Level level) {
-        return SwarmConfig.resolve(stack, level).shelter().map(behaviour -> switch (behaviour) {
-            case VISITOR -> ShelterUse.VISITOR;
-            case SKITTISH -> ShelterUse.SKITTISH;
-            case LURKER -> ShelterUse.LURKER;
-        }).orElse(ShelterUse.NONE);
     }
 
     /**
@@ -430,17 +417,17 @@ public final class TankFlockAdapter {
             ItemStack s = be.getItem(slot);
             if (s.isEmpty()) continue;
             ItemStack stack = s.copy();
-            FishTankBlockEntityRenderer.ResolvedFishRender render =
-                    FishTankBlockEntityRenderer.resolveFishRender(stack, level);
-            float length = renderedLength(stack, render.renderCalibration());
-            Locomotion locomotion = locomotionOf(render.animation());
+            FishVisuals.ResolvedFishRender render =
+                    FishVisuals.resolve(stack, level);
+            float length = FishVisuals.renderedLength(stack, render.renderCalibration());
+            Locomotion locomotion = FishVisuals.locomotionOf(render.animation());
             if (split.joins(locomotion, length)) continue; // simulated with the group
 
             hoverStacks.add(stack);
             hoverAnims.add(render.animation());
             hoverSlots.add(slot);
             hoverSpecs.add(new FishSpec(length, TankGroupFlock.GroupSplit.stayingHomeAs(locomotion),
-                    be.isItemMirrored(slot), speciesId(stack)));
+                    be.isItemMirrored(slot), FishVisuals.speciesId(stack)));
         }
         int hoverCount = hoverStacks.size();
         int[] hoverCarry = new int[hoverCount];
@@ -486,45 +473,9 @@ public final class TankFlockAdapter {
 
     // ── Shared helpers ──────────────────────────────────────────────────────
 
-    /**
-     * The default pose → locomotion mapping (docs/fish-sim-locomotion.md §2.1). Pose and
-     * locomotion are independent concepts; this says what each render pose most likely implies
-     * about how the creature moves, so no data file has to declare anything. The mapping lives
-     * here rather than on {@link FishAnimationConfig} to keep this the only class that knows both
-     * worlds.
-     */
-    static Locomotion locomotionOf(FishAnimationConfig anim) {
-        return switch (anim) {
-            case FishAnimationConfig.HorizontalSwim ignored -> Locomotion.FREE_SWIM;
-            case FishAnimationConfig.BellyDown      ignored -> Locomotion.GLIDE;
-            case FishAnimationConfig.UprightFloat   ignored -> Locomotion.DRIFT;
-            case FishAnimationConfig.FloorSit       ignored -> Locomotion.BENTHIC;
-            case FishAnimationConfig.UprightSit     ignored -> Locomotion.BENTHIC;
-            case FishAnimationConfig.Planted        ignored -> Locomotion.ANCHORED;
-        };
-    }
-
-    /**
-     * Opaque per-species id for the engine's species-aware separation/schooling: fish of the same
-     * item type school together, different items keep the wider cross-species distance. The item
-     * registry id is stable for the client session, which is all the engine needs.
-     */
-    static int speciesId(ItemStack stack) {
-        return net.minecraft.core.registries.BuiltInRegistries.ITEM.getId(stack.getItem());
-    }
-
     private void allocate(int n) {
         if (stacks.length == n) return;
         stacks = new ItemStack[n];
         anims = new FishAnimationConfig[n];
-    }
-
-    static float renderedLength(ItemStack stack, float calibration) {
-        // Matches the render scale exactly: unrolled fish render at a flat 0.5 (never length 0,
-        // which would let an unmeasured species free-swim when it shouldn't).
-        if (ItemSizeHelper.hasSize(stack)) {
-            return (ItemSizeHelper.getSize(stack) / 100f) * calibration;
-        }
-        return 0.5f;
     }
 }

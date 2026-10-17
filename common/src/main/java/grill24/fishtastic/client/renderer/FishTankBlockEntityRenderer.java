@@ -12,7 +12,6 @@ import grill24.fishtastic.client.FishtasticClientConfig;
 import grill24.fishtastic.client.util.ClientTankFlocks;
 import grill24.fishtastic.client.util.FishermanPoseDebug;
 import grill24.fishtastic.data.FishAnimationConfig;
-import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.CosmeticStructure;
 import grill24.fishtastic.fishtank.CosmeticReaction;
@@ -45,8 +44,6 @@ import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.Material;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemDisplayContext;
@@ -449,46 +446,8 @@ public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTank
             int i = bucket[k];
             poseStack.pushPose();
 
-            float scale = eng.lengths[i];
-            FishAnimationConfig anim = group.anims[i];
-            // The engine's Y is the sand surface for a crawler and the swim position for a
-            // swimmer; only the former needs a pose lift off the floor, which floorPoseLift
-            // returns 0 for everything else.
-            poseStack.translate(
-                    groupOffsetX + eng.renderX[i],
-                    groupOffsetY + eng.renderY[i] + FishAnimator.floorPoseLift(anim, scale),
-                    groupOffsetZ + eng.renderZ[i]);
-
-            fishRandom.setSeed(eng.seeds[i]);
-            // Planar model: continuous yaw, no mirror flag. The +180° maps the engine's
-            // "faces +lateral at 0°" convention onto the item sprite, whose nose points along
-            // −lateral at rotation 0 (same offset the single-tank mirror mapping encodes).
-            if (eng.swimmers[i]) {
-                FishAnimator.applySwimming(poseStack, (FishAnimationConfig.HorizontalSwim) anim, fishRandom,
-                        eng.renderPhase[i], eng.renderYaw[i] + 180f, false, eng.speedFactor(i), eng.bank[i],
-                        eng.renderBobRoom[i], scale);
-            } else if (eng.locomotion[i] == Locomotion.BENTHIC) {
-                FishAnimator.applyBenthic(poseStack, anim, fishRandom, t, eng.renderYaw[i] + 180f,
-                        eng.baseRotations[i], scale, false, eng.renderShape[i]);
-            } else if (eng.locomotion[i] == Locomotion.GLIDE) {
-                FishAnimator.applyGliding(poseStack, anim, fishRandom, t, eng.renderYaw[i] + 180f,
-                        eng.bankFraction(i), eng.baseRotations[i], scale, false);
-            } else if (eng.locomotion[i] == Locomotion.DRIFT) {
-                FishAnimator.applyDrifting(poseStack, anim, fishRandom, t, eng.baseRotations[i],
-                        scale, eng.hoverMirrored[i], eng.renderShape[i]);
-            } else if (eng.locomotion[i] == Locomotion.ANCHORED) {
-                FishAnimator.applyAnchored(poseStack, anim, fishRandom, t, eng.baseRotations[i],
-                        scale, eng.hoverMirrored[i], eng.renderShape[i]);
-            } else {
-                // Anything the group's engine demoted to STATIC: pose on game time exactly as the
-                // single-tank path does. Branching on swimmers[] rather than falling through to
-                // applySwimming is what keeps a jellyfish — an UprightFloat, not a
-                // HorizontalSwim — from reaching that cast.
-                FishAnimator.apply(poseStack, anim, fishRandom, t, eng.baseRotations[i], scale,
-                        eng.hoverMirrored[i]);
-            }
-
-            poseStack.scale(scale, scale, scale);
+            GroupFishPose.apply(poseStack, eng, group.anims[i], i, t,
+                    groupOffsetX, groupOffsetY, groupOffsetZ, fishRandom);
 
             itemRenderer.renderStatic(group.stacks[i], ItemDisplayContext.FIXED, state.lightCoords,
                     OverlayTexture.NO_OVERLAY, poseStack, buffers, level, 0);
@@ -526,15 +485,9 @@ public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTank
         };
     }
 
-    /** Animation config + per-species render calibration, resolved together from one profile lookup. */
-    record ResolvedFishRender(FishAnimationConfig animation, float renderCalibration) {
-        private static final ResolvedFishRender DEFAULT = new ResolvedFishRender(
-                FishAnimationConfig.HorizontalSwim.DEFAULT, FishProfile.DEFAULT_RENDER_CALIBRATION);
-    }
-
     /**
      * Same size-to-scale formula the tank uses to draw fish true-to-scale
-     * ({@code size/100 * per-species render_calibration}, see {@link ResolvedFishRender}) — for
+     * ({@code size/100 * per-species render_calibration}, see {@link FishVisuals#resolve}) — for
      * anything else (held items, GUI previews) that wants a caught fish to render at its recorded
      * size. Returns {@code 1.0} (no scaling) for stacks with no recorded size.
      */
@@ -542,7 +495,7 @@ public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTank
         if (!ItemSizeHelper.hasSize(stack)) {
             return 1.0f;
         }
-        return (ItemSizeHelper.getSize(stack) / 100f) * resolveFishRender(stack, level).renderCalibration();
+        return (ItemSizeHelper.getSize(stack) / 100f) * FishVisuals.resolve(stack, level).renderCalibration();
     }
 
     /**
@@ -553,7 +506,7 @@ public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTank
      * modes; other modes (floor/planted/belly-sit species) return 0 — the pose doesn't suit them.
      */
     public static float getHeldItemHangingRollDegrees(ItemStack stack, Level level) {
-        FishAnimationConfig animation = resolveFishRender(stack, level).animation();
+        FishAnimationConfig animation = FishVisuals.resolve(stack, level).animation();
         return switch (animation) {
             case FishAnimationConfig.HorizontalSwim hs -> hangingRoll(hs.headUv(), hs.tailUv(), hs.diagonalTexture());
             case FishAnimationConfig.UprightFloat uf -> hangingRoll(uf.headUv(), uf.tailUv(), uf.diagonalTexture());
@@ -573,24 +526,6 @@ public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTank
         }
         // Live-tunable via /fishtastic pose — see FishermanPoseDebug.
         return diagonalTexture ? FishermanPoseDebug.rollDiagonalDegrees : FishermanPoseDebug.rollStraightDegrees;
-    }
-
-    static ResolvedFishRender resolveFishRender(ItemStack stack, Level level) {
-        if (stack.isEmpty()) return ResolvedFishRender.DEFAULT;
-
-        var itemKey = BuiltInRegistries.ITEM.getResourceKey(stack.getItem());
-        if (itemKey.isEmpty()) return ResolvedFishRender.DEFAULT;
-
-        ResourceKey<FishProfile> profileKey = ResourceKey.create(
-                FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, itemKey.get().location());
-
-        return level.registryAccess()
-                .registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY)
-                .getOptional(profileKey)
-                .map(profile -> new ResolvedFishRender(
-                        profile.animation().orElse(FishAnimationConfig.HorizontalSwim.DEFAULT),
-                        profile.renderCalibration()))
-                .orElse(ResolvedFishRender.DEFAULT);
     }
 
     /** Resolves each placed structure's definition once here (render thread never does registry lookups). */
