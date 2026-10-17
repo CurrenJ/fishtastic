@@ -1565,4 +1565,48 @@ public class FishtasticGameTests {
     public void partyStorageSetsReadsAndClears(GameTestHelper helper) {
         CompanionStorageGameTests.partyStorageSetsReadsAndClears(helper, FishtasticTestSupport.playerSupplier(helper));
     }
+
+    // -------------------------------------------------------------------------
+    // Companion bond gate, bond/rename writes and quest unlocks
+    // -------------------------------------------------------------------------
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionLockedSpeciesRefusesBond(GameTestHelper helper) {
+        CompanionBondGameTests.lockedSpeciesRefusesBond(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionCompleteEntryUnlocksAndNeverReLocks(GameTestHelper helper) {
+        CompanionBondGameTests.completeEntryUnlocksAndNeverReLocks(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionUnlistedNeverUnlocksByCounts(GameTestHelper helper) {
+        CompanionBondGameTests.unlistedSpeciesNeverUnlocksByCounts(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionUnlockQueuesOneBanner(GameTestHelper helper) {
+        CompanionBondGameTests.unlockQueuesOneBanner(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionFakeDescriptionCannotBond(GameTestHelper helper) {
+        CompanionBondGameTests.fakeDescriptionCannotBondAnUncarriedFish(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionRenameSetsAndClearsTheName(GameTestHelper helper) {
+        CompanionBondGameTests.renameSetsAndClearsTheName(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionQuestUnlocksOnlyOnceDone(GameTestHelper helper) {
+        CompanionQuestUnlockGameTests.questUnlocksOnlyOnceDone(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionQuestScanReportsEachSpeciesOnce(GameTestHelper helper) {
+        CompanionQuestUnlockGameTests.questScanReportsEachSpeciesOnce(helper);
+    }
 }
