@@ -1775,4 +1775,117 @@ public class FishtasticGameTests {
         CompanionGameTests.companionIsKeptOnDeath(helper, FishtasticTestSupport.playerSupplier(helper),
                 FishtasticTestSupport.respawnHandoff());
     }
+
+    // ----- Companion groups, profile data and pet-to-pet scenes (stage 4 slice 2) -----
+
+    @GameTest(template = "fishtastic_empty")
+    public void benthicCompanionDataLoads(GameTestHelper helper) {
+        CompanionProfileGameTests.benthicCompanionDataLoads(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void onlyBenthicsDeclareGroundCompanionData(GameTestHelper helper) {
+        CompanionProfileGameTests.onlyBenthicsDeclareGroundCompanionData(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionGroupsFreeSwimmerDuplicatesSchool(GameTestHelper helper) {
+        CompanionGroupsGameTests.freeSwimmerDuplicatesSchool(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionGroupsGroundBenthicsFormTheirFormation(GameTestHelper helper) {
+        CompanionGroupsGameTests.groundBenthicsFormTheirFormation(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionGroupsNonGroupingDuplicatesStaySeparate(GameTestHelper helper) {
+        CompanionGroupsGameTests.nonGroupingDuplicatesStaySeparate(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionGroupsMixedPartyIsAllSolos(GameTestHelper helper) {
+        CompanionGroupsGameTests.mixedPartyIsAllSolos(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionGroupsMixedFreeSwimmersShoal(GameTestHelper helper) {
+        CompanionGroupsGameTests.mixedFreeSwimmersShoal(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionSceneSameSpeciesPairPlaysG1(GameTestHelper helper) {
+        CompanionSceneGameTests.sameSpeciesPairPlaysG1AndTellsBothOwners(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionSceneCooldownGatesRepeats(GameTestHelper helper) {
+        CompanionSceneGameTests.cooldownGatesRepeats(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionSceneNoSceneWhileOwnerInMinigame(GameTestHelper helper) {
+        CompanionSceneGameTests.noSceneWhileOwnerInMinigame(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionSceneNoSceneWhileOwnerHasLineOut(GameTestHelper helper) {
+        CompanionSceneGameTests.noSceneWhileOwnerHasALineOut(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionSceneDifferentFreeSwimmersPlayG2(GameTestHelper helper) {
+        CompanionSceneGameTests.differentFreeSwimmersPlayG2(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionScenePercherPairPlaysNothing(GameTestHelper helper) {
+        CompanionSceneGameTests.percherPairPlaysNothing(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionSceneSameSpeciesPercherPairPlaysNothing(GameTestHelper helper) {
+        CompanionSceneGameTests.sameSpeciesPercherPairPlaysNothing(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionSceneSameSpeciesDrifterPairPlaysNothing(GameTestHelper helper) {
+        CompanionSceneGameTests.sameSpeciesDrifterPairPlaysNothing(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionSceneFreeSwimmersTooCloseForG2(GameTestHelper helper) {
+        CompanionSceneGameTests.freeSwimmersTooCloseForG2(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionSceneOutOfRangePairPlaysNothing(GameTestHelper helper) {
+        CompanionSceneGameTests.outOfRangePairPlaysNothing(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionSceneOneScenePerCompanion(GameTestHelper helper) {
+        CompanionSceneGameTests.oneScenePerCompanion(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionSceneAGroupTakesPartThroughItsLeader(GameTestHelper helper) {
+        CompanionSceneGameTests.aGroupTakesPartThroughItsLeader(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionSceneOneScenePerOwnerPairAtATime(GameTestHelper helper) {
+        CompanionSceneGameTests.oneScenePerOwnerPairAtATime(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionSceneSameSpeciesBeatsFreeSwimmers(GameTestHelper helper) {
+        CompanionSceneGameTests.sameSpeciesPairBeatsFreeSwimmers(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void companionSceneNearbyObserversToldFarOnesNot(GameTestHelper helper) {
+        CompanionSceneGameTests.nearbyObserversAreToldAndFarOnesAreNot(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
 }

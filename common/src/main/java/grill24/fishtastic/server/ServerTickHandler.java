@@ -39,6 +39,14 @@ public class ServerTickHandler {
             Fishtastic.LOGGER.error("Error ticking sunset extension handler", e);
         }
 
+        // Pet-to-pet companion scenes (§10): the server schedules, clients just play
+        try {
+            CompanionGhost.tick(server);
+            CompanionSceneManager.tick(server);
+        } catch (Exception e) {
+            Fishtastic.LOGGER.error("Error ticking companion scene manager", e);
+        }
+
         // Tick fishing minigame managers for all levels
         for (ServerLevel level : server.getAllLevels()) {
             FishingMinigameManager manager = FishingMinigameManager.get(level);
