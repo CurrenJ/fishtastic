@@ -66,6 +66,7 @@ import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.event.TagsUpdatedEvent;
+import grill24.fishtastic.client.ambient.ClientAmbientFish;
 import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
 import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
@@ -152,6 +153,12 @@ public final class FishtasticNeoForgeClient {
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onPlayerJoin);
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onPlayerLeave);
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onTagsUpdated);
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.client.event.RegisterClientCommandsEvent event) ->
+                grill24.fishtastic.client.ambient.AmbientClientCommands.register(event.getDispatcher(),
+                        (source, message) -> source.sendSuccess(() -> net.minecraft.network.chat.Component.literal(message), false)));
+        // Authoritative ambient context responses (Fish in World, Phase 4)
+        grill24.fishtastic.network.AmbientContextResponsePacket.registerClientHandler(
+                grill24.fishtastic.client.ambient.AmbientContextClient::handle);
         // Mark every item usable as a tank cosmetic with a grey tooltip hint
         NeoForge.EVENT_BUS.addListener(FishtasticNeoForgeClient::onItemTooltip);
 
@@ -181,6 +188,8 @@ public final class FishtasticNeoForgeClient {
 
     public static void registerClientReloadListeners(RegisterClientReloadListenersEvent event) {
         event.registerReloadListener(CosmeticTransformLoader.INSTANCE);
+        event.registerReloadListener((net.minecraft.server.packs.resources.ResourceManagerReloadListener) manager ->
+                Minecraft.getInstance().execute(ClientAmbientFish::invalidate));
     }
 
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
@@ -255,6 +264,7 @@ public final class FishtasticNeoForgeClient {
     public static void onPlayerJoin(ClientPlayerNetworkEvent.LoggingIn event) {
         ItemEffectManager.clearCache();
         ClientTankFlocks.clear();
+        ClientAmbientFish.clear();
     }
 
     public static void onPlayerLeave(ClientPlayerNetworkEvent.LoggingOut event) {
@@ -266,12 +276,14 @@ public final class FishtasticNeoForgeClient {
         grill24.fishtastic.network.SetDayRatePacket.resetClientRate();
         CosmeticCaptureClientState.reset();
         ClientTankFlocks.clear();
+        ClientAmbientFish.clear();
     }
 
     public static void onTagsUpdated(TagsUpdatedEvent event) {
         if (event.getUpdateCause() == TagsUpdatedEvent.UpdateCause.CLIENT_PACKET_RECEIVED) {
             ItemEffectManager.clearCache();
             CosmeticObstacles.clearCache();
+            ClientAmbientFish.invalidate();
         }
     }
 
@@ -284,6 +296,7 @@ public final class FishtasticNeoForgeClient {
         Minecraft mc = Minecraft.getInstance();
         // PORT-ONLY: the rendering self-test (inert unless its marker file exists; see RenderSelfTest).
         grill24.fishtastic.client.selftest.RenderSelfTest.tick(mc, "neoforge");
+        ClientAmbientFish.tick();
         if (mc.level != null && !mc.isPaused()) {
             ClientTickHandler.tick(1.0f);
             ClientTankFlocks.tickAll();
@@ -310,6 +323,8 @@ public final class FishtasticNeoForgeClient {
         grill24.fishtastic.client.companion.ClientCompanions.submitWorld(event.getPoseStack(),
                 Minecraft.getInstance().renderBuffers().bufferSource(),
                 event.getPartialTick().getGameTimeDeltaPartialTick(false));
+        ClientAmbientFish.submitWorld(event.getPoseStack(), Minecraft.getInstance().renderBuffers().bufferSource(),
+                event.getFrustum(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
         // Highlight the tank cell a held cosmetic would be placed in
         CosmeticPlacementPreview.render(event.getPoseStack(),
                 Minecraft.getInstance().renderBuffers().bufferSource(), event.getCamera().getPosition());

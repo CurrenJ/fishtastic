@@ -61,6 +61,7 @@ import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
+import grill24.fishtastic.client.ambient.ClientAmbientFish;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.minecraft.server.packs.PackType;
 import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin;
@@ -122,6 +123,20 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             }
         });
 
+        // Fish in world: drop the cached ambient water and species data on a resource reload.
+        ResourceManagerHelper.get(PackType.CLIENT_RESOURCES).registerReloadListener(
+                new net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener() {
+                    @Override
+                    public ResourceLocation getFabricId() {
+                        return Ids.of("fishtastic", "ambient_fish");
+                    }
+
+                    @Override
+                    public void onResourceManagerReload(net.minecraft.server.packs.resources.ResourceManager manager) {
+                        Minecraft.getInstance().execute(ClientAmbientFish::invalidate);
+                    }
+                });
+
         // The fish tank's block and item model (26.1.2 registers a blockstate model type and an item
         // model type instead; the blockstate redirect scan runs inside the tank's own bake, see
         // FishTankGeometry).
@@ -149,6 +164,12 @@ public final class FishtasticFabricClient implements ClientModInitializer {
 
         // Register network packets (client-side)
         FabricPacketRegistrar.registerClientReceiver();
+        net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback.EVENT.register((dispatcher, buildContext) ->
+                grill24.fishtastic.client.ambient.AmbientClientCommands.register(dispatcher,
+                        (source, message) -> source.sendFeedback(net.minecraft.network.chat.Component.literal(message))));
+        // Authoritative ambient context responses (Fish in World, Phase 4)
+        grill24.fishtastic.network.AmbientContextResponsePacket.registerClientHandler(
+                grill24.fishtastic.client.ambient.AmbientContextClient::handle);
 
         // PORT-ONLY: Fishtastic's core shader programs (26.1 builds RenderPipelines instead).
         CoreShaderRegistrationCallback.EVENT.register(context -> FishtasticShaders.registerAll(context::register));
@@ -241,6 +262,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             ItemEffectManager.clearCache();
             ClientTankFlocks.clear();
+            ClientAmbientFish.clear();
         });
         // Reset quest client cache and tutorial overlay on disconnect so stale data/UI doesn't persist across worlds
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
@@ -252,11 +274,13 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             grill24.fishtastic.network.SetDayRatePacket.resetClientRate();
             CosmeticCaptureClientState.reset();
             ClientTankFlocks.clear();
+            ClientAmbientFish.clear();
         });
         CommonLifecycleEvents.TAGS_LOADED.register((registries, isClient) -> {
             if (isClient) {
                 ItemEffectManager.clearCache();
                 CosmeticObstacles.clearCache();
+                ClientAmbientFish.invalidate();
             }
         });
 
@@ -265,6 +289,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
 
         // Register client tick event handler for animations
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            ClientAmbientFish.tick();
             if (client.level != null && !client.isPaused()) {
                 ClientTickHandler.tick(1.0f);
                 ClientTankFlocks.tickAll();
@@ -288,6 +313,8 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             CosmeticCaptureClientState.render(pose, consumers, context.camera().getPosition());
             // Fish companions draw here: PORT-ONLY, 1.21.1 has no submit queue (26.1's COLLECT_SUBMITS).
             grill24.fishtastic.client.companion.ClientCompanions.submitWorld(pose, consumers,
+                    context.tickCounter().getGameTimeDeltaPartialTick(false));
+            ClientAmbientFish.submitWorld(pose, consumers, context.frustum(),
                     context.tickCounter().getGameTimeDeltaPartialTick(false));
             // Highlight the tank cell a held cosmetic would be placed in
             CosmeticPlacementPreview.render(pose, consumers, context.camera().getPosition());
