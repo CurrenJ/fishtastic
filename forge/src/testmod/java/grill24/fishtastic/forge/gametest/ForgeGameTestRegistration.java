@@ -26,6 +26,7 @@ public final class ForgeGameTestRegistration {
     @SubscribeEvent
     public static void onRegisterGameTests(RegisterGameTestsEvent event) {
         FishtasticTestSupport.installPlayerFactory(ForgeTestPlayers::create);
+        FishtasticTestSupport.installRespawnHandoff((before, after) -> after.restoreFrom(before, false));
         event.register(FishtasticGameTests.class);
     }
 }
