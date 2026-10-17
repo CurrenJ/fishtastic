@@ -168,6 +168,10 @@ public final class FishtasticFabricClient implements ClientModInitializer {
 
         // Register companion bond/rename feedback handler (tutorial and scene handlers arrive with F15/F11)
         grill24.fishtastic.network.CompanionFeedbackPacket.registerClientHandler(grill24.fishtastic.client.CompanionClientState.PACKET_HANDLER);
+        grill24.fishtastic.network.CompanionScenePacket.registerClientHandler(packet ->
+                grill24.fishtastic.client.companion.ClientCompanions.onScenePacket(
+                        packet.scene(), packet.first(), packet.firstSlot(), packet.second(), packet.secondSlot(),
+                        packet.startTime()));
 
         // Register fish encyclopedia sync packet client handler
         FishEncyclopediaSyncPacket.registerClientHandler(packet ->
@@ -264,6 +268,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             if (client.level != null && !client.isPaused()) {
                 ClientTickHandler.tick(1.0f);
                 ClientTankFlocks.tickAll();
+                grill24.fishtastic.client.companion.ClientCompanions.tick();
                 TutorialClientHandler.tick();
                 // Handle key presses
                 FishtasticKeyBinds.handleKeyPress(client);
@@ -281,6 +286,9 @@ public final class FishtasticFabricClient implements ClientModInitializer {
                 return;
             }
             CosmeticCaptureClientState.render(pose, consumers, context.camera().getPosition());
+            // Fish companions draw here: PORT-ONLY, 1.21.1 has no submit queue (26.1's COLLECT_SUBMITS).
+            grill24.fishtastic.client.companion.ClientCompanions.submitWorld(pose, consumers,
+                    context.tickCounter().getGameTimeDeltaPartialTick(false));
             // Highlight the tank cell a held cosmetic would be placed in
             CosmeticPlacementPreview.render(pose, consumers, context.camera().getPosition());
         });
@@ -291,6 +299,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         // quest notifications on top. That relative order is what those registrations existed for.
         // With no screen open they're drawn after vanilla's toasts instead (FishtasticHudLayers).
         HudRenderCallback.EVENT.register((graphics, deltaTracker) -> {
+            grill24.fishtastic.client.companion.ClientCompanionsDev.renderHud(graphics, deltaTracker.getGameTimeDeltaPartialTick(false));
             if (FishtasticHudLayers.drawnInHudPass()) {
                 FishtasticHudLayers.render(graphics, deltaTracker.getGameTimeDeltaPartialTick(false));
             }

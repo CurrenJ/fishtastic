@@ -100,6 +100,10 @@ public final class FishtasticNeoForgeClient {
 
         // Register companion bond/rename feedback handler (tutorial and scene handlers arrive with F15/F11)
         grill24.fishtastic.network.CompanionFeedbackPacket.registerClientHandler(grill24.fishtastic.client.CompanionClientState.PACKET_HANDLER);
+        grill24.fishtastic.network.CompanionScenePacket.registerClientHandler(packet ->
+                grill24.fishtastic.client.companion.ClientCompanions.onScenePacket(
+                        packet.scene(), packet.first(), packet.firstSlot(), packet.second(), packet.secondSlot(),
+                        packet.startTime()));
 
         // Register fish encyclopedia sync packet client handler
         FishEncyclopediaSyncPacket.registerClientHandler(packet ->
@@ -283,6 +287,7 @@ public final class FishtasticNeoForgeClient {
         if (mc.level != null && !mc.isPaused()) {
             ClientTickHandler.tick(1.0f);
             ClientTankFlocks.tickAll();
+            grill24.fishtastic.client.companion.ClientCompanions.tick();
             TutorialClientHandler.tick();
             // Handle key presses
             FishtasticKeyBinds.handleKeyPress(mc);
@@ -301,6 +306,10 @@ public final class FishtasticNeoForgeClient {
         }
         CosmeticCaptureClientState.render(event.getPoseStack(),
                 Minecraft.getInstance().renderBuffers().bufferSource(), event.getCamera().getPosition());
+        // Fish companions draw here: PORT-ONLY, 1.21.1 has no submit queue (26.1's SubmitCustomGeometryEvent).
+        grill24.fishtastic.client.companion.ClientCompanions.submitWorld(event.getPoseStack(),
+                Minecraft.getInstance().renderBuffers().bufferSource(),
+                event.getPartialTick().getGameTimeDeltaPartialTick(false));
         // Highlight the tank cell a held cosmetic would be placed in
         CosmeticPlacementPreview.render(event.getPoseStack(),
                 Minecraft.getInstance().renderBuffers().bufferSource(), event.getCamera().getPosition());
@@ -318,6 +327,7 @@ public final class FishtasticNeoForgeClient {
     }
 
     public static void onRenderGui(RenderGuiEvent.Post event) {
+        grill24.fishtastic.client.companion.ClientCompanionsDev.renderHud(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
         // PORT-ONLY: with no screen open, drawn after vanilla's toasts instead (FishtasticHudLayers).
         if (!FishtasticHudLayers.drawnInHudPass()) return;
         // The fishing minigame, then the quest progress notifications over it
