@@ -1075,8 +1075,13 @@ public class FishtasticGameTests {
     }
 
     @GameTest(template = "fishtastic_empty")
-    public void partialThresholdsFillRemainingDefaults(GameTestHelper helper) {
-        FishEncyclopediaEntryGameTests.partialThresholdsFillRemainingDefaults(helper);
+    public void legacyThresholdsBlockIsIgnored(GameTestHelper helper) {
+        FishEncyclopediaEntryGameTests.legacyThresholdsBlockIsIgnored(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void everyFishGetsDerivedThresholdsWithinCap(GameTestHelper helper) {
+        FishEncyclopediaEntryGameTests.everyFishGetsDerivedThresholdsWithinCap(helper);
     }
 
     @GameTest(template = "fishtastic_empty")

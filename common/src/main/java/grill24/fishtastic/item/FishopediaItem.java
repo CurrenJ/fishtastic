@@ -7,6 +7,7 @@ import grill24.fishtastic.client.FishEncyclopediaClientCache;
 import grill24.fishtastic.client.FishtasticKeyBinds;
 import grill24.fishtastic.compat.GelatinOpenMenuCompat;
 import grill24.fishtastic.data.EncyclopediaRewardSection;
+import grill24.fishtastic.data.EncyclopediaTiers;
 import grill24.fishtastic.data.FishEncyclopediaEntry;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.network.FishEncyclopediaSyncPacket;
@@ -96,7 +97,7 @@ public class FishopediaItem extends Item {
             int catchCount = catchData.getCatchCount(key, fishId);
             if (catchCount <= 0) continue;
 
-            FishEncyclopediaEntry.UnlockThresholds thresholds = getThresholds(server, fishKey);
+            FishEncyclopediaEntry.UnlockThresholds thresholds = EncyclopediaTiers.thresholdsFor(server.registryAccess(), fishKey);
             for (EncyclopediaRewardSection section : EncyclopediaRewardSection.values()) {
                 if (catchCount >= section.threshold(thresholds) && !questState.isEncyclopediaRewardClaimed(fishId, section)) {
                     return true;
@@ -104,18 +105,6 @@ public class FishopediaItem extends Item {
             }
         }
         return false;
-    }
-
-    private static FishEncyclopediaEntry.UnlockThresholds getThresholds(MinecraftServer server, ResourceKey<FishProfile> fishKey) {
-        try {
-            Registry<FishEncyclopediaEntry> registry =
-                    server.registryAccess().registryOrThrow(FishtasticRegistries.FISH_ENCYCLOPEDIA_ENTRY_REGISTRY_KEY);
-            ResourceKey<FishEncyclopediaEntry> entryKey =
-                    ResourceKey.create(FishtasticRegistries.FISH_ENCYCLOPEDIA_ENTRY_REGISTRY_KEY, fishKey.location());
-            return registry.getOptional(entryKey).map(FishEncyclopediaEntry::thresholds).orElse(FishEncyclopediaEntry.UnlockThresholds.DEFAULT);
-        } catch (Exception e) {
-            return FishEncyclopediaEntry.UnlockThresholds.DEFAULT;
-        }
     }
 
     @Override

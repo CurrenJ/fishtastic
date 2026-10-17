@@ -1,11 +1,3 @@
 {
-  "lore": "The sulphur molly, also known as molly del Teapa, is a species of poeciliid fish. It is endemic to certain Mexican sulfur springs, surviving in the concentrated hydrogen sulfide that most other fish cannot.",
-  "thresholds": {
-    "name_reveal_catches": 1,
-    "stats_catches": 2,
-    "types_catches": 5,
-    "spawn_conditions_catches": 2,
-    "lore_catches": 15
-  }
+  "lore": "The sulphur molly, also known as molly del Teapa, is a species of poeciliid fish. It is endemic to certain Mexican sulfur springs, surviving in the concentrated hydrogen sulfide that most other fish cannot."
 }
-
