@@ -9,6 +9,7 @@ import grill24.fishtastic.component.HeadProfile;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
@@ -125,6 +126,27 @@ public final class FishtasticItemData {
     }
 
     // ── Vanilla item data ─────────────────────────────────────────────────
+    /** The player-given name, or null if the stack has none (NBT {@code display.Name} on 1.20.1). */
+    @Nullable
+    public static Component customName(ItemStack stack) {
+        return stack.hasCustomHoverName() ? stack.getHoverName() : null;
+    }
+
+    /** A null name clears the custom name, restoring the species/item name. */
+    public static void setCustomName(ItemStack stack, @Nullable Component name) {
+        stack.setHoverName(name);
+    }
+
+    public static boolean isFood(ItemStack stack) {
+        return stack.isEdible();
+    }
+
+    /** Optional custom tooltip background; there is no tooltip-style component before 1.21.2, so always null. */
+    @Nullable
+    public static ResourceLocation tooltipStyle(ItemStack stack) {
+        return null;
+    }
+
 
     /** A pile's (bundle-style) contents, or null if the stack has none. */
     @Nullable
