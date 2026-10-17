@@ -28,6 +28,7 @@ public final class FishtasticFabric implements ModInitializer {
     public void onInitialize() {
         // Set up mod initialization logic here
         CommandRegistrationFabric.register();
+        grill24.fishtastic.companion.fabric.CompanionStorageImpl.register();
 
         // Register synced datapack registries
         DynamicRegistries.registerSynced(FishtasticRegistries.ITEM_EFFECT_REGISTRY_KEY, ItemEffect.CODEC);

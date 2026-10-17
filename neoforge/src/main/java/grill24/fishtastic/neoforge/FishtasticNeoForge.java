@@ -43,6 +43,7 @@ public final class FishtasticNeoForge {
         // Call modloader-specific static method to register items to our deferred register
         FishtasticItems.registerItems();
         FishtasticRegistriesNeoForge.ITEMS.register(modEventBus);
+        grill24.fishtastic.companion.neoforge.CompanionStorageImpl.register(modEventBus);
 
         FishtasticBlocks.registerBlocks();
         FishtasticRegistriesNeoForge.BLOCKS.register(modEventBus);

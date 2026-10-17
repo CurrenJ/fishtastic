@@ -131,6 +131,11 @@ public final class FishtasticItemData {
         return ItemStack.isSameItemSameComponents(a, b);
     }
 
+    /** Same item, item data and count, including vanilla's empty-stack semantics. */
+    public static boolean matches(ItemStack a, ItemStack b) {
+        return ItemStack.matches(a, b);
+    }
+
     // ── Vanilla item data ─────────────────────────────────────────────────
 
     /** A pile's (bundle-style) contents, or null if the stack has none. */
