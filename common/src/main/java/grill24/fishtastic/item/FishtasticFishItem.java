@@ -13,6 +13,7 @@ import grill24.fishtastic.data.FishMoonPhase;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.block.FishPileBlock;
 import grill24.fishtastic.block.FishTankBlock;
+import grill24.fishtastic.server.FishingPoolResolver;
 import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
 import grill24.fishtastic.util.MathUtil;
@@ -32,7 +33,6 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.storage.loot.LootParams;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
@@ -73,7 +73,14 @@ public class FishtasticFishItem extends Item {
         super(properties);
     }
 
-    protected int getAdditionalWeight(LootParams lootParams) {
+    /**
+     * Extra weight this species adds on top of its base/profile weight, in raw weight units. The
+     * only hook-dependent input any species has is the personal-equipment input (carried diamonds),
+     * and since the Phase 3 extraction it arrives as an explicit int rather than through
+     * {@code LootParams} — see {@link AcuteIapsisItem} and
+     * {@link grill24.fishtastic.server.FishingPoolResolver.PersonalEquipment}.
+     */
+    protected int getAdditionalWeight(int diamondBonus) {
         return 0;
     }
 
@@ -166,53 +173,61 @@ public class FishtasticFishItem extends Item {
 
     // ----- Loot Sampling -----
 
+    /**
+     * Draws one reward stack from an already-resolved pool, preserving the pre-Phase-3 RNG contract
+     * exactly: one {@code nextInt(totalWeight)} for the species draw, then the quality roll, then
+     * the size roll. The weights come in on {@code candidates} (pool order, from
+     * {@link grill24.fishtastic.server.FishingPoolResolver}) rather than being recomputed here, so
+     * species selection can never disagree with what any preview showed for the same context.
+     */
     public static ItemStack sampleRandomFish(
             RandomSource randomSource,
-            LootParams lootParams,
-            List<Holder<Item>> fishItems,
+            List<FishingPoolResolver.WeightedFish> candidates,
             Registry<FishProfile> fishProfileRegistry,
-            Holder<Biome> biome,
-            FishProfile.TimeOfDay timeOfDay,
-            FishProfile.WeatherCondition weather,
-            FishMoonPhase moonPhase,
-            float qualityBias,
-            @Nullable BaitEffect baitEffect,
-            @Nullable CharmEffect charmEffect
+            float qualityBias
     ) {
-        if (fishItems.isEmpty()) return ItemStack.EMPTY;
+        if (candidates.isEmpty()) return ItemStack.EMPTY;
 
-        List<Integer> weights = fishItems.stream()
-                .map(h -> getFishingLootWeight(h, lootParams, fishProfileRegistry, biome, timeOfDay, weather, moonPhase, baitEffect, charmEffect))
-                .toList();
-        int totalWeight = weights.stream().mapToInt(Integer::intValue).sum();
+        int totalWeight = 0;
+        for (FishingPoolResolver.WeightedFish candidate : candidates) {
+            totalWeight += candidate.weight();
+        }
         if (totalWeight <= 0) return ItemStack.EMPTY;
 
         int r = randomSource.nextInt(totalWeight);
-        for (int i = 0; i < fishItems.size(); i++) {
-            r -= weights.get(i);
+        for (FishingPoolResolver.WeightedFish candidate : candidates) {
+            r -= candidate.weight();
             if (r < 0) {
-                Holder<Item> fishHolder = fishItems.get(i);
-                ItemStack stack = new ItemStack(fishHolder);
+                ItemStack stack = new ItemStack(candidate.item());
                 FishQuality.Quality quality = sampleRandomQuality(randomSource, qualityBias);
                 applyQualityAndSize(stack, quality, randomSource, fishProfileRegistry);
                 return stack;
             }
         }
 
-        return new ItemStack(fishItems.get(0));
+        return new ItemStack(candidates.get(0).item());
     }
 
+    /**
+     * Final raw weight of one candidate species under a resolved environment and equipment set, or
+     * {@code 0}-floored-to-{@code 1} for everything the mod ships today. See
+     * {@link FishingPoolResolver} for the split between species-affecting and downstream inputs;
+     * {@code diamondBonus} is the personal-equipment input that only
+     * {@link AcuteIapsisItem} consumes today.
+     */
     public static int getFishingLootWeight(
             Holder<Item> item,
-            LootParams lootParams,
             Registry<FishProfile> fishProfileRegistry,
-            Holder<Biome> biome,
-            FishProfile.TimeOfDay timeOfDay,
-            FishProfile.WeatherCondition weather,
-            FishMoonPhase moonPhase,
+            FishingPoolResolver.EnvironmentContext environment,
             @Nullable BaitEffect baitEffect,
-            @Nullable CharmEffect charmEffect
+            @Nullable CharmEffect charmEffect,
+            int diamondBonus
     ) {
+        FishProfile.TimeOfDay timeOfDay = environment.timeOfDay();
+        Holder<Biome> biome = environment.biome();
+        FishProfile.WeatherCondition weather = environment.weather();
+        FishMoonPhase moonPhase = environment.moonPhase();
+
         float nightMult = (charmEffect != null && timeOfDay == FishProfile.TimeOfDay.NIGHT)
                 ? charmEffect.nightMultiplierBonus() : 1.0f;
         float charmGroupMult = 1.0f;
@@ -223,12 +238,12 @@ public class FishtasticFishItem extends Item {
         }
 
         if (item.value() instanceof FishtasticFishItem fishItem) {
-            int baseWeight = FishProfile.DEFAULT_BASE_WEIGHT + fishItem.getAdditionalWeight(lootParams);
+            int baseWeight = FishProfile.DEFAULT_BASE_WEIGHT + fishItem.getAdditionalWeight(diamondBonus);
             float environmentMult = 1.0f;
 
             FishProfile profile = getProfile(item, fishProfileRegistry).orElse(null);
             if (profile != null) {
-                baseWeight = profile.baseWeight() + fishItem.getAdditionalWeight(lootParams);
+                baseWeight = profile.baseWeight() + fishItem.getAdditionalWeight(diamondBonus);
                 environmentMult = profile.computeEnvironmentMultiplier(biome, timeOfDay, weather, moonPhase);
             }
 

@@ -49,6 +49,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.FishingHook;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -60,6 +61,7 @@ import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -265,29 +267,40 @@ public class FishingMinigameManager {
         // Decided now, once, rather than at completion — see ActiveSession#baitWillBeSaved.
         boolean baitWillBeSaved = rollBaitWillBeSaved(player, charmEffect);
 
-        List<ServerFishingTarget> targets = generateTargets(player, difficultyModifier, baitEffect, hookEffect, charmEffect);
+        GeneratedTargets generated = generateTargets(player, difficultyModifier, baitEffect, hookEffect, charmEffect);
+        List<ServerFishingTarget> targets = generated.targets();
 
         boolean revealTopWeightedFish = (charmEffect != null && charmEffect.showTopWeightedFish())
                 || hasCharmEffectInInventory(player, CharmEffect::showTopWeightedFish);
         List<ItemStack> topWeightedFishPreview = revealTopWeightedFish
-                ? computeTopWeightedFish(player, baitEffect, charmEffect)
+                ? computeTopWeightedFish(generated.species())
                 : List.of();
 
-        // Capture environment context at hook position for quest tracking
+        // Capture environment context at hook position for quest tracking. The species context the
+        // targets were generated from already carries the exact environment it resolved for, so
+        // reuse it rather than resolving the world a second time; only the no-hook fallback (target
+        // generation returned nothing) has to sample the environment here.
         FishingHook sessionHook = player.fishing;
         BlockPos sessionPos = sessionHook != null
                 ? BlockPos.containing(sessionHook.position())
                 : player.blockPosition();
-        Holder<Biome> sessionBiome = level.getBiome(sessionPos);
-        FishProfile.TimeOfDay sessionTimeOfDay = charmEffect != null && charmEffect.forceNightFishing()
-                ? FishProfile.TimeOfDay.NIGHT
-                : FishProfile.TimeOfDay.fromGameTime(level.getDayTime());
-        FishProfile.WeatherCondition sessionWeather = FishProfile.WeatherCondition.fromLevel(level, sessionPos);
-        Set<FishProfile.Zone> sessionZones = FishProfile.Zone.resolve(sessionBiome, sessionPos.getY(), level.getSeaLevel());
+        FishingPoolResolver.EnvironmentContext sessionEnvironment = generated.species() != null
+                ? generated.species().environment()
+                : FishingPoolResolver.resolveEnvironment(level, sessionPos, charmEffect);
 
         ResourceLocation sessionBaitId = bait.isEmpty() ? null : BuiltInRegistries.ITEM.getKey(bait.getItem());
+        FishingPoolResolver.SessionSnapshot snapshot = null;
+        if (generated.species() != null) {
+            // The origin the pool was actually resolved at (carried out of generateTargetsForOrigin),
+            // not a re-derivation that could disagree with it.
+            Vec3 sessionOrigin = Objects.requireNonNull(generated.origin(),
+                    "a resolved species context always carries the origin it resolved at");
+            snapshot = new FishingPoolResolver.SessionSnapshot(sessionOrigin,
+                    rod.isEmpty() ? null : BuiltInRegistries.ITEM.getKey(rod.getItem()),
+                    generated.inputs(), generated.species());
+        }
         ActiveSession session = new ActiveSession(sessionId, playerId, targets, level.getGameTime(),
-                sessionBiome, sessionTimeOfDay, sessionWeather, sessionZones, baitWillBeSaved, sessionBaitId);
+                sessionEnvironment, baitWillBeSaved, sessionBaitId, snapshot);
         activeSessions.put(playerId, session);
 
         List<StartFishingMinigamePacket.TargetData> targetData = new ArrayList<>();
@@ -304,8 +317,8 @@ public class FishingMinigameManager {
         Set<ResourceLocation> undiscovered = computeUndiscoveredSpecies(player, targets, topWeightedFishPreview);
 
         sendToPlayer(player, new StartFishingMinigamePacket(
-                sessionId, targetData, false, topWeightedFishPreview, sessionZones, undiscovered, baitWillBeSaved,
-                resolveBarContext(level, sessionPos, sessionBiome)));
+                sessionId, targetData, false, topWeightedFishPreview, sessionEnvironment.zones(), undiscovered,
+                baitWillBeSaved, resolveBarContext(level, sessionPos, sessionEnvironment.biome())));
         TutorialManager.onMinigameStarted(player);
 
         Fishtastic.LOGGER.info("Started fishing minigame session {} for player {} with {} targets",
@@ -348,9 +361,15 @@ public class FishingMinigameManager {
                 ? BlockPos.containing(hook.position())
                 : player.blockPosition();
         Holder<net.minecraft.world.level.biome.Biome> biome = level.getBiome(tutorialPos);
+        // The tutorial hands out a scripted fish, so no species context is ever resolved or stored
+        // for it; the environment fields below only feed quest tracking and the bar flavour, and are
+        // gathered exactly as before. (The charm is read from the rod for bait-save purposes only,
+        // and is deliberately not allowed to force night here — the tutorial never did that.)
         FishProfile.TimeOfDay timeOfDay = FishProfile.TimeOfDay.fromGameTime(level.getDayTime());
         FishProfile.WeatherCondition weather = FishProfile.WeatherCondition.fromLevel(level, tutorialPos);
         Set<FishProfile.Zone> tutorialZones = FishProfile.Zone.resolve(biome, tutorialPos.getY(), level.getSeaLevel());
+        FishingPoolResolver.EnvironmentContext tutorialEnvironment = new FishingPoolResolver.EnvironmentContext(
+                biome, timeOfDay, weather, FishMoonPhase.at(level, tutorialPos), tutorialZones);
 
         ItemStack tutorialRod = findFishtasticRod(player);
         ItemStack tutorialCharmStack = tutorialRod.isEmpty() ? ItemStack.EMPTY : CopperFishingRod.getCharm(tutorialRod);
@@ -358,7 +377,7 @@ public class FishingMinigameManager {
         boolean baitWillBeSaved = rollBaitWillBeSaved(player, tutorialCharmEffect);
 
         ActiveSession session = new ActiveSession(sessionId, playerId, targets,
-                level.getGameTime(), biome, timeOfDay, weather, tutorialZones, baitWillBeSaved);
+                level.getGameTime(), tutorialEnvironment, baitWillBeSaved, null, null);
         activeSessions.put(playerId, session);
 
         // The tutorial hands out a scripted fish; it must never be dressed up as a discovery, so
@@ -426,8 +445,8 @@ public class FishingMinigameManager {
         // Batch quest tracking — only one sync packet for all catches in this session
         if (!result.questStacks().isEmpty()) {
             QuestTracker.onCatchBatch(level.getServer(), player, result.questStacks(),
-                    session.hookBiome, session.hookTimeOfDay, session.hookWeather, session.hookZones,
-                    session.hookBaitId);
+                    session.environment.biome(), session.environment.timeOfDay(), session.environment.weather(),
+                    session.environment.zones(), session.hookBaitId);
         }
 
         TutorialManager.onMinigameComplete(player);
@@ -545,10 +564,13 @@ public class FishingMinigameManager {
 
         BlockPos originBlockPos = player.blockPosition();
         net.minecraft.world.phys.Vec3 originPos = net.minecraft.world.phys.Vec3.atCenterOf(originBlockPos);
-        Holder<Biome> biome = level.getBiome(originBlockPos);
-        FishProfile.TimeOfDay timeOfDay = FishProfile.TimeOfDay.fromGameTime(level.getDayTime());
-        FishProfile.WeatherCondition weather = FishProfile.WeatherCondition.fromLevel(level, originBlockPos);
-        Set<FishProfile.Zone> zones = FishProfile.Zone.resolve(biome, originBlockPos.getY(), level.getSeaLevel());
+        // No charm in a bulk simulation, so this is plain game time / weather / zones at the player.
+        FishingPoolResolver.EnvironmentContext simulationEnvironment =
+                FishingPoolResolver.resolveEnvironment(level, originBlockPos, null);
+        Holder<Biome> biome = simulationEnvironment.biome();
+        FishProfile.TimeOfDay timeOfDay = simulationEnvironment.timeOfDay();
+        FishProfile.WeatherCondition weather = simulationEnvironment.weather();
+        Set<FishProfile.Zone> zones = simulationEnvironment.zones();
 
         for (int i = 0; i < gameCount; i++) {
             ItemStack rod = findFishtasticRod(player);
@@ -560,7 +582,7 @@ public class FishingMinigameManager {
             CharmEffect charmEffect = charmStack.isEmpty() ? null : FishtasticItemData.get(charmStack, FishtasticDataComponents.CHARM_EFFECT);
 
             List<ServerFishingTarget> targets = generateTargetsForOrigin(
-                    player, originPos, null, 0.0f, difficultyModifier, baitEffect, hookEffect, charmEffect);
+                    player, originPos, null, 0.0f, difficultyModifier, baitEffect, hookEffect, charmEffect).targets();
             if (targets.isEmpty()) continue;
 
             gamesPlayed++;
@@ -624,9 +646,9 @@ public class FishingMinigameManager {
         }
     }
 
-    private List<ServerFishingTarget> generateTargets(ServerPlayer player, float difficultyModifier, @Nullable BaitEffect baitEffect, @Nullable HookEffect hookEffect, @Nullable CharmEffect charmEffect) {
+    private GeneratedTargets generateTargets(ServerPlayer player, float difficultyModifier, @Nullable BaitEffect baitEffect, @Nullable HookEffect hookEffect, @Nullable CharmEffect charmEffect) {
         FishingHook hook = player.fishing;
-        if (hook == null) return new ArrayList<>();
+        if (hook == null) return new GeneratedTargets(new ArrayList<>(), null, null, null);
 
         IFishingHookExtension hookExt = (IFishingHookExtension) hook;
         float luckBonus = baitEffect != null ? baitEffect.luckBonus() : 0.0f;
@@ -638,9 +660,15 @@ public class FishingMinigameManager {
      * Core target-generation logic shared by the real hook-cast path ({@link #generateTargets}) and
      * the admin bulk-simulation path ({@link #simulateFishingGames}), which has no live
      * {@link FishingHook} to read a position/luck bonus from. {@code hook} may be null (simulation);
-     * when present it's threaded into the loot params exactly as the live path always has.
+     * when present it's threaded into the loot params exactly as the live path always has, and it is
+     * also the source of the personal-equipment input (a null hook means neutral equipment, the same
+     * zero the pre-Phase-3 loot params produced).
+     *
+     * <p>The species pool and its weights come from the shared side-effect-free
+     * {@link FishingPoolResolver}, resolved once here and returned alongside the targets so the
+     * caller can snapshot exactly what this cast rolled against without resolving twice.
      */
-    private List<ServerFishingTarget> generateTargetsForOrigin(ServerPlayer player, net.minecraft.world.phys.Vec3 originPos,
+    private GeneratedTargets generateTargetsForOrigin(ServerPlayer player, net.minecraft.world.phys.Vec3 originPos,
             @Nullable FishingHook hook, float extraLuck, float difficultyModifier, @Nullable BaitEffect baitEffect,
             @Nullable HookEffect hookEffect, @Nullable CharmEffect charmEffect) {
         List<ServerFishingTarget> targets = new ArrayList<>();
@@ -655,23 +683,25 @@ public class FishingMinigameManager {
         }
         LootParams lootparams = lootParamsBuilder.create(LootContextParamSets.FISHING);
 
-        // Resolve environment context at the origin position
+        // Resolve environment + species context at the origin position. Deterministic and RNG-free,
+        // so it cannot shift the reward RNG sequence below.
         BlockPos hookPos = BlockPos.containing(originPos);
-        EnvironmentContext env = resolveEnvironment(hookPos, charmEffect);
+        FishingPoolResolver.EnvironmentContext env = FishingPoolResolver.resolveEnvironment(level, hookPos, charmEffect);
+        FishingPoolResolver.Inputs inputs = FishingPoolResolver.Inputs.of(baitEffect, charmEffect,
+                FishingPoolResolver.PersonalEquipment.fromHookOwner(hook));
         Holder<Biome> biome = env.biome();
         FishProfile.TimeOfDay timeOfDay = env.timeOfDay();
         FishProfile.WeatherCondition weather = env.weather();
         FishMoonPhase moonPhase = env.moonPhase();
 
         Registry<FishProfile> fishProfileRegistry = level.registryAccess().registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
+        FishingPoolResolver.SpeciesContext speciesContext = FishingPoolResolver.resolve(
+                level.registryAccess().registryOrThrow(Registries.ITEM), fishProfileRegistry, env, inputs);
+        List<FishingPoolResolver.WeightedFish> fishPool = speciesContext.candidates();
+
         float qualityBias = (baitEffect != null ? baitEffect.qualityBias() : 0.0f)
                 + (hookEffect != null ? hookEffect.qualityBias() : 0.0f);
 
-        boolean vanillaAllowed = baitEffect == null || baitEffect.equals(BaitEffect.NO_BAIT);
-        List<Holder<Item>> fishPool = getFishPool(player, baitEffect).stream()
-                .filter(h -> vanillaAllowed || h.value() instanceof FishtasticFishItem)
-                .filter(h -> FishtasticFishItem.isZoneEligible(h, fishProfileRegistry, env.zone()))
-                .toList();
         List<Holder<Item>> trashPool = getTrashPool(player);
 
         float treasureChance = Math.max(0f, ((baitEffect != null ? baitEffect.treasureChance() : DEFAULT_TREASURE_CHANCE)
@@ -710,8 +740,7 @@ public class FishingMinigameManager {
 
             List<ItemStack> rewardStacks;
             if (isFishReward) {
-                rewardStacks = generateFishRewards(randomSource, lootparams, fishPool,
-                        fishProfileRegistry, biome, timeOfDay, weather, moonPhase, qualityBias, baitEffect, charmEffect, numRewards);
+                rewardStacks = generateFishRewards(randomSource, fishPool, fishProfileRegistry, qualityBias, numRewards);
                 if (forcedQuality != null) {
                     // Restamped after the roll rather than forced during it, so species selection
                     // stays completely natural and only the quality is pinned.
@@ -769,78 +798,30 @@ public class FishingMinigameManager {
             targets.add(new ServerFishingTarget(rewardStacks, category, difficulty, initialPosition, phases));
         }
 
-        return targets;
+        return new GeneratedTargets(targets, speciesContext, inputs, originPos);
     }
 
-    /**
-     * Resolved environment context for a fishing cast: everything downstream weight/zone
-     * computation needs, gathered once at the hook position. {@code zone} is the hard
-     * location gate ({@link FishProfile.Zone#resolve}); the rest feed the soft flavor
-     * multipliers in {@link FishProfile#computeEnvironmentMultiplier}.
-     */
-    private record EnvironmentContext(Holder<Biome> biome, FishProfile.TimeOfDay timeOfDay,
-            FishProfile.WeatherCondition weather, FishMoonPhase moonPhase,
-            Set<FishProfile.Zone> zone) {}
-
-    private EnvironmentContext resolveEnvironment(BlockPos hookPos, @Nullable CharmEffect charmEffect) {
-        Holder<Biome> biome = level.getBiome(hookPos);
-        FishProfile.TimeOfDay timeOfDay = charmEffect != null && charmEffect.forceNightFishing()
-                ? FishProfile.TimeOfDay.NIGHT
-                : FishProfile.TimeOfDay.fromGameTime(level.getDayTime());
-        FishProfile.WeatherCondition weather = FishProfile.WeatherCondition.fromLevel(level, hookPos);
-        FishMoonPhase moonPhase = FishMoonPhase.at(level, hookPos);
-        Set<FishProfile.Zone> zone = FishProfile.Zone.resolve(biome, hookPos.getY(), level.getSeaLevel());
-        return new EnvironmentContext(biome, timeOfDay, weather, moonPhase, zone);
-    }
+    // Environment context, pool filtering and species weighting all live in FishingPoolResolver
+    // (Phase 3) so real fishing, the Almanac preview and ambient snapshots share one implementation.
 
     // Number of top-weighted species the Angler's Almanac reveals, ranked highest-weight first.
     private static final int TOP_WEIGHTED_FISH_PREVIEW_COUNT = 3;
 
     /**
-     * Scans the fish pool under the current hook's environment context and returns the
-     * {@link #TOP_WEIGHTED_FISH_PREVIEW_COUNT} highest-weighted species, ranked descending —
-     * i.e. what {@link FishtasticFishItem#sampleRandomFish} is most likely to roll right now.
-     * Mirrors the environment/pool resolution in {@link #generateTargets} but ranks by weight
-     * instead of drawing a single weighted-random pick. Only called when the equipped charm
-     * (Angler's Almanac) reveals this.
+     * The {@link #TOP_WEIGHTED_FISH_PREVIEW_COUNT} highest-weighted species of the species context
+     * this cast already resolved — i.e. exactly what the targets for this cast were rolled against.
+     * Consumes nothing: no RNG, no second world lookup, and above all no re-resolution, so the
+     * preview can never disagree with the pool the cast actually used. A null context (no live hook)
+     * means no preview, which is the pre-Phase-3 behaviour too.
      */
-    private List<ItemStack> computeTopWeightedFish(ServerPlayer player, @Nullable BaitEffect baitEffect, @Nullable CharmEffect charmEffect) {
-        FishingHook hook = player.fishing;
-        if (hook == null) return List.of();
-        IFishingHookExtension hookExt = (IFishingHookExtension) hook;
+    private List<ItemStack> computeTopWeightedFish(@Nullable FishingPoolResolver.SpeciesContext speciesContext) {
+        if (speciesContext == null) return List.of();
 
-        float luckBonus = baitEffect != null ? baitEffect.luckBonus() : 0.0f;
-        LootParams lootparams = new LootParams.Builder(player.serverLevel())
-                .withParameter(LootContextParams.ORIGIN, hook.position())
-                .withParameter(LootContextParams.TOOL, player.getUseItem())
-                .withParameter(LootContextParams.THIS_ENTITY, hook)
-                .withLuck(hookExt.getLuck() + player.getLuck() + luckBonus)
-                .create(LootContextParamSets.FISHING);
-
-        BlockPos hookPos = BlockPos.containing(hook.position());
-        EnvironmentContext env = resolveEnvironment(hookPos, charmEffect);
-
-        Registry<FishProfile> fishProfileRegistry = level.registryAccess().registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
-        boolean vanillaAllowed = baitEffect == null || baitEffect.equals(BaitEffect.NO_BAIT);
-        List<Holder<Item>> fishPool = getFishPool(player, baitEffect).stream()
-                .filter(h -> vanillaAllowed || h.value() instanceof FishtasticFishItem)
-                .filter(h -> FishtasticFishItem.isZoneEligible(h, fishProfileRegistry, env.zone()))
-                .toList();
-
-        record WeightedFish(Holder<Item> holder, int weight) {}
-        List<WeightedFish> ranked = new ArrayList<>();
-        for (Holder<Item> candidate : fishPool) {
-            int weight = FishtasticFishItem.getFishingLootWeight(
-                    candidate, lootparams, fishProfileRegistry, env.biome(), env.timeOfDay(), env.weather(), env.moonPhase(), baitEffect, charmEffect);
-            if (weight > 0) {
-                ranked.add(new WeightedFish(candidate, weight));
-            }
-        }
-        ranked.sort(Comparator.comparingInt(WeightedFish::weight).reversed());
-
-        List<ItemStack> top = new ArrayList<>(TOP_WEIGHTED_FISH_PREVIEW_COUNT);
-        for (int i = 0; i < ranked.size() && i < TOP_WEIGHTED_FISH_PREVIEW_COUNT; i++) {
-            top.add(new ItemStack(ranked.get(i).holder()));
+        List<FishingPoolResolver.WeightedFish> ranked =
+                FishingPoolResolver.topWeighted(speciesContext, TOP_WEIGHTED_FISH_PREVIEW_COUNT);
+        List<ItemStack> top = new ArrayList<>(ranked.size());
+        for (FishingPoolResolver.WeightedFish candidate : ranked) {
+            top.add(new ItemStack(candidate.item()));
         }
         return top;
     }
@@ -1006,45 +987,28 @@ public class FishingMinigameManager {
         if (catchDb.getCatchCount(playerKey, id) == 0) out.add(id);
     }
 
-    private static @NotNull List<Holder<Item>> getFishPool(ServerPlayer player, @Nullable BaitEffect baitEffect) {
-        Optional<net.minecraft.tags.TagKey<Item>> exclusivePool = baitEffect != null
-                ? baitEffect.exclusiveFishPool()
-                : Optional.empty();
-
-        List<Holder<Item>> result = new ArrayList<>();
-        for (Holder<Item> holder : player.level().registryAccess().registryOrThrow(Registries.ITEM).getTagOrEmpty(ItemTags.FISHES)) {
-            if (exclusivePool.isEmpty() || holder.is(exclusivePool.get())) {
-                result.add(holder);
-            }
-        }
-        return result;
-    }
-
     private static List<ItemStack> generateFishRewards(
             RandomSource randomSource,
-            LootParams lootParams,
-            List<Holder<Item>> fishPool,
+            List<FishingPoolResolver.WeightedFish> fishPool,
             Registry<FishProfile> fishProfileRegistry,
-            Holder<Biome> biome,
-            FishProfile.TimeOfDay timeOfDay,
-            FishProfile.WeatherCondition weather,
-            FishMoonPhase moonPhase,
             float qualityBias,
-            @Nullable BaitEffect baitEffect,
-            @Nullable CharmEffect charmEffect,
             int numRewards
     ) {
         List<ItemStack> rewardStacks = new ArrayList<>();
         for (int n = 0; n < numRewards; n++) {
             ItemStack reward = FishtasticFishItem.sampleRandomFish(
-                    randomSource, lootParams, fishPool,
-                    fishProfileRegistry, biome, timeOfDay, weather, moonPhase, qualityBias, baitEffect, charmEffect);
+                    randomSource, fishPool, fishProfileRegistry, qualityBias);
             if (!reward.isEmpty()) rewardStacks.add(reward);
         }
         return rewardStacks;
     }
 
-    private static ItemStack findFishtasticRod(ServerPlayer player) {
+    /**
+     * The rod a cast would use: the main hand first, then the offhand, else empty. Public and
+     * {@link Player}-typed so the client-side ambient context manager (Phase 4) asks the same
+     * question of the same rule rather than re-implementing hand order.
+     */
+    public static ItemStack findFishtasticRod(Player player) {
         if (player.getMainHandItem().is(FishtasticItemTags.FISHING_RODS)) {
             return player.getMainHandItem();
         }
@@ -1208,20 +1172,48 @@ public class FishingMinigameManager {
 
         Holder<Biome> biome = level.getBiome(player.blockPosition());
         Set<FishProfile.Zone> zones = FishProfile.Zone.resolve(biome, player.blockPosition().getY(), level.getSeaLevel());
+        // Test-seeded sessions never resolve a pool, so they carry no species snapshot.
+        FishingPoolResolver.EnvironmentContext environment = new FishingPoolResolver.EnvironmentContext(biome,
+                FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR,
+                FishMoonPhase.at(level, player.blockPosition()), zones);
         activeSessions.put(playerId, new ActiveSession(sessionId, playerId, targets, level.getGameTime(),
-                biome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, zones, false));
+                environment, false, null, null));
         return sessionId;
     }
+
+    /**
+     * Read-only inspection seam for the species snapshot a session captured at cast time (Phase 3):
+     * the environment, inputs and resolved candidate weights its targets were rolled from, plus the
+     * origin they were resolved at and the rod that was used. Null for sessions that never resolved
+     * a pool (tutorial, test-seeded). Phase 4 serves ambient snapshots from here.
+     */
+    @Nullable
+    public FishingPoolResolver.SessionSnapshot getSessionSnapshot(UUID playerId) {
+        ActiveSession session = activeSessions.get(playerId);
+        return session != null ? session.snapshot : null;
+    }
+
+    /**
+     * Result of one target-generation pass: the targets, the species context they came from, and the
+     * exact origin that context was resolved at. The origin is carried rather than re-derived by the
+     * caller: it is the position {@link #generateTargetsForOrigin} actually resolved the environment
+     * at (the hook position on the live path, the passed-in origin on the simulation path), so a
+     * session snapshot records what was resolved even if the hook has drifted since.
+     */
+    private record GeneratedTargets(List<ServerFishingTarget> targets,
+                                    @Nullable FishingPoolResolver.SpeciesContext species,
+                                    @Nullable FishingPoolResolver.Inputs inputs,
+                                    @Nullable Vec3 origin) {}
 
     private static class ActiveSession {
         final int sessionId;
         final UUID playerId;
         final List<ServerFishingTarget> targets;
         final long startTime;
-        final Holder<Biome> hookBiome;
-        final FishProfile.TimeOfDay hookTimeOfDay;
-        final FishProfile.WeatherCondition hookWeather;
-        final Set<FishProfile.Zone> hookZones;
+        // Everything about the world this cast resolved against, captured once at cast time and
+        // reused for quest tracking at completion. Written by the same shared resolver that selected
+        // the species — see FishingPoolResolver.EnvironmentContext.
+        final FishingPoolResolver.EnvironmentContext environment;
         // Decided once at cast time (see FishingMinigameManager#rollBaitWillBeSaved) rather than
         // re-rolled at completion, so the client's minigame animation — told the same value in
         // StartFishingMinigamePacket — can show the correct bait pop-off/charm-save effect instead
@@ -1234,27 +1226,24 @@ public class FishingMinigameManager {
         // bait is consumed.
         @Nullable
         final ResourceLocation hookBaitId;
+        // The species context this session's targets were generated from (Phase 3), including the
+        // environment, explicit inputs and final candidate weights. Null for tutorial/test-seeded
+        // sessions, which never resolve a pool. Never re-derived from later equipment: the whole
+        // point is that the hook patch keeps what it actually rolled against.
+        @Nullable
+        final FishingPoolResolver.SessionSnapshot snapshot;
 
         ActiveSession(int sessionId, UUID playerId, List<ServerFishingTarget> targets, long startTime,
-                Holder<Biome> hookBiome, FishProfile.TimeOfDay hookTimeOfDay, FishProfile.WeatherCondition hookWeather,
-                Set<FishProfile.Zone> hookZones, boolean baitWillBeSaved) {
-            this(sessionId, playerId, targets, startTime, hookBiome, hookTimeOfDay, hookWeather, hookZones,
-                    baitWillBeSaved, null);
-        }
-
-        ActiveSession(int sessionId, UUID playerId, List<ServerFishingTarget> targets, long startTime,
-                Holder<Biome> hookBiome, FishProfile.TimeOfDay hookTimeOfDay, FishProfile.WeatherCondition hookWeather,
-                Set<FishProfile.Zone> hookZones, boolean baitWillBeSaved, @Nullable ResourceLocation hookBaitId) {
+                FishingPoolResolver.EnvironmentContext environment, boolean baitWillBeSaved,
+                @Nullable ResourceLocation hookBaitId, @Nullable FishingPoolResolver.SessionSnapshot snapshot) {
             this.sessionId = sessionId;
             this.playerId = playerId;
             this.targets = targets;
             this.startTime = startTime;
-            this.hookBiome = hookBiome;
-            this.hookTimeOfDay = hookTimeOfDay;
-            this.hookWeather = hookWeather;
-            this.hookZones = hookZones;
+            this.environment = environment;
             this.baitWillBeSaved = baitWillBeSaved;
             this.hookBaitId = hookBaitId;
+            this.snapshot = snapshot;
         }
     }
 

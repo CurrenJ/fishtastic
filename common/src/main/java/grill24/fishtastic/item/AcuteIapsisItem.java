@@ -1,32 +1,28 @@
 package grill24.fishtastic.item;
 
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.level.storage.loot.LootParams;
-import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import grill24.fishtastic.server.FishingPoolResolver;
 
+/**
+ * The one species with a hook-dependent weight: diamond-alert iapsis is more likely to bite when
+ * the hook owner is carrying diamonds.
+ */
 public class AcuteIapsisItem extends FishtasticFishItem {
     public AcuteIapsisItem(Properties properties) {
         super(properties);
     }
 
+    /**
+     * +1 weight per diamond carried by the hook owner. The count is an explicit input since the
+     * Phase 3 extraction — {@link FishingPoolResolver.PersonalEquipment#fromHookOwner} on the real
+     * cast path, and whatever a preview mode honestly knows otherwise — rather than being read back
+     * out of {@code LootParams.THIS_ENTITY} here.
+     *
+     * <p>Note for future readers: the historical comment on this code claimed "10 extra weight per
+     * diamond", but the arithmetic has always added one weight per diamond item stack count. That
+     * is preserved deliberately; changing it would change real catch odds.
+     */
     @Override
-    public int getAdditionalWeight(LootParams lootParams) {
-        Entity hookEntity = lootParams.getParamOrNull(LootContextParams.THIS_ENTITY);
-        Player player = null;
-        if (hookEntity instanceof net.minecraft.world.entity.projectile.FishingHook hook && hook.getOwner() instanceof Player p) {
-            player = p;
-        }
-        if (player != null) {
-            // 10 extra weight per diamond in the player's inventory
-            return player.getInventory().items.stream()
-                    .filter(itemStack -> itemStack.is(Items.DIAMOND))
-                    .mapToInt(ItemStack::getCount)
-                    .sum();
-        }
-
-        return 0;
+    protected int getAdditionalWeight(int diamondBonus) {
+        return diamondBonus;
     }
 }
