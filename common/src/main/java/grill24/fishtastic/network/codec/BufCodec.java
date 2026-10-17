@@ -14,7 +14,7 @@ import java.util.function.Function;
  * {@code BufCodec<X> STREAM_CODEC} here under the same field name, over a plain {@link ByteBuf}
  * (which {@link net.minecraft.network.FriendlyByteBuf} extends), so call sites don't change.
  *
- * <p>The {@code composite} overloads go to 9 fields (the tree's widest record, {@code
+ * <p>The {@code composite} overloads go to 11 fields (the tree's widest record, {@code
  * StartFishingMinigamePacket}, has 7) to also absorb {@code util/StreamCodecs}' 7-9 field
  * overloads — 1.21.1 needed that helper because vanilla {@code StreamCodec.composite} stops at 6;
  * this shim doesn't have that ceiling, so the helper's call sites become {@code BufCodec.composite}
@@ -300,6 +300,93 @@ public interface BufCodec<T> {
         );
     }
 
+    static <C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, T> BufCodec<T> composite(
+            BufCodec<C1> codec1, Function<T, C1> getter1,
+            BufCodec<C2> codec2, Function<T, C2> getter2,
+            BufCodec<C3> codec3, Function<T, C3> getter3,
+            BufCodec<C4> codec4, Function<T, C4> getter4,
+            BufCodec<C5> codec5, Function<T, C5> getter5,
+            BufCodec<C6> codec6, Function<T, C6> getter6,
+            BufCodec<C7> codec7, Function<T, C7> getter7,
+            BufCodec<C8> codec8, Function<T, C8> getter8,
+            BufCodec<C9> codec9, Function<T, C9> getter9,
+            BufCodec<C10> codec10, Function<T, C10> getter10,
+            Factory10<C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, T> factory
+    ) {
+        return of(
+                (buf, value) -> {
+                    codec1.encode(buf, getter1.apply(value));
+                    codec2.encode(buf, getter2.apply(value));
+                    codec3.encode(buf, getter3.apply(value));
+                    codec4.encode(buf, getter4.apply(value));
+                    codec5.encode(buf, getter5.apply(value));
+                    codec6.encode(buf, getter6.apply(value));
+                    codec7.encode(buf, getter7.apply(value));
+                    codec8.encode(buf, getter8.apply(value));
+                    codec9.encode(buf, getter9.apply(value));
+                    codec10.encode(buf, getter10.apply(value));
+                },
+                buf -> {
+                    C1 c1 = codec1.decode(buf);
+                    C2 c2 = codec2.decode(buf);
+                    C3 c3 = codec3.decode(buf);
+                    C4 c4 = codec4.decode(buf);
+                    C5 c5 = codec5.decode(buf);
+                    C6 c6 = codec6.decode(buf);
+                    C7 c7 = codec7.decode(buf);
+                    C8 c8 = codec8.decode(buf);
+                    C9 c9 = codec9.decode(buf);
+                    C10 c10 = codec10.decode(buf);
+                    return factory.create(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10);
+                }
+        );
+    }
+
+    static <C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, T> BufCodec<T> composite(
+            BufCodec<C1> codec1, Function<T, C1> getter1,
+            BufCodec<C2> codec2, Function<T, C2> getter2,
+            BufCodec<C3> codec3, Function<T, C3> getter3,
+            BufCodec<C4> codec4, Function<T, C4> getter4,
+            BufCodec<C5> codec5, Function<T, C5> getter5,
+            BufCodec<C6> codec6, Function<T, C6> getter6,
+            BufCodec<C7> codec7, Function<T, C7> getter7,
+            BufCodec<C8> codec8, Function<T, C8> getter8,
+            BufCodec<C9> codec9, Function<T, C9> getter9,
+            BufCodec<C10> codec10, Function<T, C10> getter10,
+            BufCodec<C11> codec11, Function<T, C11> getter11,
+            Factory11<C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, T> factory
+    ) {
+        return of(
+                (buf, value) -> {
+                    codec1.encode(buf, getter1.apply(value));
+                    codec2.encode(buf, getter2.apply(value));
+                    codec3.encode(buf, getter3.apply(value));
+                    codec4.encode(buf, getter4.apply(value));
+                    codec5.encode(buf, getter5.apply(value));
+                    codec6.encode(buf, getter6.apply(value));
+                    codec7.encode(buf, getter7.apply(value));
+                    codec8.encode(buf, getter8.apply(value));
+                    codec9.encode(buf, getter9.apply(value));
+                    codec10.encode(buf, getter10.apply(value));
+                    codec11.encode(buf, getter11.apply(value));
+                },
+                buf -> {
+                    C1 c1 = codec1.decode(buf);
+                    C2 c2 = codec2.decode(buf);
+                    C3 c3 = codec3.decode(buf);
+                    C4 c4 = codec4.decode(buf);
+                    C5 c5 = codec5.decode(buf);
+                    C6 c6 = codec6.decode(buf);
+                    C7 c7 = codec7.decode(buf);
+                    C8 c8 = codec8.decode(buf);
+                    C9 c9 = codec9.decode(buf);
+                    C10 c10 = codec10.decode(buf);
+                    C11 c11 = codec11.decode(buf);
+                    return factory.create(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11);
+                }
+        );
+    }
+
     interface Factory3<C1, C2, C3, T> {
         T create(C1 c1, C2 c2, C3 c3);
     }
@@ -326,5 +413,13 @@ public interface BufCodec<T> {
 
     interface Factory9<C1, C2, C3, C4, C5, C6, C7, C8, C9, T> {
         T create(C1 c1, C2 c2, C3 c3, C4 c4, C5 c5, C6 c6, C7 c7, C8 c8, C9 c9);
+    }
+
+    interface Factory10<C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, T> {
+        T create(C1 c1, C2 c2, C3 c3, C4 c4, C5 c5, C6 c6, C7 c7, C8 c8, C9 c9, C10 c10);
+    }
+
+    interface Factory11<C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, T> {
+        T create(C1 c1, C2 c2, C3 c3, C4 c4, C5 c5, C6 c6, C7 c7, C8 c8, C9 c9, C10 c10, C11 c11);
     }
 }
