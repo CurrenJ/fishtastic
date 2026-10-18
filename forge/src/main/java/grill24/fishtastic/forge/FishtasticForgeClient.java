@@ -5,6 +5,7 @@ import grill24.fishtastic.FishtasticBlockEntityTypes;
 import grill24.fishtastic.fishtank.CosmeticObstacles;
 import grill24.fishtastic.client.CosmeticCaptureClientState;
 import grill24.fishtastic.client.CosmeticPlacementPreview;
+import grill24.fishtastic.client.CompanionTutorialClientHandler;
 import grill24.fishtastic.client.EncyclopediaTutorialClientHandler;
 import grill24.fishtastic.client.FishEncyclopediaClientCache;
 import grill24.fishtastic.client.FishtasticBlockRenderLayers;
@@ -112,6 +113,7 @@ public final class FishtasticForgeClient {
 
         // Register encyclopedia tutorial sync packet client handler
         EncyclopediaTutorialSyncPacket.registerClientHandler(EncyclopediaTutorialClientHandler.PACKET_HANDLER);
+        grill24.fishtastic.network.CompanionTutorialSyncPacket.registerClientHandler(CompanionTutorialClientHandler.PACKET_HANDLER);
 
         // Register companion bond/rename feedback handler (tutorial and scene handlers arrive with F15/F11)
         grill24.fishtastic.network.CompanionFeedbackPacket.registerClientHandler(grill24.fishtastic.client.CompanionClientState.PACKET_HANDLER);
@@ -302,6 +304,7 @@ public final class FishtasticForgeClient {
         QuestClientCache.reset();
         TutorialClientHandler.reset();
         EncyclopediaTutorialClientHandler.reset();
+        CompanionTutorialClientHandler.reset();
         grill24.fishtastic.client.CompanionClientState.reset();
         FishEncyclopediaClientCache.reset();
         grill24.fishtastic.network.SetDayRatePacket.resetClientRate();
@@ -365,5 +368,6 @@ public final class FishtasticForgeClient {
     public static void onScreenRenderPost(ScreenEvent.Render.Post event) {
         TutorialClientHandler.renderScreenOverlay(event.getGuiGraphics(), event.getPartialTick());
         EncyclopediaTutorialClientHandler.render(event.getGuiGraphics(), event.getPartialTick());
+        CompanionTutorialClientHandler.render(event.getGuiGraphics(), event.getPartialTick());
     }
 }

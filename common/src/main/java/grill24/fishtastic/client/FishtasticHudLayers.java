@@ -64,6 +64,7 @@ public final class FishtasticHudLayers {
 
     public static void renderTutorial(GuiGraphics graphics, float partialTick) {
         TutorialClientHandler.render(graphics, partialTick);
+        CompanionTutorialClientHandler.renderHud(graphics, partialTick);
     }
 
     public static void renderMinigameAndNotifications(GuiGraphics graphics, float partialTick) {
