@@ -133,6 +133,8 @@ public final class RenderSelfTest {
     private static final java.util.Map<String, List<String>> PARAMS = new java.util.HashMap<>();
     private static String loader;
     private static boolean worldRequested;
+    /** {@code server=host:port} marker param: join that dedicated server instead of creating the flat world. */
+    private static String remoteServer;
     private static int titleTicks;
     private static boolean started;
     private static final Deque<Step> STEPS = new ArrayDeque<>();
@@ -168,11 +170,14 @@ public final class RenderSelfTest {
         if (!worldRequested) {
             if (mc.screen instanceof TitleScreen && ++titleTicks > 40) {
                 worldRequested = true;
-                createWorld(mc);
+                remoteServer = param("server", null);
+                if (remoteServer == null) createWorld(mc); else connectToServer(mc, remoteServer);
             }
             return;
         }
-        if (mc.level == null || mc.player == null || mc.getSingleplayerServer() == null) return;
+        if (mc.level == null || mc.player == null) return;
+        // A joined client has no integrated server; its scenes must not reach for one (server()).
+        if (remoteServer == null && mc.getSingleplayerServer() == null) return;
 
         if (!started) {
             started = true;
@@ -229,6 +234,20 @@ public final class RenderSelfTest {
 
     // ── Setup and teardown ───────────────────────────────────────────────────
 
+    /** Opt-in multiplayer: {@code server=host:port} in the marker joins that server from the title screen. */
+    private static void connectToServer(Minecraft mc, String hostPort) {
+        net.minecraft.client.multiplayer.resolver.ServerAddress address =
+                net.minecraft.client.multiplayer.resolver.ServerAddress.parseString(hostPort);
+        if (address == null || address.getHost().isEmpty() || address.getHost().equals("server.invalid")) {
+            Fishtastic.LOGGER.error("[selftest] cannot parse server address '{}'", hostPort);
+            return;
+        }
+        Fishtastic.LOGGER.info("[selftest] joining {}", hostPort);
+        net.minecraft.client.gui.screens.ConnectScreen.startConnecting(new TitleScreen(), mc, address,
+                new net.minecraft.client.multiplayer.ServerData("selftest", hostPort, false),
+                false);
+    }
+
     private static void createWorld(Minecraft mc) {
         Path save = mc.gameDirectory.toPath().resolve("saves").resolve(WORLD_NAME);
         if (Files.exists(save)) {
@@ -259,10 +278,15 @@ public final class RenderSelfTest {
         mc.options.tutorialStep = TutorialSteps.NONE;
         mc.getTutorial().stop();
         mc.getToasts().clear();
-        server(mc, s -> {
-            run(s, "gamerule sendCommandFeedback false");
-            run(s, "time set 6000");
-        });
+        if (remoteServer == null) {
+            server(mc, s -> {
+                run(s, "gamerule sendCommandFeedback false");
+                run(s, "time set 6000");
+            });
+        } else {
+            // A joined client holds no integrated server; the dedicated server owns the clock and weather.
+            note("joined " + remoteServer + ": quiet-world rules left to the server");
+        }
         check("shaders.loaded", FishtasticShaders.outlineBake != null && FishtasticShaders.outlineBakeLegendary != null,
                 "outline_bake=" + FishtasticShaders.outlineBake + " legendary=" + FishtasticShaders.outlineBakeLegendary);
         Fishtastic.LOGGER.info("[selftest] origin {} (gui scale {}, window {}x{})", origin,
@@ -344,7 +368,7 @@ public final class RenderSelfTest {
     private static void queueAmbientParityScene() {
         AmbientParityFixture[] fixture = new AmbientParityFixture[1];
         BlockPos[] water = new BlockPos[1], tanks = new BlockPos[1];
-        long[] frozenSteps = new long[1], beforeAway = new long[1];
+        long[] beforeAway = new long[1];
         queue(1, mc -> {
             tanks[0] = origin.offset(-5, 0, -7);
             water[0] = origin.offset(1, 0, -7);
@@ -394,12 +418,9 @@ public final class RenderSelfTest {
                             && water[0].equals(fixture[0].origin())
                             && fixture[0].identity(0)==1L,
                     "off-camera simulation retains fixed origin and identity");
-            server(mc, server -> run(server, "tick freeze"));
-        });
-        queue(10, mc -> frozenSteps[0] = fixture[0].steps());
-        queue(20, mc -> {
-            check("ambientparity.fixture.freeze", frozenSteps[0]==fixture[0].steps(),
-                    "steps="+frozenSteps[0]);
+            // [1.20.1] no /tick freeze (1.20.3+): the fixture keeps stepping, so there is no
+            // freeze check on this target; the close-ups below photograph live poses.
+            note("ambientparity.fixture.freeze skipped: no /tick freeze on 1.20.1");
         });
         // World time and both simulations are frozen: photograph every species closely enough
         // to assess its sprite/scale/pose, without requiring lucky positions in a wide camera.
@@ -6260,9 +6281,6 @@ public final class RenderSelfTest {
         MinecraftServer server = mc.getSingleplayerServer();
         server.execute(() -> action.accept(server));
     }
-
-    /** Set only by the dedicated-server join of the two-client harness, which is not ported to this target. */
-    private static final String remoteServer = null;
 
     private static void worldCommand(Minecraft mc, String command) {
         if (remoteServer == null) {

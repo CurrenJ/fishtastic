@@ -1,0 +1,74 @@
+// Two-client self-test (party spec §28.5): one dedicated server and two clients, all in isolated
+// run directories under docs/fish-companions-twoclient/ (never the normal dev run directory).
+//
+//   Server:   .\gradlew.bat :fabric:runServer -I docs/fish-companions-twoclient/twoclient.init.gradle -PtwoRole=server
+//   Client A: .\gradlew.bat :fabric:runClient -I docs/fish-companions-twoclient/twoclient.init.gradle -PtwoRole=a
+//   Client B: .\gradlew.bat :fabric:runClient -I docs/fish-companions-twoclient/twoclient.init.gradle -PtwoRole=b
+//   Solo:     .\gradlew.bat :fabric:runClient -I docs/fish-companions-twoclient/twoclient.init.gradle -PtwoRole=solo
+//             (no server: the companionscenes self-test with the ghost owner in a fresh flat world)
+//
+// Forge: the same with :forge:runServer / :forge:runClient and -PtwoLoader=forge
+// (port 25601, run directories run-forge-<role>), so the two loaders never share a world.
+//
+// Start the server first. Each client's marker runs the 'twoclient' self-test scene against
+// localhost:25600 (Forge 25601) as FishA / FishB; both are opped (ops.json, offline UUIDs) so the scene can tp,
+// set the clock and give companions by command. -PtwoScenes=... overrides the scene list.
+gradle.projectsEvaluated {
+    def role = gradle.startParameter.projectProperties.get('twoRole')
+    if (!(role in ['server', 'a', 'b', 'solo'])) throw new GradleException('Set -PtwoRole=server, a, b or solo')
+    def base = rootProject.file('docs/fish-companions-twoclient').canonicalFile
+    def loader = gradle.startParameter.projectProperties.get('twoLoader') ?: 'fabric'
+    if (!(loader in ['fabric', 'forge'])) throw new GradleException('Set -PtwoLoader=fabric or forge')
+    def port = loader == 'fabric' ? 25600 : 25601
+    def target = rootProject.file("docs/fish-companions-twoclient/run-${loader}-${role}").canonicalFile
+    if (target.parentFile != base) throw new GradleException('Unexpected run directory')
+    target.mkdirs()
+    def platform = rootProject.project(':' + loader)
+    def names = ['FishA', 'FishB']
+    if (role != 'server') {
+        def name = role == 'b' ? names[1] : names[0]
+        def scenes = gradle.startParameter.projectProperties.get('twoScenes') ?: (role == 'solo' ? 'companionscenes' : 'twoclient')
+        // solo: the flat self-test world on the integrated server (the ghost owner's scenes), no server to join.
+        new File(target, 'fishtastic_render_selftest').text = role == 'solo' ? scenes.split(',').join('\n') + '\n'
+                : scenes.split(',').join('\n') + "\nserver=localhost:${port}\nrole=${role}\n"
+        def options = new File(target, 'options.txt')
+        def lines = options.exists() ? options.readLines() : []
+        def captureOptions = ['onboardAccessibility': 'false', 'overrideWidth': '960', 'overrideHeight': '540',
+                              'renderDistance': '6', 'simulationDistance': '5', 'maxFps': '30', 'enableVsync': 'false',
+                              'pauseOnLostFocus': 'false']
+        lines.removeAll { line -> captureOptions.keySet().any { key -> line.startsWith(key + ':') } }
+        options.text = (lines + captureOptions.collect { key, value -> key + ':' + value }).join('\n') + '\n'
+        // Loom's legacy asset calculation concatenates projectDir + runDir even on Windows.
+        platform.loom.runs.client.runDir(platform.projectDir.toPath().relativize(target.toPath()).toString())
+        platform.loom.runs.client.programArgs('--username', name)
+        platform.loom.runs.client.vmArg('-Xms256m')
+        platform.loom.runs.client.vmArg('-Xmx1536m')
+        platform.loom.runs.client.vmArg('-XX:ActiveProcessorCount=4')
+    } else {
+        new File(target, 'eula.txt').text = 'eula=true\n'
+        def offline = { String n -> UUID.nameUUIDFromBytes(("OfflinePlayer:" + n).getBytes('UTF-8')).toString() }
+        new File(target, 'ops.json').text = '[' + names.collect { n ->
+            "{\"uuid\":\"${offline(n)}\",\"name\":\"${n}\",\"level\":4,\"bypassesPlayerLimit\":false}"
+        }.join(',') + ']\n'
+        new File(target, 'server.properties').text = [
+                'online-mode=false',
+                'enforce-secure-profile=false',
+                'gamemode=creative',
+                'difficulty=peaceful',
+                'level-type=minecraft:flat',
+                'generate-structures=false',
+                'level-name=world',
+                'level-seed=1',
+                'max-players=4',
+                'view-distance=6',
+                'simulation-distance=5',
+                'server-port=' + port,
+                'spawn-protection=0',
+                'motd=fishtastic two-client self-test'
+        ].join('\n') + '\n'
+        platform.loom.runs.server.runDir(platform.projectDir.toPath().relativize(target.toPath()).toString())
+        platform.loom.runs.server.vmArg('-Xms256m')
+        platform.loom.runs.server.vmArg('-Xmx1024m')
+        platform.loom.runs.server.vmArg('-XX:ActiveProcessorCount=4')
+    }
+}
