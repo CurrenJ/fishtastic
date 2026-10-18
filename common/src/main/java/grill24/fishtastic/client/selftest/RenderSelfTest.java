@@ -131,6 +131,8 @@ public final class RenderSelfTest {
     private static final java.util.Map<String, List<String>> PARAMS = new java.util.HashMap<>();
     private static String loader;
     private static boolean worldRequested;
+    /** {@code server=host:port} marker param: join that dedicated server instead of creating the flat world. */
+    private static String remoteServer;
     private static int titleTicks;
     private static boolean started;
     private static final Deque<Step> STEPS = new ArrayDeque<>();
@@ -166,11 +168,14 @@ public final class RenderSelfTest {
         if (!worldRequested) {
             if (mc.screen instanceof TitleScreen && ++titleTicks > 40) {
                 worldRequested = true;
-                createWorld(mc);
+                remoteServer = param("server", null);
+                if (remoteServer == null) createWorld(mc); else connectToServer(mc, remoteServer);
             }
             return;
         }
-        if (mc.level == null || mc.player == null || mc.getSingleplayerServer() == null) return;
+        if (mc.level == null || mc.player == null) return;
+        // A joined client has no integrated server; its scenes must not reach for one (server()).
+        if (remoteServer == null && mc.getSingleplayerServer() == null) return;
 
         if (!started) {
             started = true;
@@ -227,6 +232,21 @@ public final class RenderSelfTest {
 
     // ── Setup and teardown ───────────────────────────────────────────────────
 
+    /** Opt-in multiplayer: {@code server=host:port} in the marker joins that server from the title screen. */
+    private static void connectToServer(Minecraft mc, String hostPort) {
+        net.minecraft.client.multiplayer.resolver.ServerAddress address =
+                net.minecraft.client.multiplayer.resolver.ServerAddress.parseString(hostPort);
+        if (address == null || address.getHost().isEmpty() || address.getHost().equals("server.invalid")) {
+            Fishtastic.LOGGER.error("[selftest] cannot parse server address '{}'", hostPort);
+            return;
+        }
+        Fishtastic.LOGGER.info("[selftest] joining {}", hostPort);
+        net.minecraft.client.gui.screens.ConnectScreen.startConnecting(new TitleScreen(), mc, address,
+                new net.minecraft.client.multiplayer.ServerData("selftest", hostPort,
+                        net.minecraft.client.multiplayer.ServerData.Type.OTHER),
+                false, null);
+    }
+
     private static void createWorld(Minecraft mc) {
         Path save = mc.gameDirectory.toPath().resolve("saves").resolve(WORLD_NAME);
         if (Files.exists(save)) {
@@ -258,10 +278,15 @@ public final class RenderSelfTest {
         mc.options.tutorialStep = TutorialSteps.NONE;
         mc.getTutorial().stop();
         mc.getToasts().clear();
-        server(mc, s -> {
-            run(s, "gamerule sendCommandFeedback false");
-            run(s, "time set 6000");
-        });
+        if (remoteServer == null) {
+            server(mc, s -> {
+                run(s, "gamerule sendCommandFeedback false");
+                run(s, "time set 6000");
+            });
+        } else {
+            // A joined client holds no integrated server; the dedicated server owns the clock and weather.
+            note("joined " + remoteServer + ": quiet-world rules left to the server");
+        }
         check("shaders.loaded", FishtasticShaders.outlineBake != null && FishtasticShaders.outlineBakeLegendary != null,
                 "outline_bake=" + FishtasticShaders.outlineBake + " legendary=" + FishtasticShaders.outlineBakeLegendary);
         Fishtastic.LOGGER.info("[selftest] origin {} (gui scale {}, window {}x{})", origin,
@@ -6434,8 +6459,6 @@ public final class RenderSelfTest {
         server.execute(() -> action.accept(server));
     }
 
-    /** Set only by the dedicated-server join of the two-client harness, which is not ported to this target. */
-    private static final String remoteServer = null;
 
     private static void worldCommand(Minecraft mc, String command) {
         if (remoteServer == null) {
