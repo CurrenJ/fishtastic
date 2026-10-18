@@ -923,6 +923,7 @@ public final class RenderSelfTest {
             mc.player.getInventory().setItem(selected, rod);
             mc.gameMode.handleCreativeModeItemAdd(rod, 36 + selected);
             mc.player.inventoryMenu.broadcastChanges();
+            server(mc, s -> s.getPlayerList().getPlayers().get(0).getInventory().setItem(selected, rod.copy()));
             note("ambientcontext handing rod to menu slot " + (36 + selected));
         });
         final int[] phaseBStablePolls = {0};
@@ -2227,6 +2228,10 @@ public final class RenderSelfTest {
         mc.player.getInventory().setItem(selected, rod);
         mc.gameMode.handleCreativeModeItemAdd(rod, 36 + selected);
         mc.player.inventoryMenu.broadcastChanges();
+        // Singleplayer only: also write the server's copy directly. After the ambientwater scene the
+        // creative-slot packet above is not reflected in the server's main hand (cause not found; the
+        // standalone scene and the GameTests prove the server side), which silently kept the worms lane.
+        if (remoteServer == null) server(mc, s -> s.getPlayerList().getPlayers().get(0).getInventory().setItem(selected, rod.copy()));
         note("ambientpopulation handing " + (rod.isEmpty() ? "<emptied hand>"
                 : rodItem + (baitItem == null ? "" : "+" + baitItem) + (charmItem == null ? "" : "+" + charmItem))
                 + " to menu slot " + (36 + selected));
