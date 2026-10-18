@@ -101,8 +101,26 @@ public final class BufCodecs {
         );
     }
 
+    /** Bounded list, matching 1.21.1's {@code ByteBufCodecs.list(int)}: oversized lists throw on encode and decode. */
     public static <T> Function<BufCodec<T>, BufCodec<List<T>>> list(int maxSize) {
-        return list();
+        return elementCodec -> BufCodec.of(
+                (buf, value) -> {
+                    if (value.size() > maxSize) {
+                        throw new io.netty.handler.codec.EncoderException(value.size() + " elements exceeded max size of: " + maxSize);
+                    }
+                    VAR_INT.encode(buf, value.size());
+                    for (T t : value) elementCodec.encode(buf, t);
+                },
+                buf -> {
+                    int size = VAR_INT.decode(buf);
+                    if (size > maxSize) {
+                        throw new io.netty.handler.codec.DecoderException(size + " elements exceeded max size of: " + maxSize);
+                    }
+                    List<T> list = new ArrayList<>(Math.min(size, 1024));
+                    for (int i = 0; i < size; i++) list.add(elementCodec.decode(buf));
+                    return list;
+                }
+        );
     }
 
     public static <K, V, M extends Map<K, V>> BufCodec<M> map(IntFunction<M> mapFactory, BufCodec<K> keyCodec, BufCodec<V> valueCodec) {

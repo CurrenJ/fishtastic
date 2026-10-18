@@ -1888,4 +1888,80 @@ public class FishtasticGameTests {
         CompanionSceneGameTests.nearbyObserversAreToldAndFarOnesAreNot(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
+    // ----- Ambient context exchange (stage 5 slice 1) -----
+
+    @GameTest(template = "fishtastic_empty")
+    public void ambientContextRequestPacketRoundTrips(GameTestHelper helper) {
+        PacketRoundTripGameTests.ambientContextRequestPacketRoundTrips(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void ambientContextResponsePacketRoundTrips(GameTestHelper helper) {
+        PacketRoundTripGameTests.ambientContextResponsePacketRoundTrips(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void oversizedOriginListIsRejectedOnEncodeAndDecode(GameTestHelper helper) {
+        PacketRoundTripGameTests.oversizedOriginListIsRejectedOnEncodeAndDecode(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void oversizedEntryListIsRejectedOnEncodeAndDecode(GameTestHelper helper) {
+        PacketRoundTripGameTests.oversizedEntryListIsRejectedOnEncodeAndDecode(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void oversizedCandidateListIsRejectedOnEncodeAndDecode(GameTestHelper helper) {
+        PacketRoundTripGameTests.oversizedCandidateListIsRejectedOnEncodeAndDecode(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void unknownStatusIdDecodesToARejectionNotAnError(GameTestHelper helper) {
+        PacketRoundTripGameTests.unknownStatusIdDecodesToARejectionNotAnError(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void authoritativeResolveMatchesServerState(GameTestHelper helper) {
+        AmbientContextGameTests.authoritativeResolveMatchesServerState(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void heldRodLaneIsResolvedFromTheServersOwnInventory(GameTestHelper helper) {
+        AmbientContextGameTests.heldRodLaneIsResolvedFromTheServersOwnInventory(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void dimensionMismatchIsRejected(GameTestHelper helper) {
+        AmbientContextGameTests.dimensionMismatchIsRejected(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void farOriginIsRejectedBeforeTheUnloadedCheck(GameTestHelper helper) {
+        AmbientContextGameTests.farOriginIsRejectedBeforeTheUnloadedCheck(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void unloadedOriginIsRejectedWithoutLoadingTheChunk(GameTestHelper helper) {
+        AmbientContextGameTests.unloadedOriginIsRejectedWithoutLoadingTheChunk(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void rateLimitDropsRequestsPastTheBurst(GameTestHelper helper) {
+        AmbientContextGameTests.rateLimitDropsRequestsPastTheBurst(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void sessionSnapshotTakesPrecedenceOverAFreshResolve(GameTestHelper helper) {
+        AmbientContextGameTests.sessionSnapshotTakesPrecedenceOverAFreshResolve(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void aDifferentPondNearTheCastFallsThroughToAFreshResolve(GameTestHelper helper) {
+        AmbientContextGameTests.aDifferentPondNearTheCastFallsThroughToAFreshResolve(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void anEmptyRequestDoesNotConsumeAThrottleToken(GameTestHelper helper) {
+        AmbientContextGameTests.anEmptyRequestDoesNotConsumeAThrottleToken(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
 }
