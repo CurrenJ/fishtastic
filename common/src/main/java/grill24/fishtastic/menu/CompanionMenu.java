@@ -133,6 +133,7 @@ public final class CompanionMenu extends AbstractContainerMenu {
                 if (!partyBefore.isEmpty() && !FishtasticItemData.matches(partyBefore, getSlot(slot).getItem())
                         && FishtasticItemData.isSameItemSameData(partyBefore, getCarried())) {
                     returningFish = partyBefore.copyWithCount(1);
+                    grill24.fishtastic.tutorial.CompanionTutorialManager.onReturned(serverPlayer);
                 }
                 boolean putAway = slot >= INVENTORY_START && slot < INVENTORY_END && !returningFish.isEmpty()
                         && FishtasticItemData.isSameItemSameData(returningFish, cursorBefore)

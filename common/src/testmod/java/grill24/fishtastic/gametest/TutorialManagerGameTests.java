@@ -69,6 +69,8 @@ public final class TutorialManagerGameTests {
             ServerPlayer player = mockPlayer.get();
             player.setItemInHand(hand, copperRod());
             FishtasticItems.COPPER_FISHING_ROD.value().use(player.level(), player, hand);
+            helper.assertTrue(TutorialManager.getStep(player) == TutorialStep.FISHING_OFFER || TutorialManager.getStep(player) == TutorialStep.HOOK_IN_WATER, "A first copper cast must offer, never force, the lesson");
+            TutorialManager.advanceStep(player, TutorialStep.FISHING_OFFER, true);
             helper.assertTrue(TutorialManager.getStep(player) == TutorialStep.BAIT_LOAD,
                     "A given unbaited copper rod must start the same bait lesson as crafting");
             helper.assertTrue(!TutorialManager.hasCraftedStarterRod(player), "Test must bypass crafting");
@@ -76,8 +78,11 @@ public final class TutorialManagerGameTests {
             grill24.fishtastic.item.FishtasticFishingRodItem.setBait(player.getItemInHand(hand), new ItemStack(FishtasticItems.WORMS.value()));
             TutorialManager.onBaitLoaded(player);
             FishtasticItems.COPPER_FISHING_ROD.value().use(player.level(), player, hand);
+            helper.assertTrue(TutorialManager.getStep(player) == TutorialStep.FISHING_OFFER || TutorialManager.getStep(player) == TutorialStep.HOOK_IN_WATER, "A first copper cast must offer, never force, the lesson");
+            TutorialManager.advanceStep(player, TutorialStep.FISHING_OFFER, true);
             helper.assertTrue(player.fishing != null && TutorialManager.isTutorialSession(player), "Casting after bait loading must start practice");
             TutorialManager.onItemCrafted(player);
+        TutorialManager.advanceStep(player, TutorialStep.FISHING_OFFER, true);
             helper.assertTrue(countItem(player, FishtasticItems.WORMS.value()) == 8, "Recasts and later crafting must not duplicate starters");
             for (Item book : java.util.List.of(FishtasticItems.QUEST_BOOK.value(), FishtasticItems.FISHOPEDIA.value(),
                     FishtasticItems.LEADERBOARDS_BOOK.value())) {
@@ -85,9 +90,57 @@ public final class TutorialManagerGameTests {
             }
             player.fishing.discard();
         }
+        ServerPlayer later = mockPlayer.get();
+        TutorialManager.onItemCrafted(later);
+        helper.assertTrue(TutorialManager.getStep(later) == TutorialStep.FISHING_OFFER, "Crafting only offers a lesson");
+        helper.assertTrue(countItem(later, FishtasticItems.WORMS.value()) == 0, "No starter items before consent");
+        TutorialManager.advanceStep(later, TutorialStep.FISHING_OFFER, false);
+        TutorialManager.onPlayerJoin(later);
+        TutorialManager.advanceStep(later, TutorialStep.FISHING_OFFER, true);
+        helper.assertTrue(TutorialManager.getStep(later) == TutorialStep.DEFERRED && !TutorialStep.DEFERRED.hasOverlay(),
+                "Reconnect and stale accepts must not reopen a deferred lesson");
+        for (Item rod : java.util.List.of(Items.FISHING_ROD, FishtasticItems.OBSIDIAN_FISHING_ROD.value())) {
+            later.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, new ItemStack(rod));
+            rod.use(later.level(), later, net.minecraft.world.InteractionHand.MAIN_HAND);
+            helper.assertTrue(TutorialManager.getStep(later) == TutorialStep.DEFERRED,
+                    "Other rods must leave a deferred copper-rod lesson alone");
+            later.fishing.discard();
+            later.fishing = null;
+        }
+        helper.assertTrue(countItem(later, FishtasticItems.WORMS.value()) == 0, "Declining grants no starter items");
+        later.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, copperRod());
+        FishtasticItems.COPPER_FISHING_ROD.value().use(later.level(), later, net.minecraft.world.InteractionHand.MAIN_HAND);
+        helper.assertTrue(TutorialManager.getStep(later) == TutorialStep.FISHING_OFFER && later.fishing != null
+                && !TutorialManager.isTutorialSession(later), "A later copper cast reoffers without forcing practice");
+        TutorialManager.advanceStep(later, TutorialStep.FISHING_OFFER, false);
+        later.fishing.discard();
+        later.fishing = null;
+        FishtasticItems.COPPER_FISHING_ROD.value().use(later.level(), later, net.minecraft.world.InteractionHand.MAIN_HAND);
+        helper.assertTrue(TutorialManager.getStep(later) == TutorialStep.FISHING_OFFER, "Declining again must permit another cast retry");
+        TutorialManager.advanceStep(later, TutorialStep.FISHING_OFFER, true);
+        TutorialManager.advanceStep(later, TutorialStep.FISHING_OFFER, true);
+        helper.assertTrue(TutorialManager.getStep(later) == TutorialStep.BAIT_LOAD && later.fishing == null,
+                "Accepting a retry recalls the cast and starts bait loading");
+        helper.assertTrue(countItem(later, FishtasticItems.WORMS.value()) == 8, "Retry acceptance grants starters only once");
+        setStep(helper, later, TutorialStep.COMPLETE);
+        FishtasticItems.COPPER_FISHING_ROD.value().use(later.level(), later, net.minecraft.world.InteractionHand.MAIN_HAND);
+        TutorialManager.onItemCrafted(later);
+        helper.assertTrue(TutorialManager.getStep(later) == TutorialStep.COMPLETE, "Finished lessons must never reoffer");
+        later.fishing.discard();
+        later.fishing = null;
+        var command = grill24.fishtastic.command.TutorialCommand.build().build();
+        for (String section : java.util.List.of("fishing", "encyclopedia", "companions")) {
+            helper.assertTrue(command.getChild(section) != null && command.getChild(section).getChild("status") != null
+                    && command.getChild(section).getChild("reset") != null, "Each tutorial has status/reset under its section");
+        }
         ServerPlayer preloaded = mockPlayer.get();
         preloaded.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, copperRod());
         grill24.fishtastic.item.FishtasticFishingRodItem.setBait(preloaded.getMainHandItem(), new ItemStack(FishtasticItems.WORMS.value()));
+        FishtasticItems.COPPER_FISHING_ROD.value().use(preloaded.level(), preloaded, net.minecraft.world.InteractionHand.MAIN_HAND);
+        helper.assertTrue(TutorialManager.getStep(preloaded) == TutorialStep.FISHING_OFFER, "Preloaded rods must also ask permission");
+        TutorialManager.advanceStep(preloaded, TutorialStep.FISHING_OFFER, true);
+        helper.assertTrue(preloaded.fishing == null && TutorialManager.getStep(preloaded) == TutorialStep.WAITING_FOR_CAST,
+                "Accepting with bait loaded must ask for a new practice cast");
         FishtasticItems.COPPER_FISHING_ROD.value().use(preloaded.level(), preloaded, net.minecraft.world.InteractionHand.MAIN_HAND);
         helper.assertTrue(preloaded.fishing != null && TutorialManager.isTutorialSession(preloaded),
                 "A preloaded given rod should keep its cast and go straight to practice");
@@ -99,6 +152,7 @@ public final class TutorialManagerGameTests {
     public static void booksAdvanceTutorialAndEncyclopediaChoiceIsOptional(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
         ServerPlayer player = mockPlayer.get();
         TutorialManager.onItemCrafted(player);
+        TutorialManager.advanceStep(player, TutorialStep.FISHING_OFFER, true);
         FishtasticItems.FISHOPEDIA.value().use(player.level(), player, net.minecraft.world.InteractionHand.MAIN_HAND);
         var data = FishCatchSavedData.getOrCreate(helper.getLevel().getServer());
         helper.assertTrue(data.getEncyclopediaTutorialStep(player) == grill24.fishtastic.tutorial.EncyclopediaTutorialStep.NOT_STARTED,
@@ -127,6 +181,7 @@ public final class TutorialManagerGameTests {
     public static void interruptedPracticeResumesAtCastWithoutNewStarterItems(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
         ServerPlayer player = mockPlayer.get();
         TutorialManager.onItemCrafted(player);
+        TutorialManager.advanceStep(player, TutorialStep.FISHING_OFFER, true);
         for (TutorialStep step : java.util.List.of(TutorialStep.HOOK_IN_WATER, TutorialStep.MINIGAME_INTRO,
                 TutorialStep.MINIGAME_CONTROL, TutorialStep.MINIGAME_CATCH)) {
             setStep(helper, player, step);
@@ -158,6 +213,7 @@ public final class TutorialManagerGameTests {
         );
 
         TutorialManager.onItemCrafted(player);
+        TutorialManager.advanceStep(player, TutorialStep.FISHING_OFFER, true);
 
         helper.assertTrue(
             TutorialManager.getStep(player) == TutorialStep.BAIT_LOAD,
@@ -176,12 +232,14 @@ public final class TutorialManagerGameTests {
     public static void craftingRodAgainAfterAdvancingIsNoOp(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
         ServerPlayer player = mockPlayer.get();
         TutorialManager.onItemCrafted(player);
+        TutorialManager.advanceStep(player, TutorialStep.FISHING_OFFER, true);
         helper.assertTrue(
             TutorialManager.getStep(player) == TutorialStep.BAIT_LOAD,
             "Sanity check: first craft must reach BAIT_LOAD"
         );
 
         TutorialManager.onItemCrafted(player);
+        TutorialManager.advanceStep(player, TutorialStep.FISHING_OFFER, true);
 
         helper.assertTrue(
             TutorialManager.getStep(player) == TutorialStep.BAIT_LOAD,
@@ -295,6 +353,7 @@ public final class TutorialManagerGameTests {
         ServerPlayer player = mockPlayer.get();
 
         TutorialManager.onItemCrafted(player);
+        TutorialManager.advanceStep(player, TutorialStep.FISHING_OFFER, true);
         helper.assertTrue(TutorialManager.getStep(player) == TutorialStep.BAIT_LOAD, "Expected BAIT_LOAD after crafting");
 
         TutorialManager.onBaitLoaded(player);
@@ -393,6 +452,8 @@ public final class TutorialManagerGameTests {
         CraftingMenu menu = realCraftingMenuWithRodIngredients(helper, player);
 
         menu.clicked(CraftingMenu.RESULT_SLOT, 0, ContainerInput.QUICK_MOVE, player);
+        helper.assertTrue(TutorialManager.getStep(player) == TutorialStep.FISHING_OFFER, "Crafting must offer the lesson before starting");
+        TutorialManager.advanceStep(player, TutorialStep.FISHING_OFFER, true);
 
         helper.assertTrue(
             TutorialManager.getStep(player) == TutorialStep.BAIT_LOAD,
@@ -408,6 +469,8 @@ public final class TutorialManagerGameTests {
         CraftingMenu menu = realCraftingMenuWithRodIngredients(helper, player);
 
         menu.clicked(CraftingMenu.RESULT_SLOT, 0, ContainerInput.PICKUP, player);
+        helper.assertTrue(TutorialManager.getStep(player) == TutorialStep.FISHING_OFFER, "Crafting must offer the lesson before starting");
+        TutorialManager.advanceStep(player, TutorialStep.FISHING_OFFER, true);
 
         helper.assertTrue(
             TutorialManager.getStep(player) == TutorialStep.BAIT_LOAD,
@@ -454,6 +517,7 @@ public final class TutorialManagerGameTests {
         helper.assertTrue(rodAdvancement != null, "Sanity check: the tutorial rod advancement must be loaded");
 
         player.getAdvancements().award(rodAdvancement, TutorialManager.TUTORIAL_ROD_ADVANCEMENT_CRITERION);
+        TutorialManager.advanceStep(player, TutorialStep.FISHING_OFFER, true);
         helper.assertTrue(
             TutorialManager.getStep(player) == TutorialStep.BAIT_LOAD,
             "Sanity check: granting the rod-crafted advancement criterion must advance WAITING_FOR_CAST to BAIT_LOAD"
@@ -463,6 +527,7 @@ public final class TutorialManagerGameTests {
         setStep(helper, player, TutorialStep.NOT_STARTED);
         TutorialManager.revokeRodCraftedAdvancement(player);
         player.getAdvancements().award(rodAdvancement, TutorialManager.TUTORIAL_ROD_ADVANCEMENT_CRITERION);
+        TutorialManager.advanceStep(player, TutorialStep.FISHING_OFFER, true);
 
         helper.assertTrue(
             TutorialManager.getStep(player) == TutorialStep.BAIT_LOAD,

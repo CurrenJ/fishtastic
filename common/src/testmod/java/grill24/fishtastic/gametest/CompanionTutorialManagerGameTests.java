@@ -58,7 +58,7 @@ public final class CompanionTutorialManagerGameTests {
         menu.clicked(HOTBAR_FISH, 0, ContainerInput.QUICK_MOVE, player);
         expect(helper, player, CompanionTutorialStep.RETURN);
         menu.clicked(0, 0, ContainerInput.PICKUP, player);
-        expect(helper, player, CompanionTutorialStep.RETURN); // Merely holding it is not a return.
+        expect(helper, player, CompanionTutorialStep.REEQUIP); // Plain pickup counts as removing the companion.
         menu.clicked(HOTBAR_FISH, 0, ContainerInput.PICKUP, player);
         expect(helper, player, CompanionTutorialStep.REEQUIP);
         menu.clicked(HOTBAR_FISH, 0, ContainerInput.QUICK_MOVE, player);
@@ -103,7 +103,7 @@ public final class CompanionTutorialManagerGameTests {
         CompanionMenu menu = open(player);
         menu.clicked(HOTBAR_FISH, 0, ContainerInput.QUICK_MOVE, player);
         menu.clicked(0, 0, ContainerInput.PICKUP, player);
-        expect(helper, player, CompanionTutorialStep.RETURN);
+        expect(helper, player, CompanionTutorialStep.REEQUIP);
         menu.removed(player);
         expect(helper, player, CompanionTutorialStep.REEQUIP);
         CompanionTutorialManager.onPlayerJoin(player);
@@ -126,7 +126,7 @@ public final class CompanionTutorialManagerGameTests {
         expect(helper, player, CompanionTutorialStep.RETURN);
         menu.clicked(0, 0, ContainerInput.PICKUP, player);
         CompanionTutorialManager.advanceStep(player, CompanionTutorialStep.RETURN, true);
-        expect(helper, player, CompanionTutorialStep.RETURN); // Do not move the UI during a drag.
+        expect(helper, player, CompanionTutorialStep.REEQUIP); // Stale packets cannot skip the next action during a drag.
         menu.clicked(HOTBAR_FISH, 0, ContainerInput.PICKUP, player);
         CompanionTutorialManager.advanceStep(player, CompanionTutorialStep.REEQUIP, false);
         expect(helper, player, CompanionTutorialStep.REEQUIP);

@@ -152,7 +152,7 @@ public final class RenderSelfTest {
 
     /** Scenes that run only when the marker names them (they need something the default run lacks). */
     private static final List<String> OPT_IN_SCENES = List.of("matte", "matteclip", "fourwaters", "fishspin", "cathedral",
-            "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench", "tutorial", "companiontutorial",
+            "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench", "leaderboard", "tutorial", "companiontutorial",
             "companionbond", "companionsim", "companionparty", "companioneel", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld", "companionparticles", "companionworldcost", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk");
 
     private static Boolean armed;
@@ -377,6 +377,7 @@ public final class RenderSelfTest {
             case "gizmos" -> queueGizmosScene();
             case "pertank" -> queuePerTankScene();
             case "highlight" -> queueHighlightScene();
+            case "leaderboard" -> queueLeaderboardScene();
             case "tutorial" -> queueTutorialScene();
             case "companiontutorial" -> queueCompanionTutorialScene();
             case "matte" -> queueMatteScene();
@@ -6232,7 +6233,7 @@ public final class RenderSelfTest {
             ((grill24.fishtastic.client.CompanionScreen) mc.screen).clickSlot(0, 0, net.minecraft.world.inventory.ContainerInput.PICKUP);
         });
         queue(8, mc -> {
-            checkCompanionLesson("cursor_is_not_returned", grill24.fishtastic.tutorial.CompanionTutorialStep.RETURN);
+            checkCompanionLesson("plain_pickup_returns", grill24.fishtastic.tutorial.CompanionTutorialStep.REEQUIP);
             ((grill24.fishtastic.client.CompanionScreen) mc.screen).clickSlot(
                     grill24.fishtastic.menu.CompanionMenu.INVENTORY_END - 8, 0, net.minecraft.world.inventory.ContainerInput.PICKUP);
         });
@@ -6292,6 +6293,45 @@ public final class RenderSelfTest {
     }
 
     /** Books-first tutorial at a small window size with all custom menu shortcuts unbound. */
+    /** Stable three-player podium fixture for inspecting foot contact across renderer versions. */
+    private static void queueLeaderboardScene() {
+        queue(1, mc -> {
+            mc.options.hideGui = false;
+            server(mc, server -> {
+                for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+                    player.getInventory().setItem(8, new ItemStack(FishtasticItems.LEADERBOARDS_BOOK.value()));
+                    FishCatchSavedData.getOrCreate(server).setTutorialStep(player, grill24.fishtastic.tutorial.TutorialStep.COMPLETE);
+                    grill24.fishtastic.network.TutorialSyncPacket.sendToPlayer(player, grill24.fishtastic.tutorial.TutorialStep.COMPLETE);
+                }
+            });
+        });
+        queue(15, mc -> useTutorialBook(mc, FishtasticItems.LEADERBOARDS_BOOK.value()));
+        queue(20, mc -> {
+            check("leaderboard.open", mc.screen instanceof grill24.fishtastic.client.LeaderboardScreen, "screen=" + mc.screen);
+            try {
+                var screen = (grill24.fishtastic.client.LeaderboardScreen) mc.screen;
+                var response = screen.getClass().getDeclaredMethod("onLeaderboardResponse", grill24.fishtastic.network.LeaderboardResponsePacket.class);
+                response.setAccessible(true);
+                var entries = new java.util.ArrayList<grill24.fishtastic.network.LeaderboardEntry>();
+                for (int rank = 0; rank < 3; rank++) {
+                    entries.add(grill24.fishtastic.network.LeaderboardEntry.globalBestSize(
+                            BuiltInRegistries.ITEM.getKey(FishtasticItems.BLUEGILL.value()), mc.player.getUUID(),
+                            mc.player.getName().getString(), 100f - rank * 20f, FishQuality.Quality.COMMON));
+                }
+                response.invoke(screen, new grill24.fishtastic.network.LeaderboardResponsePacket(
+                        grill24.fishtastic.network.LeaderboardType.GLOBAL_BEST_SIZE, false, entries));
+                var tabs = screen.getClass().getDeclaredField("tabs");
+                tabs.setAccessible(true);
+                ((io.github.currenj.gelatinui.gui.components.ItemTabs) tabs.get(screen)).select(3);
+                grill24.fishtastic.network.LeaderboardResponsePacket.registerClientHandler(null);
+            } catch (ReflectiveOperationException e) {
+                throw new IllegalStateException(e);
+            }
+        });
+        queue(25, mc -> screenshot(mc, "leaderboard", "podium"));
+        queue(1, mc -> { if (mc.screen != null) mc.screen.onClose(); });
+    }
+
     private static void queueTutorialScene() {
         int[] session = {-1};
         queue(1, mc -> {
@@ -6311,7 +6351,37 @@ public final class RenderSelfTest {
                 }
             });
         });
-        queue(20, mc -> mc.setScreen(new InventoryScreen(mc.player)));
+        queue(20, mc -> {
+            check("tutorial.fishing_offer", mc.screen instanceof net.minecraft.client.gui.screens.ConfirmScreen,
+                    "A new rod must offer Play tutorial / Skip for later");
+            screenshot(mc, "tutorial", "fishing_offer");
+            mc.screen.children().stream()
+                    .filter(child -> child instanceof net.minecraft.client.gui.components.Button)
+                    .map(child -> (net.minecraft.client.gui.components.Button) child)
+                    .filter(button -> button.getMessage().getString().equals(Component.translatable("tutorial.fishtastic.fishing_offer.later").getString()))
+                    .findFirst().orElseThrow().onPress(null);
+        });
+        queue(10, mc -> {
+            check("tutorial.fishing_later", grill24.fishtastic.client.TutorialClientHandler.getCurrentStep()
+                    == grill24.fishtastic.tutorial.TutorialStep.DEFERRED, "Skipping must leave ordinary fishing available");
+            mc.player.getInventory().setSelectedSlot(0);
+            mc.gameMode.useItem(mc.player, net.minecraft.world.InteractionHand.MAIN_HAND);
+        });
+        queue(15, mc -> {
+            check("tutorial.fishing_retry_on_cast", mc.screen instanceof net.minecraft.client.gui.screens.ConfirmScreen
+                    && grill24.fishtastic.client.TutorialClientHandler.getCurrentStep() == grill24.fishtastic.tutorial.TutorialStep.FISHING_OFFER,
+                    "A copper cast after Skip for later must offer the lesson again");
+            mc.screen.children().stream()
+                    .filter(child -> child instanceof net.minecraft.client.gui.components.Button)
+                    .map(child -> (net.minecraft.client.gui.components.Button) child)
+                    .filter(button -> button.getMessage().getString().equals(Component.translatable("tutorial.fishtastic.fishing_offer.show").getString()))
+                    .findFirst().orElseThrow().onPress(null);
+        });
+        queue(15, mc -> {
+            check("tutorial.fishing_play", grill24.fishtastic.client.TutorialClientHandler.getCurrentStep()
+                    == grill24.fishtastic.tutorial.TutorialStep.BAIT_LOAD, "Play must begin the bait lesson");
+            mc.setScreen(new InventoryScreen(mc.player));
+        });
         queue(10, mc -> screenshot(mc, "tutorial", "bait"));
         queue(1, mc -> {
             mc.screen.onClose();
