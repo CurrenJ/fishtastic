@@ -100,6 +100,11 @@ public class FishtasticPackets {
                 TutorialAdvancePacket::handleClientToServer
         );
         registrar.registerClientToServer(
+                CompanionTutorialAdvancePacket.TYPE,
+                CompanionTutorialAdvancePacket.STREAM_CODEC,
+                CompanionTutorialAdvancePacket::handleClientToServer
+        );
+        registrar.registerClientToServer(
                 RequestFishEncyclopediaPacket.TYPE,
                 RequestFishEncyclopediaPacket.STREAM_CODEC,
                 RequestFishEncyclopediaPacket::handleClientToServer
@@ -164,6 +169,11 @@ public class FishtasticPackets {
                 TutorialSyncPacket.TYPE,
                 TutorialSyncPacket.STREAM_CODEC,
                 TutorialSyncPacket::handleServerToClient
+        );
+        registrar.registerServerToClient(
+                CompanionTutorialSyncPacket.TYPE,
+                CompanionTutorialSyncPacket.STREAM_CODEC,
+                CompanionTutorialSyncPacket::handleServerToClient
         );
         registrar.registerServerToClient(
                 FishEncyclopediaSyncPacket.TYPE,
@@ -240,6 +250,7 @@ public class FishtasticPackets {
         registrar.accept(LeaderboardResponsePacket.TYPE, LeaderboardResponsePacket.STREAM_CODEC);
         registrar.accept(QuestSyncPacket.TYPE, QuestSyncPacket.STREAM_CODEC);
         registrar.accept(TutorialSyncPacket.TYPE, TutorialSyncPacket.STREAM_CODEC);
+        registrar.accept(CompanionTutorialSyncPacket.TYPE, CompanionTutorialSyncPacket.STREAM_CODEC);
         registrar.accept(FishEncyclopediaSyncPacket.TYPE, FishEncyclopediaSyncPacket.STREAM_CODEC);
         registrar.accept(CosmeticCaptureSyncPacket.TYPE, CosmeticCaptureSyncPacket.STREAM_CODEC);
         registrar.accept(EncyclopediaTutorialSyncPacket.TYPE, EncyclopediaTutorialSyncPacket.STREAM_CODEC);

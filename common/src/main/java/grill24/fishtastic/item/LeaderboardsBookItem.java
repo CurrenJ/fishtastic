@@ -41,6 +41,7 @@ public class LeaderboardsBookItem extends Item {
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
         super.appendHoverText(stack, context, tooltip, flag);
         Consumer<Component> builder = tooltip::add;
+        builder.accept(Component.translatable("tooltip.fishtastic.book_use").withStyle(ChatFormatting.GRAY));
 
         if (FishtasticKeyBinds.openLeaderboards != null && !FishtasticKeyBinds.openLeaderboards.isUnbound()) {
             builder.accept(Component.translatable("tooltip.fishtastic.keybind_hint",

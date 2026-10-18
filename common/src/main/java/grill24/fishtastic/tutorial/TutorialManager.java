@@ -14,13 +14,10 @@ import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.util.FishingTarget;
 import grill24.fishtastic.util.Ids;
 import net.minecraft.advancements.AdvancementHolder;
-import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.entity.projectile.FishingHook;
 
 import java.util.List;
 import java.util.Optional;
@@ -54,17 +51,14 @@ public class TutorialManager {
 
     /** Call when server detects the player joined. Resumes tutorial state. */
     public static void onPlayerJoin(ServerPlayer player) {
+        CompanionTutorialManager.onPlayerJoin(player);
         TutorialStep step = getStep(player);
-        // WAITING_FOR_CAST doubles as both the genuine "rod's ready, go cast" step and the
-        // default/pre-tutorial sentinel for a player who's never crafted the starter rod (or
-        // was just debug-reset, which revokes the rod-crafted advancement) — see
-        // hasCraftedStarterRod(). Skip the sync for the sentinel case so the client doesn't
-        // show "Cast your line!" before the player owns a rod; the client already defaults to
-        // no-overlay (COMPLETE) until it hears otherwise.
-        if (step == TutorialStep.WAITING_FOR_CAST && !hasCraftedStarterRod(player)) {
-            return;
-        }
-        if (step != TutorialStep.COMPLETE) {
+        // Also supply missing access books when upgrading an unfinished tutorial.
+        if (step.hasOverlay()) giveBooks(player);
+        if (isPracticeStep(step) || step == TutorialStep.HOOK_IN_WATER) {
+            // Sessions and bobbers cannot be reconstructed from a saved tutorial step.
+            setStep(player, TutorialStep.WAITING_FOR_CAST);
+        } else {
             TutorialSyncPacket.sendToPlayer(player, step);
         }
     }
@@ -83,10 +77,7 @@ public class TutorialManager {
         }
     }
 
-    /**
-     * True once the player has actually crafted the starter copper fishing rod. Used to tell
-     * WAITING_FOR_CAST's two meanings apart — see {@link #onPlayerJoin}.
-     */
+    /** Whether the crafting entry point has fired; casting never awards this advancement. */
     public static boolean hasCraftedStarterRod(ServerPlayer player) {
         AdvancementHolder rodAdvancement =
                 player.level().getServer().getAdvancements().get(TUTORIAL_ROD_ADVANCEMENT_ID);
@@ -99,15 +90,26 @@ public class TutorialManager {
      * advancement (i.e. actually crafted the starter rod, by any take-from-result-slot path).
      */
     public static void onItemCrafted(ServerPlayer player) {
-        TutorialStep current = getStep(player);
-        // Only start if tutorial hasn't been started yet (WAITING_FOR_CAST is default/pre-tutorial)
-        if (current == TutorialStep.WAITING_FOR_CAST) {
-            ItemStack worms = new ItemStack(FishtasticItems.WORMS.value(), 8);
-            if (!player.getInventory().add(worms)) {
-                player.drop(worms, false);
-            }
+        if (getStep(player) == TutorialStep.NOT_STARTED) {
+            giveStarterItems(player);
             setStep(player, TutorialStep.BAIT_LOAD);
         }
+    }
+
+    private static void giveStarterItems(ServerPlayer player) {
+        give(player, new ItemStack(FishtasticItems.WORMS.value(), 8));
+        giveBooks(player);
+    }
+
+    private static void giveBooks(ServerPlayer player) {
+        for (var book : List.of(FishtasticItems.QUEST_BOOK.value(), FishtasticItems.FISHOPEDIA.value(),
+                FishtasticItems.LEADERBOARDS_BOOK.value())) {
+            if (!player.getInventory().contains(stack -> stack.is(book))) give(player, new ItemStack(book));
+        }
+    }
+
+    private static void give(ServerPlayer player, ItemStack stack) {
+        if (!player.getInventory().add(stack)) player.drop(stack, false);
     }
 
     /**
@@ -123,17 +125,51 @@ public class TutorialManager {
         }
     }
 
-    /** Call when a FishingHook entity spawns for this player (rod cast). */
-    public static void onHookCast(ServerPlayer player) {
+    /** Called with the actual used stack after a successful cast, including creative/given rods. */
+    public static void onHookCast(ServerPlayer player, ItemStack rod) {
+        if (!rod.is(FishtasticItems.COPPER_FISHING_ROD.value())) return;
         TutorialStep step = getStep(player);
-        if (step == TutorialStep.WAITING_FOR_CAST || step == TutorialStep.BAIT_LOAD) {
+        if (step == TutorialStep.NOT_STARTED) {
+            giveStarterItems(player);
+            if (grill24.fishtastic.item.FishtasticFishingRodItem.getBait(rod).isEmpty()) {
+                // Recall the first unbaited bobber so given/creative rods teach bait loading too.
+                if (player.fishing != null) {
+                    player.fishing.discard();
+                    player.fishing = null;
+                }
+                setStep(player, TutorialStep.BAIT_LOAD);
+                return;
+            }
+        }
+        if (step == TutorialStep.NOT_STARTED || step == TutorialStep.WAITING_FOR_CAST
+                || step == TutorialStep.BAIT_LOAD || isPracticeStep(step)) {
             setStep(player, TutorialStep.HOOK_IN_WATER);
         }
     }
 
+    private static boolean isPracticeStep(TutorialStep step) {
+        return step == TutorialStep.MINIGAME_INTRO || step == TutorialStep.MINIGAME_CONTROL
+                || step == TutorialStep.MINIGAME_CATCH;
+    }
+
+    public static void onPracticeInterrupted(ServerPlayer player) {
+        if (isPracticeStep(getStep(player))) setStep(player, TutorialStep.WAITING_FOR_CAST);
+    }
+
+    public static void onQuestLogOpened(ServerPlayer player) {
+        TutorialStep step = getStep(player);
+        if (step == TutorialStep.CATCH_RESULT || step == TutorialStep.QUEST_INTRO) {
+            setStep(player, TutorialStep.QUEST_CLAIM);
+        }
+    }
+
+    public static void onEncyclopediaOpened(ServerPlayer player) {
+        if (getStep(player) == TutorialStep.ENCYCLOPEDIA_OPEN) setStep(player, TutorialStep.COMPLETE);
+    }
+
     /**
      * Returns true if the next minigame session for this player should use tutorial
-     * rules (single easy target, no bait consumed).
+     * rules (single easy target with no catch-progress drain).
      */
     public static boolean isTutorialSession(ServerPlayer player) {
         return getStep(player) == TutorialStep.HOOK_IN_WATER;
@@ -153,24 +189,21 @@ public class TutorialManager {
         }
     }
 
-    /**
-     * Call when CompleteQuestPacket handler grants quest rewards. CompleteQuestPacket itself has
-     * no tutorial-step gate — a player can reach and click the claim button via a path that never
-     * sent the QUEST_INTRO->QUEST_CLAIM advance packet (e.g. opening the quest log some way other
-     * than the tracked keybind before that packet lands), claiming the quest while still on
-     * CATCH_RESULT or QUEST_INTRO. Since the quest is then permanently marked claimed, an exact
-     * QUEST_CLAIM match here would never fire again and softlock the tutorial. The claim is
-     * strictly stronger evidence of progress than either step it's meant to satisfy, so accept it
-     * at any point before SHOP_BROWSE rather than requiring the exact expected step.
-     */
+    /** Accept an early claim too: a player may already have caught fish before starting the lesson. */
     public static void onQuestClaimed(ServerPlayer player, ResourceLocation questId) {
-        if (TUTORIAL_QUEST_ID.equals(questId) && getStep(player).ordinal() < TutorialStep.SHOP_BROWSE.ordinal()) {
+        TutorialStep step = getStep(player);
+        if (TUTORIAL_QUEST_ID.equals(questId) && step.hasOverlay() && step != TutorialStep.SHOP_BROWSE
+                && step != TutorialStep.ENCYCLOPEDIA_OFFER && step != TutorialStep.ENCYCLOPEDIA_OPEN) {
             setStep(player, TutorialStep.SHOP_BROWSE);
         }
     }
 
     /** Called by TutorialAdvancePacket — client-initiated step advance. */
     public static void advanceStep(ServerPlayer player, TutorialStep fromStep) {
+        advanceStep(player, fromStep, false);
+    }
+
+    public static void advanceStep(ServerPlayer player, TutorialStep fromStep, boolean showEncyclopedia) {
         if (getStep(player) != fromStep) return;
         TutorialStep next = switch (fromStep) {
             case BAIT_LOAD         -> TutorialStep.WAITING_FOR_CAST;
@@ -178,7 +211,8 @@ public class TutorialManager {
             case MINIGAME_CONTROL  -> TutorialStep.MINIGAME_CATCH;
             case CATCH_RESULT      -> TutorialStep.QUEST_INTRO;
             case QUEST_INTRO       -> TutorialStep.QUEST_CLAIM;
-            case SHOP_BROWSE       -> TutorialStep.COMPLETE;
+            case SHOP_BROWSE       -> TutorialStep.ENCYCLOPEDIA_OFFER;
+            case ENCYCLOPEDIA_OFFER -> showEncyclopedia ? TutorialStep.ENCYCLOPEDIA_OPEN : TutorialStep.COMPLETE;
             default -> null;
         };
         if (next != null) setStep(player, next);

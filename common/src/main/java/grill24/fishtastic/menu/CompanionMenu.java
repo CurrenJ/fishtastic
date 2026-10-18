@@ -142,7 +142,7 @@ public final class CompanionMenu extends AbstractContainerMenu {
                         && input == net.minecraft.world.inventory.ClickType.SWAP
                         && !FishtasticItemData.matches(partyBefore, getSlot(slot).getItem());
                 if (putAway || hotbarReturn) {
-                    // TODO(F15): CompanionTutorialManager.onReturned(serverPlayer)
+                    grill24.fishtastic.tutorial.CompanionTutorialManager.onReturned(serverPlayer);
                     returningFish = ItemStack.EMPTY;
                 } else if (!returningFish.isEmpty() && !FishtasticItemData.isSameItemSameData(returningFish, getCarried())) {
                     returningFish = ItemStack.EMPTY;
@@ -156,7 +156,7 @@ public final class CompanionMenu extends AbstractContainerMenu {
                 && Companions.hasRoomToReturn(player, returningFish);
         super.removed(player);
         if (returning && player instanceof ServerPlayer serverPlayer) {
-            // TODO(F15): CompanionTutorialManager.onReturned(serverPlayer)
+            grill24.fishtastic.tutorial.CompanionTutorialManager.onReturned(serverPlayer);
         }
     }
 
@@ -217,7 +217,7 @@ public final class CompanionMenu extends AbstractContainerMenu {
         if (isPartySlot(index)) {
             if (!moveItemStackTo(stack, INVENTORY_START, INVENTORY_END, true)) return ItemStack.EMPTY;
             source.setByPlayer(stack.isEmpty() ? ItemStack.EMPTY : stack);
-            // TODO(F15): CompanionTutorialManager.onReturned(player)
+            if (player instanceof ServerPlayer serverPlayer) grill24.fishtastic.tutorial.CompanionTutorialManager.onReturned(serverPlayer);
         } else {
             Slot target = null;
             for (int i = 0; i < PARTY_SLOTS; i++) {
