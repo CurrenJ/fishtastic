@@ -55,7 +55,7 @@ public class TutorialManager {
         CompanionTutorialManager.onPlayerJoin(player);
         TutorialStep step = getStep(player);
         // Also supply missing access books when upgrading an unfinished tutorial.
-        if (step.hasOverlay()) giveBooks(player);
+        if (step.hasOverlay() && step != TutorialStep.FISHING_OFFER) giveBooks(player);
         if (isPracticeStep(step) || step == TutorialStep.HOOK_IN_WATER) {
             // Sessions and bobbers cannot be reconstructed from a saved tutorial step.
             setStep(player, TutorialStep.WAITING_FOR_CAST);
@@ -91,9 +91,8 @@ public class TutorialManager {
      * advancement (i.e. actually crafted the starter rod, by any take-from-result-slot path).
      */
     public static void onItemCrafted(ServerPlayer player) {
-        if (getStep(player) == TutorialStep.NOT_STARTED) {
-            giveStarterItems(player);
-            setStep(player, TutorialStep.BAIT_LOAD);
+        if (getStep(player) == TutorialStep.NOT_STARTED || getStep(player) == TutorialStep.DEFERRED) {
+            setStep(player, TutorialStep.FISHING_OFFER);
         }
     }
 
@@ -130,19 +129,11 @@ public class TutorialManager {
     public static void onHookCast(ServerPlayer player, ItemStack rod) {
         if (!rod.is(FishtasticItems.COPPER_FISHING_ROD.value())) return;
         TutorialStep step = getStep(player);
-        if (step == TutorialStep.NOT_STARTED) {
-            giveStarterItems(player);
-            if (grill24.fishtastic.item.FishtasticFishingRodItem.getBait(rod).isEmpty()) {
-                // Recall the first unbaited bobber so given/creative rods teach bait loading too.
-                if (player.fishing != null) {
-                    player.fishing.discard();
-                    player.fishing = null;
-                }
-                setStep(player, TutorialStep.BAIT_LOAD);
-                return;
-            }
+        if (step == TutorialStep.NOT_STARTED || step == TutorialStep.DEFERRED) {
+            setStep(player, TutorialStep.FISHING_OFFER);
+            return;
         }
-        if (step == TutorialStep.NOT_STARTED || step == TutorialStep.WAITING_FOR_CAST
+        if (step == TutorialStep.WAITING_FOR_CAST
                 || step == TutorialStep.BAIT_LOAD || isPracticeStep(step)) {
             setStep(player, TutorialStep.HOOK_IN_WATER);
         }
@@ -194,7 +185,7 @@ public class TutorialManager {
     public static void onQuestClaimed(ServerPlayer player, ResourceLocation questId) {
         TutorialStep step = getStep(player);
         if (TUTORIAL_QUEST_ID.equals(questId) && step.hasOverlay() && step != TutorialStep.SHOP_BROWSE
-                && step != TutorialStep.ENCYCLOPEDIA_OFFER && step != TutorialStep.ENCYCLOPEDIA_OPEN) {
+                && step != TutorialStep.FISHING_OFFER && step != TutorialStep.ENCYCLOPEDIA_OFFER && step != TutorialStep.ENCYCLOPEDIA_OPEN) {
             setStep(player, TutorialStep.SHOP_BROWSE);
         }
     }
@@ -206,6 +197,27 @@ public class TutorialManager {
 
     public static void advanceStep(ServerPlayer player, TutorialStep fromStep, boolean showEncyclopedia) {
         if (getStep(player) != fromStep) return;
+        if (fromStep == TutorialStep.FISHING_OFFER) {
+            if (!showEncyclopedia) {
+                setStep(player, TutorialStep.DEFERRED);
+                return;
+            }
+            // Begin only after consent; a pre-existing cast cannot become a practice session.
+            if (player.fishing != null) {
+                player.fishing.discard();
+                player.fishing = null;
+            }
+            giveStarterItems(player);
+            boolean baited = false;
+            for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
+                ItemStack rod = player.getInventory().getItem(slot);
+                if (rod.is(FishtasticItems.COPPER_FISHING_ROD.value())
+                        && !grill24.fishtastic.item.FishtasticFishingRodItem.getBait(rod).isEmpty()) baited = true;
+            }
+            setStep(player, baited ? TutorialStep.WAITING_FOR_CAST : TutorialStep.BAIT_LOAD);
+            return;
+        }
+
         TutorialStep next = switch (fromStep) {
             case BAIT_LOAD         -> TutorialStep.WAITING_FOR_CAST;
             case MINIGAME_INTRO    -> TutorialStep.MINIGAME_CONTROL;

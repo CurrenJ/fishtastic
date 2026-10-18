@@ -433,12 +433,13 @@ public final class ClientCompanion {
             // (see-through text, translucent plate) billboarded on the camera.
             poseStack.translate(0, radius + NAME_GAP, 0);
             poseStack.mulPose(mc.gameRenderer.getMainCamera().rotation());
-            poseStack.scale(0.025f, -0.025f, 0.025f);
+            // 1.20.1 name tags face the camera with negative X; 1.21.1 changed this convention.
+            poseStack.scale(-0.025f, -0.025f, 0.025f);
             net.minecraft.network.chat.Component name = stacks[i].getHoverName();
             float x = -mc.font.width(name) / 2f;
             int plate = (int) (mc.options.getBackgroundOpacity(0.25f) * 255f) << 24;
-            mc.font.drawInBatch(name, x, 0f, 0x20FFFFFF, false, poseStack.last().pose(), buffers,
-                    net.minecraft.client.gui.Font.DisplayMode.SEE_THROUGH, plate, light(pos, false));
+            mc.font.drawInBatch(name, x, 0f, 0xFFFFFFFF, false, poseStack.last().pose(), buffers,
+                    net.minecraft.client.gui.Font.DisplayMode.NORMAL, plate, light(pos, false));
             poseStack.popPose();
         }
     }

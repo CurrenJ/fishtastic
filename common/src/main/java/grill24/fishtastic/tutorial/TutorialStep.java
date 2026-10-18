@@ -20,7 +20,9 @@ public enum TutorialStep {
     // Append only: saved tutorials and packets use the original ordinal values.
     NOT_STARTED,
     ENCYCLOPEDIA_OFFER,
-    ENCYCLOPEDIA_OPEN;
+    ENCYCLOPEDIA_OPEN,
+    FISHING_OFFER,
+    DEFERRED;
 
     public static final Codec<TutorialStep> CODEC =
             Codec.INT.xmap(i -> values()[i], Enum::ordinal);
@@ -29,7 +31,7 @@ public enum TutorialStep {
             BufCodecs.VAR_INT.map(i -> values()[i], Enum::ordinal);
 
     public boolean hasOverlay() {
-        return this != COMPLETE && this != NOT_STARTED;
+        return this != COMPLETE && this != NOT_STARTED && this != DEFERRED;
     }
 
     public boolean pausesMinigame() {

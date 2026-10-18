@@ -365,7 +365,18 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
             // without this lift the pedestal's blocks cover the player — see
             // PODIUM_PLAYER_Z_OFFSET. On 26.1.2 the add order below already decides it.
             if (type == LeaderboardType.GLOBAL_BEST_SIZE) {
-                PlayerAvatarRenderer avatar = UI.playerAvatar(playerWidth, playerHeight)
+                // 1.20.1's inventory renderer has no scaled translation parameter. Gelatin's
+                // fallback adds half the entity height as pixels; restore the missing scale.
+                PlayerAvatarRenderer avatar = new PlayerAvatarRenderer(playerWidth, playerHeight) {
+                    @Override protected void renderSelf(io.github.currenj.gelatinui.gui.IRenderContext context) {
+                        if (!(context instanceof io.github.currenj.gelatinui.gui.minecraft.MinecraftRenderContext render)) return;
+                        var pose = render.getGraphics().pose();
+                        pose.pushPose();
+                        pose.translate(0, (Math.round(0.97f * playerHeight / 2.125f) - 1f) * 0.9f, 0);
+                        super.renderSelf(context);
+                        pose.popPose();
+                    }
+                }
                         .profile(PlayerHeadItems.gameProfile(uuid, name))
                         .heldItem(catchStack(entry));
                 avatar.setZOffset(PODIUM_PLAYER_Z_OFFSET);
