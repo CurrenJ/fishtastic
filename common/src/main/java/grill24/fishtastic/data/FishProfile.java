@@ -1,15 +1,19 @@
 package grill24.fishtastic.data;
 
+import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticBiomeTags;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
-import net.minecraft.core.HolderSet;
-import net.minecraft.core.RegistryCodecs;
+import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
 import net.minecraft.tags.BiomeTags;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.level.Level;
@@ -201,35 +205,76 @@ public record FishProfile(
 
     /**
      * {@code biome} accepts either a tag reference ({@code "#namespace:tag"}) or one or more
-     * direct biome ids ({@code "namespace:biome"} or a list of them) via
-     * {@link RegistryCodecs#homogeneousList}, so an author can target a single specific biome
-     * without needing a dedicated tag file for it.
+     * direct biome ids ({@code "namespace:biome"} or a list of them), so an author can target a
+     * single specific biome without needing a dedicated tag file for it.
+     *
+     * <p>1.20.1 writes synced datapack registries with plain NBT ops, so this codec must not need
+     * registry access (a {@code HolderSet<Biome>} codec made the login packet fail on dedicated
+     * servers). The selector is resolved against a live biome holder when it is matched.
      */
-    public record BiomeWeight(HolderSet<Biome> biome, float multiplier, ConditionTier tier) {
+    public record BiomeSelector(Optional<TagKey<Biome>> tag, List<ResourceKey<Biome>> keys) {
+        public static final Codec<BiomeSelector> CODEC = Codec.either(Codec.STRING, ResourceLocation.CODEC.listOf())
+                .comapFlatMap(either -> either.map(BiomeSelector::parseString,
+                                list -> DataResult.success(new BiomeSelector(Optional.empty(),
+                                        list.stream().map(id -> ResourceKey.create(Registries.BIOME, id)).toList()))),
+                        sel -> sel.tag().isPresent()
+                                ? Either.<String, List<ResourceLocation>>left("#" + sel.tag().get().location())
+                                : Either.<String, List<ResourceLocation>>right(sel.keys().stream().map(ResourceKey::location).toList()));
+
+        private static DataResult<BiomeSelector> parseString(String raw) {
+            boolean isTag = raw.startsWith("#");
+            ResourceLocation id = grill24.fishtastic.util.Ids.tryParse(isTag ? raw.substring(1) : raw);
+            if (id == null) return DataResult.error(() -> "Not a valid biome id or tag: " + raw);
+            return DataResult.success(isTag
+                    ? new BiomeSelector(Optional.of(TagKey.create(Registries.BIOME, id)), List.of())
+                    : new BiomeSelector(Optional.empty(), List.of(ResourceKey.create(Registries.BIOME, id))));
+        }
+
+        public static BiomeSelector ofKeys(List<ResourceKey<Biome>> keys) {
+            return new BiomeSelector(Optional.empty(), List.copyOf(keys));
+        }
+
+        public boolean contains(Holder<Biome> biome) {
+            return tag.map(biome::is).orElse(false) || keys.stream().anyMatch(biome::is);
+        }
+
+        /** The matching biomes in {@code access}; ids that are not registered are skipped. */
+        public List<Holder<Biome>> resolve(RegistryAccess access) {
+            Registry<Biome> registry = access.registryOrThrow(Registries.BIOME);
+            if (tag.isPresent()) {
+                return registry.getTag(tag.get()).map(named -> named.stream().<Holder<Biome>>map(h -> h).toList()).orElse(List.of());
+            }
+            return keys.stream().flatMap(k -> registry.getHolder(k).stream()).<Holder<Biome>>map(h -> h).toList();
+        }
+
+        /** {@code "#namespace:tag"} or comma-joined direct ids. */
+        public String describe() {
+            return tag.map(t -> "#" + t.location())
+                    .orElseGet(() -> keys.stream().map(k -> k.location().toString()).collect(Collectors.joining(", ")));
+        }
+
+        /** Path-only display (no namespace/#). */
+        public String pathDisplay() {
+            return tag.map(t -> t.location().getPath())
+                    .orElseGet(() -> keys.stream().map(k -> k.location().getPath()).collect(Collectors.joining(", ")));
+        }
+    }
+
+    public record BiomeWeight(BiomeSelector biome, float multiplier, ConditionTier tier) {
         public static final Codec<BiomeWeight> CODEC = RecordCodecBuilder.create(i -> i.group(
-                RegistryCodecs.homogeneousList(Registries.BIOME).fieldOf("biome").forGetter(BiomeWeight::biome),
+                BiomeSelector.CODEC.fieldOf("biome").forGetter(BiomeWeight::biome),
                 Codec.FLOAT.fieldOf("multiplier").forGetter(BiomeWeight::multiplier),
                 ConditionTier.CODEC.optionalFieldOf("tier", ConditionTier.PRIMARY).forGetter(BiomeWeight::tier)
         ).apply(i, BiomeWeight::new));
 
         /** Full descriptor for debug output: {@code "#namespace:tag"} or comma-joined direct ids. */
         public String describe() {
-            return biome.unwrap().map(
-                    tag -> "#" + tag.location(),
-                    list -> list.stream()
-                            .map(h -> h.unwrapKey().map(k -> k.location().toString()).orElse("?"))
-                            .collect(Collectors.joining(", "))
-            );
+            return biome.describe();
         }
 
         /** Path-only display (no namespace/#) for prettified UI labels. */
         public String pathDisplay() {
-            return biome.unwrap().map(
-                    tag -> tag.location().getPath(),
-                    list -> list.stream()
-                            .map(h -> h.unwrapKey().map(k -> k.location().getPath()).orElse("?"))
-                            .collect(Collectors.joining(", "))
-            );
+            return biome.pathDisplay();
         }
     }
 

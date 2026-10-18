@@ -173,14 +173,20 @@ public final class CompanionAmbient {
         boolean coldHome = p.zones().contains(FishProfile.Zone.HIGH_ALTITUDE);
         for (FishProfile.BiomeWeight w : p.biomeWeights()) {
             if (w.multiplier() < 1f) continue; // a biome it's less likely in isn't a home
-            w.biome().unwrap().ifLeft(tag -> homes.add("#" + tag.location()))
-                    .ifRight(list -> list.forEach(h -> h.unwrapKey().ifPresent(k -> homes.add(k.location().toString()))));
-            for (Holder<Biome> b : (HolderSet<Biome>) w.biome()) {
+            w.biome().tag().ifPresent(tag -> homes.add("#" + tag.location()));
+            w.biome().keys().forEach(k -> homes.add(k.location().toString()));
+            // Resolved against the live client registry when a world is loaded; the profile's
+            // biome names alone decide nether and cold homes otherwise.
+            var level = net.minecraft.client.Minecraft.getInstance().level;
+            for (Holder<Biome> b : level == null ? List.<Holder<Biome>>of() : w.biome().resolve(level.registryAccess())) {
                 if (b.is(BiomeTags.IS_NETHER)) nether = true;
-                if (b.value().getBaseTemperature() < SNOW_BELOW || b.unwrapKey().map(k -> Set.of(
-                        "minecraft:cold_ocean", "minecraft:deep_cold_ocean", "minecraft:frozen_ocean", "minecraft:deep_frozen_ocean")
-                        .contains(k.location().toString())).orElse(false)) coldHome = true;
+                if (b.value().getBaseTemperature() < SNOW_BELOW) coldHome = true;
             }
+            if (w.biome().keys().stream().anyMatch(k -> Set.of("minecraft:nether_wastes", "minecraft:soul_sand_valley",
+                    "minecraft:crimson_forest", "minecraft:warped_forest", "minecraft:basalt_deltas").contains(k.location().toString()))
+                    || w.biome().tag().map(t -> t.location().toString().equals("minecraft:is_nether")).orElse(false)) nether = true;
+            if (w.biome().keys().stream().anyMatch(k -> Set.of("minecraft:cold_ocean", "minecraft:deep_cold_ocean",
+                    "minecraft:frozen_ocean", "minecraft:deep_frozen_ocean").contains(k.location().toString()))) coldHome = true;
         }
         Map<Ambient.Weather, Float> weather = new EnumMap<>(Ambient.Weather.class);
         for (FishProfile.WeatherWeight w : p.weatherWeights()) {

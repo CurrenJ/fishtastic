@@ -56,6 +56,9 @@ gradle.projectsEvaluated {
                 'gamemode=creative',
                 'difficulty=peaceful',
                 'level-type=minecraft:flat',
+                // 1.20.1 fills a missing value with '{}', which fails to parse ("No key layers") and falls back to a
+                // flat generator whose biome is not in the synced registry: the login packet then cannot encode.
+                'generator-settings={"layers":[{"block":"minecraft:bedrock","height":1},{"block":"minecraft:dirt","height":2},{"block":"minecraft:grass_block","height":1}],"biome":"minecraft:plains","structure_overrides":[]}',
                 'generate-structures=false',
                 'level-name=world',
                 'level-seed=1',

@@ -314,7 +314,7 @@ public final class FishingPoolFixture {
                 Lifecycle.stable());
         registry.register(profileKey(POOLFRY), profile(baseWeightOverrides.getOrDefault(POOLFRY, 4),
                 List.of(FishProfile.Zone.RIVER),
-                List.of(new FishProfile.BiomeWeight(HolderSet.direct(riverBiome()), 2.0f,
+                List.of(new FishProfile.BiomeWeight(FishProfile.BiomeSelector.ofKeys(List.of(riverBiome().unwrapKey().orElseThrow())), 2.0f,
                         FishProfile.ConditionTier.PRIMARY)),
                 List.of(), List.of(), List.of()), Lifecycle.stable());
         registry.freeze();
