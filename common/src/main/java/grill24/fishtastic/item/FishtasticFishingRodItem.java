@@ -52,7 +52,12 @@ public abstract class FishtasticFishingRodItem extends FishingRodItem {
 
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+        boolean casting = player.fishing == null;
+        ItemStack usedRod = player.getItemInHand(hand);
         super.use(level, player, hand);
+        if (casting && player.fishing != null && player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
+            TutorialManager.onHookCast(serverPlayer, usedRod);
+        }
 
         // Minigame impulse input is polled every frame in FishingMinigameAnimation.render()
         // (both the dedicated keybind and vanilla's "use item" mapping), so right-click no

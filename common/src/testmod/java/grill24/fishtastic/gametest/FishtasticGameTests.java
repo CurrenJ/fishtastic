@@ -745,6 +745,51 @@ public class FishtasticGameTests {
         TutorialManagerGameTests.onQuestClaimedOnlyAdvancesOnMatchingTutorialQuestId(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
+    @GameTest(template = "fishtastic_empty")
+    public void onlyCopperCastsStartTutorialAndGrantBooksOnce(GameTestHelper helper) {
+        TutorialManagerGameTests.onlyCopperCastsStartTutorialAndGrantBooksOnce(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void booksAdvanceTutorialAndEncyclopediaChoiceIsOptional(GameTestHelper helper) {
+        TutorialManagerGameTests.booksAdvanceTutorialAndEncyclopediaChoiceIsOptional(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void interruptedPracticeResumesAtCastWithoutNewStarterItems(GameTestHelper helper) {
+        TutorialManagerGameTests.interruptedPracticeResumesAtCastWithoutNewStarterItems(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void realMenuWalksAllCompanionLessons(GameTestHelper helper) {
+        CompanionTutorialManagerGameTests.realMenuWalksAllCompanionLessons(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void shortcutsAndShiftReturnsAdvanceTheSameLessons(GameTestHelper helper) {
+        CompanionTutorialManagerGameTests.shortcutsAndShiftReturnsAdvanceTheSameLessons(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void closingWithReturnedFishResumesWithoutLosingIt(GameTestHelper helper) {
+        CompanionTutorialManagerGameTests.closingWithReturnedFishResumesWithoutLosingIt(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void stalePacketsCannotReplaceCompanionActions(GameTestHelper helper) {
+        CompanionTutorialManagerGameTests.stalePacketsCannotReplaceCompanionActions(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void skipAndReplayKeepEarnedPartyAndUnlocks(GameTestHelper helper) {
+        CompanionTutorialManagerGameTests.skipAndReplayKeepEarnedPartyAndUnlocks(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void pileFishCanCompleteTheEquipLesson(GameTestHelper helper) {
+        CompanionTutorialManagerGameTests.pileFishCanCompleteTheEquipLesson(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
     // -------------------------------------------------------------------------
     // EncyclopediaTutorialManager tests
     // -------------------------------------------------------------------------

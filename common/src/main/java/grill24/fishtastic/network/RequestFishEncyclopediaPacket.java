@@ -2,7 +2,6 @@ package grill24.fishtastic.network;
 
 import grill24.fishtastic.compat.GelatinOpenMenuCompat;
 import grill24.fishtastic.server.FishCatchSavedData;
-import grill24.fishtastic.tutorial.EncyclopediaTutorialManager;
 import grill24.fishtastic.network.codec.BufCodecs;
 import grill24.fishtastic.network.codec.BufCodec;
 import grill24.fishtastic.network.FishtasticPayload;
@@ -41,7 +40,6 @@ public record RequestFishEncyclopediaPacket(boolean openMenu) implements Fishtas
                 }
                 if (packet.openMenu()) {
                     GelatinOpenMenuCompat.openFishEncyclopediaMenu(serverPlayer);
-                    EncyclopediaTutorialManager.onEncyclopediaOpened(serverPlayer);
                 }
             }
         });

@@ -7,7 +7,11 @@ import grill24.fishtastic.network.codec.BufCodec;
 import grill24.fishtastic.network.FishtasticPayload;
 import net.minecraft.server.level.ServerPlayer;
 
-public record TutorialAdvancePacket(TutorialStep fromStep) implements FishtasticPayload {
+public record TutorialAdvancePacket(TutorialStep fromStep, boolean showEncyclopedia) implements FishtasticPayload {
+
+    public TutorialAdvancePacket(TutorialStep fromStep) {
+        this(fromStep, false);
+    }
 
     public static final FishtasticPayload.PayloadType<TutorialAdvancePacket> TYPE =
             new FishtasticPayload.PayloadType<>(Fishtastic.id("tutorial_advance"));
@@ -16,6 +20,8 @@ public record TutorialAdvancePacket(TutorialStep fromStep) implements Fishtastic
             BufCodec.composite(
                     TutorialStep.STREAM_CODEC,
                     TutorialAdvancePacket::fromStep,
+                    grill24.fishtastic.network.codec.BufCodecs.BOOL,
+                    TutorialAdvancePacket::showEncyclopedia,
                     TutorialAdvancePacket::new
             );
 
@@ -28,7 +34,7 @@ public record TutorialAdvancePacket(TutorialStep fromStep) implements Fishtastic
         ctx.enqueueWork(() -> {
             var player = ctx.getPlayer();
             if (player instanceof ServerPlayer serverPlayer) {
-                TutorialManager.advanceStep(serverPlayer, packet.fromStep());
+                TutorialManager.advanceStep(serverPlayer, packet.fromStep(), packet.showEncyclopedia());
             }
         });
     }

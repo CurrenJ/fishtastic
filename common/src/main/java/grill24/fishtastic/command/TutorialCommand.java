@@ -21,6 +21,15 @@ public class TutorialCommand {
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         return Commands.literal("tutorial")
                 .requires(FishtasticPermissions.gamemaster())
+                .then(Commands.literal("companions")
+                    .then(Commands.literal("status")
+                        .executes(ctx -> executeCompanions(ctx, null, false))
+                        .then(Commands.argument("player", EntityArgument.player())
+                            .executes(ctx -> executeCompanions(ctx, EntityArgument.getPlayer(ctx, "player"), false))))
+                    .then(Commands.literal("reset")
+                        .executes(ctx -> executeCompanions(ctx, null, true))
+                        .then(Commands.argument("player", EntityArgument.player())
+                            .executes(ctx -> executeCompanions(ctx, EntityArgument.getPlayer(ctx, "player"), true)))))
                 .then(Commands.literal("status")
                     .executes(ctx -> executeStatus(ctx, null))
                     .then(Commands.argument("player", EntityArgument.player())
@@ -50,7 +59,7 @@ public class TutorialCommand {
         if (player == null) return 0;
 
         FishCatchSavedData data = FishCatchSavedData.getOrCreate(ctx.getSource().getServer());
-        data.setTutorialStep(player, TutorialStep.WAITING_FOR_CAST);
+        data.setTutorialStep(player, TutorialStep.NOT_STARTED);
         data.setEncyclopediaTutorialStep(player, EncyclopediaTutorialStep.NOT_STARTED);
 
         PlayerQuestState questState = data.getOrCreateQuestState(player);
@@ -58,12 +67,8 @@ public class TutorialCommand {
 
         TutorialManager.revokeRodCraftedAdvancement(player);
 
-        // Sync tutorial step, encyclopedia tutorial step, and quest state to client. The
-        // persisted step is the WAITING_FOR_CAST sentinel (default/pre-tutorial), but that value
-        // also means "rod's ready, go cast" once the rod-crafted advancement is granted — since
-        // reset just revoked it, sync COMPLETE (client's no-overlay state) instead so "Cast your
-        // line!" doesn't show until the player actually re-crafts the rod.
-        grill24.fishtastic.network.TutorialSyncPacket.sendToPlayer(player, TutorialStep.COMPLETE);
+        // Crafting or the next copper-rod cast can start the lesson after a reset.
+        grill24.fishtastic.network.TutorialSyncPacket.sendToPlayer(player, TutorialStep.NOT_STARTED);
         EncyclopediaTutorialSyncPacket.sendToPlayer(player, EncyclopediaTutorialStep.NOT_STARTED);
         QuestSyncPacket.sendToPlayer(player, data);
 
@@ -78,5 +83,16 @@ public class TutorialCommand {
         if (source.getEntity() instanceof ServerPlayer sp) return sp;
         source.sendFailure(Component.literal("Specify a player or run as a player."));
         return null;
+    }
+
+    private static int executeCompanions(CommandContext<CommandSourceStack> ctx, ServerPlayer target, boolean reset)
+            throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        ServerPlayer player = resolveTarget(ctx.getSource(), target);
+        if (player == null) return 0;
+        if (reset) grill24.fishtastic.tutorial.CompanionTutorialManager.reset(player);
+        ctx.getSource().sendSuccess(() -> Component.literal("Companion tutorial for " + player.getName().getString()
+                + ": " + grill24.fishtastic.tutorial.CompanionTutorialManager.getStep(player).name())
+                .withStyle(ChatFormatting.GREEN), false);
+        return 1;
     }
 }

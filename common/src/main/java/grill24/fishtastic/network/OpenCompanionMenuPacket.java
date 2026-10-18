@@ -27,7 +27,7 @@ public record OpenCompanionMenuPacket(ItemStack species) implements FishtasticPa
                 player.openMenu(new SimpleMenuProvider((id, inventory, owner) ->
                         new CompanionMenu(id, inventory, packet.species.isEmpty() ? null : packet.species.getItem()),
                         Component.translatable("screen.fishtastic.companion.title")));
-                // TODO(F15): CompanionTutorialManager.onCompanionsTabOpened(player)
+                grill24.fishtastic.tutorial.CompanionTutorialManager.onCompanionsTabOpened(player);
             }
         });
     }

@@ -65,7 +65,8 @@ public final class CompanionBondUnlocks {
         }
         if (!newly.isEmpty()) {
             data.setDirty();
-            // TODO(F15): the first unlock ever starts the companion FTUE (CompanionTutorialManager.onBondUnlocked); not ported yet.
+            // The first unlock ever starts the FTUE (a later unlock only gets the banner).
+            grill24.fishtastic.tutorial.CompanionTutorialManager.onBondUnlocked(player);
         }
         return newly;
     }

@@ -352,7 +352,7 @@ public class CompanionCommand {
             return 0;
         }
         data.setDirty();
-        // TODO(F15): CompanionTutorialManager.onBondUnlocked(player)
+        grill24.fishtastic.tutorial.CompanionTutorialManager.onBondUnlocked(player);
         grill24.fishtastic.network.QuestSyncPacket.sendToPlayer(player, data);
         ctx.getSource().sendSuccess(() -> Component.literal("Unlocked the bond for " + id.getPath())
                 .withStyle(ChatFormatting.GREEN), true);
