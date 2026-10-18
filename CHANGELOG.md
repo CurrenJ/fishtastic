@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.1.0
+
+Added ambient fish, companions, and interactive fish tank cosmetic decorations
+
 ## Unreleased
 
 ### Fish companions: the party
