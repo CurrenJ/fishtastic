@@ -437,8 +437,8 @@ public final class ClientCompanion {
             net.minecraft.network.chat.Component name = stacks[i].getHoverName();
             float x = -mc.font.width(name) / 2f;
             int plate = (int) (mc.options.getBackgroundOpacity(0.25f) * 255f) << 24;
-            mc.font.drawInBatch(name, x, 0f, 0x20FFFFFF, false, poseStack.last().pose(), buffers,
-                    net.minecraft.client.gui.Font.DisplayMode.SEE_THROUGH, plate, light(pos, false));
+            mc.font.drawInBatch(name, x, 0f, 0xFFFFFFFF, false, poseStack.last().pose(), buffers,
+                    net.minecraft.client.gui.Font.DisplayMode.NORMAL, plate, light(pos, false));
             poseStack.popPose();
         }
     }

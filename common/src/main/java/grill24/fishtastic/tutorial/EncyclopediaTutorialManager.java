@@ -22,7 +22,7 @@ public class EncyclopediaTutorialManager {
     public static void onEncyclopediaOpened(ServerPlayer player) {
         // Opening the book early is allowed, but must not start a competing lesson.
         TutorialStep main = TutorialManager.getStep(player);
-        if (main != TutorialStep.NOT_STARTED && main != TutorialStep.COMPLETE) return;
+        if (main != TutorialStep.NOT_STARTED && main != TutorialStep.COMPLETE && main != TutorialStep.DEFERRED) return;
         FishCatchSavedData data = FishCatchSavedData.getOrCreate(player.level().getServer());
         EncyclopediaTutorialStep step = data.getEncyclopediaTutorialStep(player);
         if (step == EncyclopediaTutorialStep.NOT_STARTED) {

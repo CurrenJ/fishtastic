@@ -111,18 +111,18 @@ public class TutorialClientHandler {
             case MINIGAME_CONTROL -> {
                 if (minigameControlAdvancePending && stepTicks >= MINIGAME_CONTROL_MIN_SHOW_TICKS) sendAdvance();
             }
-            case ENCYCLOPEDIA_OFFER -> {
+            case FISHING_OFFER, ENCYCLOPEDIA_OFFER -> {
                 Minecraft mc = Minecraft.getInstance();
                 if (mc.screen == null && mc.player != null && !mc.player.isDeadOrDying()) {
                     mc.setScreen(new net.minecraft.client.gui.screens.ConfirmScreen(show -> {
                         sentAdvanceThisStep = true;
                         mc.player.connection.send(new ServerboundCustomPayloadPacket(
-                                new TutorialAdvancePacket(TutorialStep.ENCYCLOPEDIA_OFFER, show)));
+                                new TutorialAdvancePacket(currentStep, show)));
                         mc.setScreen(null);
-                    }, Component.translatable("tutorial.fishtastic.encyclopedia_offer.title"),
-                            Component.translatable("tutorial.fishtastic.encyclopedia_offer.body"),
-                            Component.translatable("tutorial.fishtastic.encyclopedia_offer.show"),
-                            Component.translatable("tutorial.fishtastic.encyclopedia_offer.later")) {
+                    }, Component.translatable((currentStep == TutorialStep.FISHING_OFFER ? "tutorial.fishtastic.fishing_offer.title" : "tutorial.fishtastic.encyclopedia_offer.title")),
+                            Component.translatable((currentStep == TutorialStep.FISHING_OFFER ? "tutorial.fishtastic.fishing_offer.body" : "tutorial.fishtastic.encyclopedia_offer.body")),
+                            Component.translatable((currentStep == TutorialStep.FISHING_OFFER ? "tutorial.fishtastic.fishing_offer.show" : "tutorial.fishtastic.encyclopedia_offer.show")),
+                            Component.translatable((currentStep == TutorialStep.FISHING_OFFER ? "tutorial.fishtastic.fishing_offer.later" : "tutorial.fishtastic.encyclopedia_offer.later"))) {
                         @Override public boolean isPauseScreen() { return false; }
                     });
                 }

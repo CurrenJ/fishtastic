@@ -30,14 +30,24 @@ public class TutorialCommand {
                         .executes(ctx -> executeCompanions(ctx, null, true))
                         .then(Commands.argument("player", EntityArgument.player())
                             .executes(ctx -> executeCompanions(ctx, EntityArgument.getPlayer(ctx, "player"), true)))))
-                .then(Commands.literal("status")
-                    .executes(ctx -> executeStatus(ctx, null))
-                    .then(Commands.argument("player", EntityArgument.player())
-                        .executes(ctx -> executeStatus(ctx, EntityArgument.getPlayer(ctx, "player")))))
-                .then(Commands.literal("reset")
-                    .executes(ctx -> executeReset(ctx, null))
-                    .then(Commands.argument("player", EntityArgument.player())
-                        .executes(ctx -> executeReset(ctx, EntityArgument.getPlayer(ctx, "player")))));
+                .then(Commands.literal("fishing")
+                    .then(Commands.literal("status")
+                        .executes(ctx -> executeStatus(ctx, null))
+                        .then(Commands.argument("player", EntityArgument.player())
+                            .executes(ctx -> executeStatus(ctx, EntityArgument.getPlayer(ctx, "player")))))
+                    .then(Commands.literal("reset")
+                        .executes(ctx -> executeReset(ctx, null))
+                        .then(Commands.argument("player", EntityArgument.player())
+                            .executes(ctx -> executeReset(ctx, EntityArgument.getPlayer(ctx, "player"))))))
+                .then(Commands.literal("encyclopedia")
+                    .then(Commands.literal("status")
+                        .executes(ctx -> executeEncyclopedia(ctx, null, false))
+                        .then(Commands.argument("player", EntityArgument.player())
+                            .executes(ctx -> executeEncyclopedia(ctx, EntityArgument.getPlayer(ctx, "player"), false))))
+                    .then(Commands.literal("reset")
+                        .executes(ctx -> executeEncyclopedia(ctx, null, true))
+                        .then(Commands.argument("player", EntityArgument.player())
+                            .executes(ctx -> executeEncyclopedia(ctx, EntityArgument.getPlayer(ctx, "player"), true)))));
     }
 
     private static int executeStatus(CommandContext<CommandSourceStack> ctx, ServerPlayer target)
@@ -60,7 +70,6 @@ public class TutorialCommand {
 
         FishCatchSavedData data = FishCatchSavedData.getOrCreate(ctx.getSource().getServer());
         data.setTutorialStep(player, TutorialStep.NOT_STARTED);
-        data.setEncyclopediaTutorialStep(player, EncyclopediaTutorialStep.NOT_STARTED);
 
         PlayerQuestState questState = data.getOrCreateQuestState(player);
         questState.resetProgress(TutorialManager.TUTORIAL_QUEST_KEY);
@@ -69,12 +78,24 @@ public class TutorialCommand {
 
         // Crafting or the next copper-rod cast can start the lesson after a reset.
         grill24.fishtastic.network.TutorialSyncPacket.sendToPlayer(player, TutorialStep.NOT_STARTED);
-        EncyclopediaTutorialSyncPacket.sendToPlayer(player, EncyclopediaTutorialStep.NOT_STARTED);
         QuestSyncPacket.sendToPlayer(player, data);
 
         ctx.getSource().sendSuccess(() -> Component.literal(
                 "Tutorial reset for " + player.getName().getString() + ".")
                 .withStyle(ChatFormatting.GREEN), false);
+        return 1;
+    }
+
+    private static int executeEncyclopedia(CommandContext<CommandSourceStack> ctx, ServerPlayer target, boolean reset) {
+        ServerPlayer player = resolveTarget(ctx.getSource(), target);
+        if (player == null) return 0;
+        FishCatchSavedData data = FishCatchSavedData.getOrCreate(ctx.getSource().getServer());
+        if (reset) {
+            data.setEncyclopediaTutorialStep(player, EncyclopediaTutorialStep.NOT_STARTED);
+            EncyclopediaTutorialSyncPacket.sendToPlayer(player, EncyclopediaTutorialStep.NOT_STARTED);
+        }
+        ctx.getSource().sendSuccess(() -> Component.literal("Encyclopedia tutorial for " + player.getName().getString()
+                + ": " + data.getEncyclopediaTutorialStep(player).name()).withStyle(ChatFormatting.GREEN), false);
         return 1;
     }
 
