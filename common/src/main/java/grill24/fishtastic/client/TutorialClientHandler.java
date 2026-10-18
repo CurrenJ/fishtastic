@@ -1,6 +1,7 @@
 package grill24.fishtastic.client;
 
 import grill24.fishtastic.FishtasticItemTags;
+import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.item.FishtasticFishingRodItem;
 import grill24.fishtastic.network.TutorialAdvancePacket;
 import grill24.fishtastic.network.TutorialSyncPacket;
@@ -38,9 +39,6 @@ public class TutorialClientHandler {
     private static final int SLIDE_TICKS = 5;  // ~0.25 s
 
     // Timing constants
-    private static final int MINIGAME_INTRO_AUTO_ADVANCE_TICKS = 140; // 7 seconds
-    private static final int CATCH_RESULT_AUTO_ADVANCE_TICKS = 200;  // 10 seconds
-    private static final int SHOP_BROWSE_AUTO_ADVANCE_TICKS = 200;   // 15 seconds
     private static final int MINIGAME_CONTROL_MIN_SHOW_TICKS = 60;   // 3 seconds, even if right-click is pressed early
 
     // Gap between the bottom-center layout box (in-world non-minigame steps) and the screen edge.
@@ -68,6 +66,12 @@ public class TutorialClientHandler {
 
         var activeAnimation = ((IGameRendererExtension) mc.gameRenderer).fishtastic$getActiveAnimation();
         if (activeAnimation instanceof FishingMinigameAnimation animation) {
+            if ((currentStep == TutorialStep.WAITING_FOR_CAST || !currentStep.hasOverlay())
+                    && (previous.pausesMinigame() || previous == TutorialStep.MINIGAME_CATCH)) {
+                ((IGameRendererExtension) mc.gameRenderer).fishtastic$cancelCurrentAnimation();
+                FishingMinigameClientHandler.cancel();
+                return;
+            }
             animation.setPaused(currentStep.pausesMinigame());
         }
     };
@@ -77,7 +81,7 @@ public class TutorialClientHandler {
     // -------------------------------------------------------------------------
 
     public static void tick() {
-        if (currentStep == TutorialStep.COMPLETE) return;
+        if (!currentStep.hasOverlay()) return;
         stepTicks++;
 
         // Drive slide animation
@@ -104,47 +108,49 @@ public class TutorialClientHandler {
                     sendAdvance();
                 }
             }
-            case MINIGAME_INTRO -> {
-                if (stepTicks >= MINIGAME_INTRO_AUTO_ADVANCE_TICKS) sendAdvance();
-            }
             case MINIGAME_CONTROL -> {
                 if (minigameControlAdvancePending && stepTicks >= MINIGAME_CONTROL_MIN_SHOW_TICKS) sendAdvance();
             }
-            case CATCH_RESULT -> {
-                if (stepTicks >= CATCH_RESULT_AUTO_ADVANCE_TICKS) sendAdvance();
-            }
-            case SHOP_BROWSE -> {
-                if (stepTicks >= SHOP_BROWSE_AUTO_ADVANCE_TICKS) sendAdvance();
+            case ENCYCLOPEDIA_OFFER -> {
+                Minecraft mc = Minecraft.getInstance();
+                if (mc.screen == null && mc.player != null && !mc.player.isDeadOrDying()) {
+                    mc.setScreen(new net.minecraft.client.gui.screens.ConfirmScreen(show -> {
+                        sentAdvanceThisStep = true;
+                        mc.player.connection.send(new ServerboundCustomPayloadPacket(
+                                new TutorialAdvancePacket(TutorialStep.ENCYCLOPEDIA_OFFER, show)));
+                        mc.setScreen(null);
+                    }, Component.translatable("tutorial.fishtastic.encyclopedia_offer.title"),
+                            Component.translatable("tutorial.fishtastic.encyclopedia_offer.body"),
+                            Component.translatable("tutorial.fishtastic.encyclopedia_offer.show"),
+                            Component.translatable("tutorial.fishtastic.encyclopedia_offer.later")) {
+                        @Override public boolean isPauseScreen() { return false; }
+                    });
+                }
             }
             default -> {}
         }
     }
 
     // -------------------------------------------------------------------------
-    // Key-press hooks — called from FishtasticKeyBinds
+    // Action hooks — called by the screen/minigame being taught
     // -------------------------------------------------------------------------
 
-    /** Called when the player presses the quest-log key. */
-    public static void onQuestLogKeyPressed() {
-        if (currentStep == TutorialStep.QUEST_INTRO) {
-            sendAdvance();
-        }
+    /** The shop lesson is satisfied by visiting the tab, without requiring a purchase. */
+    public static void onShopVisited() {
+        if (currentStep == TutorialStep.SHOP_BROWSE && !sentAdvanceThisStep) sendAdvance();
     }
 
     /** Called when the player applies an impulse during the minigame. */
     public static void onMinigameImpulse() {
+        if (currentStep == TutorialStep.MINIGAME_INTRO && !sentAdvanceThisStep) {
+            sendAdvance();
+            return;
+        }
         if (currentStep != TutorialStep.MINIGAME_CONTROL || sentAdvanceThisStep) return;
         if (stepTicks >= MINIGAME_CONTROL_MIN_SHOW_TICKS) {
             sendAdvance();
         } else {
             minigameControlAdvancePending = true;
-        }
-    }
-
-    /** Called when any key is pressed on screen (for CATCH_RESULT dismiss). */
-    public static void onAnyKeyPressed() {
-        if (currentStep == TutorialStep.CATCH_RESULT && !sentAdvanceThisStep) {
-            sendAdvance();
         }
     }
 
@@ -193,10 +199,26 @@ public class TutorialClientHandler {
     }
 
     private static boolean isScreenStep() {
-        // Only steps where the player must interact with an open screen
-        // QUEST_INTRO is a passive world hint — it renders via the HUD path
+        // These also render a world reminder when the player closes the book.
         return currentStep == TutorialStep.QUEST_CLAIM
             || currentStep == TutorialStep.SHOP_BROWSE;
+    }
+
+    public static boolean shouldHighlightBook(ItemStack stack) {
+        return (currentStep == TutorialStep.CATCH_RESULT || currentStep == TutorialStep.QUEST_INTRO
+                || currentStep == TutorialStep.QUEST_CLAIM || currentStep == TutorialStep.SHOP_BROWSE)
+                && stack.is(FishtasticItems.QUEST_BOOK.value())
+                || currentStep == TutorialStep.ENCYCLOPEDIA_OPEN && stack.is(FishtasticItems.FISHOPEDIA.value());
+    }
+
+    public static Component questGuideTitle() {
+        return isScreenStep() || currentStep == TutorialStep.ENCYCLOPEDIA_OFFER ? getTitle(currentStep) : null;
+    }
+
+    public static Component questGuideBody() {
+        Component body = questGuideTitle() == null ? null : getBody(currentStep);
+        Component hint = getHint(currentStep);
+        return body == null || hint == null ? body : body.copy().append(" ").append(hint);
     }
 
     // -------------------------------------------------------------------------
@@ -206,7 +228,6 @@ public class TutorialClientHandler {
     /** Called from HUD hooks — renders in-world and minigame steps. */
     public static void render(GuiGraphics graphics, float partialTick) {
         if (!currentStep.hasOverlay()) return;
-        if (isScreenStep()) return;  // rendered on top of screen via renderScreenOverlay()
 
         Minecraft mc = Minecraft.getInstance();
         // World-space hint only — bail whenever any screen (encyclopedia, quest log, inventory,
@@ -216,26 +237,22 @@ public class TutorialClientHandler {
         int sh = mc.getWindow().getGuiScaledHeight();
 
         // No dim while the player is free to move/fish — they need to see the world
-        if (currentStep != TutorialStep.WAITING_FOR_CAST && currentStep != TutorialStep.HOOK_IN_WATER) {
+        if (currentStep == TutorialStep.MINIGAME_INTRO) {
             renderDarkOverlay(graphics, sw, sh);
         }
         renderStepHighlight(graphics, mc, sw, sh);
         renderTextBox(graphics, mc, sw, sh, partialTick);
     }
 
-    /**
-     * Called after the screen renders so the text box appears on top of the quest/shop UI.
-     * Gated to {@link QuestLogScreen} specifically — this hook fires after any screen renders,
-     * and without the check a step that outlives its screen (player closes the Quest Log before
-     * the auto-advance timer fires, then opens something else, e.g. the Fish Encyclopedia) would
-     * bleed the box onto whatever they open next.
-     */
+    /** Inventory guidance only; the Quest Log includes its guide in its own layout. */
     public static void renderScreenOverlay(GuiGraphics graphics, float partialTick) {
         Minecraft mc = Minecraft.getInstance();
-        // BAIT_LOAD's pick-up/load prompts live on the inventory itself (the item outlines are drawn
-        // by the slots); QUEST_CLAIM/SHOP_BROWSE live on the quest log.
-        boolean onInventory = isBaitLoadOnContainerScreen(mc);
-        if (!onInventory && !(isScreenStep() && mc.screen instanceof QuestLogScreen)) return;
+        if (mc.screen instanceof QuestLogScreen) return; // Its guide participates in the screen layout.
+        // Item outlines are drawn by the slots themselves.
+        boolean onInventory = isBaitLoadOnContainerScreen(mc)
+                || isBookStep() && (mc.screen instanceof net.minecraft.client.gui.screens.inventory.InventoryScreen
+                || mc.screen instanceof net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen);
+        if (!onInventory) return;
         int sw = mc.getWindow().getGuiScaledWidth();
         int sh = mc.getWindow().getGuiScaledHeight();
 
@@ -254,6 +271,23 @@ public class TutorialClientHandler {
         if (currentStep == TutorialStep.BAIT_LOAD) {
             highlightHotbar(graphics, mc, sw, sh);
         }
+        if (mc.player != null && isBookStep()) {
+            int hotbarX = sw / 2 - 91;
+            int y = sh - 23;
+            for (int i = 0; i < 9; i++) {
+                if (!shouldHighlightBook(mc.player.getInventory().getItem(i))) continue;
+                int x = hotbarX + i * 20;
+                graphics.fill(x, y, x + 22, y + 2, 0xFFFFDD44);
+                graphics.fill(x, y + 22, x + 22, y + 24, 0xFFFFDD44);
+                graphics.fill(x, y, x + 2, y + 24, 0xFFFFDD44);
+                graphics.fill(x + 20, y, x + 22, y + 24, 0xFFFFDD44);
+            }
+        }
+    }
+
+    private static boolean isBookStep() {
+        return currentStep == TutorialStep.CATCH_RESULT || currentStep == TutorialStep.QUEST_INTRO
+                || isScreenStep() || currentStep == TutorialStep.ENCYCLOPEDIA_OPEN;
     }
 
     private static void highlightHotbar(GuiGraphics graphics, Minecraft mc, int sw, int sh) {
@@ -275,11 +309,9 @@ public class TutorialClientHandler {
         Component hint = getHint(currentStep);
         if (title == null) return;
 
-        // Minigame steps dock left/vertically-centered; QUEST_CLAIM and SHOP_BROWSE (rendered via
-        // renderScreenOverlay, on top of the Quest Log screen) dock top-left; everything else
-        // (in-world non-minigame hints) is bottom-center.
+        // Minigame prompts dock left; inventory prompts dock top-left; world hints dock at the bottom.
         boolean sideLayout = isMinigameStep();
-        boolean topLeftLayout = isScreenStep() || isBaitLoadOnContainerScreen(mc);
+        boolean topLeftLayout = mc.screen != null;
 
         net.minecraft.client.gui.Font font = mc.font;
         int innerPad = 10;
@@ -375,6 +407,8 @@ public class TutorialClientHandler {
             case QUEST_INTRO      -> "tutorial.fishtastic.quest_intro.title";
             case QUEST_CLAIM      -> "tutorial.fishtastic.quest_claim.title";
             case SHOP_BROWSE      -> "tutorial.fishtastic.shop_browse.title";
+            case ENCYCLOPEDIA_OFFER -> "tutorial.fishtastic.encyclopedia_offer.title";
+            case ENCYCLOPEDIA_OPEN -> "tutorial.fishtastic.encyclopedia_open.title";
             default               -> null;
         };
         return key != null ? Component.translatable(key) : null;
@@ -388,17 +422,22 @@ public class TutorialClientHandler {
                 case PICK_UP_BAIT   -> Component.translatable("tutorial.fishtastic.bait_load.body_pick_up");
                 case LOAD_ROD       -> Component.translatable("tutorial.fishtastic.bait_load.body_load_rod");
             };
-            case WAITING_FOR_CAST -> null;
-            case HOOK_IN_WATER    -> Component.translatable("tutorial.fishtastic.hook_in_water.body");
+            case WAITING_FOR_CAST -> Component.translatable("tutorial.fishtastic.waiting_for_cast.body");
+            case HOOK_IN_WATER    -> Component.translatable("tutorial.fishtastic.hook_in_water.body",
+                    Minecraft.getInstance().options.keyUse.getTranslatedKeyMessage());
             case MINIGAME_INTRO   -> Component.translatable("tutorial.fishtastic.minigame_intro.body");
-            case MINIGAME_CONTROL -> Component.translatable("tutorial.fishtastic.minigame_control.body");
+            case MINIGAME_CONTROL -> Component.translatable("tutorial.fishtastic.minigame_control.body",
+                    Minecraft.getInstance().options.keyUse.getTranslatedKeyMessage());
             case MINIGAME_CATCH   -> null; // title alone ("Keep the overlap going!") already says it; body would just repeat it
-            case CATCH_RESULT     -> Component.translatable("tutorial.fishtastic.catch_result.body",
-                    FishtasticKeyBinds.openFishEncyclopedia.getTranslatedKeyMessage());
-            case QUEST_INTRO      -> Component.translatable("tutorial.fishtastic.quest_intro.body",
-                    FishtasticKeyBinds.openQuestLog.getTranslatedKeyMessage());
-            case QUEST_CLAIM      -> Component.translatable("tutorial.fishtastic.quest_claim.body");
-            case SHOP_BROWSE      -> Component.translatable("tutorial.fishtastic.shop_browse.body");
+            case CATCH_RESULT, QUEST_INTRO -> bookInstruction("tutorial.fishtastic.catch_result.body");
+            case QUEST_CLAIM -> Minecraft.getInstance().screen instanceof QuestLogScreen
+                    ? Component.translatable("tutorial.fishtastic.quest_claim.body")
+                    : bookInstruction("tutorial.fishtastic.reopen_quest_book");
+            case SHOP_BROWSE -> Minecraft.getInstance().screen instanceof QuestLogScreen
+                    ? Component.translatable("tutorial.fishtastic.shop_browse.body")
+                    : bookInstruction("tutorial.fishtastic.reopen_quest_book");
+            case ENCYCLOPEDIA_OFFER -> Component.translatable("tutorial.fishtastic.encyclopedia_offer.close_book");
+            case ENCYCLOPEDIA_OPEN -> bookInstruction("tutorial.fishtastic.encyclopedia_open.body");
             default               -> null;
         };
     }
@@ -406,21 +445,25 @@ public class TutorialClientHandler {
     private static Component getHint(TutorialStep step) {
         return switch (step) {
             case BAIT_LOAD        -> null;
-            case WAITING_FOR_CAST -> Component.translatable("tutorial.fishtastic.waiting_for_cast.hint");
+            case WAITING_FOR_CAST -> Component.translatable("tutorial.fishtastic.waiting_for_cast.hint",
+                    Minecraft.getInstance().options.keyUse.getTranslatedKeyMessage());
             case HOOK_IN_WATER    -> null; // body ("Wait for a bite — then reel in!") already says it
-            case MINIGAME_INTRO   -> Component.translatable("tutorial.fishtastic.minigame_intro.hint");
-            case MINIGAME_CONTROL -> FishtasticKeyBinds.fishingMinigameImpulse.isUnbound()
-                    ? Component.translatable("tutorial.fishtastic.minigame_control.hint")
-                    : Component.translatable("tutorial.fishtastic.minigame_control.hint_with_key",
-                            FishtasticKeyBinds.fishingMinigameImpulse.getTranslatedKeyMessage());
+            case MINIGAME_INTRO, MINIGAME_CONTROL -> Component.translatable("tutorial.fishtastic.minigame_control.hint",
+                    Minecraft.getInstance().options.keyUse.getTranslatedKeyMessage());
             case MINIGAME_CATCH   -> Component.translatable("tutorial.fishtastic.minigame_catch.hint");
-            case CATCH_RESULT     -> null; // encyclopedia key mention moved into the body
-            case QUEST_INTRO      -> Component.translatable("tutorial.fishtastic.quest_intro.hint",
-                    FishtasticKeyBinds.openQuestLog.getTranslatedKeyMessage());
-            case QUEST_CLAIM      -> Component.translatable("tutorial.fishtastic.quest_claim.hint");
-            case SHOP_BROWSE      -> Component.translatable("tutorial.fishtastic.shop_browse.hint");
+            case CATCH_RESULT     -> null;
+            case QUEST_INTRO -> null;
+            case QUEST_CLAIM -> Minecraft.getInstance().screen instanceof QuestLogScreen
+                    ? Component.translatable("tutorial.fishtastic.quest_claim.hint") : null;
+            case SHOP_BROWSE -> Minecraft.getInstance().screen instanceof QuestLogScreen
+                    ? Component.translatable("tutorial.fishtastic.shop_browse.hint") : null;
             default               -> null;
         };
+    }
+
+    private static Component bookInstruction(String key) {
+        return Component.translatable(key, Minecraft.getInstance().options.keyUse.getTranslatedKeyMessage(),
+                Minecraft.getInstance().options.keyInventory.getTranslatedKeyMessage());
     }
 
     // -------------------------------------------------------------------------

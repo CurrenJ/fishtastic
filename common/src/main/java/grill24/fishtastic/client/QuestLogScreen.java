@@ -71,6 +71,16 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private FishEncyclopediaSyncPacket.ClientHandler savedEncyclopediaHandler;
     private int activeTabIndex = 0;
 
+    // Set just before a screen requests the log reopen, consumed once by the next buildUI:
+    // switches to the quest's category tab and pulses its row, so a "unlocks via quest" link lands
+    // on the quest itself, not just the quest log in general.
+    private static ResourceKey<Quest> pendingFocusQuest;
+
+    /** See {@link #pendingFocusQuest}. */
+    public static void selectOnNextOpen(ResourceKey<Quest> quest) {
+        pendingFocusQuest = quest;
+    }
+
     // Live element refs for in-place updates (populated by buildUI, cleared on rebuild)
     private Label tokenBalanceLabel;
     private HBox tokenIconRow;
@@ -89,6 +99,12 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private final Map<ResourceLocation, CyclingIconState> cyclingIconRefs = new LinkedHashMap<>();
     private final Map<ResourceKey<ShopEntry>, ShopCardRefs> shopCardRefs = new LinkedHashMap<>();
     private ItemTabs questTabs;
+    private UIElement<?> tutorialShopTab;
+    private TutorialStep lastTutorialStep;
+    private Label tutorialGuideTitle;
+    private Label tutorialGuideBody;
+    private VBox questHeader;
+    private VBox questContent;
     private final Map<QuestCategory, List<ResourceKey<Quest>>> questKeysByCategory = new EnumMap<>(QuestCategory.class);
     private static final Map<QuestCategory, Integer> QUEST_CATEGORY_TAB_INDEX = Map.of(
             QuestCategory.DAILY, 0,
@@ -312,6 +328,23 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     @Override
     protected void containerTick() {
         super.containerTick();
+        TutorialStep tutorial = TutorialClientHandler.getCurrentStep();
+        if (tutorial != lastTutorialStep && questTabs != null) {
+            lastTutorialStep = tutorial;
+            updateTutorialGuide();
+            if (tutorial == TutorialStep.QUEST_CLAIM) {
+                questTabs.select(0);
+                uiScreen.runDeferred(() -> {
+                    pulseQuestRow(grill24.fishtastic.tutorial.TutorialManager.TUTORIAL_QUEST_KEY);
+                    QuestRowRefs row = questRowRefs.get(grill24.fishtastic.tutorial.TutorialManager.TUTORIAL_QUEST_KEY.location());
+                    if (row != null) row.claimButton().addBreatheEffect();
+                });
+            }
+            if (tutorial == TutorialStep.SHOP_BROWSE && tutorialShopTab != null) tutorialShopTab.addBreatheEffect();
+        }
+        if (tutorial == TutorialStep.SHOP_BROWSE && questTabs != null && questTabs.getSelectedIndex() == 5) {
+            TutorialClientHandler.onShopVisited();
+        }
         // Ticked locally every frame rather than only on quest-sync packets, so the countdown
         // text counts down smoothly instead of jumping only when the player catches something.
         if (dailyResetLabel != null) {
@@ -342,6 +375,20 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
                 }
             }
         }
+    }
+
+    /** Part of the layout, so instructions never cover the tabs or the quest being taught. */
+    private void updateTutorialGuide() {
+        if (tutorialGuideTitle == null || questHeader == null) return;
+        Component title = TutorialClientHandler.questGuideTitle();
+        Component body = TutorialClientHandler.questGuideBody();
+        boolean visible = title != null && body != null;
+        tutorialGuideTitle.text(visible ? title.getString() : "");
+        tutorialGuideBody.text(visible ? body.getString() : "");
+        tutorialGuideTitle.setVisible(visible);
+        tutorialGuideBody.setVisible(visible);
+        questHeader.forceLayout();
+        if (questContent != null) recenterContent(questContent);
     }
 
     /** Formats a tick countdown as "Xd HH:MM:SS" / "H:MM:SS" / "MM:SS", shrinking to whichever units are non-zero, and substitutes it into {@code translationKey} (e.g. "Dailies reset in %s"). */
@@ -419,6 +466,17 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
                     .thenComparing(e -> e.getValue().displayName()));
         }
 
+        ResourceKey<Quest> focusQuest = pendingFocusQuest;
+        pendingFocusQuest = null;
+        if (focusQuest != null) {
+            Quest focused = questRegistry.getOptional(focusQuest).orElse(null);
+            if (focused == null) {
+                focusQuest = null;
+            } else {
+                activeTabIndex = QUEST_CATEGORY_TAB_INDEX.getOrDefault(focused.category(), activeTabIndex);
+            }
+        }
+
         // Only today's rotated-in dailies are worth showing — the rest of the daily pool
         // stays hidden rather than listed as "inactive", so players discover it as it rotates in.
         byCategory.get(QuestCategory.DAILY).removeIf(entry -> !activeDailies.contains(entry.getKey()));
@@ -439,8 +497,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         // During the tutorial, pin tutorial quests to the top of the Daily tab.
         // They are hidden once the tutorial is complete or hasn't started yet.
         TutorialStep tutorialStep = TutorialClientHandler.getCurrentStep();
-        boolean tutorialActive = tutorialStep != TutorialStep.COMPLETE
-                && tutorialStep != TutorialStep.WAITING_FOR_CAST;
+        boolean tutorialActive = tutorialStep.hasOverlay();
         if (tutorialActive) {
             List<Map.Entry<ResourceKey<Quest>, Quest>> tutorialQuests = byCategory.get(QuestCategory.TUTORIAL);
             if (!tutorialQuests.isEmpty()) {
@@ -471,6 +528,11 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
         VBox header = UI.vbox().spacing(4).alignment(VBox.Alignment.CENTER);
         header.addChild(titleLabel);
+        questHeader = header;
+        tutorialGuideTitle = new Label("", 0xFFFFDD44).init(tempContext);
+        tutorialGuideBody = new Label("", 0xFFDDDDDD).maxWidth(this.width * 0.7f).centered(true).init(tempContext);
+        header.addChild(tutorialGuideTitle);
+        header.addChild(tutorialGuideBody);
         header.addChild(tokenLabel);
 
         ItemTabs tabs = UI.itemTabs();
@@ -485,7 +547,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
                 scaleTabPanel(buildQuestList(byCategory.get(QuestCategory.COLLECTOR), false), CONTENT_WIDTH_FRACTION));
         tabs.addTab(new ItemStack(Items.NETHER_STAR),
                 scaleTabPanel(buildQuestList(byCategory.get(QuestCategory.CHALLENGE), false), CONTENT_WIDTH_FRACTION));
-        tabs.addTab(new ItemStack(Items.EMERALD),
+        tutorialShopTab = tabs.addTab(new ItemStack(Items.EMERALD),
                 scaleTabPanel(buildShopPanel(shopRegistry, currentDay), SHOP_CONTENT_WIDTH_FRACTION));
         tabs.addTab(new ItemStack(FishtasticItems.SEA_GLASS.value()),
                 scaleTabPanel(buildCleanupGoalPanel(), CLEANUP_CONTENT_WIDTH_FRACTION));
@@ -494,6 +556,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         refreshTabAlerts();
 
         VBox content = UI.vbox().spacing(10).padding(16).alignment(VBox.Alignment.CENTER);
+        questContent = content;
         content.addChild(header);
         content.addChild(tabs);
 
@@ -502,6 +565,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             recenterContent(content);
         });
         tabs.select(activeTabIndex);
+        lastTutorialStep = null;
         recenterContent(content);
 
         // Overlay hosting the quest-claim coin-fly animation. Nested inside `content` (rather
@@ -514,6 +578,24 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
         uiScreen.setRoot(content);
         uiScreen.setScrollEnabled(true);
+        updateTutorialGuide();
+
+        if (focusQuest != null) {
+            ResourceKey<Quest> focused = focusQuest;
+            uiScreen.runDeferred(() -> pulseQuestRow(focused));
+        }
+    }
+
+    /** Scrolls {@code questKey}'s row roughly into view and gives it a one-off "here it is" pulse. */
+    private void pulseQuestRow(ResourceKey<Quest> questKey) {
+        QuestRowRefs refs = questRowRefs.get(questKey.location());
+        if (refs == null) return;
+        uiScreen.setScrollY(Math.max(0f, refs.row().getGlobalPosition().y - 120f));
+        refs.row().playAnimation(new FloatKeyframeAnimation(
+                "companionBondQuestFocus",
+                List.of(new Keyframe(0f, 1f), new Keyframe(0.35f, 1.12f), new Keyframe(1.1f, 1f)),
+                v -> refs.row().setTargetScale(v, false),
+                () -> refs.row().setTargetScale(1f, false)));
     }
 
     // Each tab body is scaled individually (rather than scaling the shared header+tabs block as a

@@ -6,6 +6,7 @@ import grill24.fishtastic.fishtank.CosmeticObstacles;
 import grill24.fishtastic.FishtasticParticleTypes;
 import grill24.fishtastic.client.CosmeticCaptureClientState;
 import grill24.fishtastic.client.CosmeticPlacementPreview;
+import grill24.fishtastic.client.CompanionTutorialClientHandler;
 import grill24.fishtastic.client.EncyclopediaTutorialClientHandler;
 import grill24.fishtastic.client.FishEncyclopediaClientCache;
 import grill24.fishtastic.client.FishtasticBlockRenderLayers;
@@ -186,6 +187,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
 
         // Register encyclopedia tutorial sync packet client handler
         EncyclopediaTutorialSyncPacket.registerClientHandler(EncyclopediaTutorialClientHandler.PACKET_HANDLER);
+        grill24.fishtastic.network.CompanionTutorialSyncPacket.registerClientHandler(CompanionTutorialClientHandler.PACKET_HANDLER);
 
         // Register companion bond/rename feedback handler (tutorial and scene handlers arrive with F15/F11)
         grill24.fishtastic.network.CompanionFeedbackPacket.registerClientHandler(grill24.fishtastic.client.CompanionClientState.PACKET_HANDLER);
@@ -269,6 +271,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             QuestClientCache.reset();
             TutorialClientHandler.reset();
             EncyclopediaTutorialClientHandler.reset();
+            CompanionTutorialClientHandler.reset();
             grill24.fishtastic.client.CompanionClientState.reset();
             FishEncyclopediaClientCache.reset();
             grill24.fishtastic.network.SetDayRatePacket.resetClientRate();
@@ -337,6 +340,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             ScreenEvents.afterRender(screen).register((s, graphics, mouseX, mouseY, tickProgress) -> {
                 TutorialClientHandler.renderScreenOverlay(graphics, tickProgress);
                 EncyclopediaTutorialClientHandler.render(graphics, tickProgress);
+                CompanionTutorialClientHandler.render(graphics, tickProgress);
             });
         });
 

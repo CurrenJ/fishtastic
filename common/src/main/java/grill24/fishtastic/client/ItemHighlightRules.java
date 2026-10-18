@@ -39,6 +39,8 @@ public final class ItemHighlightRules {
 
     /** {@link #matches} plus the tutorial's "pick up the bait" prompt, which fires with a non-bait cursor. */
     public static boolean shouldHighlight(ItemStack cursor, ItemStack candidate) {
+        if (TutorialClientHandler.shouldHighlightBook(candidate)) return true;
+        if (CompanionTutorialClientHandler.shouldHighlightBook(candidate)) return true;
         if (matches(cursor, candidate)) return true;
         return TutorialClientHandler.isPromptingBaitPickup(cursor) && candidate.is(FishtasticItemTags.FISHING_BAIT);
     }
