@@ -309,6 +309,14 @@ public final class TankGroupFlock {
                 anchorPos.getZ() + offsetZ + engine.renderZ[i]);
     }
 
+    /** Read-only draw pose for development camera captures; does not expose mutable engine state. */
+    public record FishPose(Vec3 position, float yaw, Locomotion locomotion, float length) {}
+    public FishPose fishPose(int i, float gameTimeTicks) {
+        return new FishPose(fishWorldPosition(i, gameTimeTicks).add(0,
+                FishAnimator.floorPoseLift(anims[i], engine.lengths[i]), 0),
+                engine.renderYaw[i], engine.locomotion[i], engine.lengths[i]);
+    }
+
     /** Opaque per-species id of group fish #{@code i}, or {@code -1} if there is no such fish. */
     public int fishSpecies(int i) {
         return engine.species[i];
