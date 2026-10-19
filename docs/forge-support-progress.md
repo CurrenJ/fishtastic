@@ -325,3 +325,36 @@ Required hooks run for every Fishtastic commit. Installed fixes were confirmed b
 older Forge lines; Gelatin's eight loader/version artifacts were built and deployed earlier in the
 session. Older unrelated changes remain outside the session commits. No push is part of this request.
 Next Forge implementation operation remains the broader pending F10/F11 acceptance work.
+
+## Forge-only 2.1.1 CurseForge publication (2026-10-19)
+
+Owner explicitly authorized publishing the two new Fishtastic Forge builds under
+version 2.1.1. Pending operation: build `:fishsim:jar :forge:build` on 26.1.2 and
+1.21.1, inspect the final distributable jars and required Gelatin metadata, then
+submit exactly one Forge Release per line to CurseForge project 1513269. Existing
+Fabric/NeoForge files must not be uploaded again. The matching Gelatin 1.0.38
+Forge uploads already succeeded (26.1.2 file 9259810; 1.21.1 file 9259814).
+Use a dedicated Forge-only publishing task and record configuration, artifact
+hashes, returned file IDs and results under `build/forge-release-2.1.1/`.
+Broader acceptance/package gate and backport parity markers are unchanged.
+
+Publication result: **COMPLETE**. Both Forge production builds and both dedicated
+Forge-only publish tasks passed. Exactly two new Release files were submitted,
+with Forge, matching Minecraft, Client/Server and Java 25/21 tags. Both upload
+configurations require CurseForge project `gelatin-ui`. Final jars passed CRC,
+version, loader resource, required dependency, bytecode, bundled simulation and
+self-test exclusion checks. Post-upload local hashes match the verified inputs.
+
+| Minecraft | CurseForge release | SHA-256 | Source revision |
+| --- | --- | --- | --- |
+| 26.1.2 | [9260058](https://www.curseforge.com/minecraft/mc-mods/fishtastic/files/9260058) | `8fc5253d072d417efc66b589b9119f949bf5bb51844f9ed3db193097b9e9ef98` | `d0f9f03cb0e6bab00657735c4fe57bbe6270eef1` |
+| 1.21.1 | [9260060](https://www.curseforge.com/minecraft/mc-mods/fishtastic/files/9260060) | `1367efb9fe50018ae058bc5b1f8f8dc36366068f764b076b5f3a8ed3147a1cff` | `7ab5bbf7242e8e9d765bd09924aac6190f5b28f1` |
+
+Returned file IDs establish successful submission; moderation/public download
+availability is not independently verified. No upload retries or profile deployment
+were performed. Existing Fabric/NeoForge uploads were not repeated. The isolated
+publisher configuration, manifests and build/publish logs are retained under
+`build/forge-release-2.1.1/`.
+
+No publication operation remains pending. The broader F10/F11 acceptance work and
+existing backport parity markers remain at their previously recorded states.
