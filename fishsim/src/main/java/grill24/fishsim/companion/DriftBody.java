@@ -16,6 +16,8 @@ package grill24.fishsim.companion;
  *
  * <p>Pose: {@link #yaw}/{@link #pitch} give the bell's axis as a look vector (upright is pitch −90),
  * {@link #spin} its slow tumble about that axis, {@link #pulse} the squeeze for the animator.
+ * The JET style instead uses omnidirectional fins and mantle-first pulses, with unrestricted,
+ * bounded reorientation; its counter fins can stay open during a mantle squeeze.
  */
 final class DriftBody extends Motor {
 
@@ -49,7 +51,7 @@ final class DriftBody extends Motor {
     private static final float SQUEEZE_FLOOR = 0.2f;
 
     private final CompanionTunables t;
-    /** How it propels itself (docs/fish-companions-drift.md §2). Not read yet: every style is the first-cut bell. */
+    /** How it propels itself; BOB retains the bell until Phase 3. */
     final DriftStyle style;
     private long noise;
     /** Position in the current pulse cycle, [0, 1); the squeeze is the first {@code duty} of it. */
@@ -101,6 +103,12 @@ final class DriftBody extends Motor {
     private double sink;
     /** Braking by room this tick: the speed it could still stop from along its travel and along its bell. */
     private double roomVel = Double.POSITIVE_INFINITY, roomAxis = Double.POSITIVE_INFINITY;
+    /** Actual propulsion, including the squid's off-axis fins; excludes drag and gravity. */
+    Vec propulsion = Vec.ZERO;
+    double mantleThrust;
+    private Vec jetAxis = Vec.UP;
+    private Vec jetStrokeAxis = Vec.UP;
+    private double jetClock;
 
     DriftBody(CompanionTunables t, DriftStyle style, Vec pos, float yaw, double radius, long seed) {
         super(grill24.fishsim.core.Locomotion.DRIFT, Gait.of(grill24.fishsim.core.Locomotion.DRIFT, t), pos, radius);
@@ -118,6 +126,10 @@ final class DriftBody extends Motor {
 
     @Override
     void step(Vec desired, double wanderScale, Vec extraAvoid, LocalVoxels voxels, Capsule body) {
+        if (style == DriftStyle.JET && t.driftJet) {
+            stepJet(desired, extraAvoid, voxels);
+            return;
+        }
         g = Gait.of(locomotion, t);
         asked = desired;
         double sp = vel.length();
@@ -157,6 +169,7 @@ final class DriftBody extends Motor {
         advancePulse(along, hold, desired, axis);
         double thrust = peak * pulse;
         lastThrust = thrust;
+        propulsion = axis.scale(thrust);
         Vec before = vel;
         double dragNow = drag(sp), sinkNow = sink;
         if (t.driftFlare) {
@@ -178,12 +191,101 @@ final class DriftBody extends Motor {
         tailPhase = (float) (phase * Math.PI * 2);
     }
 
+    /** Fins close small velocity gaps in any direction; larger gaps need mantle-first pulses. */
+    private void stepJet(Vec desired, Vec extraAvoid, LocalVoxels voxels) {
+        g = Gait.of(locomotion, t);
+        asked = desired;
+        double sp = vel.length();
+        sink = t.driftSink;
+        Vec avoid = voxels.avoidance(pos, t.wallMargin + radius)
+                .add(voxels.avoidance(pos.add(vel.scale(0.35)), t.wallMargin + radius).scale(0.6))
+                .clampLength(1);
+        desired = desired.add(avoid.scale(Math.max(t.wallAvoidSpeed, sp * 1.2))).add(extraAvoid);
+        roomVel = sp > 1e-6 && t.driftRoomBrake ? roomSpeed(vel.normalize(), voxels) : Double.POSITIVE_INFINITY;
+        if (t.driftRoomBrake && desired.length() > 1e-6)
+            desired = desired.clampLength(roomSpeed(desired.normalize(), voxels));
+        if (t.driftFlare) updateFlare(desired, sp);
+        double k = drag(sp) + (t.driftFlare ? flare * t.driftFlareDrag : 0);
+        Vec hold = desired.scale(t.jetCounterFinBrake ? drag(sp) : k).add(0, sink, 0);
+        need = hold.add(desired.sub(vel).scale(t.driftResponse));
+        Vec fins = need.clampLength(Math.max(0, t.jetFinThrust));
+        Vec residual = need.sub(fins);
+        // At rest the mantle points up and the tentacles hang down. Travel and fast braking can
+        // turn through any elevation; a squid is not constrained to a bell's upright hemisphere.
+        Vec target = residual.length() > 0.15 ? residual.normalize() : Vec.UP;
+        double cap = Math.toRadians(t.jetTurnDegPerTick + (t.jetSlowTurnDegPerTick - t.jetTurnDegPerTick)
+                * (1 - Math.min(1, sp / 2)));
+        double angle = Math.acos(Math.max(-1, Math.min(1, jetAxis.dot(target))));
+        tiltStep = (float) Math.toDegrees(Math.min(angle, cap));
+        if (jetClock < Math.max(0.1, t.jetPulseSeconds) * Math.max(0.05, Math.min(0.9, t.jetPulseDuty)) && peak > 0) {
+            tiltStep = 0;
+        } else if (angle <= cap) jetAxis = target;
+        else {
+            Vec tangent = target.sub(jetAxis.scale(jetAxis.dot(target))).normalize();
+            if (tangent.lengthSqr() < 1e-8) {
+                Vec side = Math.abs(jetAxis.y()) < 0.9 ? Vec.UP : Vec.fromYawPitch(tiltYaw, 0);
+                tangent = side.sub(jetAxis.scale(side.dot(jetAxis))).normalize();
+            }
+            jetAxis = jetAxis.scale(Math.cos(cap)).add(tangent.scale(Math.sin(cap))).normalize();
+        }
+        double cycle = Math.max(0.1, t.jetPulseSeconds);
+        double duty = Math.max(0.05, Math.min(0.9, t.jetPulseDuty));
+        jetClock += DT;
+        strokeStart = false;
+        if (jetClock >= cycle && residual.length() > 0.15
+                && jetAxis.dot(target) > Math.cos(Math.toRadians(t.jetAlignDeg))) {
+            jetClock = 0;
+            jetStrokeAxis = jetAxis;
+            // Fins already pay their share. Fix the remaining impulse and direction at onset,
+            // so turning during the coast never sweeps a live jet across the room.
+            double dv = Math.max(0, hold.scale(cycle).add(desired.sub(vel).scale(t.driftArriveGain))
+                    .sub(fins.scale(cycle)).dot(jetStrokeAxis));
+            if (t.driftRoomBrake) dv = Math.min(dv,
+                    Math.max(0, roomSpeed(jetStrokeAxis, voxels) - vel.dot(jetStrokeAxis)));
+            peak = Math.min(t.jetThrust, dv / (cycle * duty * ENVELOPE_MEAN));
+            strokeShow = (float) Math.min(1, dv / SQUEEZE_FULL_DV);
+            strokeStart = peak > 0;
+        }
+        double u = jetClock / (cycle * duty);
+        double s = u < 1 ? Math.sin(Math.PI * u) : 0;
+        pulse = (float) (s * s);
+        squeeze = pulse * strokeShow;
+        double jet = peak * pulse;
+        if (t.jetArrive) {
+            double available = desired.sub(vel).scale(1 / DT).add(vel.scale(k)).add(0, sink, 0)
+                    .sub(fins).dot(jetStrokeAxis);
+            if (t.driftRoomBrake) available = Math.min(available,
+                    (roomSpeed(jetStrokeAxis, voxels) - vel.dot(jetStrokeAxis)) / DT);
+            jet = Math.min(jet, Math.max(0, available));
+        }
+        propulsion = fins.add(jetStrokeAxis.scale(jet));
+        mantleThrust = jet;
+        squeeze = peak > 0 ? (float) (jet / peak) * strokeShow : 0;
+        lastThrust = propulsion.length();
+        Vec before = vel;
+        vel = vel.add(propulsion.sub(vel.scale(k)).add(0, -sink, 0).scale(DT));
+        speed = vel.length();
+        move(voxels, speed > 1e-6 ? vel.normalize() : jetAxis);
+        acc = vel.sub(before).scale(1 / DT);
+        if (jetAxis.horizontalLength() > 1e-6) tiltYaw = (float) jetAxis.yawDeg();
+        tilt = (float) Math.toDegrees(Math.acos(Math.max(-1, Math.min(1, jetAxis.y()))));
+        yaw = tiltYaw;
+        pitch = tilt - 90;
+        turnFace();
+        effort = (float) Math.min(1, need.length() / Math.max(1e-6, t.jetFinThrust));
+        advanceSpin();
+        // The pulse is already the motor's surge. Feeding it back into the mind's asked speed
+        // would count it twice and make the target reverse on every jet coast.
+        burstDrive = 1;
+        tailPhase += (float) (DT * Math.PI * 4);
+    }
+
     /**
      * The brake (docs/fish-companions-drift.md §4): a bell can't push backwards, but it can spread its
      * web like a parachute. It flares by how much faster it is going than it wants to go that way —
      * coasting past its spot, still carrying a stroke when the owner stops, or heading off at an
-     * angle to where it now wants to be — and the flare is drag and a little extra sink. It can't
-     * flare and squeeze at once, so a stroke folds the web back in.
+     * angle to where it now wants to be — and the flare is drag and a little extra sink. A bell
+     * can't flare and squeeze at once. A squid's counter fins are independent of its mantle.
      */
     private void updateFlare(Vec desired, double sp) {
         double target = 0;
@@ -193,7 +295,7 @@ final class DriftBody extends Motor {
             if (t.driftRoomBrake) excess = Math.max(excess, sp - roomVel);
             target = Math.max(0, Math.min(1, (excess - FLARE_DEADBAND) / t.driftFlareFull));
         }
-        target *= 1 - pulse;
+        if (style != DriftStyle.JET || !t.driftJet || !t.jetCounterFinBrake) target *= 1 - pulse;
         flare += clamp((float) target - flare, -FLARE_CLOSE_RATE * (float) DT, FLARE_OPEN_RATE * (float) DT);
     }
 
@@ -355,6 +457,8 @@ final class DriftBody extends Motor {
      * under linear drag {@code k} a body at {@code v} stops within {@code v / k}, so this is
      * {@code k} times the free distance ahead (beyond its radius and a small margin). Open beyond
      * {@link #ROOM_LOOK} blocks counts as unlimited.
+     * For a squid, reserve the distance travelled while its counter fins open as well; assuming
+     * full stopping drag immediately made the old candidate see a door too late.
      *
      * <p>With {@code driftRoomPastContact}, a block it already touches is not in the way unless it
      * comes closer along {@code dir}: it sweeps the largest sphere that is clear where it is (§13.12).
@@ -363,7 +467,9 @@ final class DriftBody extends Motor {
      */
     private double roomSpeed(Vec dir, LocalVoxels voxels) {
         double k = t.driftDrag + t.driftFlareDrag;
-        double r = radius + ROOM_MARGIN;
+        boolean jet = style == DriftStyle.JET && t.driftJet;
+        if (jet) k /= 1 + k * t.jetBrakeDelay;
+        double r = radius + (jet ? t.jetRoomMargin : ROOM_MARGIN);
         if (t.driftRoomPastContact && !voxels.sphereClear(pos, r)) {
             // The clearance where it is, to within a millimetre: only what it is already touching is let off.
             double lo = 0, hi = r;
@@ -373,8 +479,9 @@ final class DriftBody extends Motor {
             }
             r = lo;
         }
-        for (double d = ROOM_STEP; d <= ROOM_LOOK + 1e-9; d += ROOM_STEP) {
-            if (!voxels.sphereClear(pos.add(dir.scale(d)), r)) return k * Math.max(0, d - ROOM_STEP);
+        double step = jet ? 0.1 : ROOM_STEP;
+        for (double d = step; d <= ROOM_LOOK + 1e-9; d += step) {
+            if (!voxels.sphereClear(pos.add(dir.scale(d)), r)) return k * Math.max(0, d - step);
         }
         return Double.POSITIVE_INFINITY;
     }
@@ -402,6 +509,14 @@ final class DriftBody extends Motor {
         effort = 0f;
         flare = 0f;
         calm = 0f;
+        jetAxis = jetStrokeAxis = Vec.UP;
+        jetClock = 0;
+        if (style == DriftStyle.JET && t.driftJet) {
+            peak = 0;
+            pulse = squeeze = 0;
+        }
+        propulsion = Vec.ZERO;
+        mantleThrust = 0;
     }
 
     private float nextSigned() {

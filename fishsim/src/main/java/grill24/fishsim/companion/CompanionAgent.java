@@ -372,6 +372,9 @@ public final class CompanionAgent {
     public float pulse() { return body instanceof DriftBody d ? d.pulse : 0f; }
     /** A drifter's thrust this tick, blocks/s² (0 for swimmers). */
     public double thrust() { return body instanceof DriftBody d ? d.lastThrust : 0; }
+    /** Propulsion direction includes the squid's fins, which can push across its mantle axis. */
+    public Vec driftPropulsion() { return body instanceof DriftBody d ? d.propulsion : Vec.ZERO; }
+    public double mantleThrust() { return body instanceof DriftBody d ? d.mantleThrust : 0; }
     public float spin() { return body instanceof DriftBody d ? d.spin : 0f; }
     /**
      * The way the art faces, degrees: a drifter's turns slower than its lean, so it never flips; for

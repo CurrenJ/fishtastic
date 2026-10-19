@@ -25,7 +25,7 @@ class FingerprintProbe {
     void fingerprints() {
         for (String script : SCRIPTS) {
             for (long seed = 1; seed <= 3; seed++) {
-                CompanionRun run = new CompanionRun(script, seed, CompanionTunables.defaults(), true);
+                CompanionRun run = new CompanionRun(script, seed, tunables(), true);
                 run.run(2400);
                 System.out.printf("FP %-13s #%d %016x%n", script, seed, hash(run));
             }
@@ -34,7 +34,7 @@ class FingerprintProbe {
         for (Locomotion c : List.of(Locomotion.FREE_SWIM, Locomotion.GLIDE, Locomotion.BENTHIC, Locomotion.ANCHORED, Locomotion.DRIFT)) {
             for (String script : OwnerScript.NAMES) {
                 for (long seed = 1; seed <= 3; seed++) {
-                    CompanionRun run = new CompanionRun(script, seed, c, CompanionTunables.defaults(), true);
+                    CompanionRun run = new CompanionRun(script, seed, c, tunables(), true);
                     run.run(2400);
                     System.out.printf("FPA %-9s %-15s #%d %016x%n", c, script, seed, hash(run));
                 }
@@ -45,14 +45,14 @@ class FingerprintProbe {
         for (String script : OwnerScript.NAMES) {
             for (long seed = 1; seed <= 3; seed++) {
                 CompanionRun run = CompanionRun.benthic(script, seed, CompanionRun.lengthOf(Locomotion.BENTHIC),
-                        Temperament.BASELINE, null, CompanionTunables.defaults(), true);
+                        Temperament.BASELINE, null, tunables(), true);
                 run.run(2400);
                 System.out.printf("FPA %-9s %-15s #%d %016x%n", "PERCHER", script, seed, hash(run));
             }
         }
         for (String script : OwnerScript.NAMES) {
             for (long seed = 1; seed <= 3; seed++) {
-                CompanionRun run = CompanionRun.trio(script, seed, CompanionTunables.defaults(), true);
+                CompanionRun run = CompanionRun.trio(script, seed, tunables(), true);
                 run.run(2400);
                 long h = hash(run);
                 for (CompanionRun.FollowerSample[] fs : run.followerSamples) {
@@ -70,12 +70,19 @@ class FingerprintProbe {
             for (String script : OwnerScript.NAMES) {
                 for (long seed = 1; seed <= 3; seed++) {
                     CompanionRun run = CompanionRun.drifter(script, seed, style, Temperament.BASELINE,
-                            CompanionTunables.defaults(), true);
+                            tunables(), true);
                     run.run(2400);
                     System.out.printf("FPA %-9s %-15s #%d %016x%n", "DRIFT_" + style, script, seed, hash(run));
                 }
             }
         }
+    }
+
+    /** Optional ablation settings, applied to each fresh run before its agent is constructed. */
+    private static CompanionTunables tunables() {
+        CompanionTunables t = CompanionTunables.defaults();
+        SeedSweepProbe.tweak(System.getProperty("tweakA")).accept(t);
+        return t;
     }
 
     private static long hash(CompanionRun run) {

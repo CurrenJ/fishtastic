@@ -384,6 +384,10 @@ public final class CompanionRenderer {
      * the other way, splayed by the flare.
      */
     private static void drawJelly(Graphics2D g, Cam cam, CompanionAgent a) {
+        if (a.driftStyle() == grill24.fishsim.companion.DriftStyle.JET) {
+            drawSquid(g, cam, a);
+            return;
+        }
         double len = a.length() * a.renderAppear();
         Vec axis = Vec.fromYawPitch(a.renderYaw(), a.renderPitch());
         Vec side = axis.cross(Vec.UP);
@@ -420,6 +424,42 @@ public final class CompanionRenderer {
             Vec nn = t[1].sub(t[0]).cross(t[2].sub(t[0])).normalize();
             double shade = 0.6 + 0.4 * Math.abs(nn.dot(LIGHT));
             fill(g, cam, t, shadeColor(new Color(240, 160, 210, 190), shade), false);
+        }
+    }
+
+    /** Mantle-first squid, with a narrow squeeze, paired fluttering fins and trailing tentacles. */
+    private static void drawSquid(Graphics2D g, Cam cam, CompanionAgent a) {
+        double len = a.length() * a.renderAppear();
+        Vec axis = Vec.fromYawPitch(a.renderYaw(), a.renderPitch());
+        Vec side = axis.cross(Vec.UP);
+        if (side.lengthSqr() < 1e-6) side = Vec.fromYawPitch(a.renderFace(), 0);
+        side = side.normalize();
+        Vec normal = axis.cross(side).normalize();
+        Vec c = a.renderPos();
+        double width = len * 0.22 * (1 - 0.35 * a.renderSqueeze());
+        Vec tip = c.add(axis.scale(len * 0.55));
+        Vec base = c.add(axis.scale(-len * 0.25));
+        Color mantle = new Color(155, 220, 240, 195);
+        Vec left = c.add(side.scale(width)), right = c.sub(side.scale(width));
+        fill(g, cam, new Vec[]{tip, left, base}, mantle, false);
+        fill(g, cam, new Vec[]{tip, base, right}, mantle, false);
+        double flutter = Math.sin(a.renderTailPhase()) * len * (0.04 + 0.06 * a.flare());
+        for (int sign : new int[]{-1, 1}) {
+            Vec fin = c.add(axis.scale(len * 0.2)).add(side.scale(sign * len * 0.5))
+                    .add(normal.scale(flutter));
+            fill(g, cam, new Vec[]{tip, fin, c.add(side.scale(sign * width))},
+                    new Color(130, 205, 230, 165), false);
+        }
+        g.setStroke(new BasicStroke(1f));
+        g.setColor(mantle);
+        for (int i = 0; i < 6; i++) {
+            Vec root = base.add(side.scale((i - 2.5) * width / 4));
+            Vec end = root.sub(axis.scale(len * (0.65 + 0.04 * (i % 2))))
+                    .sub(a.velocity().clampLength(3).scale(len * 0.04))
+                    .add(side.scale(Math.sin(a.renderTailPhase() + i) * len * 0.025));
+            Vec rc = cam.toCam(root), ec = cam.toCam(end);
+            if (rc.z() > NEAR && ec.z() > NEAR)
+                g.draw(new Line2D.Double(cam.sx(rc), cam.sy(rc), cam.sx(ec), cam.sy(ec)));
         }
     }
 
