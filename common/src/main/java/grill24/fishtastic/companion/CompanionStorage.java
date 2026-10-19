@@ -53,16 +53,22 @@ public final class CompanionStorage {
      * A player joined (or data packs reloaded): they get every online player's party, their own
      * included even when empty so a stale entry from another world is cleared, and everyone else
      * gets theirs.
+     *
+     * <p>The joining player is not yet in {@link net.minecraft.server.players.PlayerList#getPlayers()}
+     * when this runs on either 1.20.1 loader (Fabric fires its JOIN event on the client's ready
+     * packet; Forge fires this from datapack sync), so their own party must be sent explicitly
+     * rather than relying on the loop. Without it a reconnecting player's client cache stays empty
+     * and their perched companions do not render until some later broadcast.
      */
     public static void onPlayerJoin(net.minecraft.server.level.ServerPlayer joined) {
         MinecraftServer server = joined.getServer();
         if (server == null) return;
         CompanionPartySavedData data = CompanionPartySavedData.getOrCreate(server);
+        grill24.fishtastic.network.CompanionPartySyncPacket.sendToPlayer(joined, joined.getUUID(), data.get(joined.getUUID()));
         for (net.minecraft.server.level.ServerPlayer other : server.getPlayerList().getPlayers()) {
+            if (other == joined) continue;
             grill24.fishtastic.network.CompanionPartySyncPacket.sendToPlayer(joined, other.getUUID(), data.get(other.getUUID()));
-            if (other != joined) {
-                grill24.fishtastic.network.CompanionPartySyncPacket.sendToPlayer(other, joined.getUUID(), data.get(joined.getUUID()));
-            }
+            grill24.fishtastic.network.CompanionPartySyncPacket.sendToPlayer(other, joined.getUUID(), data.get(joined.getUUID()));
         }
     }
 
