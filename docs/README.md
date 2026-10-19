@@ -3,7 +3,9 @@
 Where the current truth lives, and what is history. Updated 2026-10-17 after the backport readiness
 review ([audit §9.5](audit-2026-10-15-companions-and-fish-in-world.md#95-backport-readiness-follow-up-2026-10-17)).
 All six original cleanup steps are implemented, validated and committed; the new backport catch-up
-has not started. Both existing ports are recorded through source commit `4b0e818e`.
+started stage 1 on 2026-10-17. Both existing ports are recorded through source commit `4b0e818e`.
+Resume from [the backport progress log](backport-catchup-progress.md), which records current state,
+pending operations, evidence and next actions across sessions.
 Six A/B switches are retained with their current defaults, pending owner visual review;
 dirty legacy worktrees are retained.
 When a doc and the code disagree,
@@ -72,6 +74,11 @@ the code wins; fix the doc.
 
 ## Reviews and audits
 
+- [forge-support-implementation-plan.md](forge-support-implementation-plan.md): the source-reviewed plan,
+  dependencies and acceptance gates for Forge on 26.1.2 and 1.21.1, including Gelatin UI.
+- [backport-catchup-progress.md](backport-catchup-progress.md): the live cross-session progress log.
+- [backport-catchup-plan.md](backport-catchup-plan.md): the feature-based catch-up outline,
+  source snapshot, stage order and parity gates for the existing 1.21.1 and 1.20.1 ports.
 - [audit-2026-10-15-companions-and-fish-in-world.md](audit-2026-10-15-companions-and-fish-in-world.md): the
   pre-backport audit and the cleanup it led to (§9).
 - [reviews/](reviews/).
