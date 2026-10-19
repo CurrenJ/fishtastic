@@ -20,8 +20,11 @@ import java.util.Objects;
  * </ul>
  *
  * <p>Size never decides grouping (D8): the old trio rule ({@link CompanionGroup#isTrio}) and a
- * profile's {@code companion_group.count} are retired as sources of groups. A group's leader is its
- * member in the lowest slot, so a school containing the lead is led by it.
+ * profile's {@code companion_group.count} are retired as sources of groups. A group's formation
+ * leader is picked by size, never by the player (D9): the smallest member leads and the rest follow
+ * smallest first, ties going to the lower slot, so identical members keep the lowest slot in front.
+ * The party lead (slot 0) is a separate idea: it stays the party's buddy wherever it swims in a
+ * group.
  *
  * <p>Pure: no Minecraft types. Slots are 0-based here (the spec's "slot 1" is index 0).
  */
@@ -64,7 +67,7 @@ public final class PartyGrouping {
 
     /**
      * One unit the client steps and draws: a solo agent, a school or a ground formation. {@code
-     * members} are in slot order, so the first is the leader.
+     * members} are in formation order: the leader first, then followers smallest first (D9).
      */
     public record Group(Kind kind, List<Member> members) {
         public Group {
@@ -77,10 +80,23 @@ public final class PartyGrouping {
 
         public Member leader() { return members.get(0); }
 
+        /**
+         * The formation leader's party slot: the smallest member's (D9), or a crowd's biggest under
+         * {@link CompanionTunables#crowdBiggestMiddle}. Not necessarily the lowest.
+         */
+        public int leaderSlot() { return leader().slot(); }
+
+        /** The group's lowest party slot: where it sits in the party, and its order among groups. */
+        public int lowestSlot() {
+            int lowest = SLOTS;
+            for (Member m : members) lowest = Math.min(lowest, m.slot());
+            return lowest;
+        }
+
         /** The leader's seed: the whole group's randomness derives from it. */
         public long seed() { return leader().seed(); }
 
-        /** The slots this group occupies, in order. */
+        /** The slots this group occupies, in formation order (leader first). */
         public int[] slots() {
             return members.stream().mapToInt(Member::slot).toArray();
         }
@@ -113,9 +129,18 @@ public final class PartyGrouping {
 
     /**
      * Groups a party. Members may arrive in any order and with empty slots missing; the result is
-     * ordered by each group's lowest slot.
+     * ordered by each group's lowest slot, and each group's members are in formation order (D9).
      */
     public static List<Group> group(List<Member> party) {
+        return group(party, CompanionTunables.defaults());
+    }
+
+    /**
+     * {@link #group(List)} under {@code t}'s ordering switches: with {@link
+     * CompanionTunables#crowdBiggestMiddle}, a three-member crowd's biggest member takes the centre
+     * (§14.1).
+     */
+    public static List<Group> group(List<Member> party, CompanionTunables t) {
         if (party.size() > SLOTS) throw new IllegalArgumentException("a party has at most " + SLOTS + " members");
         List<Member> sorted = new ArrayList<>(party);
         sorted.sort(Comparator.comparingInt(Member::slot));
@@ -141,10 +166,33 @@ public final class PartyGrouping {
                     }
                 }
             }
+            members.sort(FORMATION_ORDER);
+            if (t.crowdBiggestMiddle && kind == Kind.GROUND && members.size() == 3
+                    && lead.formation() == BenthicGroup.Formation.CROWD) {
+                biggestToCentre(members);
+            }
             out.add(new Group(members.size() == 1 ? Kind.SOLO : kind, members));
         }
         return out;
     }
+
+    /**
+     * Moves the biggest member to the front of a smallest-first crowd. A crowd's first member is its
+     * centre: the anchor the others stand either side of. Ties go to the lower slot, so identical
+     * members keep their order.
+     */
+    private static void biggestToCentre(List<Member> members) {
+        int big = 0;
+        for (int i = 1; i < members.size(); i++) {
+            Member m = members.get(i), b = members.get(big);
+            if (m.length() > b.length() || (m.length() == b.length() && m.slot() < b.slot())) big = i;
+        }
+        members.add(0, members.remove(big));
+    }
+
+    /** Smallest first, ties to the lower slot (D9). */
+    static final Comparator<Member> FORMATION_ORDER =
+            Comparator.comparingDouble(Member::length).thenComparingInt(Member::slot);
 
     /** Same species, and both of the grouping class (a species' class and gait never differ in practice). */
     private static boolean sameKind(Member a, Member b) {

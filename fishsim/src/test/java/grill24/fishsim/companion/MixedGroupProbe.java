@@ -22,6 +22,13 @@ class MixedGroupProbe {
 
     static final int TICKS = 2400;
 
+    /** The run's tunables: defaults, with -PtweakA applied (e.g. -PtweakA=groupPaceCap=false). */
+    private static CompanionTunables tunables() {
+        CompanionTunables t = CompanionTunables.defaults();
+        SeedSweepProbe.tweak(System.getProperty("tweakA")).accept(t);
+        return t;
+    }
+
     private static int seeds() {
         return Integer.parseInt(System.getProperty("sweepSeeds", "8"));
     }
@@ -41,23 +48,26 @@ class MixedGroupProbe {
                 new School("mixed 24/16/9", new float[]{0.24f, 0.16f, 0.09f}),
                 new School("pair 16/24", CompanionRun.SCHOOL_PAIR),
                 new School("big 40x3 (ref)", new float[]{0.40f, 0.40f, 0.40f}),
-                new School("big 25/40/60", CompanionRun.SCHOOL_BIG));
+                new School("big 25/40/60", CompanionRun.SCHOOL_BIG),
+                new School("big 60/40/25", new float[]{0.60f, 0.40f, 0.25f}));
         for (School c : configs) {
             List<CompanionRun.FollowerMetrics> fm = new ArrayList<>();
             List<GroupShapeMetrics.Result> shapes = new ArrayList<>();
             List<String> keys = new ArrayList<>();
             int trioFails = 0;
             List<String> failed = new ArrayList<>();
+            List<Integer> failFlags = new ArrayList<>();
             for (String script : OwnerScript.NAMES) {
                 for (long seed = 1; seed <= seeds(); seed++) {
                     CompanionRun run = CompanionRun.school(script, seed, c.lengths(), Temperament.BASELINE,
-                            CompanionTunables.defaults(), true);
+                            tunables(), true);
                     run.run(TICKS);
                     CompanionRun.FollowerMetrics f = run.followerMetrics();
                     fm.add(f);
                     shapes.add(run.schoolShape());
                     keys.add(script + "#" + seed);
                     String why = trioBounds(script, f, run.group.followerCount());
+                    failFlags.add(why == null ? 0 : 1);
                     if (why != null) {
                         trioFails++;
                         if (failed.size() < 6) failed.add(script + "#" + seed + " " + why);
@@ -74,6 +84,9 @@ class MixedGroupProbe {
             line("SCHOOL", c.name(), "maxJerk", fm, CompanionRun.FollowerMetrics::maxJerk, keys);
             line("SCHOOL", c.name(), "tailFirst%", fm, f -> 100 * f.tailFirstFraction(), keys);
             shape("SCHOOL", c.name(), shapes, keys);
+            perSeed("SCHOOL", c.name(), "trioFails", failFlags, keys, x -> x, null, true);
+            perSeed("SCHOOL", c.name(), "maxStraggle", fm, keys, CompanionRun.FollowerMetrics::longestStraggleSeconds, null, false);
+            perSeed("SCHOOL", c.name(), "maxImpact", fm, keys, CompanionRun.FollowerMetrics::maxImpact, null, false);
         }
     }
 
@@ -86,7 +99,13 @@ class MixedGroupProbe {
                 new Ground("line pair 40x2 (ref)", new float[]{0.4f, 0.4f}, BenthicGroup.Formation.LINE),
                 new Ground("starfish pair 30/45", CompanionRun.STARFISH_PAIR, BenthicGroup.Formation.LINE),
                 new Ground("crowd 12x3 (ref)", new float[]{0.12f, 0.12f, 0.12f}, BenthicGroup.Formation.CROWD),
-                new Ground("crowd 8/12/18", CompanionRun.SLUG_CROWD_MIXED, BenthicGroup.Formation.CROWD));
+                new Ground("crowd 8/12/18", CompanionRun.SLUG_CROWD_MIXED, BenthicGroup.Formation.CROWD),
+                new Ground("crowd 18/12/8", new float[]{0.18f, 0.12f, 0.08f}, BenthicGroup.Formation.CROWD),
+                new Ground("crowd 30/40/50", new float[]{0.30f, 0.40f, 0.50f}, BenthicGroup.Formation.CROWD),
+                new Ground("crowd 50/40/30", new float[]{0.50f, 0.40f, 0.30f}, BenthicGroup.Formation.CROWD),
+                // Biggest in the middle (§14.1): the biggest is the centre anchor, the rest smallest first.
+                new Ground("crowd 18/8/12 bigmid", new float[]{0.18f, 0.08f, 0.12f}, BenthicGroup.Formation.CROWD),
+                new Ground("crowd 50/30/40 bigmid", new float[]{0.50f, 0.30f, 0.40f}, BenthicGroup.Formation.CROWD));
         for (Ground c : configs) {
             List<GroupRun> runs = new ArrayList<>();
             List<GroupShapeMetrics.Result> shapes = new ArrayList<>();
@@ -96,7 +115,7 @@ class MixedGroupProbe {
                 for (long seed = 1; seed <= seeds(); seed++) {
                     LocalVoxels truth = new LocalVoxels();
                     int[] p = {0};
-                    GroupRun r = new GroupRun(script, seed, c.lengths(), Temperament.BASELINE, c.formation())
+                    GroupRun r = new GroupRun(script, seed, c.lengths(), Temperament.BASELINE, c.formation(), tunables())
                             .run((tick, world, group) -> {
                                 truth.update(world.blocks(), world.owner().eye());
                                 for (int i = 0; i < group.count(); i++) {
@@ -119,7 +138,35 @@ class MixedGroupProbe {
             line("GROUND", c.name(), "lineOrder%", runs, r -> 100 * r.orderShare(), keys);
             line("GROUND", c.name(), "gapCv", runs, GroupRun::gapCv, keys);
             shape("GROUND", c.name(), shapes, keys);
+            perSeed("GROUND", c.name(), "fades", runs, keys, r -> r.fades, null, true);
+            perSeed("GROUND", c.name(), "sprintFades", runs, keys, r -> r.script.equals("sprint_away") ? r.fades : 0, null, true);
+            perSeed("GROUND", c.name(), "maxUnderfoot", runs, keys, r -> r.underfootTicks, null, false);
+            perSeed("GROUND", c.name(), "maxDeep", runs, keys, r -> r.deepTicks, null, false);
+            perSeed("GROUND", c.name(), "maxLineOrder%", runs, keys, r -> 100 * r.orderShare(), null, false);
+            perSeed("GROUND", c.name(), "maxOverlap", runs, keys, r -> r.overlapTicks, null, false);
+            perSeed("GROUND", c.name(), "sumMeanLag", shapes, keys, GroupShapeMetrics.Result::meanLag, null, true);
+            perSeed("GROUND", c.name(), "maxLag", shapes, keys, GroupShapeMetrics.Result::maxLag, null, false);
         }
+    }
+
+    /**
+     * One value per seed across every script: the sum ({@code sum}) or the worst. {@code byKey}, when
+     * given, replaces {@code f} with a function of the run and its key.
+     */
+    private static <T> void perSeed(String kind, String name, String metric, List<T> xs, List<String> keys,
+                                    ToDoubleFunction<T> f, java.util.function.ToDoubleBiFunction<T, String> byKey,
+                                    boolean sum) {
+        double[] v = new double[seeds()];
+        for (int i = 0; i < xs.size(); i++) {
+            String key = keys.get(i);
+            int seed = Integer.parseInt(key.substring(key.indexOf('#') + 1)) - 1;
+            double x = byKey != null ? byKey.applyAsDouble(xs.get(i), key) : f.applyAsDouble(xs.get(i));
+            if (Double.isNaN(x)) continue;
+            v[seed] = sum ? v[seed] + x : Math.max(v[seed], x);
+        }
+        StringBuilder b = new StringBuilder();
+        for (double x : v) b.append(String.format(Locale.ROOT, " %7.2f", x));
+        System.out.printf(Locale.ROOT, "  SEED %s %-20s %-15s%s%n", kind, name, metric, b);
     }
 
     private static void shape(String kind, String name, List<GroupShapeMetrics.Result> s, List<String> keys) {

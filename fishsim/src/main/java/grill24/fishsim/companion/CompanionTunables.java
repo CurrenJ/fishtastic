@@ -305,6 +305,27 @@ public final class CompanionTunables {
     /** Lateral riding distance while escorting. */
     public float escortLateral = 1.25f;
 
+    /**
+     * An explicit cap: a ground formation's leader walks no faster than its slowest member
+     * (docs/fish-companions-party.md D10, §14). Off by default because D9 already delivers D10 by
+     * construction: the smallest member leads, and a ground body's pace grows with its size, so the
+     * leader is always the slowest walker and the cap never engages (bitwise identical on or off for
+     * every smallest-first group). It only acts on a big-leader order, where it trades sprint fades
+     * for more underfoot time (measured, 8 seeds), so it isn't a clear win. Schools need no cap: a
+     * swimmer's pace doesn't depend on its size.
+     */
+    public boolean groupPaceCap = false;
+
+    /**
+     * A three-member crowd puts its biggest member at the centre (docs/fish-companions-party.md
+     * §14.1). A crowd's centre is its anchor member, the one the others stand either side of, so the
+     * biggest becomes the anchor and the others follow smallest first. Ties go to the lower slot, so
+     * identical members keep today's order. Pairs have no middle and lines keep smallest first (D9).
+     * Off by default: over 8 equal seeds it cuts member overlap but gives back the underfoot and lag
+     * gains of smallest first (measured, docs/fish-companions-party-2a2-asbuilt.md).
+     */
+    public boolean crowdBiggestMiddle = false;
+
     public static CompanionTunables defaults() {
         return new CompanionTunables();
     }
