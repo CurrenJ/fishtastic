@@ -183,6 +183,11 @@ final class GroundBody extends Motor {
     boolean preventUnplannedDrop;
     /** Escape from approaching feet skips the idle rhythm's delay; acceleration stays bounded. */
     boolean urgent;
+    /**
+     * The slowest formation member's {@link #pace}, set on a group's leader when a member is
+     * slower than it (docs/fish-companions-party.md D10); infinite (no cap) otherwise.
+     */
+    double paceCap = Double.POSITIVE_INFINITY;
 
     private void stride(Vec target, double wantSpeed, Rhythm rhythm, Vec push, float faceYaw, LocalVoxels v) {
         // Down off an edge only when where it's going is down there: wandering along a raised
@@ -218,6 +223,8 @@ final class GroundBody extends Motor {
             double env = envelope(rhythm);
             double arrive = Math.sqrt(2 * DECEL * 0.6 * Math.max(0, dist - 0.05));
             target2 = Math.min(Math.min(wantSpeed, rhythmBase(rhythm) * env), arrive);
+            // A formation's pacesetter walks no faster than its slowest member could at this rhythm.
+            if (paceCap < pace) target2 = Math.min(target2, rhythmBase(rhythm) * env * (paceCap / pace));
             if (push != null && push.lengthSqr() > 0.04) target2 = Math.max(target2, Math.min(cruise(), push.length()));
             double err = Math.abs(Body.wrap(targetYaw - yaw));
             // Off to the side: slow and turn tight; behind: nearly stop and pivot.

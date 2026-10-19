@@ -1555,6 +1555,28 @@ public class FishtasticFabricGameTests {
         CompanionQuestUnlockGameTests.questScanReportsEachSpeciesOnce(helper);
     }
 
+    // ----- Companion party grouping (party spec §3) -----
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionGroupsFreeSwimmerDuplicatesSchool(GameTestHelper helper) {
+        CompanionGroupsGameTests.freeSwimmerDuplicatesSchool(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionGroupsGroundBenthicsFormTheirFormation(GameTestHelper helper) {
+        CompanionGroupsGameTests.groundBenthicsFormTheirFormation(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionGroupsNonGroupingDuplicatesStaySeparate(GameTestHelper helper) {
+        CompanionGroupsGameTests.nonGroupingDuplicatesStaySeparate(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionGroupsMixedPartyIsAllSolos(GameTestHelper helper) {
+        CompanionGroupsGameTests.mixedPartyIsAllSolos(helper);
+    }
+
     // ----- Companion pet-to-pet scenes (Phase 6) -----
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")

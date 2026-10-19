@@ -94,6 +94,9 @@ public class CompanionCommand {
                                                 .then(slotArgument().executes(ctx -> give(ctx,
                                                         Optional.of(FloatArgumentType.getFloat(ctx, "size")), Optional.of(slotOf(ctx)))))))))
                 .then(Commands.literal("debug")
+                        // Which party slot the overlay and the dev triggers act on (the lead by default).
+                        .then(Commands.literal("slot").then(slotArgument().executes(ctx -> client(ctx,
+                                () -> grill24.fishtastic.client.companion.ClientCompanions.devSlot(slotOf(ctx))))))
                         .then(Commands.argument("value", BoolArgumentType.bool()).executes(ctx -> client(ctx,
                                 () -> grill24.fishtastic.client.companion.ClientCompanions.devOverlay(
                                         BoolArgumentType.getBool(ctx, "value"))))))

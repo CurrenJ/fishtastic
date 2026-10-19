@@ -40,15 +40,6 @@ public final class CompanionStorage {
         return get(player, CompanionParty.LEAD);
     }
 
-    /**
-     * The lead. Kept for the client's companion wiring until it runs one sim per slot
-     * (docs/fish-companions-party.md §13); new code should name a slot.
-     */
-    @Deprecated
-    public static ItemStack get(Player player) {
-        return lead(player);
-    }
-
     /** Puts {@code stack} in {@code slot} ({@link ItemStack#EMPTY} clears it) and syncs. */
     public static void set(Player player, int slot, ItemStack stack) {
         setParty(player, party(player).with(slot, stack));

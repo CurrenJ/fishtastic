@@ -82,7 +82,7 @@ class PartyGroupingTest {
         for (PartyGrouping.Group group : g) assertEquals(PartyGrouping.Kind.SOLO, group.kind());
     }
 
-    /** The leader is the member in the lowest slot, whatever order the party arrives in; groups come out by lowest slot. */
+    /** Equal sizes: the leader is the member in the lowest slot, whatever order the party arrives in; groups come out by lowest slot. */
     @Test
     void leaderIsTheLowestSlotAndGroupsAreInSlotOrder() {
         List<PartyGrouping.Group> g = PartyGrouping.group(List.of(
@@ -94,6 +94,74 @@ class PartyGroupingTest {
         assertEquals(1, g.get(1).leader().slot());
         assertArrayEquals(new int[]{1, 2}, g.get(1).slots());
         assertEquals(g.get(1).leader().seed(), g.get(1).seed());
+    }
+
+    private static PartyGrouping.Member sized(String species, Locomotion l, float length, int slot) {
+        GroundGait gait = l == Locomotion.BENTHIC ? GroundGait.CRAWL : null;
+        return new PartyGrouping.Member(species, l, gait, null, length, 100 + slot, slot);
+    }
+
+    /** D9: the smallest member leads, the rest follow smallest first; size, never the player, picks it. */
+    @Test
+    void smallestLeadsAndFollowersComeSmallestFirst() {
+        List<PartyGrouping.Group> g = PartyGrouping.group(List.of(
+                sized("bluegill", Locomotion.FREE_SWIM, 0.24f, 0), sized("bluegill", Locomotion.FREE_SWIM, 0.09f, 1),
+                sized("bluegill", Locomotion.FREE_SWIM, 0.16f, 2)));
+        assertEquals(1, g.size());
+        assertEquals(1, g.get(0).leaderSlot());
+        assertEquals(0, g.get(0).lowestSlot());
+        assertArrayEquals(new int[]{1, 2, 0}, g.get(0).slots());
+        assertArrayEquals(new float[]{0.09f, 0.16f, 0.24f}, g.get(0).lengths());
+        // The whole group's randomness is the leader's: its slot's member seed.
+        assertEquals(PartyGrouping.memberSeed(101, 1), g.get(0).seed());
+        // Ground formations follow the same rule.
+        List<PartyGrouping.Group> line = PartyGrouping.group(List.of(
+                sized("starfish", Locomotion.BENTHIC, 0.5f, 0), sized("starfish", Locomotion.BENTHIC, 0.3f, 2)));
+        assertArrayEquals(new int[]{2, 0}, line.get(0).slots());
+    }
+
+    /** D9 ties go to the lower slot, so identical members keep today's leader; groups keep lowest-slot order. */
+    @Test
+    void sizeTiesGoToTheLowerSlotAndGroupsStayInLowestSlotOrder() {
+        List<PartyGrouping.Group> g = PartyGrouping.group(List.of(
+                sized("eel", Locomotion.ANCHORED, 0.5f, 1), sized("bluegill", Locomotion.FREE_SWIM, 0.2f, 2),
+                sized("bluegill", Locomotion.FREE_SWIM, 0.2f, 0)));
+        assertEquals(2, g.size());
+        assertEquals(PartyGrouping.Kind.SCHOOL, g.get(0).kind());
+        assertArrayEquals(new int[]{0, 2}, g.get(0).slots());
+        assertEquals(1, g.get(1).leaderSlot());
+        // A school led from a higher slot still sits where its lowest slot puts it.
+        List<PartyGrouping.Group> h = PartyGrouping.group(List.of(
+                sized("bluegill", Locomotion.FREE_SWIM, 0.3f, 0), sized("eel", Locomotion.ANCHORED, 0.5f, 1),
+                sized("bluegill", Locomotion.FREE_SWIM, 0.1f, 2)));
+        assertEquals(PartyGrouping.Kind.SCHOOL, h.get(0).kind());
+        assertEquals(2, h.get(0).leaderSlot());
+        assertEquals(PartyGrouping.Kind.SOLO, h.get(1).kind());
+    }
+
+    /**
+     * D10's explicit cap (opt-in, {@link CompanionTunables#groupPaceCap}): a ground leader bigger than
+     * a member walks at that member's pace; identical members and smallest-first groups are uncapped.
+     */
+    @Test
+    void groundLeaderIsPacedToItsSlowestMember() {
+        CompanionWorld world = OwnerScript.named("walk_flat", 1).nextWorld();
+        CompanionTunables t = CompanionTunables.defaults();
+        t.groupPaceCap = true;
+        BenthicGroup big = new BenthicGroup(t, 1, new float[]{0.5f, 0.4f, 0.3f}, Temperament.BASELINE,
+                GroundGait.CRAWL, BenthicGroup.Formation.LINE, world);
+        assertEquals(big.member(2).groundPace(), big.leader().groundPaceCap(), 1e-12);
+        BenthicGroup small = new BenthicGroup(t, 1, new float[]{0.3f, 0.4f, 0.5f}, Temperament.BASELINE,
+                GroundGait.CRAWL, BenthicGroup.Formation.LINE, world);
+        assertEquals(Double.POSITIVE_INFINITY, small.leader().groundPaceCap());
+        BenthicGroup same = new BenthicGroup(t, 1, 0.4f, Temperament.BASELINE, GroundGait.CRAWL, 3,
+                BenthicGroup.Formation.LINE, world);
+        assertEquals(Double.POSITIVE_INFINITY, same.leader().groundPaceCap());
+        CompanionTunables off = CompanionTunables.defaults();
+        assertFalse(off.groupPaceCap, "the cap is opt-in: D9 already makes the leader the slowest walker");
+        BenthicGroup uncapped = new BenthicGroup(off, 1, new float[]{0.5f, 0.4f, 0.3f}, Temperament.BASELINE,
+                GroundGait.CRAWL, BenthicGroup.Formation.LINE, world);
+        assertEquals(Double.POSITIVE_INFINITY, uncapped.leader().groundPaceCap());
     }
 
     @Test

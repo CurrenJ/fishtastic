@@ -14,24 +14,32 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * never sharing a perch, rarely stacked or underfoot, a line keeping its order, and nothing fading
  * where the group can follow.
  *
- * <p>Named gap MIXED_SPRINT_FADE: on {@code sprint_away} a line led by a bigger fish can fade its
- * smaller followers (the leader sets the pace; a follower's catch-up speed scales with its own
- * body). Identical lines of 0.3 and 0.5 fade there too (seeds 7 and 1 of 8); only the 0.4 line
- * {@link BenthicGroupTest} is tuned on never does. Up to {@link #SPRINT_FADES} fades a run are
- * allowed there; every other formation script still allows none.
+ * <p>Lines allow no fades on any formation script, {@code sprint_away} included. The named gap
+ * MIXED_SPRINT_FADE (a big leader outwalking and fading its smaller followers) closed with D9: the
+ * party sorts a group smallest first, so the leader is the slowest walker. A line built from a
+ * big-first party ("line 50/40/30 by slot") is grouped through {@link PartyGrouping} like the game's,
+ * so it walks 30/40/50. Crowds keep their existing sprint exemption (tiny slugs can't keep up with a
+ * sprint whatever the order; docs/fish-companions-party-2a-asbuilt.md).
  */
 class MixedGroundInvariantTest {
 
     private record Config(String name, float[] lengths, BenthicGroup.Formation formation) {}
 
-    /** Measured worst over 8 seeds: 4 (line 50/40/30, seed 1; the identical 0.5 line fades 2 there). */
-    static final int SPRINT_FADES = 4;
-
     static final List<Config> CONFIGS = List.of(
             new Config("line 30/40/50", new float[]{0.30f, 0.40f, 0.50f}, BenthicGroup.Formation.LINE),
-            new Config("line 50/40/30", new float[]{0.50f, 0.40f, 0.30f}, BenthicGroup.Formation.LINE),
+            new Config("line 50/40/30 by slot", partyOrder(0.50f, 0.40f, 0.30f), BenthicGroup.Formation.LINE),
             new Config("starfish pair", CompanionRun.STARFISH_PAIR, BenthicGroup.Formation.LINE),
             new Config("crowd 8/12/18", CompanionRun.SLUG_CROWD_MIXED, BenthicGroup.Formation.CROWD));
+
+    /** The formation order {@link PartyGrouping} gives a ground party whose slots hold these lengths. */
+    static float[] partyOrder(float... bySlot) {
+        List<PartyGrouping.Member> members = new ArrayList<>();
+        for (int slot = 0; slot < bySlot.length; slot++) {
+            members.add(new PartyGrouping.Member("starfish", grill24.fishsim.core.Locomotion.BENTHIC,
+                    GroundGait.CRAWL, BenthicGroup.Formation.LINE, bySlot[slot], 1, slot));
+        }
+        return PartyGrouping.group(members).get(0).lengths();
+    }
 
     @Test
     void mixedFormationsKeepTheGroupFloor() {
@@ -66,8 +74,7 @@ class MixedGroundInvariantTest {
                         if (c.formation() == BenthicGroup.Formation.LINE && r.orderShare() > (jostled ? 0.18 : 0.08))
                             failures.add("line order " + why);
                         boolean slowForSprint = c.formation() == BenthicGroup.Formation.CROWD && script.equals("sprint_away");
-                        int allowed = script.equals("sprint_away") ? SPRINT_FADES : 0;
-                        if (!slowForSprint && r.fades > allowed) failures.add("fade " + why);
+                        if (!slowForSprint && r.fades > 0) failures.add("fade " + why);
                     }
                 }
             }

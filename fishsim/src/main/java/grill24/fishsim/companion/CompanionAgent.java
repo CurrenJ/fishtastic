@@ -488,6 +488,12 @@ public final class CompanionAgent {
     }
 
     void formationTurn(float yaw) { perch.gmind.formationFace = yaw; }
+    /** A ground body's own walking pace (its size's), or NaN for a body that doesn't walk. */
+    double groundPace() { return perch == null || perch.ground == null ? Double.NaN : perch.ground.pace; }
+    /** Caps this ground body's walking pace at {@code pace}: a formation's slowest member's (D10). */
+    void groundPaceCap(double pace) { if (perch != null && perch.ground != null) perch.ground.paceCap = pace; }
+    /** The pace cap on this ground body (infinite when uncapped or not walking). */
+    double groundPaceCap() { return perch == null || perch.ground == null ? Double.POSITIVE_INFINITY : perch.ground.paceCap; }
     public void devPerch() { if (perch != null) perch.devPerch(); }
     public void devTumble() { if (perch != null) perch.devTumble(); }
     public int climbs() { return perch == null ? 0 : perch.climbs; }

@@ -11,82 +11,87 @@ import grill24.fishsim.companion.CompanionTunables;
 import grill24.fishsim.companion.CompanionWorld;
 import grill24.fishsim.companion.DriftStyle;
 import grill24.fishsim.companion.OwnerState;
+import grill24.fishsim.companion.PartyGrouping;
 import grill24.fishsim.companion.PerchBody;
 import grill24.fishsim.companion.PointOfInterest;
 import grill24.fishsim.companion.Temperament;
 import grill24.fishsim.companion.Vec;
 import grill24.fishsim.core.Locomotion;
-import grill24.FishtasticRegistries;
 import grill24.fishtastic.client.renderer.CompanionFishPose;
 import grill24.fishtastic.client.renderer.CompanionRender;
-import grill24.fishtastic.data.FishAnimationConfig;
+import grill24.fishtastic.client.renderer.FishVisuals;
+import grill24.fishtastic.companion.CompanionGroups;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.util.ItemSizeHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
- * One companion fish on the client: a player's equipped companion, drawn for its owner and for
- * everyone who can see them (docs/fish-companions-sim-plan.md §3.5). {@link ClientCompanions} owns
- * the instances.
+ * One unit of a player's companion party on the client (docs/fish-companions-party.md §3): a solo
+ * fish, a school of 2–3 same-species free swimmers, or a ground formation of 2–3 same-species
+ * benthics, as {@link PartyGrouping} groups the party. Drawn for its owner and for everyone who can
+ * see them (docs/fish-companions-sim-plan.md §3.5). {@link ClientCompanions} owns the instances, one
+ * per group.
  *
- * <p>All motion and behaviour is the {@code :fishsim} companion sim — a {@link CompanionAgent}, or
- * a {@link CompanionGroup} for a trio — stepped once per client tick from the snapshot
- * {@link CompanionWorldAdapter} builds, and interpolated per frame. This class only owns what the
- * sim can't know: the bonded stack, the species' render data, and drawing.
+ * <p>All motion and behaviour is the {@code :fishsim} companion sim — a {@link CompanionAgent}, a
+ * {@link CompanionGroup} for a school or a {@link BenthicGroup} for a ground formation — stepped once
+ * per client tick from the snapshot {@link CompanionWorldAdapter} builds, and interpolated per frame.
+ * This class only owns what the sim can't know: each member's bonded stack, its render data, and
+ * drawing. Every member is its own fish: its own size, quality, name and render calibration.
  *
- * <p>A benthic species walks on the ground behind its owner (docs/fish-companions-benthic-follow.md
- * §21): its profile's {@code companion_gait} picks the crawl or the flatfish ripple, and its
- * {@code companion_group} makes it a {@link BenthicGroup} of up to three, one per perch slot.
- *
- * <p>Each client simulates every companion it can see from that owner's synced state, seeded from
- * the owner and the bonded fish, so a remote companion behaves in character without having to match
- * frame for frame (plan §3.6).
+ * <p>Each client simulates every companion it can see from that owner's synced party, seeded from
+ * the owner, each bonded fish and its slot, so a remote companion behaves in character without having
+ * to match frame for frame (plan §3.6).
  */
 public final class ClientCompanion {
-    /** Smallest length a companion is drawn (and simulated) at, blocks — true-to-scale small fish are specks. */
-    private static final float MIN_LENGTH = 0.25f;
+    /**
+     * Every companion is simulated, perched and drawn at its true size (party spec D11: "let small
+     * fish look small", solos too). A 0.25-block floor once sized the sim's body and the perched
+     * pose of small fish; it is gone. Only a degenerate zero length is guarded.
+     */
+    private static final float MIN_SIM_LENGTH = 1e-3f;
     private static final CompanionTunables TUNABLES = CompanionTunables.defaults();
 
     /** The owner, or null for a dev phantom: an imaginary still owner standing at {@link #phantomEye}. */
     @Nullable private final Player owner;
     @Nullable private final Vec3 phantomEye;
     private final float phantomYaw;
-    private final ItemStack stack;
-    private final long seed;
+    private final PartyGrouping.Group group;
+    /** Each member's bonded fish, leader first (the group's own member order). */
+    private final ItemStack[] stacks;
+    private final CompanionRender[] renders;
+    private final CompanionFishPose[] perchPoses;
+    /** Each member's simulated length, blocks. */
+    private final float[] lengths;
     private final Locomotion locomotion;
-    private final float length;
     private final Temperament temperament;
-    private final boolean trio;
     /** How a benthic walks on land, or null for every other class. */
     @Nullable private final GroundGait gait;
     /** How a drifter propels itself (docs/fish-companions-drift.md §2), from the profile's companion_drift. */
     private final DriftStyle driftStyle;
-    /** A benthic group's size (1 for a solo) and formation. */
-    private final int groupCount;
-    private final BenthicGroup.Formation formation;
-    private final CompanionRender render;
-    private final CompanionFishPose perchPose;
     private final CompanionWorldAdapter.OwnerTracker tracker = new CompanionWorldAdapter.OwnerTracker();
 
     @Nullable private CompanionAgent agent;
-    @Nullable private CompanionGroup group;
+    @Nullable private CompanionGroup school;
     @Nullable private BenthicGroup benthic;
     @Nullable private OwnerState lastOwner;
     private CompanionWorld.Held lastHeld = CompanionWorld.Held.NONE;
@@ -96,63 +101,87 @@ public final class ClientCompanion {
     /** Nanoseconds the last sim step took, for the debug overlay. */
     long stepNanos;
 
-    ClientCompanion(@Nullable Player owner, @Nullable Vec3 phantomEye, float phantomYaw, ItemStack stack,
-                    ClientLevel level, @Nullable Temperament override) {
+    /**
+     * @param group  how this unit's members group, from {@link PartyGrouping#group}
+     * @param stacks each member's bonded fish, in {@code group.members()} order
+     */
+    ClientCompanion(@Nullable Player owner, @Nullable Vec3 phantomEye, float phantomYaw, PartyGrouping.Group group,
+                    List<ItemStack> stacks, ClientLevel level, @Nullable Temperament override) {
+        if (stacks.size() != group.members().size()) throw new IllegalArgumentException("one stack per member");
         this.owner = owner;
         this.phantomEye = phantomEye;
         this.phantomYaw = phantomYaw;
-        this.stack = stack.copy();
-        this.render = new CompanionRender(stack, level);
-        this.perchPose = new CompanionFishPose(stack, level, MIN_LENGTH);
-        this.locomotion = render.locomotion();
-        this.length = Math.max(render.length(), MIN_LENGTH);
-        float sizeCm = ItemSizeHelper.hasSize(stack) ? ItemSizeHelper.getSize(stack) : Float.MAX_VALUE;
-        this.trio = CompanionGroup.isTrio(locomotion, sizeCm);
-        java.util.Optional<FishProfile> profile = profileOf(stack, level);
+        this.group = group;
+        int n = stacks.size();
+        this.stacks = new ItemStack[n];
+        this.renders = new CompanionRender[n];
+        this.perchPoses = new CompanionFishPose[n];
+        this.lengths = new float[n];
+        for (int i = 0; i < n; i++) {
+            ItemStack stack = stacks.get(i);
+            this.stacks[i] = stack.copy();
+            this.renders[i] = new CompanionRender(stack, level);
+            this.perchPoses[i] = new CompanionFishPose(stack, level, MIN_SIM_LENGTH);
+            this.lengths[i] = Math.max(renders[i].length(), MIN_SIM_LENGTH);
+        }
+        this.locomotion = renders[0].locomotion();
+        Optional<FishProfile> profile = CompanionGroups.profileOf(level.registryAccess(), this.stacks[0]);
         this.temperament = override != null ? override : profile.flatMap(FishProfile::temperament)
                 .map(key -> Temperament.named(key.identifier().getPath()))
                 .orElse(Temperament.BASELINE);
-        if (locomotion == Locomotion.BENTHIC) {
-            this.gait = profile.map(FishProfile::companionGait).orElse(FishProfile.CompanionGait.CRAWL)
-                    == FishProfile.CompanionGait.RIPPLE ? GroundGait.RIPPLE : GroundGait.CRAWL;
-            var config = profile.flatMap(FishProfile::companionGroup);
-            this.groupCount = config.map(FishProfile.CompanionGroupConfig::count).orElse(1);
-            this.formation = config.map(c -> c.formation() == FishProfile.CompanionGroupConfig.Formation.CROWD
-                    ? BenthicGroup.Formation.CROWD : BenthicGroup.Formation.LINE).orElse(BenthicGroup.Formation.LINE);
-        } else {
-            this.gait = null;
-            this.groupCount = 1;
-            this.formation = BenthicGroup.Formation.LINE;
-        }
+        this.gait = CompanionGroups.gaitOf(locomotion, profile);
         this.driftStyle = locomotion == Locomotion.DRIFT
                 ? DriftStyle.valueOf(profile.map(FishProfile::companionDrift).orElse(FishProfile.CompanionDrift.BELL).name())
                 : DriftStyle.BELL;
-        this.seed = seedOf(owner != null ? owner.getUUID() : UUID.nameUUIDFromBytes(phantomEye.toString().getBytes()),
-                stack);
     }
 
-    /** The species' fish profile: its temperament (spec §4), and a benthic's gait and group. */
-    private static java.util.Optional<FishProfile> profileOf(ItemStack stack, ClientLevel level) {
-        var itemKey = BuiltInRegistries.ITEM.getResourceKey(stack.getItem());
-        if (itemKey.isEmpty()) return java.util.Optional.empty();
-        return level.registryAccess().lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY)
-                .getOptional(ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, itemKey.get().identifier()));
+    /** A dev phantom: one fish round an imaginary still owner at {@code eye}. */
+    static ClientCompanion phantom(Vec3 eye, float yaw, ItemStack fish, ClientLevel level) {
+        UUID id = UUID.nameUUIDFromBytes(eye.toString().getBytes());
+        var member = CompanionGroups.members(new grill24.fishtastic.companion.CompanionParty(List.of(fish)),
+                level.registryAccess(), s -> trueLength(s, level), s -> stackSeed(id, s));
+        return new ClientCompanion(null, eye, yaw, PartyGrouping.group(member).get(0), List.of(fish), level, null);
+    }
+
+    /** A fish's true-to-scale rendered length, blocks: what grouping ranks members by. */
+    static float trueLength(ItemStack fish, Level level) {
+        return FishVisuals.renderedLength(fish, FishVisuals.resolve(fish, level).renderCalibration());
     }
 
     /**
      * The same on every client: the owner and the bonded fish's species and size (never an
-     * identity hash, which differs per JVM).
+     * identity hash, which differs per JVM). {@link PartyGrouping.Member#seed} mixes in the slot.
      */
-    private static long seedOf(UUID owner, ItemStack stack) {
+    static long stackSeed(UUID owner, ItemStack stack) {
         long h = owner.getMostSignificantBits() * 31 + owner.getLeastSignificantBits();
         h = h * 31 + BuiltInRegistries.ITEM.getKey(stack.getItem()).toString().hashCode();
         if (ItemSizeHelper.hasSize(stack)) h = h * 31 + Float.floatToIntBits(ItemSizeHelper.getSize(stack));
         return h ^ (h >>> 29);
     }
 
-    ItemStack stack() { return stack; }
+    /** The lead fish's bonded stack (the group's leader). */
+    ItemStack stack() { return stacks[0]; }
 
     @Nullable Player owner() { return owner; }
+
+    /** How this unit's members group. */
+    public PartyGrouping.Group group() { return group; }
+
+    /** The party slot of this unit's formation leader (its smallest fish, D9; not necessarily the lowest slot). */
+    public int leaderSlot() { return group.leaderSlot(); }
+
+    /**
+     * This unit's lowest party slot: where it sits in the party, and with its owner its identity
+     * (point-of-interest ids, the overlay). The party lead (slot 0) may be a follower in its school,
+     * so anything the lead owns finds its unit with {@link #holdsSlot}, never by leadership.
+     */
+    public int lowestSlot() { return group.lowestSlot(); }
+
+    /** Whether this unit holds party slot {@code slot}. */
+    public boolean holdsSlot(int slot) {
+        for (int s : group.slots()) if (s == slot) return true;
+        return false;
+    }
 
     public boolean isLocal() {
         return owner != null && owner == Minecraft.getInstance().player;
@@ -174,7 +203,7 @@ public final class ClientCompanion {
         if (owner != null) {
             ownerState = tracker.owner(owner, isLocal());
             hurt = tracker.hurt(owner);
-            held = CompanionWorldAdapter.held(owner.getMainHandItem(), stack);
+            held = CompanionWorldAdapter.held(owner.getMainHandItem(), stacks[0]);
             points = CompanionWorldAdapter.points(level, owner, companions);
         } else {
             boolean wet = level.getFluidState(BlockPos.containing(phantomEye.subtract(0, OwnerState.CHEST_DROP, 0)))
@@ -183,10 +212,10 @@ public final class ClientCompanion {
                     false, false, true, 70f, wet);
             hurt = false;
             held = CompanionWorld.Held.NONE;
-            points = new java.util.ArrayList<>(companions);
+            points = new ArrayList<>(companions);
         }
         if (isLocal() && !devPoints.isEmpty()) {
-            points = new java.util.ArrayList<>(points);
+            points = new ArrayList<>(points);
             points.addAll(devPoints);
         }
         hurt |= devHurt;
@@ -198,37 +227,41 @@ public final class ClientCompanion {
 
         long start = System.nanoTime();
         if (agent == null) {
-            if (trio) {
-                group = new CompanionGroup(TUNABLES, seed, length, temperament, world);
-                agent = group.leader();
-            } else if (gait != null && groupCount > 1) {
-                benthic = new BenthicGroup(TUNABLES, seed, length, temperament, gait, groupCount, formation, world);
-                agent = benthic.leader();
-            } else {
+            switch (group.kind()) {
+                case SCHOOL -> {
+                    school = group.school(TUNABLES, temperament, world);
+                    agent = school.leader();
+                }
+                case GROUND -> {
+                    benthic = group.ground(TUNABLES, temperament, world);
+                    agent = benthic.leader();
+                }
                 // A null gait is the old constructor's path: every non-benthic class is unchanged.
-                agent = new CompanionAgent(TUNABLES, seed, locomotion, length, temperament, gait, driftStyle, world);
+                default -> agent = new CompanionAgent(TUNABLES, group.seed(), locomotion, lengths[0], temperament,
+                        gait, driftStyle, world);
             }
-        } else if (group != null) {
-            group.step(world);
+        } else if (school != null) {
+            school.step(world);
         } else if (benthic != null) {
             benthic.step(world);
         } else {
             agent.step(world);
         }
         stepNanos = System.nanoTime() - start;
-        render.tick(agent);
+        // Every member's pose hints follow the leader's mind (a group thinks as one).
+        for (CompanionRender render : renders) render.tick(agent);
     }
 
     /** Forgets every sampled block (a block changed nearby, or a chunk arrived). */
     void invalidateBlocks() {
-        if (group != null) group.invalidateBlocks();
+        if (school != null) school.invalidateBlocks();
         else if (benthic != null) benthic.invalidateBlocks();
         else if (agent != null) agent.voxels().invalidate();
     }
 
     /**
      * This companion as another companion's point of interest: the lead fish, with a stable id
-     * that can't collide with an entity's (the owner's entity id, negated).
+     * that can't collide with an entity's ({@link ClientCompanions} derives it from the owner and slot).
      */
     @Nullable
     PointOfInterest asPoint(int id) {
@@ -246,14 +279,14 @@ public final class ClientCompanion {
      */
     boolean submitWorld(PoseStack poseStack, SubmitNodeCollector nodes, Vec3 cam, float partialTick) {
         if (agent == null) return false;
-        if (group != null) group.interpolate(partialTick);
+        if (school != null) school.interpolate(partialTick);
         else if (benthic != null) benthic.interpolate(partialTick);
         else agent.interpolate(partialTick);
         float gameTime = gameTime(partialTick);
         boolean glow = glowsNow();
         boolean drew = false;
 
-        for (int i = 0; i < memberCount(); i++) {
+        for (int i = 0; i < agentCount(); i++) {
             CompanionAgent a = member(i);
             if (drawsOnPerch(i)) continue;
             Vec pos = a.renderPos();
@@ -275,22 +308,63 @@ public final class ClientCompanion {
             }
             // The walk's push-off and the crouch/landing squash drive the same silhouette envelope.
             float shape = gait != null ? Math.max(a.perchSquash(), a.groundShape()) : a.perchSquash();
-            drew |= render.submit(poseStack, nodes, cam, i, pos, yaw, face, pitch, a.renderBank(),
+            drew |= renders[i].submit(poseStack, nodes, cam, i, pos, yaw, face, pitch, a.renderBank(),
                     a.renderAppear(), a.renderTailPhase(), a.speedFactor(), a.renderSqueeze(),
                     shape, a.riding(), gameTime, light(pos, glow), onFloor,
                     onFloor && gait == GroundGait.RIPPLE);
         }
-        if (group != null) {
-            for (int i = 0; i < 2; i++) {
-                CompanionGroup.Follower f = group.follower(i);
+        if (school != null) {
+            for (int i = 0; i < school.followerCount(); i++) {
+                CompanionGroup.Follower f = school.follower(i);
                 Vec pos = f.renderPos();
-                drew |= render.submit(poseStack, nodes, cam, i + 1, pos, f.renderYaw(), f.renderYaw(), f.renderPitch(),
-                        f.renderBank(), f.renderAppear(), f.renderTailPhase(), f.speedFactor(), 0f, 0f, false,
-                        gameTime, light(pos, glow), false, false);
+                drew |= renders[i + 1].submit(poseStack, nodes, cam, i + 1, pos, f.renderYaw(), f.renderYaw(),
+                        f.renderPitch(), f.renderBank(), f.renderAppear(), f.renderTailPhase(), f.speedFactor(), 0f, 0f,
+                        false, gameTime, light(pos, glow), false, false);
             }
         }
         return drew;
     }
+
+    /**
+     * Each fish's own name above itself while its owner sneaks (party spec D6): the bonded stack's
+     * custom name, else the species name, in vanilla's discreet sneaking name-tag style. Perched fish
+     * get theirs too, from the sim's place for them. The stack is camera-relative.
+     */
+    void submitNames(PoseStack poseStack, SubmitNodeCollector nodes, Vec3 cam, float partialTick) {
+        if (agent == null || owner == null || !owner.isCrouching() || owner.isInvisible()) return;
+        CameraRenderState camera = Minecraft.getInstance().gameRenderer.getGameRenderState().levelRenderState.cameraRenderState;
+        for (int i = 0; i < bodyCount(); i++) {
+            Vec pos;
+            double radius;
+            float appear;
+            if (i < agentCount()) {
+                CompanionAgent a = member(i);
+                pos = handAttached(a) ? PerchBody.slotPoint(frameOwner(partialTick), a.perchSlot()) : a.renderPos();
+                radius = a.radius();
+                appear = a.renderAppear();
+            } else {
+                CompanionGroup.Follower f = school.follower(i - 1);
+                pos = f.renderPos();
+                radius = f.radius();
+                appear = f.renderAppear();
+            }
+            if (appear < 0.5f) continue;
+            double dx = pos.x() - cam.x, dy = pos.y() - cam.y, dz = pos.z() - cam.z;
+            double distSq = dx * dx + dy * dy + dz * dz;
+            if (distSq > NAME_RANGE * NAME_RANGE) continue;
+            poseStack.pushPose();
+            poseStack.translate(dx, dy, dz);
+            // The renderer lifts every tag by half a block above its attachment point.
+            nodes.submitNameTag(poseStack, new Vec3(0, radius + NAME_GAP - 0.5, 0), 0, stacks[i].getHoverName(),
+                    false, light(pos, false), distSq, camera);
+            poseStack.popPose();
+        }
+    }
+
+    /** Names show within this range of the camera, blocks (vanilla's sneaking tags fade far closer). */
+    private static final double NAME_RANGE = 32.0;
+    /** Space between a fish's top and its name, blocks. */
+    private static final double NAME_GAP = 0.15;
 
     /**
      * A benthic with a gait out of the water and off its owner: walking, crouching, or in the air
@@ -300,8 +374,20 @@ public final class ClientCompanion {
         return gait != null && !a.riding() && a.perchMode() != PerchBody.Mode.SWIM;
     }
 
-    /** How many fish this companion is: 1, or a benthic group's 1-3 (a trio's followers are drawn apart). */
+    /** How many fish this companion draws: every member, a school's followers included. */
+    public int bodyCount() {
+        return stacks.length;
+    }
+
+    /**
+     * How many members are full agents (perchers that ride the perch layer): a ground formation's
+     * 1–3, else 1 — a school's followers are lighter bodies, drawn apart.
+     */
     int memberCount() {
+        return agentCount();
+    }
+
+    private int agentCount() {
         return benthic != null ? benthic.count() : 1;
     }
 
@@ -332,7 +418,7 @@ public final class ClientCompanion {
 
     /** True while the player render layer draws any member on its owner's body. */
     boolean drawsOnPerch() {
-        for (int i = 0; i < memberCount(); i++) if (drawsOnPerch(i)) return true;
+        for (int i = 0; i < agentCount(); i++) if (drawsOnPerch(i)) return true;
         return false;
     }
 
@@ -343,23 +429,24 @@ public final class ClientCompanion {
 
     Locomotion locomotion() { return locomotion; }
 
-    /** Height of the perched sprite's centre above the surface its feet rest on. */
-    float perchFloorLift() { return perchPose.floorLift(); }
+    /** Height of member {@code i}'s perched sprite centre above the surface its feet rest on. */
+    float perchFloorLift(int i) { return perchPoses[i].floorLift(); }
 
     /**
-     * Draws the perched fish in the pose space the player layer has set up: its idle animation, the
-     * anchored duck, a head tilt from the pose hint, and the appear fade.
+     * Draws perched member {@code i} in the pose space the player layer has set up: its idle
+     * animation, the anchored duck, a head tilt from the pose hint, and the appear fade.
      */
     void submitPerched(int i, PoseStack poseStack, SubmitNodeCollector nodes, int light, float partialTick,
                        float extraYawDeg) {
         float appear = member(i).renderAppear();
         if (appear <= 0f) return;
+        CompanionRender render = renders[i];
         poseStack.pushPose();
         if (appear < 1f) poseStack.scale(appear, appear, appear);
         float tilt = render.hintTilt(partialTick);
         if (tilt != 0f) poseStack.mulPose(Axis.ZP.rotationDegrees(tilt));
         // Members breathe out of step: each idles on its own offset clock.
-        perchPose.submit(poseStack, nodes, light, gameTime(partialTick) + i * MEMBER_IDLE_OFFSET, extraYawDeg,
+        perchPoses[i].submit(poseStack, nodes, light, gameTime(partialTick) + i * MEMBER_IDLE_OFFSET, extraYawDeg,
                 render.hintPitch(partialTick),
                 render.retract(partialTick));
         poseStack.popPose();
@@ -387,8 +474,8 @@ public final class ClientCompanion {
 
     // ── Dev hooks and diagnostics ──────────────────────────────────────────────
 
-    /** Dev-only: the bonded fish itself — the dev commands clone it to park a phantom partner. */
-    public ItemStack devStack() { return stack; }
+    /** Dev-only: the lead fish itself — the dev commands clone it to park a phantom partner. */
+    public ItemStack devStack() { return stacks[0]; }
 
     @Nullable public CompanionAgent agent() { return agent; }
 
@@ -429,11 +516,21 @@ public final class ClientCompanion {
         return agent != null && agent.seen();
     }
 
-    /** The display class as a stable name for logs, overlays and checks. */
+    /** The display class as a stable name for logs, overlays and checks: "school of 3", "ground line of 2", "glide". */
     public String displayClassName() {
-        if (trio) return "trio";
-        if (benthic != null) return "benthic " + formation.name().toLowerCase(Locale.ROOT) + " of " + groupCount;
-        return locomotion.name().toLowerCase(Locale.ROOT);
+        return switch (group.kind()) {
+            case SCHOOL -> "school of " + bodyCount();
+            case GROUND -> "ground " + group.formation().name().toLowerCase(Locale.ROOT) + " of " + bodyCount();
+            case SOLO -> locomotion.name().toLowerCase(Locale.ROOT);
+        };
+    }
+
+    /** One line naming this unit for the overlay's party header: "slot 1+2: bluegill school of 2". */
+    public String partyLine() {
+        StringBuilder slots = new StringBuilder();
+        for (int s : group.slots()) slots.append(slots.isEmpty() ? "" : "+").append(s + 1);
+        return "slot " + slots + ": " + BuiltInRegistries.ITEM.getKey(stacks[0].getItem()).getPath() + " "
+                + displayClassName();
     }
 
     /** The debug overlay's lines (goal, drives, pose hint, temperament). */
@@ -444,10 +541,12 @@ public final class ClientCompanion {
         String ground = a.footTrail().isEmpty() ? "" : String.format(Locale.ROOT,
                 "  land %s lag %.1f trail %d %s", a.landMode(), a.groundLag(), a.footTrail().size(),
                 a.groundReachable() ? "reachable" : "stranded");
-        List<String> lines = new java.util.ArrayList<>(List.of(
-                String.format(Locale.ROOT, "%s  %s  temperament %s  %.2f blocks",
-                        BuiltInRegistries.ITEM.getKey(stack.getItem()).getPath(), displayClassName(),
-                        temperament.name(), length),
+        StringBuilder sizes = new StringBuilder();
+        for (float l : lengths) sizes.append(sizes.isEmpty() ? "" : "/").append(String.format(Locale.ROOT, "%.2f", l));
+        List<String> lines = new ArrayList<>(List.of(
+                String.format(Locale.ROOT, "%s  %s  temperament %s  %s blocks",
+                        BuiltInRegistries.ITEM.getKey(stacks[0].getItem()).getPath(), displayClassName(),
+                        temperament.name(), sizes),
                 String.format(Locale.ROOT, "goal %s (%.1f s)%s  pose %s  fade %s", a.goal(),
                         a.goalTicks() / 20f, perch + ground, a.poseHint(), a.fade()),
                 "curiosity " + bar(a.curiosity()) + "  wariness " + bar(a.wariness())
@@ -459,11 +558,11 @@ public final class ClientCompanion {
         if (gait != null) {
             lines.add(String.format(Locale.ROOT, "ground gait %s  group %d %s  beat %s (overtakes %d roadsides %d)"
                             + "  climbs %d dismounts %d tumbles %d",
-                    gait.name().toLowerCase(Locale.ROOT), groupCount, formation.name().toLowerCase(Locale.ROOT),
+                    gait.name().toLowerCase(Locale.ROOT), agentCount(), group.formation().name().toLowerCase(Locale.ROOT),
                     a.beat() == null ? "-" : a.beat().toLowerCase(Locale.ROOT), a.overtakes(), a.roadsides(),
                     a.climbs(), a.dismounts(), a.tumbles()));
             StringBuilder members = new StringBuilder("members");
-            for (int i = 0; i < memberCount(); i++) {
+            for (int i = 0; i < agentCount(); i++) {
                 CompanionAgent m = member(i);
                 members.append(String.format(Locale.ROOT, "  #%d %s lag %.1f%s", i, m.landMode(), m.groundLag(),
                         m.riding() ? " on " + m.perchSlot().name().toLowerCase(Locale.ROOT) : ""));
