@@ -3,7 +3,8 @@ package grill24.fishsim.companion;
 import grill24.fishsim.core.Locomotion;
 
 /**
- * A trio of small schooling companions (spec §2, docs/fish-companions-sim-plan.md §3.1): a leader
+ * A school of two or three same-species free swimmers (docs/fish-companions-party.md §3; first
+ * built as the automatic trio of spec §2, docs/fish-companions-sim-plan.md §3.1): a leader
  * with the full {@link CompanionAgent} mind, and two followers that keep loosely to it by local
  * rules — a station behind and beside the leader in its own frame, separation from the others,
  * and room for the owner. The followers swim the same heading-first {@link Body} as any free
@@ -16,9 +17,15 @@ import grill24.fishsim.core.Locomotion;
  */
 public final class CompanionGroup {
 
-    /** Trios are for free swimmers under this size (spec §2). */
+    /**
+     * The old automatic trio limit (spec §2). A school now comes from the party
+     * (docs/fish-companions-party.md §3, D8: any size schools); see {@link PartyGrouping}.
+     */
+    @Deprecated
     public static final float TRIO_MAX_SIZE_CM = 20f;
 
+    /** @deprecated groups come from same-species party members now ({@link PartyGrouping#group}). */
+    @Deprecated
     public static boolean isTrio(Locomotion locomotion, float sizeCm) {
         return locomotion == Locomotion.FREE_SWIM && sizeCm < TRIO_MAX_SIZE_CM;
     }
@@ -45,30 +52,50 @@ public final class CompanionGroup {
 
     private final CompanionTunables t;
     private final CompanionAgent leader;
-    private final Follower[] followers = new Follower[2];
+    private final Follower[] followers;
     private final Breadcrumbs leaderTrail = new Breadcrumbs();
     private final LocalVoxels voxels = new LocalVoxels();
+    /** The leader's body length, blocks; each follower has its own. */
     private final float length;
 
     public CompanionGroup(CompanionTunables t, long seed, float length, CompanionWorld world) {
         this(t, seed, length, Temperament.BASELINE, world);
     }
 
-    /** A trio whose leader has the species' temperament (the followers keep to the leader). */
+    /** A trio of three identical fish whose leader has the species' temperament (the followers keep to the leader). */
     public CompanionGroup(CompanionTunables t, long seed, float length, Temperament temperament, CompanionWorld world) {
+        this(t, seed, new float[]{length, length, length}, temperament, world);
+    }
+
+    /**
+     * A school of two or three members of one species (docs/fish-companions-party.md §3). {@code
+     * lengths[0]} is the leader's body length (the member in the lowest party slot); the rest are the
+     * followers', in slot order, and each may differ (D8). {@code seed} is the leader's: the
+     * followers' randomness comes from it and their index, exactly as the trio's always did, so
+     * three identical members are bitwise today's trio.
+     */
+    public CompanionGroup(CompanionTunables t, long seed, float[] lengths, Temperament temperament, CompanionWorld world) {
+        if (lengths.length < 2 || lengths.length > 3) throw new IllegalArgumentException("a school has 2 or 3 members");
         OwnerState owner = world.owner();
         BlockQuery blocks = world.blocks();
         this.t = t;
-        this.length = length;
+        this.length = lengths[0];
         this.leader = new CompanionAgent(t, seed, Locomotion.FREE_SWIM, length, temperament, world);
         voxels.update(blocks, owner.eye());
-        double radius = Math.max(0.08, Math.min(0.3, length * 0.3));
-        for (int i = 0; i < 2; i++) {
+        followers = new Follower[lengths.length - 1];
+        for (int i = 0; i < followers.length; i++) {
             int side = i == 0 ? 1 : -1;
-            Vec start = stationBesideLeader(side, radius);
+            float own = lengths[i + 1];
+            double radius = Math.max(0.08, Math.min(0.3, own * 0.3));
+            Vec start = stationBesideLeader(side, radius, pairLength(length, own));
             followers[i] = new Follower(new Body(t, Locomotion.FREE_SWIM, start, leader.yaw(), radius,
-                    (seed * 31 + i + 1) ^ 0x5DEECE66DL), side, seed * 977 + i);
+                    (seed * 31 + i + 1) ^ 0x5DEECE66DL), side, seed * 977 + i, own);
         }
+    }
+
+    /** The spacing length for two members: the mean of their body lengths (exactly {@code a} when equal). */
+    static double pairLength(float a, float b) {
+        return ((double) a + b) * 0.5;
     }
 
     public void step(CompanionWorld world) {
@@ -91,6 +118,12 @@ public final class CompanionGroup {
 
     public Follower follower(int i) { return followers[i]; }
 
+    /** Followers: 1 for a pair, 2 for a trio. */
+    public int followerCount() { return followers.length; }
+
+    /** The leader's body length, blocks. */
+    public float leaderLength() { return length; }
+
     /** Forgets every sampled block, the leader's and the group's — call after a block change nearby. */
     public void invalidateBlocks() {
         leader.voxels().invalidate();
@@ -98,24 +131,30 @@ public final class CompanionGroup {
     }
 
     /** A spot on the leader's {@code side}, behind it, clear of blocks — or the leader itself. */
-    private Vec stationBesideLeader(int side, double radius) {
-        Vec p = station(side, 0);
+    private Vec stationBesideLeader(int side, double radius, double pair) {
+        Vec p = station(side, 0, pair);
         return voxels.sphereClear(p, radius + 0.05) ? p : leader.position();
     }
 
-    /** Where a follower on {@code side} rides, in the leader's frame, with {@code drift} applied. */
-    private Vec station(int side, double drift) {
+    /**
+     * Where a follower on {@code side} rides, in the leader's frame, with {@code drift} applied,
+     * spaced by {@code pair}: the mean of the leader's and the follower's body lengths.
+     */
+    private Vec station(int side, double drift, double pair) {
         Vec fwd = Vec.fromYawPitch(leader.yaw(), 0);
         Vec right = fwd.cross(Vec.UP);
-        double back = STATION_BACK * length + 0.15 * drift;
-        double sideways = STATION_SIDE * length * (1 + 0.25 * drift);
-        return leader.position().sub(fwd.scale(back)).add(right.scale(side * sideways)).add(0, -STATION_LOW * length, 0);
+        double back = STATION_BACK * pair + 0.15 * drift;
+        double sideways = STATION_SIDE * pair * (1 + 0.25 * drift);
+        return leader.position().sub(fwd.scale(back)).add(right.scale(side * sideways)).add(0, -STATION_LOW * pair, 0);
     }
 
     /** One follower: a free-swim body that keeps to a station on its leader. */
     public final class Follower {
         private final Body body;
         private final int side;
+        /** This follower's own body length, and its spacing length to the leader. */
+        private final float length;
+        private final double pairToLeader;
         private long rng;
         private float drift;
         private float appear = 1f;
@@ -127,9 +166,11 @@ public final class CompanionGroup {
         private Vec renderPos;
         private float renderYaw, renderPitch, renderBank, renderTail, renderAppear = 1f;
 
-        Follower(Body body, int side, long seed) {
+        Follower(Body body, int side, long seed, float length) {
             this.body = body;
             this.side = side;
+            this.length = length;
+            this.pairToLeader = pairLength(CompanionGroup.this.length, length);
             this.rng = seed == 0 ? 1 : seed * 0x9E3779B97F4A7C15L;
             this.prevPos = renderPos = body.pos;
             this.prevYaw = renderYaw = body.yaw;
@@ -169,7 +210,7 @@ public final class CompanionGroup {
             }
 
             drift = ou(drift);
-            Vec target = station(side, drift);
+            Vec target = station(side, drift, pairToLeader);
             Vec dest = target;
             if (!voxels.segmentClear(body.pos, leader.position(), body.radius + 0.1)) {
                 // A wall between it and the leader: go the way the leader went.
@@ -177,7 +218,7 @@ public final class CompanionGroup {
                 if (crumb != null) dest = crumb;
             } else if (!voxels.sphereClear(target, body.radius + 0.1)) {
                 // No room for the station (a tunnel): fall in behind the leader instead.
-                Vec behind = leaderTrail.trailPoint(leader.position(), STATION_BACK * length * 1.5);
+                Vec behind = leaderTrail.trailPoint(leader.position(), STATION_BACK * pairToLeader * 1.5);
                 if (behind != null) dest = behind;
             }
             // Pressed against its owner with them between it and its station: round their side, as
@@ -204,12 +245,17 @@ public final class CompanionGroup {
             return true;
         }
 
-        /** Push away from the leader and the other follower when closer than a comfortable spacing. */
+        /**
+         * Push away from the leader and the other follower when closer than a comfortable spacing,
+         * each pair spaced by the mean of its two body lengths.
+         */
         private Vec separation() {
-            double range = SEPARATION_LENGTHS * length + 2 * body.radius;
             Vec push = Vec.ZERO;
-            push = push.add(repel(leader.position(), range));
-            for (Follower o : followers) if (o != this) push = push.add(repel(o.body.pos, range));
+            push = push.add(repel(leader.position(), SEPARATION_LENGTHS * pairToLeader + 2 * body.radius));
+            for (Follower o : followers) {
+                if (o != this) push = push.add(repel(o.body.pos,
+                        SEPARATION_LENGTHS * pairLength(length, o.length) + 2 * body.radius));
+            }
             return push;
         }
 
@@ -238,7 +284,7 @@ public final class CompanionGroup {
         }
 
         private void place() {
-            Vec p = stationBesideLeader(side, body.radius);
+            Vec p = stationBesideLeader(side, body.radius, pairToLeader);
             body.placeAt(p, leader.yaw());
             prevPos = p;
             prevYaw = body.yaw;
@@ -281,6 +327,8 @@ public final class CompanionGroup {
         public double lastImpact() { return body.lastImpact; }
         public long backstops() { return body.backstops; }
         public double radius() { return body.radius; }
+        /** This follower's own body length, blocks. */
+        public float length() { return length; }
         public float appear() { return appear; }
         public long leashEvents() { return leashEvents; }
 

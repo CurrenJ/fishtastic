@@ -122,7 +122,7 @@ public final class CompanionHeadless {
                 if (run.group != null) {
                     LocalVoxels v = new LocalVoxels();
                     v.update(run.scene, run.owner.eye());
-                    CompanionRenderer.drawFollowers(fp, run.owner, v, run.group, CompanionRun.TRIO_LENGTH);
+                    CompanionRenderer.drawFollowers(fp, run.owner, v, run.group);
                 }
                 if (sheetFrame) sheet.add(label(fp, String.format("%s%s t=%.0fs", prefix, script, tick / 20.0)));
                 if (gifFrame) {

@@ -57,6 +57,19 @@ final class GroupRun {
         first = world;
     }
 
+    /** A party-built formation: one member per length, leader first (docs/fish-companions-party.md §3). */
+    GroupRun(String script, long seed, float[] lengths, Temperament tm, BenthicGroup.Formation formation) {
+        this.script = script;
+        this.seed = seed;
+        owner = OwnerScript.named(script, seed);
+        CompanionWorld world = owner.nextWorld();
+        group = new BenthicGroup(CompanionTunables.defaults(), seed, lengths, tm, GroundGait.CRAWL, formation, world);
+        first = world;
+    }
+
+    /** Spacing, overtakes, lag and contact (party spec §8), over members walking the ground. */
+    grill24.fishsim.harness.companion.GroupShapeMetrics.Result shape;
+
     private CompanionWorld first;
     /** Called every tick after the step, for extra per-test checks. */
     interface Watch { void tick(int tick, CompanionWorld world, BenthicGroup group); }
@@ -71,6 +84,15 @@ final class GroupRun {
 
     GroupRun run(Watch watch) {
         int n = group.count();
+        float[] lengths = new float[n];
+        double[] radii = new double[n];
+        for (int i = 0; i < n; i++) {
+            lengths[i] = group.length(i);
+            radii[i] = group.member(i).radius();
+        }
+        var shapes = new grill24.fishsim.harness.companion.GroupShapeMetrics(lengths, radii);
+        Vec[] shapePos = new Vec[n];
+        boolean[] shapeActive = new boolean[n];
         Vec[][] history = new Vec[n][40];
         Vec[] travelHistory = new Vec[20];
         // The leader's own way over the last 10 s, and when it was at each point.
@@ -190,8 +212,15 @@ final class GroupRun {
                     break;
                 }
             }
+            for (int i = 0; i < n; i++) {
+                CompanionAgent a = group.member(i);
+                shapePos[i] = a.position();
+                shapeActive[i] = a.onGround() && a.feetDown() && !a.riding() && a.appear() >= 1f;
+            }
+            shapes.tick(shapePos, group.leader().velocity(), shapeActive);
             if (watch != null) watch.tick(tick, world, group);
         }
+        shape = shapes.result();
         climbs = new int[n];
         dismounts = new int[n];
         for (int i = 0; i < n; i++) {
