@@ -354,6 +354,8 @@ public final class CompanionAgent {
     public float turnRateCap() { return body.g.turnRateDegPerTick(); }
     public float appear() { return appear; }
     public Fade fade() { return fade; }
+    /** Diagnostics: the ground mind, or null. */
+    GroundMind groundMind() { return perch == null ? null : perch.gmind; }
     public long leashEvents() { return leashEvents; }
     public long backstops() { return body.backstopCount(); }
     public long ticks() { return ticks; }

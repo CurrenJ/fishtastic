@@ -179,6 +179,8 @@ final class GroundBody extends Motor {
 
     /** Somewhere not to come down on (the owner's feet), or null. */
     Vec keepClear;
+    /** Formation members can stop at an unrequested drop; their successor needs this path. */
+    boolean preventUnplannedDrop;
     /** Escape from approaching feet skips the idle rhythm's delay; acceleration stays bounded. */
     boolean urgent;
 
@@ -313,7 +315,7 @@ final class GroundBody extends Motor {
             vel = Vec.ZERO;
             return;
         }
-        if (!Double.isNaN(fNext) && fNext < dropFloor && fNext >= floorY - MAX_DROP - 0.04
+        if (!preventUnplannedDrop && !Double.isNaN(fNext) && fNext < dropFloor && fNext >= floorY - MAX_DROP - 0.04
                 && speed > stopSpeed(0.1)) {
             // An edge it chose not to step off only just now (it changed its mind about where to
             // go), too close to stop at: it goes over rather than slamming to a halt.

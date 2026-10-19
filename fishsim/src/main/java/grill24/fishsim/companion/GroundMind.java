@@ -290,6 +290,7 @@ final class GroundMind {
             }
         }
         g.keepClear = ownerFloor;
+        g.preventUnplannedDrop = formationDropGuard && formationMember;
         Vec ownerTravel = o.velocity().horizontal();
         double passTime = ownerTravel.lengthSqr() > 0.01
                 ? Body.clamp(g.pos.sub(ownerFloor).horizontal().dot(ownerTravel) / ownerTravel.lengthSqr(), 0, 1.2) : 0;
@@ -500,6 +501,9 @@ final class GroundMind {
         }
         return true;
     }
+
+    /** Diagnostic A/B switch for the formation edge guard (§23). */
+    static boolean formationDropGuard = true;
 
     // ── The way to the owner ───────────────────────────────────────────────────────────────────
 

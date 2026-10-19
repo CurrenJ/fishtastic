@@ -1016,3 +1016,46 @@ Turn on the overlay first: `/fishtastic companion debug true`. Equip with
    ground.
 9. **Mount and elytra:** ride a horse or glide; members climb on or fade onto the perch.
 10. **Another player (if available):** their benthic group walks and perches on their body for you.
+
+## 23. Stair formation edge drops (2026-10-12)
+
+The first baseline fade in seed 1 begins with member 1 beside the stairs at
+(2.28, 64.12, 6.42), its predecessor at (1.89, 66.75, 8.08), and owner at
+(0.5, 68, 14.4). The staircase occupies x [-1, 2). Once on the side floor,
+the next rise is too high to hop; planning reports unreachable and strand ticks
+increase continuously until fade at tick 985. Member 2 follows onto that floor
+and fades at tick 993. This is a failed reachable route after leaving the stairs.
+
+The motor normally refuses drops unless its target is lower. Its emergency
+edge override nevertheless permits an unrequested drop when moving too fast to
+stop. Formation members now retain the drop guard: a successor relies on the
+same stair path. Requested descents still pass the existing lower-target guard;
+solo motors retain their existing behavior. A package diagnostic switch supports
+equal-ground A/B, defaults on, and is restored after tests.
+
+Twenty seeds, 2400 ticks each, stairs_up_down: LINE fades 103 -> 93 (7 seeds
+better, 0 worse); CROWD 35 -> 27 (6 better, 0 worse). LINE per seed:
+5/5, 6/6, 8/6, 6/6, 5/5, 2/1, 3/3, 2/0, 8/8, 0/0,
+6/5, 3/2, 5/3, 6/6, 6/6, 7/6, 8/8, 6/6, 8/8, 3/3.
+CROWD: 1/0, 5/4, 2/1, 0/0, 2/2, 2/2, 1/1, 1/1, 3/3, 0/0,
+3/2, 0/0, 1/1, 1/1, 3/1, 0/0, 4/4, 2/0, 2/2, 2/2.
+Deep pair overlap ticks increase 161 -> 189 (LINE), 184 -> 203 (CROWD),
+across 48,000 simulation ticks per formation. This is a measured small tradeoff,
+not noise: maxima 33 and 21 per run remain below the existing 72-tick bound.
+General overlap ticks 729 -> 794 and 788 -> 835; underfoot 134 -> 122 and
+79 -> 73. Twelve-seed flat/meander/passers/backward/climb comparisons preserve
+all measured metrics identically. Remaining stair fades are not solved.
+
+Rejected experiments: crossing-only ankle detours gave LINE 54 -> 17 fades but
+regressed seeds 6 and 7 and flat formation metrics; same-owner-floor detours
+54 -> 39 regressed seeds 7 and 8; also requiring the member floor to match
+54 -> 24 regressed seeds 6, 8 and 10. Respecting owner breadcrumb viaPoint
+in formation targeting alone gave 54 -> 51 with four regressing seeds; expanding
+the crumb search cap to 64 gave 54 -> 79 with ten regressing seeds. None ships.
+
+BenthicStairsDropTest locks the 20-seed per-seed fades comparison and overlap
+bound. The experimental worktree retains GroupAnkleProbe for A/B metrics and
+StairsFadeProbe for onset traces; these probes are not required in the production patch.
+
+
+Validation: full :fishsim:test passed, 357 tests / 329 passed / 28 diagnostic skips, zero failures. Protected fingerprints and platform checks are validated by the integrating main worktree.
