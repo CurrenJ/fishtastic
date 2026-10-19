@@ -1,5 +1,5 @@
 plugins {
-    id 'dev.architectury.loom-no-remap' version '1.14-SNAPSHOT' apply false
+    id 'dev.architectury.loom-no-remap' version '1.17.493' apply false
     id 'architectury-plugin' version '3.5-SNAPSHOT'
     id 'com.gradleup.shadow' version '8.3.6' apply false
     id 'net.darkhax.curseforgegradle' version '1.1.26' apply false
@@ -38,6 +38,13 @@ subprojects {
     // build files (tools/* additionally in the configure block below).
     if (project.path.startsWith(':tools:') || project.path == ':fishsim') {
         return
+    }
+
+    // Forge is the only platform Loom does not auto-detect from its dependency configuration
+    // (it otherwise defaults to Fabric). Set the platform before the Loom plugin is applied so
+    // its platform provider resolves correctly during configuration.
+    if (project.path == ':forge') {
+        project.extensions.extraProperties.set('loom.platform', 'forge')
     }
 
     apply plugin: 'dev.architectury.loom-no-remap'

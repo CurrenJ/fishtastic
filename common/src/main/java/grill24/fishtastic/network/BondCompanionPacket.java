@@ -39,8 +39,8 @@ public record BondCompanionPacket(ItemStack fish, int slot) implements CustomPac
         ctx.enqueueWork(() -> {
             if (ctx.getPlayer() instanceof ServerPlayer player) {
                 Companions.BondResult result = Companions.bond(player, packet.fish(), packet.slot());
-                player.connection.send(new net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket(
-                        new CompanionFeedbackPacket(CompanionFeedbackPacket.of(result))));
+                FishtasticTransport.sendToPlayer(player,
+                        new CompanionFeedbackPacket(CompanionFeedbackPacket.of(result)));
             }
         });
     }

@@ -1,0 +1,43 @@
+{
+  "required": true,
+  "package": "grill24.fishtastic.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "minVersion": "0.8",
+  "client": [
+    "AbstractContainerScreenMixin",
+    "AvatarRendererMixin",
+    "ClientLevelCompanionMixin",
+    "LevelEventCompanionMixin",
+    "NoteBlockCompanionMixin",
+    "FishingHookRendererMixin",
+    "GameRendererMixin",
+    "GuiGraphicsMixin",
+    "GuiRendererExecuteDrawMixin",
+    "GuiRendererMixin",
+    "HumanoidModelMixin",
+    "ItemEntityRendererMixin",
+    "ItemFeatureRendererMixin",
+    "ItemFrameRendererMixin",
+    "ItemInHandLayerMixin",
+    "ItemInHandRendererMixin",
+    "ItemModelResolverMixin",
+    "ItemStackMixin",
+    "ItemStackRenderStateMixin",
+    "LevelRendererMixin",
+    "MinecraftFrameBenchMixin",
+    "RenderBuffersMixin",
+    "RenderTypeMixin",
+    "accessor.BufferSourceAccessor",
+    "accessor.LivingEntityRendererInvoker"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "mixins": [
+    "FishingHookMixin",
+    "ItemStackUseOnMixin",
+    "PlayerAdvancementsMixin",
+    "QuickCollectPileMixin",
+    "SizedItemClickMixin"
+  ]
+}

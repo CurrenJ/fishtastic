@@ -84,7 +84,7 @@ processResources {
             'mod_description': rootProject.mod_description,
             'mod_icon': rootProject.mod_icon,
             'mod_neoforge_version_range': "[${rootProject.neoforge_version},)",
-            'mod_minecraft_version_range': "[${rootProject.minecraft_version},)",
+            'mod_minecraft_version_range': rootProject.mod_minecraft_version_range,
             'mod_gelatinui_version_range': "[${gelatinui_version},)"
         ])
     }

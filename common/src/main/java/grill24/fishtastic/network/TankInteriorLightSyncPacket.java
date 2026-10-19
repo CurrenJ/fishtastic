@@ -1,5 +1,6 @@
 package grill24.fishtastic.network;
 
+import grill24.fishtastic.network.FishtasticTransport;
 import grill24.fishtastic.Fishtastic;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -48,6 +49,6 @@ public record TankInteriorLightSyncPacket(int level) implements CustomPacketPayl
     }
 
     public static void sendToPlayer(ServerPlayer player, int level) {
-        player.connection.send(new ClientboundCustomPayloadPacket(new TankInteriorLightSyncPacket(level)));
+        FishtasticTransport.sendToPlayer(player, new TankInteriorLightSyncPacket(level));
     }
 }

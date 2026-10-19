@@ -1,4 +1,5 @@
 /run-fabric-*/
 /run-neoforge-*/
+/run-forge-*/
 /*.log
 /*.sh.log

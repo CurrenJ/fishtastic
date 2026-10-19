@@ -1,5 +1,6 @@
 package grill24.fishtastic.network;
 
+import grill24.fishtastic.network.FishtasticTransport;
 import grill24.fishtastic.Fishtastic;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -49,6 +50,6 @@ public record ReducedEffectsSyncPacket(boolean reduced) implements CustomPacketP
     }
 
     public static void sendToPlayer(ServerPlayer player, boolean reduced) {
-        player.connection.send(new ClientboundCustomPayloadPacket(new ReducedEffectsSyncPacket(reduced)));
+        FishtasticTransport.sendToPlayer(player, new ReducedEffectsSyncPacket(reduced));
     }
 }

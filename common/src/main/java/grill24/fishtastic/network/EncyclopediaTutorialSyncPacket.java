@@ -1,5 +1,6 @@
 package grill24.fishtastic.network;
 
+import grill24.fishtastic.network.FishtasticTransport;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.tutorial.EncyclopediaTutorialStep;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -42,6 +43,6 @@ public record EncyclopediaTutorialSyncPacket(EncyclopediaTutorialStep step) impl
     }
 
     public static void sendToPlayer(ServerPlayer player, EncyclopediaTutorialStep step) {
-        player.connection.send(new ClientboundCustomPayloadPacket(new EncyclopediaTutorialSyncPacket(step)));
+        FishtasticTransport.sendToPlayer(player, new EncyclopediaTutorialSyncPacket(step));
     }
 }

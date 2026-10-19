@@ -1,5 +1,6 @@
 package grill24.fishtastic.network;
 
+import grill24.fishtastic.network.FishtasticTransport;
 import grill24.fishtastic.Fishtastic;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -50,6 +51,6 @@ public record NotificationVolumeSyncPacket(int volume) implements CustomPacketPa
     }
 
     public static void sendToPlayer(ServerPlayer player, int volume) {
-        player.connection.send(new ClientboundCustomPayloadPacket(new NotificationVolumeSyncPacket(volume)));
+        FishtasticTransport.sendToPlayer(player, new NotificationVolumeSyncPacket(volume));
     }
 }

@@ -1,5 +1,6 @@
 package grill24.fishtastic.network;
 
+import grill24.fishtastic.network.FishtasticTransport;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.tutorial.TutorialStep;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -42,6 +43,6 @@ public record TutorialSyncPacket(TutorialStep step) implements CustomPacketPaylo
     }
 
     public static void sendToPlayer(ServerPlayer player, TutorialStep step) {
-        player.connection.send(new ClientboundCustomPayloadPacket(new TutorialSyncPacket(step)));
+        FishtasticTransport.sendToPlayer(player, new TutorialSyncPacket(step));
     }
 }

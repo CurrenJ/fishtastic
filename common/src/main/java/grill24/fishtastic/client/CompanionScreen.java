@@ -1,5 +1,6 @@
 package grill24.fishtastic.client;
 
+import grill24.fishtastic.network.FishtasticTransport;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItemTags;
@@ -75,7 +76,7 @@ public final class CompanionScreen extends AbstractContainerScreen<CompanionMenu
     public static void open(ItemStack species) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
-            mc.player.connection.send(new ServerboundCustomPayloadPacket(new OpenCompanionMenuPacket(species.copyWithCount(1))));
+            FishtasticTransport.sendToServer(new OpenCompanionMenuPacket(species.copyWithCount(1)));
         }
     }
 
@@ -88,7 +89,7 @@ public final class CompanionScreen extends AbstractContainerScreen<CompanionMenu
             leftPos = (width - imageWidth - guideWidth - 12) / 2 + guideWidth + 12;
         }
         // Fresh catch counts, so a refusal can say how many more catches a bond needs.
-        minecraft.player.connection.send(new ServerboundCustomPayloadPacket(new grill24.fishtastic.network.RequestFishEncyclopediaPacket(false)));
+        FishtasticTransport.sendToServer(new grill24.fishtastic.network.RequestFishEncyclopediaPacket(false));
         name = new EditBox(font, leftPos + 8, topPos + ROW_Y + 1, 140, 16, text("name"));
         name.setMaxLength(RenameCompanionPacket.MAX_NAME_LENGTH);
         addRenderableWidget(name);
@@ -146,7 +147,7 @@ public final class CompanionScreen extends AbstractContainerScreen<CompanionMenu
 
     private void saveName() {
         if (editing < 0) return;
-        minecraft.player.connection.send(new ServerboundCustomPayloadPacket(new RenameCompanionPacket(editing, name.getValue())));
+        FishtasticTransport.sendToServer(new RenameCompanionPacket(editing, name.getValue()));
         closeEditor();
     }
 
@@ -360,7 +361,7 @@ public final class CompanionScreen extends AbstractContainerScreen<CompanionMenu
             refused(chosen);
             return;
         }
-        minecraft.player.connection.send(new ServerboundCustomPayloadPacket(new TakePileFishPacket(chosen.copyWithCount(1))));
+        FishtasticTransport.sendToServer(new TakePileFishPacket(chosen.copyWithCount(1)));
     }
 
     // ── Pencil tabs ─────────────────────────────────────────────────────────────

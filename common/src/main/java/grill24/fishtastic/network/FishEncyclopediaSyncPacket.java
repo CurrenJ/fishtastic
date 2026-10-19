@@ -1,5 +1,6 @@
 package grill24.fishtastic.network;
 
+import grill24.fishtastic.network.FishtasticTransport;
 import grill24.fishtastic.server.FishCatchSavedData;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -62,7 +63,7 @@ public record FishEncyclopediaSyncPacket(
         List<String> claimedRewardKeys = new ArrayList<>(data.getOrCreateQuestState(player).getClaimedEncyclopediaRewardsSnapshot());
 
         FishEncyclopediaSyncPacket packet = new FishEncyclopediaSyncPacket(catchCounts, personalBest, globalBest, claimedRewardKeys);
-        player.connection.send(new ClientboundCustomPayloadPacket(packet));
+        FishtasticTransport.sendToPlayer(player, packet);
     }
 
     public static ClientHandler clientHandler;

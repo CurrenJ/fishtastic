@@ -1,5 +1,6 @@
 package grill24.fishtastic.client;
 
+import grill24.fishtastic.network.FishtasticTransport;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
@@ -330,7 +331,7 @@ public class FishTankBrowserScreen extends GelatinUIScreen<FishTankBrowserMenu> 
     private void sendRemove(BlockPos segmentPos, TankEntryKind kind, int key) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
-        mc.player.connection.send(new ServerboundCustomPayloadPacket(new RemoveTankEntryPacket(segmentPos, kind, key)));
+        FishtasticTransport.sendToServer(new RemoveTankEntryPacket(segmentPos, kind, key));
     }
 
     private void setHeaderText(Label header, String key, int count) {

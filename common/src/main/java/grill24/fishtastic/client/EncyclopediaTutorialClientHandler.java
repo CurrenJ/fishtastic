@@ -1,5 +1,6 @@
 package grill24.fishtastic.client;
 
+import grill24.fishtastic.network.FishtasticTransport;
 import grill24.fishtastic.network.EncyclopediaTutorialAdvancePacket;
 import grill24.fishtastic.network.EncyclopediaTutorialSyncPacket;
 import grill24.fishtastic.tutorial.EncyclopediaTutorialStep;
@@ -127,6 +128,6 @@ public class EncyclopediaTutorialClientHandler {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
         sentAdvanceThisStep = true;
-        mc.player.connection.send(new ServerboundCustomPayloadPacket(new EncyclopediaTutorialAdvancePacket(currentStep)));
+        FishtasticTransport.sendToServer(new EncyclopediaTutorialAdvancePacket(currentStep));
     }
 }

@@ -1,5 +1,6 @@
 package grill24.fishtastic.client;
 
+import grill24.fishtastic.network.FishtasticTransport;
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticItemTags;
@@ -320,7 +321,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         // opening that menu) so a species caught since the last encyclopedia visit shows correctly here.
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
-            mc.player.connection.send(new ServerboundCustomPayloadPacket(new RequestFishEncyclopediaPacket(false)));
+            FishtasticTransport.sendToServer(new RequestFishEncyclopediaPacket(false));
         }
         super.init();
     }
@@ -953,7 +954,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         FishEncyclopediaScreen.selectOnNextOpen(speciesKey.identifier());
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
-            mc.player.connection.send(new ServerboundCustomPayloadPacket(new RequestFishEncyclopediaPacket(true)));
+            FishtasticTransport.sendToServer(new RequestFishEncyclopediaPacket(true));
         }
     }
 
@@ -1016,7 +1017,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             claimBtn.addClickBounceEffect();
             Minecraft mc = Minecraft.getInstance();
             if (mc.player != null) {
-                mc.player.connection.send(new ServerboundCustomPayloadPacket(new CompleteQuestPacket(fId)));
+                FishtasticTransport.sendToServer(new CompleteQuestPacket(fId));
             }
             triggerQuestClaimReward(row, quest);
         });
@@ -1456,7 +1457,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             refreshBtn.addClickBounceEffect();
             Minecraft mc = Minecraft.getInstance();
             if (mc.player != null) {
-                mc.player.connection.send(new ServerboundCustomPayloadPacket(new RefreshShopPacket()));
+                FishtasticTransport.sendToServer(new RefreshShopPacket());
             }
         });
         refreshBtn.setVisible(canAfford);
@@ -1575,7 +1576,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             buyBtn.addClickBounceEffect();
             Minecraft mc = Minecraft.getInstance();
             if (mc.player != null) {
-                mc.player.connection.send(new ServerboundCustomPayloadPacket(new PurchaseShopEntryPacket(fKey.identifier())));
+                FishtasticTransport.sendToServer(new PurchaseShopEntryPacket(fKey.identifier()));
             }
             triggerPurchaseFall(fallingPanel, fKey, entry);
         });

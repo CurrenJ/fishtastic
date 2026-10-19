@@ -1,5 +1,6 @@
 package grill24.fishtastic.client;
 
+import grill24.fishtastic.network.FishtasticTransport;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.network.CompanionTutorialAdvancePacket;
 import grill24.fishtastic.network.CompanionTutorialSyncPacket;
@@ -45,7 +46,7 @@ public final class CompanionTutorialClientHandler {
         if (awaitingReply || !isActive() || !(mc.screen instanceof CompanionScreen) || mc.player == null
                 || !mc.player.containerMenu.getCarried().isEmpty() || !skip && !currentStep.canContinue()) return;
         awaitingReply = true;
-        mc.player.connection.send(new ServerboundCustomPayloadPacket(new CompanionTutorialAdvancePacket(currentStep, skip)));
+        FishtasticTransport.sendToServer(new CompanionTutorialAdvancePacket(currentStep, skip));
     }
 
     public static boolean shouldHighlightBook(ItemStack stack) {

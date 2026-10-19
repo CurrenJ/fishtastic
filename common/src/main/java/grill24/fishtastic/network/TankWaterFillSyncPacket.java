@@ -1,5 +1,6 @@
 package grill24.fishtastic.network;
 
+import grill24.fishtastic.network.FishtasticTransport;
 import grill24.fishtastic.Fishtastic;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -49,6 +50,6 @@ public record TankWaterFillSyncPacket(boolean enabled) implements CustomPacketPa
     }
 
     public static void sendToPlayer(ServerPlayer player, boolean enabled) {
-        player.connection.send(new ClientboundCustomPayloadPacket(new TankWaterFillSyncPacket(enabled)));
+        FishtasticTransport.sendToPlayer(player, new TankWaterFillSyncPacket(enabled));
     }
 }

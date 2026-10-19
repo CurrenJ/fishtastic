@@ -1,5 +1,6 @@
 package grill24.fishtastic.network;
 
+import grill24.fishtastic.network.FishtasticTransport;
 import grill24.fishtastic.companion.CompanionBondUnlocks;
 import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.server.PlayerQuestState;
@@ -113,7 +114,7 @@ public record QuestSyncPacket(
                 triggeringItems, state.getPurchaseCountSnapshot(), cleanupGoal, gameTime,
                 baitDepletedItem, firstCatchItems, state.getShopRefreshCount(),
                 List.copyOf(state.getUnlockedCompanionSnapshot()), state.drainPendingCompanionBanners());
-        player.connection.send(new ClientboundCustomPayloadPacket(packet));
+        FishtasticTransport.sendToPlayer(player, packet);
     }
 
     public static ClientHandler clientHandler;

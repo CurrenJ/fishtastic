@@ -74,7 +74,8 @@ public final class BackupTestFixture implements AutoCloseable {
                     });
                     helper.assertTrue(!fail, "Expected failure must propagate");
                 } catch (IOException e) {
-                    helper.assertTrue(fail && e == expected, "Original failure must propagate");
+                    helper.assertTrue(fail && e == expected,
+                            "Original failure must propagate (fail=" + fail + ", caught=" + e + ")");
                 }
                 helper.assertTrue(FishCatchSavedData.getOrCreate(server) == original && !original.hasPlayer(player),
                         "Original saved data restored without fixture records");

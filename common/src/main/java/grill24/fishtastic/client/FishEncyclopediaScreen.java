@@ -1,5 +1,6 @@
 package grill24.fishtastic.client;
 
+import grill24.fishtastic.network.FishtasticTransport;
 import grill24.fishtastic.companion.CompanionBondUnlocks;
 
 import grill24.FishtasticRegistries;
@@ -990,7 +991,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
             btn.addClickBounceEffect();
             Minecraft mc = Minecraft.getInstance();
             if (mc.player != null) {
-                mc.player.connection.send(new ServerboundCustomPayloadPacket(new ClaimEncyclopediaRewardPacket(fishId, rewardSection)));
+                FishtasticTransport.sendToServer(new ClaimEncyclopediaRewardPacket(fishId, rewardSection));
             }
             playRewardClaimFlourish(btn);
         });

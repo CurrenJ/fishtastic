@@ -1,0 +1,249 @@
+plugins {
+    id 'com.gradleup.shadow'
+}
+
+architectury {
+    platformSetupLoomIde()
+    forge()
+}
+
+configurations {
+    gelatinuiMod {
+        canBeResolved = true
+        canBeConsumed = false
+    }
+}
+
+sourceSets {
+    testmod {
+        compileClasspath += main.compileClasspath
+        runtimeClasspath += main.runtimeClasspath
+        // Shared, loader-neutral GameTest bodies.
+        java.srcDir(project(':common').file('src/testmod/java'))
+    }
+}
+
+// The shared transformProductionForge jar still carries the canonical JAVA_25 common mixin
+// config. Forge's Mixin 0.8.7 cannot parse that level, so expose a dev/packaging copy without
+// the config; forge/src/main/resources supplies the JAVA_21 Forge copy instead.
+def commonForgeTask = project(':common').tasks.named('transformProductionForge')
+def commonForgeArtifact = commonForgeTask.map { it.outputs.files.singleFile }
+def forgeCommonJar = tasks.register('forgeCommonJar', Jar) {
+    dependsOn commonForgeTask
+    archiveFileName = 'fishtastic-common-forge.jar'
+    destinationDirectory = layout.buildDirectory.dir('forge-common')
+    from({ zipTree(commonForgeArtifact.get()) }) {
+        exclude 'fishtastic.mixins.json'
+        // The main mod already copies common's resources. A second mod/data pack carrying the
+        // same partial tags shadows vanilla's tag data in Forge's dev loader.
+        exclude 'data/**'
+        exclude 'assets/**'
+    }
+}
+
+loom {
+    accessWidenerPath = rootProject.file("common/src/main/resources/fishtastic.accesswidener")
+
+    forge {
+        // Forge's dev/runtime Mixin 0.8.7 does not recognise JAVA_25. Use a Forge-only copy of
+        // the common config at JAVA_21; the Fabric/NeoForge copy stays at JAVA_25.
+        mixinConfig "fishtastic-common-forge.mixins.json", "fishtastic-forge.mixins.json"
+        convertAccessWideners = true
+        extraAccessWideners.add "fishtastic.accesswidener"
+        // Forge 26.1.2's dev runtime otherwise uses Loom's `mixin-patched` (Mixin 0.8.7), which
+        // does not recognise the JAVA_25 compatibility level used by the common mixin config.
+        useCustomMixin = true
+    }
+
+    mods {
+        main {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.testmod
+            // Put the transformed common classes in the main mod's class-root group rather than
+            // as a separate Forge mod file (which would also become a competing data pack).
+            modFiles.from(forgeCommonJar)
+        }
+    }
+
+    runs {
+        client {
+            programArgs "--width", "1600", "--height", "900"
+            runDir "build/f02-run/client"
+        }
+        server {
+            runDir "build/f02-run/server"
+        }
+        gametest {
+            environment("gameTestServer")
+            forgeTemplate("gameTestServer")
+            source sourceSets.testmod
+            name "Game Test Server"
+            runDir "build/gametest"
+            if (project.hasProperty('gametestSelection')) {
+                programArgs '--tests', project.property('gametestSelection').toString()
+            }
+        }
+    }
+}
+
+configurations {
+    common {
+        canBeResolved = true
+        canBeConsumed = false
+        // common depends on fabric-loader only for the Fabric @Environment annotations (which the
+        // Architectury transformer remaps to Forge equivalents at compile time). Fabric Loader's
+        // transitive `sponge-mixin` must not leak onto the Forge dev classpath: Forge bundles its
+        // own newer Mixin, and the stale Fabric Mixin's service registration crashes ModLauncher.
+        exclude group: 'net.fabricmc', module: 'fabric-loader'
+        exclude group: 'net.fabricmc', module: 'sponge-mixin'
+    }
+    compileClasspath.extendsFrom common
+    // Forge dev runs already receive the transformed common classes via processIncludeJars
+    // (shadowBundle transformProductionForge), so do NOT also put the untransformed common dev jar
+    // on the dev classpath — Forge 26.1.2's strict module layer rejects the duplicate packages.
+
+    // Files in this configuration will be bundled into your mod using the Shadow plugin.
+    // Don't use the `shadow` configuration from the plugin itself as it's meant for excluding files.
+    shadowBundle {
+        canBeResolved = true
+        canBeConsumed = false
+    }
+}
+
+repositories {
+    maven {
+        name = 'MinecraftForge'
+        url = 'https://maven.minecraftforge.net/'
+    }
+}
+
+dependencies {
+    forge "net.minecraftforge:forge:${rootProject.minecraft_version}-${rootProject.forge_version}"
+
+    // Gelatin is a required, separately distributed Forge mod. transitive=false keeps its
+    // fabric-loader/mixinextras-fabric compile metadata out of the Forge runtime.
+    compileOnly("io.github.currenj.gelatinui:gelatinui-forge:${gelatinui_version}") {
+        transitive = false
+    }
+    gelatinuiMod("io.github.currenj.gelatinui:gelatinui-forge:${gelatinui_version}") {
+        transitive = false
+    }
+
+    // loom-no-remap: namedElements no longer exists; reference common directly.
+    common(project(path: ':common')) { transitive = false }
+    // Dev runs and the shipped jar use the transformed common artifact without the canonical
+    // JAVA_25 mixin config; the raw common dev jar would carry untransformed @ExpectPlatform bodies.
+    shadowBundle files(forgeCommonJar)
+
+    // Flocking engine (docs/fish-sim-engine-plan.md): runtime code, so it needs BOTH a dev
+    // classpath dep and a shadowBundle entry — dev runs resolve the former, the shipped jar only
+    // contains the latter (skipping it = NoClassDefFoundError in production).
+    implementation project(':fishsim')
+    shadowBundle project(':fishsim')
+
+    testmodImplementation sourceSets.main.output
+}
+
+processResources {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    inputs.property 'version', project.version
+    // Expanded into mods.toml; without this a range change leaves a stale metadata value.
+    inputs.property 'mod_minecraft_version_range', rootProject.mod_minecraft_version_range
+
+    from(project(":common").sourceSets.main.resources) {
+        exclude 'fishtastic.mixins.json'
+        exclude 'assets/fishtastic/items/fish_tank.json'
+    }
+
+    filesMatching('META-INF/mods.toml') {
+        expand([
+            'version': project.version,
+            'mod_license': rootProject.mod_license,
+            'mod_id': rootProject.mod_id,
+            'mod_name': rootProject.mod_name,
+            'mod_authors': rootProject.mod_authors,
+            'mod_description': rootProject.mod_description,
+            'mod_icon': rootProject.mod_icon,
+            'mod_minecraft_version_range': rootProject.mod_minecraft_version_range,
+            'mod_forge_version_range': "[${rootProject.forge_version},)",
+            'mod_gelatinui_version_range': "[${rootProject.gelatinui_version},)"
+        ])
+    }
+}
+
+// loom-no-remap: remapJar is gone. Mark the default jar as raw so shadowJar can
+// build on top of the Loom-modified output.
+jar {
+    archiveClassifier = 'raw'
+}
+
+shadowJar {
+    dependsOn(jar)
+    dependsOn(forgeCommonJar)
+    // The smoke build toggles a dev-only exclusion; make it an input so the artifact cannot go
+    // stale after a -PincludeSelftest build.
+    inputs.property 'includeSelftest', project.hasProperty('includeSelftest')
+    mainSpec.sourcePaths.clear()           // don't re-include source set output directly
+    from(zipTree(jar.archiveFile))         // unpack the Loom-processed jar as the base
+    configurations = [project.configurations.shadowBundle]
+    archiveClassifier = null               // shadowJar becomes the primary artifact
+
+    // Dev-only MCP bridge tooling - never ship it.
+    exclude 'grill24/fishtastic/mcp/**'
+    exclude 'grill24/fishtastic/forge/mcp/**'
+
+    // fishsim's render/harness/viewer packages are dev-only verification tooling.
+    exclude 'grill24/fishsim/render/**'
+    exclude 'grill24/fishsim/harness/**'
+    exclude 'grill24/fishsim/viewer/**'
+
+    // The client self-test harness (RenderSelfTest) is dev-only too. The smoke build keeps it so
+    // the installed-client layout can run the scene matrix with -Dfishtastic.selftest=true; that
+    // artifact is never published.
+    if (!project.hasProperty('includeSelftest')) {
+        exclude 'grill24/fishtastic/client/selftest/**'
+    }
+}
+
+// Redirect components.java to publish the shadow jar instead of the plain jar.
+configurations {
+    apiElements {
+        outgoing.artifacts.clear()
+        outgoing.artifact(shadowJar)
+    }
+    runtimeElements {
+        outgoing.artifacts.clear()
+        outgoing.artifact(shadowJar)
+    }
+}
+
+// Gradle 9.2+ requires explicit duplicatesStrategy when sources overlap.
+tasks.named('sourcesJar').configure {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+tasks.matching { it.name in ['runClient', 'runServer'] }.configureEach {
+    dependsOn forgeCommonJar
+}
+
+// Forge 26.1.2's Loom dev launcher does not put external mod dependencies into the FML mod list.
+// Install the resolved Gelatin jar into each isolated dev run's mods/ directory instead.
+def installGelatinDevMod = tasks.register('installGelatinDevMod') {
+    doLast {
+        ['client', 'server', 'gametest'].each { role ->
+            def modsDir = layout.buildDirectory.dir("f02-run/${role}/mods").get().asFile
+            if (role == 'gametest') modsDir = layout.buildDirectory.dir('gametest/mods').get().asFile
+            modsDir.mkdirs()
+            configurations.gelatinuiMod.files.each { jar ->
+                copy {
+                    from jar
+                    into modsDir
+                }
+            }
+        }
+    }
+}
+
+tasks.matching { it.name in ['runClient', 'runServer', 'runGametest'] }.configureEach {
+    dependsOn installGelatinDevMod
+}

@@ -119,7 +119,7 @@ public class ItemEffectManager {
 
     private static Registry<ItemEffect> getRegistry() {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null) {
+        if (mc == null || mc.level == null) {
             Fishtastic.LOGGER.debug("Cannot get ItemEffect registry - level is null");
             return null;
         }

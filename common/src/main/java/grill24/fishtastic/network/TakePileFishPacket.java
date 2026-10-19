@@ -33,8 +33,8 @@ public record TakePileFishPacket(ItemStack fish) implements CustomPacketPayload 
         ctx.enqueueWork(() -> {
             if (ctx.getPlayer() instanceof ServerPlayer player && player.containerMenu instanceof CompanionMenu menu
                     && menu.takeFromPile(player, packet.fish()) == CompanionMenu.PileTake.NOT_CARRIED) {
-                player.connection.send(new net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket(
-                        new CompanionFeedbackPacket(CompanionFeedbackPacket.Outcome.NOT_CARRIED)));
+                FishtasticTransport.sendToPlayer(player,
+                        new CompanionFeedbackPacket(CompanionFeedbackPacket.Outcome.NOT_CARRIED));
             }
         });
     }
