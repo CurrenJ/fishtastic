@@ -481,3 +481,23 @@ All three working trees are clean afterwards. Each commit ran the repository pre
 (`common`/`fishsim`/`tank-shape-gen` tests plus Fabric GameTests) successfully. Gelatin UI was
 not touched. The next external step, if wanted, is pushing these three branches so PR #7/#8 pick
 the fixes up; no push or publication was performed here.
+
+## Fishtastic 2.1.2 release (2026-10-19)
+
+Owner authorized a patch release of the PR-review fixes. Branches `codex/forge-26.1.2`,
+`codex/forge-1.21.1` and `port/1.20.1` were pushed first (`c66defca`, `7350eb70`, `e9268faf`).
+
+Pending operation RELEASE-212: set `mod_version = 2.1.2` on all three lines, add a 2.1.2
+changelog entry (and fold the stale 26.1.2 `Unreleased` party notes into 2.1.1, since
+`CompanionParty` dates from 2026-10-13 and shipped in 2.1.1), build every distributable, verify
+version / CRC / required Gelatin relation / self-test exclusion, then publish eight Release files
+to CurseForge project 1513269: Fabric+NeoForge per newer branch via `publishCurseForge`, Forge
+per newer branch via a dedicated Forge-only task, and Fabric+Forge on 1.20.1 via its root task.
+Evidence: `build/release-2.1.2/` and `docs/release-2.1.2.md`. Gelatin UI stays at 1.0.38; no
+dependency-floor change is part of this release. Do not touch backport parity markers.
+
+Release result: **COMPLETE**. All three builds passed; all eight jars verified; all eight Release
+files were submitted to project 1513269 with the required `gelatin-ui` relation; all ten
+allow-listed CurseForge profiles now carry the matching 2.1.2 jar and Gelatin 1.0.38. Full table,
+hashes, source commits and backup paths: `docs/release-2.1.2.md`; raw evidence in
+`build/release-2.1.2/`. No backport parity marker was touched.
