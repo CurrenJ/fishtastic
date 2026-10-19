@@ -567,6 +567,22 @@ public final class OwnerScript {
                 s.add(waitTicks(100));
                 return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s);
             }
+            case "stop_and_go" -> {
+                // Walking or sprinting on ahead of the fish and stopping, over and over, each leg
+                // bending at most 60° from the last, so the fish is always catching up from behind or
+                // to one side when the owner stops (docs/fish-companions-drift.md §13.8). Kept out of
+                // NAMES: the swimmers' tables and fingerprints don't run it.
+                double x = 0.5, z = 0.5, a = 0;
+                for (int i = 0; i < 24; i++) {
+                    a += (r.nextDouble() - 0.5) * Math.toRadians(120);
+                    double d = 8 + r.nextDouble() * 14;
+                    x += Math.sin(a) * d;
+                    z += Math.cos(a) * d;
+                    s.add(walkTo(x, z, r.nextDouble() < 0.5 ? SPRINT : WALK));
+                    s.add(waitTicks(50 + r.nextInt(70)));
+                }
+                return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s);
+            }
             case "camera_sweep" -> {
                 s.add(hold(40));
                 s.add(lookBy(110, 0, 60));

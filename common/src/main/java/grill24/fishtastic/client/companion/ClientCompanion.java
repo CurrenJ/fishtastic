@@ -9,6 +9,7 @@ import grill24.fishsim.companion.GroundGait;
 import grill24.fishsim.companion.LocalVoxels;
 import grill24.fishsim.companion.CompanionTunables;
 import grill24.fishsim.companion.CompanionWorld;
+import grill24.fishsim.companion.DriftStyle;
 import grill24.fishsim.companion.OwnerState;
 import grill24.fishsim.companion.PerchBody;
 import grill24.fishsim.companion.PointOfInterest;
@@ -75,6 +76,8 @@ public final class ClientCompanion {
     private final boolean trio;
     /** How a benthic walks on land, or null for every other class. */
     @Nullable private final GroundGait gait;
+    /** How a drifter propels itself (docs/fish-companions-drift.md §2), from the profile's companion_drift. */
+    private final DriftStyle driftStyle;
     /** A benthic group's size (1 for a solo) and formation. */
     private final int groupCount;
     private final BenthicGroup.Formation formation;
@@ -121,6 +124,9 @@ public final class ClientCompanion {
             this.groupCount = 1;
             this.formation = BenthicGroup.Formation.LINE;
         }
+        this.driftStyle = locomotion == Locomotion.DRIFT
+                ? DriftStyle.valueOf(profile.map(FishProfile::companionDrift).orElse(FishProfile.CompanionDrift.BELL).name())
+                : DriftStyle.BELL;
         this.seed = seedOf(owner != null ? owner.getUUID() : UUID.nameUUIDFromBytes(phantomEye.toString().getBytes()),
                 stack);
     }
@@ -200,7 +206,7 @@ public final class ClientCompanion {
                 agent = benthic.leader();
             } else {
                 // A null gait is the old constructor's path: every non-benthic class is unchanged.
-                agent = new CompanionAgent(TUNABLES, seed, locomotion, length, temperament, gait, world);
+                agent = new CompanionAgent(TUNABLES, seed, locomotion, length, temperament, gait, driftStyle, world);
             }
         } else if (group != null) {
             group.step(world);

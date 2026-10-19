@@ -5,6 +5,7 @@ import grill24.fishsim.companion.CompanionGroup;
 import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.companion.CompanionTunables;
 import grill24.fishsim.companion.CompanionWorld;
+import grill24.fishsim.companion.DriftStyle;
 import grill24.fishsim.companion.GroundGait;
 import grill24.fishsim.companion.LocalVoxels;
 import grill24.fishsim.companion.OwnerState;
@@ -42,7 +43,8 @@ public final class CompanionRun {
                          CompanionAgent.Fade fade, boolean backstop, double impact, int goalTicks, float pulse, double thrust,
                          boolean riding, String pose, float curiosity,
                          boolean impulse, double impulseSize, boolean onGround, boolean feetDown, double lag,
-                         boolean reachable, boolean doorClosed, boolean tumbling, String land) {}
+                         boolean reachable, boolean doorClosed, boolean tumbling, String land,
+                         Vec asked, boolean strokeStart, float flare, float tilt, float tiltRate) {}
 
     public final VoxelScene scene;
     public final OwnerScript script;
@@ -105,9 +107,22 @@ public final class CompanionRun {
     /** A typical rendered length for a trio member, blocks (a fish under 20 cm). */
     public static final float TRIO_LENGTH = 0.18f;
 
+    /** A drifter of the given style (docs/fish-companions-drift.md §2). */
+    public static CompanionRun drifter(String scriptName, long seed, DriftStyle style, Temperament temperament,
+                                       CompanionTunables tunables, boolean record) {
+        return new CompanionRun(scriptName, seed, Locomotion.DRIFT, lengthOf(Locomotion.DRIFT), temperament, tunables,
+                record, false, style);
+    }
+
     private CompanionRun(String scriptName, long seed, Locomotion locomotion, float length, Temperament temperament,
                          CompanionTunables tunables,
                          boolean record, boolean trio) {
+        this(scriptName, seed, locomotion, length, temperament, tunables, record, trio, DriftStyle.BELL);
+    }
+
+    private CompanionRun(String scriptName, long seed, Locomotion locomotion, float length, Temperament temperament,
+                         CompanionTunables tunables,
+                         boolean record, boolean trio, DriftStyle driftStyle) {
         this.script = OwnerScript.named(scriptName, seed);
         this.scene = script.scene;
         this.tunables = tunables;
@@ -121,7 +136,7 @@ public final class CompanionRun {
             this.group = null;
             // A benthic walks the ground (docs/fish-companions-benthic-follow.md), with the crawl.
             this.agent = new CompanionAgent(tunables, seed, locomotion, length, temperament,
-                    locomotion == Locomotion.BENTHIC ? GroundGait.CRAWL : null, world);
+                    locomotion == Locomotion.BENTHIC ? GroundGait.CRAWL : null, driftStyle, world);
         }
     }
 
@@ -164,7 +179,8 @@ public final class CompanionRun {
                     seenNow(), agent.ownerDistance(), agent.appear(), agent.fade(), agent.backstopLastStep(), agent.lastImpact(), agent.goalTicks(), agent.pulse(), agent.thrust(), agent.onOwner(),
                     agent.poseHint().name(), agent.curiosity(), agent.impulse(), agent.lastImpulse(),
                     agent.onGround(), agent.feetDown(), agent.groundLag(), agent.groundReachable(), scene.doorClosed(),
-                    agent.tumbling(), agent.landMode()));
+                    agent.tumbling(), agent.landMode(), agent.driftAsked(), agent.driftStrokeStart(),
+                    agent.flare(), agent.driftTilt(), agent.driftTiltRate()));
         }
     }
 
@@ -405,7 +421,7 @@ public final class CompanionRun {
                 boolean propelled = agent.locomotion() != Locomotion.DRIFT || s.thrust() > 1.0;
                 if (s.vel().length() > 1.0 && propelled && !s.tumbling()) {
                     movingTicks++;
-                    if (Vec.fromYawPitch(s.yaw(), s.pitch()).dot(s.vel().normalize()) < -0.17) tailFirstTicks++;
+                    if (tailFirst(s, agent.locomotion(), agent.driftStyle())) tailFirstTicks++;
                 }
                 if (s.vel().horizontalLength() > 0.5 && !s.tumbling()) {
                     float travel = (float) s.vel().yawDeg();
@@ -471,6 +487,277 @@ public final class CompanionRun {
                 agent.leashEvents(), longestFar * dt, mean, mean > 0 ? Math.sqrt(var) / mean : 0,
                 n == 0 ? 0 : switches / (n * dt / 60.0),
                 shortest == Integer.MAX_VALUE ? -1 : shortest, share);
+    }
+
+    /**
+     * Whether {@code s} is travelling more than 100° from its front: the heading for a swimmer, the
+     * bell's axis for a drifter. Per drift style (docs/fish-companions-drift.md §5), a {@code jet}
+     * squid travelling mantle-first is going forwards; until its body exists (Phase 2) its front is
+     * the same axis as the bell's.
+     */
+    static boolean tailFirst(Sample s, Locomotion c, DriftStyle style) {
+        Vec front = Vec.fromYawPitch(s.yaw(), s.pitch());
+        if (c == Locomotion.DRIFT) {
+            front = switch (style) {
+                case BELL, BOB -> front;
+                case JET -> front; // Phase 2: the mantle's axis, which the jet body will report.
+            };
+        }
+        return front.dot(s.vel().normalize()) < -0.17;
+    }
+
+    // ── Drifters (docs/fish-companions-drift.md §9) ────────────────────────────────────────────
+
+    /**
+     * What a drifter's strokes did, each a level paired with a rate (a level alone can be met by a
+     * body doing the wrong thing more often).
+     *
+     * @param strokes              pulse cycles that were settled, contact-free and asked for at least {@link #STROKE_MIN_ASK}
+     * @param meanOvershoot        mean of (peak speed over a cycle) / (mean asked speed over that cycle)
+     * @param maxOvershoot         the worst such ratio
+     * @param overshootsPerMinute  cycles whose ratio is over {@link #OVERSHOOT}, per minute
+     * @param reorients            swings: the asked direction turned more than 90° within {@link #SWING_TICKS}
+     * @param meanReorientSeconds  from a swing until its thrust points along the new ask
+     * @param maxReorientSeconds   the slowest (an unfinished swing counts to the end of the run)
+     * @param reorientsPerMinute   swings per minute
+     * @param minClearance         lowest gap from its underside to the floor under it, blocks (NaN: never over a floor)
+     * @param lowClearanceFraction share of settled ticks under {@link #LOW_CLEARANCE}
+     * @param lowDipsPerMinute     times it dropped under {@link #LOW_CLEARANCE}, per minute
+     * @param reversalsPerMinute   its velocity turning more than 135° within {@link #SWING_TICKS}, both ends over 1 b/s
+     * @param meanReversalDeltaV   mean change of velocity across such a reversal, blocks/s
+     */
+    public record DriftMetrics(int strokes, double meanOvershoot, double maxOvershoot, double overshootsPerMinute,
+                               int reorients, double meanReorientSeconds, double maxReorientSeconds,
+                               double reorientsPerMinute, double minClearance, double lowClearanceFraction,
+                               double lowDipsPerMinute, double reversalsPerMinute, double meanReversalDeltaV) {
+        public String summary() {
+            return String.format("strokes=%d over=%.2f/%.2f (%.1f/min) reorient=%d %.2f/%.2fs (%.1f/min) "
+                            + "clear=%.2f low=%.1f%% (%.1f/min) reversals=%.1f/min dv=%.2f",
+                    strokes, meanOvershoot, maxOvershoot, overshootsPerMinute, reorients, meanReorientSeconds,
+                    maxReorientSeconds, reorientsPerMinute, minClearance, lowClearanceFraction * 100,
+                    lowDipsPerMinute, reversalsPerMinute, meanReversalDeltaV);
+        }
+    }
+
+    /**
+     * A drifter's body limits (docs/fish-companions-drift.md §13), the drift-aware stand-ins for the
+     * swimmer's turn, facing and jerk checks, which are blind for a bell (its yaw holds the lean
+     * direction, it has no turn rate, and every stroke's onset is a jerk by design). Over settled,
+     * contact-free ticks: the most the bell's axis turned in a tick, degrees; the largest jerk while
+     * coasting (no thrust this tick or the last) and while stroking, blocks/s³; the largest
+     * acceleration, blocks/s².
+     */
+    public record DriftBodyMetrics(double maxTiltStepDeg, double maxCoastJerk, double maxStrokeJerk, double maxAccel) {
+        public String summary() {
+            return String.format("tiltStep=%.2f° coastJerk=%.0f strokeJerk=%.0f acc=%.1f",
+                    maxTiltStepDeg, maxCoastJerk, maxStrokeJerk, maxAccel);
+        }
+    }
+
+    /** The drifter body limits over the recorded run (zeros for other classes). */
+    public DriftBodyMetrics driftBodyMetrics() {
+        double dt = CompanionAgent.DT;
+        double tilt = 0, coast = 0, stroke = 0, accel = 0;
+        Sample prev = null;
+        boolean prevContact = false;
+        for (Sample s : samples) {
+            boolean settled = s.fade() == CompanionAgent.Fade.NONE && !s.riding();
+            boolean contact = s.backstop() || prevContact;
+            prevContact = s.backstop();
+            if (settled && !contact) {
+                tilt = Math.max(tilt, s.tiltRate());
+                accel = Math.max(accel, s.acc().length());
+                if (prev != null) {
+                    double jerk = s.acc().sub(prev.acc()).length() / dt;
+                    if (s.thrust() == 0 && prev.thrust() == 0) coast = Math.max(coast, jerk);
+                    else stroke = Math.max(stroke, jerk);
+                }
+                prev = s;
+            } else {
+                prev = null;
+            }
+        }
+        return new DriftBodyMetrics(tilt, coast, stroke, accel);
+    }
+
+    /**
+     * Coasting into the owner (docs/fish-companions-drift.md §13.8), over settled ticks: how often the
+     * fish's centre enters the owner's body capsule, per minute; how many of those entries come while
+     * the owner is stopping (slower than 1 b/s within 3 s of having gone faster than 2.5 b/s — the
+     * owner's "walk or sprint ahead and stop"); the deepest the fish's sphere reaches into the capsule,
+     * blocks; and the fastest it was closing on the body's axis as it entered, blocks/s (a coast
+     * through reads fast, a slow drift-by slow). And the share of its idle ticks (the owner still for a
+     * second or more, as {@code DriftIdleProbe} counts them) spent inside them, and how many idle ticks.
+     */
+    public record OwnerOverlapMetrics(double entriesPerMinute, int stopEntries, double maxDepth, double maxEntrySpeed,
+                                      double idleInsideFraction, int idleTicks) {
+        public String summary() {
+            return String.format("ownerIn=%.1f/min stopIn=%d depth=%.2f inSpeed=%.2f idleIn=%.2f%% idleTicks=%d",
+                    entriesPerMinute, stopEntries, maxDepth, maxEntrySpeed, idleInsideFraction * 100, idleTicks);
+        }
+    }
+
+    /** Owner-overlap metrics over the recorded run. */
+    public OwnerOverlapMetrics ownerOverlap() {
+        double r = agent.radius();
+        int entries = 0, stopEntries = 0, sinceFast = Integer.MAX_VALUE / 2, stillFor = 0, idle = 0, idleIn = 0;
+        double depth = 0, entrySpeed = 0;
+        boolean wasIn = false;
+        for (Sample s : samples) {
+            OwnerState o = s.owner();
+            double hs = o.velocity().horizontalLength();
+            sinceFast = hs > 2.5 ? 0 : sinceFast + 1;
+            stillFor = hs < 0.2 ? stillFor + 1 : 0;
+            boolean settled = s.fade() == CompanionAgent.Fade.NONE && !s.riding();
+            if (!settled) {
+                wasIn = false;
+                continue;
+            }
+            Vec a = o.feet().add(0, OwnerState.BODY_RADIUS, 0);
+            Vec b = o.eye().add(0, 0.1, 0);
+            Vec ab = b.sub(a);
+            double u = Math.max(0, Math.min(1, s.pos().sub(a).dot(ab) / ab.lengthSqr()));
+            Vec q = a.add(ab.scale(u));
+            Vec away = s.pos().sub(q);
+            double d = away.length();
+            depth = Math.max(depth, OwnerState.BODY_RADIUS + r - d);
+            boolean in = d < OwnerState.BODY_RADIUS;
+            if (stillFor >= 20) {
+                idle++;
+                if (in) idleIn++;
+            }
+            if (in && !wasIn) {
+                entries++;
+                if (hs < 1.0 && sinceFast <= 60) stopEntries++;
+                if (d > 1e-6) entrySpeed = Math.max(entrySpeed, -s.vel().sub(o.velocity()).dot(away.scale(1 / d)));
+            }
+            wasIn = in;
+        }
+        double minutes = samples.size() * CompanionAgent.DT / 60.0;
+        return new OwnerOverlapMetrics(minutes == 0 ? 0 : entries / minutes, stopEntries, Math.max(0, depth), entrySpeed,
+                idle == 0 ? 0 : idleIn / (double) idle, idle);
+    }
+
+    /** Asked speed under which a stroke isn't judged for overshoot, blocks/s (a hover's strokes hold height). */
+    public static final double STROKE_MIN_ASK = 1.0;
+    /** Peak over asked above which a stroke overshot. */
+    public static final double OVERSHOOT = 1.15;
+    /** Window for a swing of the ask and for a reversal of velocity, ticks (1 s). */
+    public static final int SWING_TICKS = 20;
+    /** Gap to the floor under which a drifter is scraping it, blocks. */
+    public static final double LOW_CLEARANCE = 0.15;
+
+    /** The drifter metrics over the recorded run (zeros for other classes). */
+    public DriftMetrics driftMetrics() {
+        LocalVoxels truth = new LocalVoxels();
+        double r = agent.radius(), dt = CompanionAgent.DT;
+        int n = samples.size();
+        double minutes = Math.max(1e-9, n * dt / 60.0);
+        // Strokes: one cycle from a stroke start to the next, settled and contact-free throughout.
+        int strokes = 0, overshoots = 0, cycleN = 0;
+        double sumRatio = 0, maxRatio = 0, cyclePeak = 0, cycleAsk = 0;
+        boolean inCycle = false, cycleClean = false;
+        // Swings of the ask.
+        int reorients = 0, swingStart = -1;
+        double sumReorient = 0, maxReorient = 0;
+        // Floor clearance.
+        double minClear = Double.NaN;
+        int settledN = 0, lowTicks = 0, dips = 0;
+        boolean wasLow = false;
+        // Velocity reversals.
+        int reversals = 0, lastReversal = -SWING_TICKS;
+        double sumDv = 0;
+        boolean door = scene.doorClosed();
+        for (int k = 0; k < n; k++) {
+            Sample s = samples.get(k);
+            asAt(s, truth);
+            truth.update(scene, s.owner().eye());
+            boolean settled = s.fade() == CompanionAgent.Fade.NONE && !s.riding();
+
+            if (s.strokeStart()) {
+                if (inCycle && cycleClean && cycleN > 0) {
+                    double ask = cycleAsk / cycleN;
+                    if (ask >= STROKE_MIN_ASK) {
+                        double ratio = cyclePeak / ask;
+                        strokes++;
+                        sumRatio += ratio;
+                        maxRatio = Math.max(maxRatio, ratio);
+                        if (ratio > OVERSHOOT) overshoots++;
+                    }
+                }
+                inCycle = true;
+                cycleClean = true;
+                cyclePeak = 0;
+                cycleAsk = 0;
+                cycleN = 0;
+            }
+            if (inCycle) {
+                cycleClean &= settled && !s.backstop();
+                cyclePeak = Math.max(cyclePeak, s.vel().length());
+                cycleAsk += s.asked().length();
+                cycleN++;
+            }
+
+            if (swingStart < 0 && k >= SWING_TICKS && settled) {
+                Vec now = s.asked(), then = samples.get(k - SWING_TICKS).asked();
+                if (now.length() > 0.5 && then.length() > 0.5 && now.normalize().dot(then.normalize()) < 0) {
+                    swingStart = k;
+                }
+            }
+            if (swingStart >= 0 && (alongAsked(s) || k == n - 1)) {
+                double secs = (k - swingStart) * dt;
+                reorients++;
+                sumReorient += secs;
+                maxReorient = Math.max(maxReorient, secs);
+                swingStart = -1;
+            }
+
+            if (settled) {
+                settledN++;
+                Vec p = s.pos();
+                double floor = truth.columnFloor((int) Math.floor(p.x()), (int) Math.floor(p.z()), p.y(), 4.0);
+                if (!Double.isNaN(floor)) {
+                    double clear = p.y() - r - floor;
+                    minClear = Double.isNaN(minClear) ? clear : Math.min(minClear, clear);
+                    boolean low = clear < LOW_CLEARANCE;
+                    if (low) lowTicks++;
+                    if (low && !wasLow) dips++;
+                    wasLow = low;
+                } else {
+                    wasLow = false;
+                }
+            }
+
+            if (k >= SWING_TICKS && settled && k - lastReversal >= SWING_TICKS) {
+                Vec v = s.vel(), u = samples.get(k - SWING_TICKS).vel();
+                if (v.length() > 1.0 && u.length() > 1.0 && v.normalize().dot(u.normalize()) < -0.7071) {
+                    reversals++;
+                    sumDv += v.sub(u).length();
+                    lastReversal = k;
+                }
+            }
+        }
+        restoreDoor(door);
+        return new DriftMetrics(strokes, strokes == 0 ? 0 : sumRatio / strokes, maxRatio, overshoots / minutes,
+                reorients, reorients == 0 ? 0 : sumReorient / reorients, maxReorient, reorients / minutes,
+                minClear, settledN == 0 ? 0 : lowTicks / (double) settledN, dips / minutes, reversals / minutes,
+                reversals == 0 ? 0 : sumDv / reversals);
+    }
+
+    /**
+     * Whether a drifter's thrust now points along what it's asked for: within 45°, judged on the
+     * horizontal when the ask is mostly horizontal (its bell never tilts past {@code driftTiltMaxDeg},
+     * and part of every stroke holds off the sink).
+     */
+    private static boolean alongAsked(Sample s) {
+        if (s.thrust() <= 1.0) return false;
+        Vec axis = Vec.fromYawPitch(s.yaw(), s.pitch()), ask = s.asked();
+        if (ask.horizontalLength() > 0.5 * ask.length()) {
+            Vec ah = new Vec(axis.x(), 0, axis.z()), kh = new Vec(ask.x(), 0, ask.z());
+            if (ah.length() < Math.sin(Math.toRadians(10))) return false;
+            return ah.normalize().dot(kh.normalize()) > 0.7071;
+        }
+        return axis.dot(ask.normalize()) > 0.7071;
     }
 
     private static boolean isBase(String goal) {
