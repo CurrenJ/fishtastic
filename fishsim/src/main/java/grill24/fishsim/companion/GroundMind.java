@@ -473,12 +473,29 @@ final class GroundMind {
     }
 
     /** A straight walk with no step up or down at all on the way (a beat is a dash, not a climb). */
+    // Diagnostic ablation: package-private like beatsEnabled; production skips repeated columns.
+    static boolean skipRepeatedBeatFootprints = true;
+    static boolean countBeatFootprints;
+    static long beatFootprintChecks;
+
     private boolean levelWalk(LocalVoxels v, Vec a, Vec b) {
         Vec d = b.sub(a).horizontal();
         int steps = Math.max(1, (int) Math.ceil(d.length() / 0.1));
+        boolean checked = false;
+        int lastX0 = 0, lastX1 = 0, lastZ0 = 0, lastZ1 = 0;
         for (int i = 1; i <= steps; i++) {
             double s = i / (double) steps;
-            double f = g.footprintFloorFrom(v, a.x() + d.x() * s, a.z() + d.z() * s, g.floorY);
+            double x = a.x() + d.x() * s, z = a.z() + d.z() * s;
+            int x0 = LocalVoxels.floor(x - g.radius), x1 = LocalVoxels.floor(x + g.radius);
+            int z0 = LocalVoxels.floor(z - g.radius), z1 = LocalVoxels.floor(z + g.radius);
+            // footprintFloorFrom depends only on these columns and the fixed floorY. Keep every
+            // original 0.1-block step, but reuse a successful answer until its footprint changes.
+            if (skipRepeatedBeatFootprints && checked && x0 == lastX0 && x1 == lastX1
+                    && z0 == lastZ0 && z1 == lastZ1) continue;
+            checked = true;
+            lastX0 = x0; lastX1 = x1; lastZ0 = z0; lastZ1 = z1;
+            if (countBeatFootprints) beatFootprintChecks++;
+            double f = g.footprintFloorFrom(v, x, z, g.floorY);
             if (Double.isNaN(f) || Math.abs(f - g.floorY) > GroundBody.STEP_SMOOTH) return false;
         }
         return true;

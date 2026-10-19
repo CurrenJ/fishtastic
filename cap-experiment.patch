@@ -1,0 +1,65 @@
+diff --git a/fishsim/src/main/java/grill24/fishsim/companion/GroundMind.java b/fishsim/src/main/java/grill24/fishsim/companion/GroundMind.java
+index 8803c930..125963a3 100644
+--- a/fishsim/src/main/java/grill24/fishsim/companion/GroundMind.java
++++ b/fishsim/src/main/java/grill24/fishsim/companion/GroundMind.java
+@@ -351,6 +351,12 @@ final class GroundMind {
+     // Off to the side of their path, but inside the view: the floor near their feet is below it
+     // (a level 70-degree view meets the floor about 2.4 blocks out) and too far aside is past its edge.
+     private static final double[] OVERTAKE_SIDES = {1.5, 1.9, 2.3};
++    /**
++     * How far along the owner's way a beat may check, blocks (spec §24). Its ~50-block look-ahead
++     * sampled up to ~270 blocks on one tick against a 25/tick budget.
++     */
++    static double BEAT_LOOK_AHEAD = Double.parseDouble(System.getProperty("tweakA", "16"));
++    static boolean beatLookAheadEnabled = true;
+     private static final double[] ROADSIDE_SIDES = {1.6, 2.0, 2.4};
+ 
+     /** Starts, keeps or ends a beat. */
+@@ -433,6 +439,7 @@ final class GroundMind {
+                 : Vec.fromYawPitch(g.yaw, 0).dot(perp) < 0 ? -1 : 1;
+         // Below its top scurry: it has to get up to speed, and the rhythm surges and eases.
+         double speed = 0.85 * g.rhythmBase(GroundBody.Rhythm.SCURRY) * 1.6;
++        double ownerSpeed = vel.length();
+         for (double side : sides) {
+             Vec offset = dir.scale(ahead).add(perp.scale(sign * side));
+             double time = -1;
+@@ -443,6 +450,14 @@ final class GroundMind {
+                 }
+             }
+             if (time < 0) continue;
++            // The way the beat needs checked ends where they walk past its last spot: the dash,
++            // the lead and the spot itself, within BEAT_LOOK_AHEAD. A lead that doesn't fit is cut
++            // short (under half a second, dropped: it stops and waits); a dash that doesn't, no beat.
++            double reach = ahead + 0.6;
++            double room = beatLookAheadEnabled ? BEAT_LOOK_AHEAD - ownerSpeed * (time + 2.0) : Double.POSITIVE_INFINITY;
++            if (room < 0) continue;
++            double fit = ownerSpeed > 1e-6 ? Math.min(lead, room / ownerSpeed) : lead;
++            if (fit < 0.5) fit = 0;
+             Vec s = ownerFloor.add(vel.scale(time)).add(offset);
+             double floor = g.footprintFloorFrom(v, s.x(), s.z(), g.floorY);
+             if (Double.isNaN(floor) || Math.abs(floor - g.floorY) > GroundBody.STEP_SMOOTH) continue;
+@@ -450,11 +465,11 @@ final class GroundMind {
+             // Only where their own way ahead is open and level for the whole beat: the feet check
+             // assumes they walk on straight, and in a pillared cellar or up a stair they soon turn
+             // or climb — into the spot it has just taken.
+-            if (!levelWalk(v, ownerFloor, ownerFloor.add(vel.scale(time + lead + 2.0)))) return false;
+-            if (!levelWalk(v, g.standing(), s) || !clearOfFeet(s, time, vel, lead)) continue;
++            if (!levelWalk(v, ownerFloor, ownerFloor.add(vel.scale(time + fit + 2.0)))) return false;
++            if (!levelWalk(v, g.standing(), s) || !clearOfFeet(s, time, vel, fit)) continue;
+             Vec end = null;
+-            if (lead > 0) {
+-                end = s.add(vel.scale(lead));
++            if (fit > 0) {
++                end = s.add(vel.scale(fit));
+                 if (!levelWalk(v, s, end)) continue;
+             }
+             beat = kind;
+@@ -465,7 +480,7 @@ final class GroundMind {
+             beatDir = dir;
+             beatTicks = 0;
+             beatArrived = false;
+-            beatLimit = (int) Math.ceil((time * 1.5 + lead) * TPS) + 40;
++            beatLimit = (int) Math.ceil((time * 1.5 + fit) * TPS) + 40;
+             beatFace = (float) (kind == Beat.ROADSIDE ? perp.scale(-sign) : dir).yawDeg();
+             return true;
+         }

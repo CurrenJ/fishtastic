@@ -1,0 +1,29 @@
+
+> Configure project :
+Architect Plugin: 3.5.170
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :fishsim:compileJava
+> Task :fishsim:processResources NO-SOURCE
+> Task :fishsim:classes
+> Task :fishsim:compileTestJava
+> Task :fishsim:processTestResources
+> Task :fishsim:testClasses
+
+> Task :fishsim:test
+
+BenthicSamplingProbe > sampling() STANDARD_OUT
+    SAMPLES swimmer 0.30                     mean   1.60/tick  p99   25  p99.9   38  worst    51  ticks over 25 (25 x 1): 0.94%
+    SAMPLES percher 0.30 (old game path)     mean   0.04/tick  p99    1  p99.9    3  worst    35  ticks over 25 (25 x 1): 0.01%
+    SAMPLES crawl solo 0.30                  mean   0.91/tick  p99   15  p99.9   34  worst   177  ticks over 25 (25 x 1): 0.22%
+    SAMPLES crawl solo 0.60 (spider crab)    mean   1.24/tick  p99   18  p99.9   88  worst   267  ticks over 25 (25 x 1): 0.56%
+    SAMPLES ripple solo 0.35 (plaice)        mean   0.93/tick  p99   17  p99.9   38  worst   135  ticks over 25 (25 x 1): 0.38%
+    SAMPLES line of 3, 0.25 (starfish)       mean   3.44/tick  p99   48  p99.9  100  worst   160  ticks over 75 (25 x 3): 0.28%
+    SAMPLES crowd of 3, 0.25 (sea slugs)     mean   3.66/tick  p99   51  p99.9  102  worst   147  ticks over 75 (25 x 3): 0.33%
+
+Test result: SUCCESS — 1 tests, 1 passed, 0 failed, 0 skipped
+
+BUILD SUCCESSFUL in 10s
+4 actionable tasks: 4 executed
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.2.1/userguide/configuration_cache_enabling.html

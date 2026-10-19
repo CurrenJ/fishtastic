@@ -1,0 +1,23 @@
+
+> Configure project :
+Architect Plugin: 3.5.170
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :fishsim:compileJava
+> Task :fishsim:processResources NO-SOURCE
+> Task :fishsim:classes
+> Task :fishsim:compileTestJava
+> Task :fishsim:processTestResources UP-TO-DATE
+> Task :fishsim:testClasses
+
+> Task :fishsim:test
+
+BenthicFootprintScanTest > repeatedColumnsPreserveTrajectories() STANDARD_OUT
+    FOOTPRINT checks before=523751 after=117270 reduction=77.6%
+
+Test result: SUCCESS — 1 tests, 1 passed, 0 failed, 0 skipped
+
+BUILD SUCCESSFUL in 5s
+4 actionable tasks: 3 executed, 1 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.2.1/userguide/configuration_cache_enabling.html

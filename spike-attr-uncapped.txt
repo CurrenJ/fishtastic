@@ -1,0 +1,50 @@
+
+> Configure project :
+Architect Plugin: 3.5.170
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :fishsim:compileJava UP-TO-DATE
+> Task :fishsim:processResources NO-SOURCE
+> Task :fishsim:classes UP-TO-DATE
+> Task :fishsim:compileTestJava
+> Task :fishsim:processTestResources UP-TO-DATE
+> Task :fishsim:testClasses
+
+> Task :fishsim:test
+
+BenthicSpikeAttributionProbe > attribute() STANDARD_OUT
+    SPIKES crawl 0.30    ticks>60: 23  worst 174  samples on them 2327
+        1189 (51.1%) GroundBody.footprintFloorFrom:825 < GroundMind.levelWalk:495 < GroundMind.planBeat:467 < 
+         980 (42.1%) GroundBody.footprintFloorFrom:825 < GroundMind.levelWalk:495 < GroundMind.planBeat:468 < 
+          99 ( 4.3%) GroundBody.footprintFloorFrom:825 < GroundMind.planBeat:461 < GroundMind.updateBeat:412 < 
+          39 ( 1.7%) GroundBody.footprintFloorFrom:825 < GroundMind.planBeat:461 < GroundMind.updateBeat:411 < 
+          13 ( 0.6%) GroundBody.footprintFloorFrom:825 < GroundMind.walkable:569 < GroundMind.plan:523 < 
+           6 ( 0.3%) GroundMind.ownerFloor:598 < CompanionAgent.step:167 < 
+    SPIKES crawl 0.60    ticks>60: 52  worst 240  samples on them 7280
+        3273 (45.0%) GroundBody.footprintFloorFrom:825 < GroundMind.levelWalk:495 < GroundMind.planBeat:468 < 
+        3086 (42.4%) GroundBody.footprintFloorFrom:825 < GroundMind.levelWalk:495 < GroundMind.planBeat:467 < 
+         414 ( 5.7%) GroundBody.footprintFloorFrom:825 < GroundMind.planBeat:461 < GroundMind.updateBeat:412 < 
+         339 ( 4.7%) GroundBody.footprintFloorFrom:825 < GroundMind.levelWalk:495 < GroundMind.planBeat:472 < 
+         117 ( 1.6%) GroundBody.footprintFloorFrom:825 < GroundMind.planBeat:461 < GroundMind.updateBeat:411 < 
+          23 ( 0.3%) Mind.perceive:265 < Mind.thinkGround:190 < CompanionAgent.step:181 < 
+    SPIKES ripple 0.35   ticks>60: 20  worst 129  samples on them 2151
+        1057 (49.1%) GroundBody.footprintFloorFrom:825 < GroundMind.levelWalk:495 < GroundMind.planBeat:467 < 
+         895 (41.6%) GroundBody.footprintFloorFrom:825 < GroundMind.levelWalk:495 < GroundMind.planBeat:468 < 
+         108 ( 5.0%) GroundBody.footprintFloorFrom:825 < GroundMind.planBeat:461 < GroundMind.updateBeat:412 < 
+          36 ( 1.7%) GroundBody.footprintFloorFrom:825 < GroundMind.planBeat:461 < GroundMind.updateBeat:411 < 
+          21 ( 1.0%) GroundBody.footprintFloorFrom:825 < GroundMind.levelWalk:495 < GroundMind.planBeat:472 < 
+          17 ( 0.8%) Mind.perceive:265 < Mind.thinkGround:190 < CompanionAgent.step:181 < 
+    SPIKES sprinter 0.30 ticks>60: 71  worst 360  samples on them 13959
+        6675 (47.8%) GroundBody.footprintFloorFrom:825 < GroundMind.levelWalk:495 < GroundMind.planBeat:467 < 
+        4573 (32.8%) GroundBody.footprintFloorFrom:825 < GroundMind.levelWalk:495 < GroundMind.planBeat:468 < 
+        2172 (15.6%) GroundBody.footprintFloorFrom:825 < GroundMind.levelWalk:495 < GroundMind.planBeat:472 < 
+         438 ( 3.1%) GroundBody.footprintFloorFrom:825 < GroundMind.planBeat:461 < GroundMind.updateBeat:411 < 
+          42 ( 0.3%) GroundBody.footprintFloorFrom:825 < GroundMind.planBeat:461 < GroundMind.updateBeat:412 < 
+          29 ( 0.2%) GroundMind.ownerFloor:598 < CompanionAgent.step:167 < 
+
+Test result: SUCCESS — 1 tests, 1 passed, 0 failed, 0 skipped
+
+BUILD SUCCESSFUL in 4s
+4 actionable tasks: 2 executed, 2 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.2.1/userguide/configuration_cache_enabling.html

@@ -1,0 +1,538 @@
+
+> Configure project :
+Architect Plugin: 3.5.170
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :fishsim:compileJava UP-TO-DATE
+> Task :fishsim:processResources NO-SOURCE
+> Task :fishsim:classes UP-TO-DATE
+> Task :fishsim:compileTestJava UP-TO-DATE
+> Task :fishsim:processTestResources UP-TO-DATE
+> Task :fishsim:testClasses UP-TO-DATE
+
+> Task :fishsim:test
+
+FingerprintProbe > fingerprints() STANDARD_OUT
+    FP idle_fixed    #1 bf58699831adec79
+    FP idle_fixed    #2 443a07380936b372
+    FP idle_fixed    #3 e21f622080c5ab65
+    FP idle_looking  #1 1a73b0d774098b95
+    FP idle_looking  #2 a911d0a54e4c21bb
+    FP idle_looking  #3 5e5e2fa84fd3a961
+    FP walk          #1 1916059455566e56
+    FP walk          #2 7bc63629dd831b7d
+    FP walk          #3 4515777ae3b056bc
+    FP walk_turns    #1 86b8876764a6d175
+    FP walk_turns    #2 8dac875790f6d770
+    FP walk_turns    #3 ff71af7ec5725815
+    FP sprint_stop   #1 2eb999db2741320c
+    FP sprint_stop   #2 97f41460f9a46c1b
+    FP sprint_stop   #3 5890b5015a51fe95
+    FP camera_sweep  #1 fcaf7bde1059321b
+    FP camera_sweep  #2 bb2c12856c409370
+    FP camera_sweep  #3 df26727d7f1cf3cb
+    FP corridor      #1 34116b1d48277197
+    FP corridor      #2 10822c90527ab606
+    FP corridor      #3 c45f10c980da154c
+    FP doorway       #1 c98eec204dae79d1
+    FP doorway       #2 3e0a53d540c3e676
+    FP doorway       #3 c8308ebdd5c315d5
+    FP forest        #1 f9c1a6922f3c2b47
+    FP forest        #2 92651c9950fdcf71
+    FP forest        #3 e4bebb0cae38ecc3
+    FP teleport      #1 99a6d33e716dac04
+    FP teleport      #2 2bd2ee3440beed61
+    FP teleport      #3 9188130181ba15d6
+    FP elytra        #1 19a92d20c466f6dd
+    FP elytra        #2 593c0b37e4de0e74
+    FP elytra        #3 b5a2615ae2c4fc31
+    FPA FREE_SWIM idle_fixed      #1 bf58699831adec79
+    FPA FREE_SWIM idle_fixed      #2 443a07380936b372
+    FPA FREE_SWIM idle_fixed      #3 e21f622080c5ab65
+    FPA FREE_SWIM idle_looking    #1 1a73b0d774098b95
+    FPA FREE_SWIM idle_looking    #2 a911d0a54e4c21bb
+    FPA FREE_SWIM idle_looking    #3 5e5e2fa84fd3a961
+    FPA FREE_SWIM walk            #1 1916059455566e56
+    FPA FREE_SWIM walk            #2 7bc63629dd831b7d
+    FPA FREE_SWIM walk            #3 4515777ae3b056bc
+    FPA FREE_SWIM walk_turns      #1 86b8876764a6d175
+    FPA FREE_SWIM walk_turns      #2 8dac875790f6d770
+    FPA FREE_SWIM walk_turns      #3 ff71af7ec5725815
+    FPA FREE_SWIM sprint_stop     #1 2eb999db2741320c
+    FPA FREE_SWIM sprint_stop     #2 97f41460f9a46c1b
+    FPA FREE_SWIM sprint_stop     #3 5890b5015a51fe95
+    FPA FREE_SWIM camera_sweep    #1 fcaf7bde1059321b
+    FPA FREE_SWIM camera_sweep    #2 bb2c12856c409370
+    FPA FREE_SWIM camera_sweep    #3 df26727d7f1cf3cb
+    FPA FREE_SWIM corridor        #1 34116b1d48277197
+    FPA FREE_SWIM corridor        #2 10822c90527ab606
+    FPA FREE_SWIM corridor        #3 c45f10c980da154c
+    FPA FREE_SWIM doorway         #1 c98eec204dae79d1
+    FPA FREE_SWIM doorway         #2 3e0a53d540c3e676
+    FPA FREE_SWIM doorway         #3 c8308ebdd5c315d5
+    FPA FREE_SWIM forest          #1 f9c1a6922f3c2b47
+    FPA FREE_SWIM forest          #2 92651c9950fdcf71
+    FPA FREE_SWIM forest          #3 e4bebb0cae38ecc3
+    FPA FREE_SWIM teleport        #1 99a6d33e716dac04
+    FPA FREE_SWIM teleport        #2 2bd2ee3440beed61
+    FPA FREE_SWIM teleport        #3 9188130181ba15d6
+    FPA FREE_SWIM elytra          #1 19a92d20c466f6dd
+    FPA FREE_SWIM elytra          #2 593c0b37e4de0e74
+    FPA FREE_SWIM elytra          #3 b5a2615ae2c4fc31
+    FPA FREE_SWIM stairwell       #1 c0277989b5a1e953
+    FPA FREE_SWIM stairwell       #2 9fc0e5fe854ea6cb
+    FPA FREE_SWIM stairwell       #3 02f6c63e28941b69
+    FPA FREE_SWIM low_ceiling     #1 64b28d366b4f1d93
+    FPA FREE_SWIM low_ceiling     #2 fadf7fba11cd78c0
+    FPA FREE_SWIM low_ceiling     #3 727c7c8d50f4464c
+    FPA FREE_SWIM pond_dive       #1 b2d8d172608785aa
+    FPA FREE_SWIM pond_dive       #2 41673193838184a5
+    FPA FREE_SWIM pond_dive       #3 677b2e2867c66af4
+    FPA FREE_SWIM wading          #1 99e8ddb9b914470a
+    FPA FREE_SWIM wading          #2 b45b9b54ca557336
+    FPA FREE_SWIM wading          #3 5628d38ca936c577
+    FPA FREE_SWIM about_face      #1 3b17614b3c0f5746
+    FPA FREE_SWIM about_face      #2 9554b1e9cede51a7
+    FPA FREE_SWIM about_face      #3 c23a0585fe19a2e0
+    FPA FREE_SWIM jumping         #1 4dda004a2eecfd53
+    FPA FREE_SWIM jumping         #2 426be9053fcf9bc1
+    FPA FREE_SWIM jumping         #3 aadcf3c66d6b6dad
+    FPA FREE_SWIM creative_flight #1 35c08c42acec4e78
+    FPA FREE_SWIM creative_flight #2 000fd61d3dc7f72a
+    FPA FREE_SWIM creative_flight #3 4cb8825d719cfa88
+    FPA FREE_SWIM held_items      #1 c18257a82a806e3c
+    FPA FREE_SWIM held_items      #2 bc97df1a12d9b7f6
+    FPA FREE_SWIM held_items      #3 5948cf05cc8e824a
+    FPA FREE_SWIM hostile_approach #1 c0c8f064b87ebc77
+    FPA FREE_SWIM hostile_approach #2 e568ac6f0d33018d
+    FPA FREE_SWIM hostile_approach #3 e96a0284948a410e
+    FPA FREE_SWIM cat_lounging    #1 28b7aecad391fd58
+    FPA FREE_SWIM cat_lounging    #2 70d97c9aefb78a7e
+    FPA FREE_SWIM cat_lounging    #3 87df4c8da928644f
+    FPA FREE_SWIM item_drops      #1 74bdd88f26a1b6d3
+    FPA FREE_SWIM item_drops      #2 47aae0fae01b010a
+    FPA FREE_SWIM item_drops      #3 8547786b1edef29a
+    FPA FREE_SWIM companion_passes #1 d18fae846f9fe646
+    FPA FREE_SWIM companion_passes #2 908c2206d397f4f2
+    FPA FREE_SWIM companion_passes #3 d283bc54adf09d82
+    FPA GLIDE     idle_fixed      #1 cc0a79b260a32083
+    FPA GLIDE     idle_fixed      #2 814c875bc9dd65ba
+    FPA GLIDE     idle_fixed      #3 c0e100a59ba92772
+    FPA GLIDE     idle_looking    #1 0d90b0b49da71067
+    FPA GLIDE     idle_looking    #2 c99d0ca15fec5a19
+    FPA GLIDE     idle_looking    #3 3401e0ebcd02af5f
+    FPA GLIDE     walk            #1 325aa907f2503893
+    FPA GLIDE     walk            #2 e8483ebdc4db75ed
+    FPA GLIDE     walk            #3 6da94d5c3f5973d2
+    FPA GLIDE     walk_turns      #1 af75304cc60967dc
+    FPA GLIDE     walk_turns      #2 f4564c56dac4a0f7
+    FPA GLIDE     walk_turns      #3 d9a58d4d41644a72
+    FPA GLIDE     sprint_stop     #1 87cd0eba25e14de4
+    FPA GLIDE     sprint_stop     #2 92d53b9d6a80d568
+    FPA GLIDE     sprint_stop     #3 7968a950cb67e2ac
+    FPA GLIDE     camera_sweep    #1 302f1edaa9f37441
+    FPA GLIDE     camera_sweep    #2 8bc4dd585719d251
+    FPA GLIDE     camera_sweep    #3 74ed4dc8c3c17558
+    FPA GLIDE     corridor        #1 536321844ed5be49
+    FPA GLIDE     corridor        #2 d7579466e9b66ba5
+    FPA GLIDE     corridor        #3 678ce72e18aea3f1
+    FPA GLIDE     doorway         #1 bba69ba6043ebe55
+    FPA GLIDE     doorway         #2 145352899e96c308
+    FPA GLIDE     doorway         #3 76ea64ce74c43ec6
+    FPA GLIDE     forest          #1 ee0895216a7d15a6
+    FPA GLIDE     forest          #2 5e3290cb72d886c4
+    FPA GLIDE     forest          #3 7386264098f17eaa
+    FPA GLIDE     teleport        #1 0414b53bb28884fa
+    FPA GLIDE     teleport        #2 819c797a7500999f
+    FPA GLIDE     teleport        #3 d5feaab3e7c2750c
+    FPA GLIDE     elytra          #1 06fad4943c23fb4d
+    FPA GLIDE     elytra          #2 2b969c25673d3aeb
+    FPA GLIDE     elytra          #3 6db3cf0c77549ebe
+    FPA GLIDE     stairwell       #1 973651d047a7a142
+    FPA GLIDE     stairwell       #2 dc7c0c852e3af903
+    FPA GLIDE     stairwell       #3 538f77682a4bc52a
+    FPA GLIDE     low_ceiling     #1 1239b86916319e2f
+    FPA GLIDE     low_ceiling     #2 7ef218473cd6a641
+    FPA GLIDE     low_ceiling     #3 63a8fdcfb40f25f5
+    FPA GLIDE     pond_dive       #1 894a3a2160c71adb
+    FPA GLIDE     pond_dive       #2 1e9c9b2cfaf9a206
+    FPA GLIDE     pond_dive       #3 d1c897b19347ce16
+    FPA GLIDE     wading          #1 9b2091b4e2f07b82
+    FPA GLIDE     wading          #2 982f03080d2b4ba1
+    FPA GLIDE     wading          #3 10216c37c58f0a74
+    FPA GLIDE     about_face      #1 6db2b8057532a1f6
+    FPA GLIDE     about_face      #2 a8c9b564a4d5d363
+    FPA GLIDE     about_face      #3 a6daed303f4f4f04
+    FPA GLIDE     jumping         #1 43cd7bae9ce0db4b
+    FPA GLIDE     jumping         #2 b4e6b4f561a1403f
+    FPA GLIDE     jumping         #3 e8815a9051130ef3
+    FPA GLIDE     creative_flight #1 002871ab16c3d969
+    FPA GLIDE     creative_flight #2 d7afded3536aad73
+    FPA GLIDE     creative_flight #3 652ce0702f60a804
+    FPA GLIDE     held_items      #1 02a6fa1e3f07b38b
+    FPA GLIDE     held_items      #2 36ae587ace530b8c
+    FPA GLIDE     held_items      #3 9d05ff6ea2ab4448
+    FPA GLIDE     hostile_approach #1 6a1d90a471889c3e
+    FPA GLIDE     hostile_approach #2 413583ab2f04d1df
+    FPA GLIDE     hostile_approach #3 1c1823ccee03e4e6
+    FPA GLIDE     cat_lounging    #1 4c34d724b80033aa
+    FPA GLIDE     cat_lounging    #2 0e75b54a077d7174
+    FPA GLIDE     cat_lounging    #3 02a17bffe129d659
+    FPA GLIDE     item_drops      #1 87f3231b1dea8df5
+    FPA GLIDE     item_drops      #2 6b4db9c92a4252f9
+    FPA GLIDE     item_drops      #3 7df320363c11b66f
+    FPA GLIDE     companion_passes #1 7780eef1fd5d5d4b
+    FPA GLIDE     companion_passes #2 9b9fc2912924d67b
+    FPA GLIDE     companion_passes #3 011154ebdf695807
+    FPA BENTHIC   idle_fixed      #1 bebc7826f78b6bca
+    FPA BENTHIC   idle_fixed      #2 3e0323e7ba89f598
+    FPA BENTHIC   idle_fixed      #3 9072c856500644d1
+    FPA BENTHIC   idle_looking    #1 419ac7b6aa793c30
+    FPA BENTHIC   idle_looking    #2 5e67000fea4b274b
+    FPA BENTHIC   idle_looking    #3 574922a7831e361e
+    FPA BENTHIC   walk            #1 abeb3970c6d2c5c1
+    FPA BENTHIC   walk            #2 42f59f12f0d68579
+    FPA BENTHIC   walk            #3 7633465bcb84f20f
+    FPA BENTHIC   walk_turns      #1 124660c94d80ac92
+    FPA BENTHIC   walk_turns      #2 73d5ab648f3d2679
+    FPA BENTHIC   walk_turns      #3 3bc6180e65af53a8
+    FPA BENTHIC   sprint_stop     #1 c373fa1645daf65c
+    FPA BENTHIC   sprint_stop     #2 bac5655096c43c65
+    FPA BENTHIC   sprint_stop     #3 a574eb7b84b18f36
+    FPA BENTHIC   camera_sweep    #1 e5254829287ce9f6
+    FPA BENTHIC   camera_sweep    #2 102ef3ec6caec5c8
+    FPA BENTHIC   camera_sweep    #3 a2dded09d6260ddc
+    FPA BENTHIC   corridor        #1 d4d4aca74369c845
+    FPA BENTHIC   corridor        #2 f5520b9d14b64975
+    FPA BENTHIC   corridor        #3 0cec3c078ca0d628
+    FPA BENTHIC   doorway         #1 c39ede03f3d72ee8
+    FPA BENTHIC   doorway         #2 6cb13f90c9c67e62
+    FPA BENTHIC   doorway         #3 d1aeaade8c84c943
+    FPA BENTHIC   forest          #1 fb3ef162a633fca1
+    FPA BENTHIC   forest          #2 e113033a9ad29bc4
+    FPA BENTHIC   forest          #3 45f5a98db6cbff98
+    FPA BENTHIC   teleport        #1 e50cfca1514eea41
+    FPA BENTHIC   teleport        #2 0c248117bedc11b2
+    FPA BENTHIC   teleport        #3 ab56cd8622ffd201
+    FPA BENTHIC   elytra          #1 b5870dbf434d54bc
+    FPA BENTHIC   elytra          #2 a71779c806d74251
+    FPA BENTHIC   elytra          #3 b49ee1b5886c2f7e
+    FPA BENTHIC   stairwell       #1 264fa66f5ee18274
+    FPA BENTHIC   stairwell       #2 0f98c8d502ce8784
+    FPA BENTHIC   stairwell       #3 d1ec30c9479e6eb3
+    FPA BENTHIC   low_ceiling     #1 f927c223ffd36cc6
+    FPA BENTHIC   low_ceiling     #2 0b18f5000b27be7a
+    FPA BENTHIC   low_ceiling     #3 046e18cbfbcc0935
+    FPA BENTHIC   pond_dive       #1 495ed6042d4f2b1a
+    FPA BENTHIC   pond_dive       #2 72548a5eb82063dd
+    FPA BENTHIC   pond_dive       #3 cc81ad7b81c7258c
+    FPA BENTHIC   wading          #1 85faba6c32c0a1f4
+    FPA BENTHIC   wading          #2 17900bd033acbabb
+    FPA BENTHIC   wading          #3 b11ae4932e7a87c4
+    FPA BENTHIC   about_face      #1 f5ba0b81045ae770
+    FPA BENTHIC   about_face      #2 8cf03c5f8f76c194
+    FPA BENTHIC   about_face      #3 492812021e921d2b
+    FPA BENTHIC   jumping         #1 459665cdb52012cd
+    FPA BENTHIC   jumping         #2 bf8a46b9a2eff5cd
+    FPA BENTHIC   jumping         #3 5818cea0bc2927b5
+    FPA BENTHIC   creative_flight #1 d6c3ec4bdab986ca
+    FPA BENTHIC   creative_flight #2 9ba68aa5689c339f
+    FPA BENTHIC   creative_flight #3 918e133b1c668085
+    FPA BENTHIC   held_items      #1 5fb44d252be052b0
+    FPA BENTHIC   held_items      #2 67fb5b609fb09962
+    FPA BENTHIC   held_items      #3 e24da47a702c67dc
+    FPA BENTHIC   hostile_approach #1 35109a0fd5fbe12d
+    FPA BENTHIC   hostile_approach #2 13d4e19873b30778
+    FPA BENTHIC   hostile_approach #3 4e14c6960d128920
+    FPA BENTHIC   cat_lounging    #1 6d3f7bb04f9086cd
+    FPA BENTHIC   cat_lounging    #2 3efdb3f64fba3233
+    FPA BENTHIC   cat_lounging    #3 e70613dc11041a6b
+    FPA BENTHIC   item_drops      #1 9df1fadfce8586b5
+    FPA BENTHIC   item_drops      #2 1c6c119a810a5ba8
+    FPA BENTHIC   item_drops      #3 ddac72f64a10185f
+    FPA BENTHIC   companion_passes #1 b93eaa8cfd2bca3e
+    FPA BENTHIC   companion_passes #2 5067a4a25f278f92
+    FPA BENTHIC   companion_passes #3 525481f27142a199
+    FPA ANCHORED  idle_fixed      #1 bf7520b8b36a5be5
+    FPA ANCHORED  idle_fixed      #2 bf7520b8b36a5be5
+    FPA ANCHORED  idle_fixed      #3 bf7520b8b36a5be5
+    FPA ANCHORED  idle_looking    #1 c5ad1331b5b813c9
+    FPA ANCHORED  idle_looking    #2 a33c058ec113e327
+    FPA ANCHORED  idle_looking    #3 4b5c79dff5776844
+    FPA ANCHORED  walk            #1 59d7a7a19f789ff6
+    FPA ANCHORED  walk            #2 59d7a7a19f789ff6
+    FPA ANCHORED  walk            #3 59d7a7a19f789ff6
+    FPA ANCHORED  walk_turns      #1 c0295a7397ecf2da
+    FPA ANCHORED  walk_turns      #2 34e8876c3ab3669b
+    FPA ANCHORED  walk_turns      #3 c90a3527e3811123
+    FPA ANCHORED  sprint_stop     #1 6089456acbca7c2b
+    FPA ANCHORED  sprint_stop     #2 6089456acbca7c2b
+    FPA ANCHORED  sprint_stop     #3 6089456acbca7c2b
+    FPA ANCHORED  camera_sweep    #1 2b2059646ca87685
+    FPA ANCHORED  camera_sweep    #2 2b2059646ca87685
+    FPA ANCHORED  camera_sweep    #3 2b2059646ca87685
+    FPA ANCHORED  corridor        #1 3cebda70293540a0
+    FPA ANCHORED  corridor        #2 3cebda70293540a0
+    FPA ANCHORED  corridor        #3 3cebda70293540a0
+    FPA ANCHORED  doorway         #1 4949f65cdcc4472b
+    FPA ANCHORED  doorway         #2 4949f65cdcc4472b
+    FPA ANCHORED  doorway         #3 4949f65cdcc4472b
+    FPA ANCHORED  forest          #1 440f3fb9625cb81b
+    FPA ANCHORED  forest          #2 8915c50c45223a75
+    FPA ANCHORED  forest          #3 1111b330bd18e2cb
+    FPA ANCHORED  teleport        #1 960eda9c9144779d
+    FPA ANCHORED  teleport        #2 960eda9c9144779d
+    FPA ANCHORED  teleport        #3 960eda9c9144779d
+    FPA ANCHORED  elytra          #1 e5731368592aeee4
+    FPA ANCHORED  elytra          #2 e5731368592aeee4
+    FPA ANCHORED  elytra          #3 e5731368592aeee4
+    FPA ANCHORED  stairwell       #1 14e812e7f0a2c04d
+    FPA ANCHORED  stairwell       #2 14e812e7f0a2c04d
+    FPA ANCHORED  stairwell       #3 14e812e7f0a2c04d
+    FPA ANCHORED  low_ceiling     #1 5961b4eb4338f83b
+    FPA ANCHORED  low_ceiling     #2 5d36b616a1dbb773
+    FPA ANCHORED  low_ceiling     #3 e3e7e9e5c1db4d50
+    FPA ANCHORED  pond_dive       #1 c4323b1ebf8eab2a
+    FPA ANCHORED  pond_dive       #2 c3a99074ee80009c
+    FPA ANCHORED  pond_dive       #3 700f80993bb1ea7b
+    FPA ANCHORED  wading          #1 f07fe706a36ef1d6
+    FPA ANCHORED  wading          #2 275127e4ef0b7c45
+    FPA ANCHORED  wading          #3 f26c08893fd83bea
+    FPA ANCHORED  about_face      #1 77754255d39e9202
+    FPA ANCHORED  about_face      #2 11a0996bfcc94a54
+    FPA ANCHORED  about_face      #3 32907d40d81b29e3
+    FPA ANCHORED  jumping         #1 2eab8215ea691099
+    FPA ANCHORED  jumping         #2 2eab8215ea691099
+    FPA ANCHORED  jumping         #3 2eab8215ea691099
+    FPA ANCHORED  creative_flight #1 0c425e75545052b4
+    FPA ANCHORED  creative_flight #2 0c425e75545052b4
+    FPA ANCHORED  creative_flight #3 0c425e75545052b4
+    FPA ANCHORED  held_items      #1 e31c29614694eb44
+    FPA ANCHORED  held_items      #2 e31c29614694eb44
+    FPA ANCHORED  held_items      #3 e31c29614694eb44
+    FPA ANCHORED  hostile_approach #1 4793447227acfc7b
+    FPA ANCHORED  hostile_approach #2 4793447227acfc7b
+    FPA ANCHORED  hostile_approach #3 4793447227acfc7b
+    FPA ANCHORED  cat_lounging    #1 aaf452115df48937
+    FPA ANCHORED  cat_lounging    #2 aaf452115df48937
+    FPA ANCHORED  cat_lounging    #3 aaf452115df48937
+    FPA ANCHORED  item_drops      #1 90668166e70df085
+    FPA ANCHORED  item_drops      #2 90668166e70df085
+    FPA ANCHORED  item_drops      #3 90668166e70df085
+    FPA ANCHORED  companion_passes #1 104c240ffbf4c3b8
+    FPA ANCHORED  companion_passes #2 104c240ffbf4c3b8
+    FPA ANCHORED  companion_passes #3 104c240ffbf4c3b8
+    FPA DRIFT     idle_fixed      #1 0e2aec218ff36d05
+    FPA DRIFT     idle_fixed      #2 c925886f8c4837b2
+    FPA DRIFT     idle_fixed      #3 8514e787b9f723e5
+    FPA DRIFT     idle_looking    #1 d37b83e4764943d0
+    FPA DRIFT     idle_looking    #2 f89d192e8ac9a06e
+    FPA DRIFT     idle_looking    #3 5de17666b4cdaeed
+    FPA DRIFT     walk            #1 a31d645b10879d2d
+    FPA DRIFT     walk            #2 8c36c6d487dbf29c
+    FPA DRIFT     walk            #3 ef7a1f43af59d057
+    FPA DRIFT     walk_turns      #1 476f77daa7fa192a
+    FPA DRIFT     walk_turns      #2 773173e48c149fe4
+    FPA DRIFT     walk_turns      #3 f5b44760692277d7
+    FPA DRIFT     sprint_stop     #1 1d14055b8f3a3015
+    FPA DRIFT     sprint_stop     #2 948cb5f46aeb6804
+    FPA DRIFT     sprint_stop     #3 279f22111ec68a9a
+    FPA DRIFT     camera_sweep    #1 66d30efff2637660
+    FPA DRIFT     camera_sweep    #2 e60958a6cc502e80
+    FPA DRIFT     camera_sweep    #3 6786ee1072f12f24
+    FPA DRIFT     corridor        #1 ce8053d62e11af6a
+    FPA DRIFT     corridor        #2 55be5d6023a78f44
+    FPA DRIFT     corridor        #3 7ecb869be1550b3d
+    FPA DRIFT     doorway         #1 32c65c64432192bf
+    FPA DRIFT     doorway         #2 962e67cd714a97e6
+    FPA DRIFT     doorway         #3 67cbca7998ee0fe0
+    FPA DRIFT     forest          #1 e56ff4fe15cdc439
+    FPA DRIFT     forest          #2 c6d12c67ea756c8e
+    FPA DRIFT     forest          #3 d899beeea9a4f8ce
+    FPA DRIFT     teleport        #1 fa30ba501fc5677a
+    FPA DRIFT     teleport        #2 02caa382a807b619
+    FPA DRIFT     teleport        #3 d530ccbe034149a8
+    FPA DRIFT     elytra          #1 c98ea1dd69ccfca2
+    FPA DRIFT     elytra          #2 6ff5747a52d0482c
+    FPA DRIFT     elytra          #3 4028717c4fb2298d
+    FPA DRIFT     stairwell       #1 02a7d3fd2c2fff47
+    FPA DRIFT     stairwell       #2 65b961d02c1465c7
+    FPA DRIFT     stairwell       #3 f7629afa990af977
+    FPA DRIFT     low_ceiling     #1 810baff52e492632
+    FPA DRIFT     low_ceiling     #2 fc33636652b05ca1
+    FPA DRIFT     low_ceiling     #3 327bee93816d1826
+    FPA DRIFT     pond_dive       #1 9d43c4c4f8a16b44
+    FPA DRIFT     pond_dive       #2 cb950d556ceb2e07
+    FPA DRIFT     pond_dive       #3 3a536cc643685866
+    FPA DRIFT     wading          #1 7ec84af7d7b70c42
+    FPA DRIFT     wading          #2 f692e94090b10e91
+    FPA DRIFT     wading          #3 bdb808ea3c72c128
+    FPA DRIFT     about_face      #1 b09e26035f3db31c
+    FPA DRIFT     about_face      #2 c4f00e1b2aae1762
+    FPA DRIFT     about_face      #3 c318fc2b8ed2c18f
+    FPA DRIFT     jumping         #1 7cf8eef4c27823fd
+    FPA DRIFT     jumping         #2 155d47e962dd5652
+    FPA DRIFT     jumping         #3 0303528dabccc2e2
+    FPA DRIFT     creative_flight #1 42ed4f2fad038997
+    FPA DRIFT     creative_flight #2 badcc967c705a4a4
+    FPA DRIFT     creative_flight #3 58c2d5095eaa440d
+    FPA DRIFT     held_items      #1 182d62d507001c99
+    FPA DRIFT     held_items      #2 a5483c2152675d94
+    FPA DRIFT     held_items      #3 cf7bb79029285260
+    FPA DRIFT     hostile_approach #1 59ff8180f37a1cdb
+    FPA DRIFT     hostile_approach #2 83aba3cbdf20fc6b
+    FPA DRIFT     hostile_approach #3 33835cab7d47b828
+    FPA DRIFT     cat_lounging    #1 025658bf2ea99f02
+    FPA DRIFT     cat_lounging    #2 a313ea05dee9d9db
+    FPA DRIFT     cat_lounging    #3 6dd5440d7a0eab30
+    FPA DRIFT     item_drops      #1 6586d0bbe0f6c3cf
+    FPA DRIFT     item_drops      #2 eeccfcee8a1ab113
+    FPA DRIFT     item_drops      #3 cf5dbf3c865afffb
+    FPA DRIFT     companion_passes #1 1a1dc81935b9cea6
+    FPA DRIFT     companion_passes #2 4112101e08e28689
+    FPA DRIFT     companion_passes #3 950e12d2c935047a
+    FPA PERCHER   idle_fixed      #1 f01631838f42bd70
+    FPA PERCHER   idle_fixed      #2 5a125f4cf2be5a8e
+    FPA PERCHER   idle_fixed      #3 14ca45fd9581009c
+    FPA PERCHER   idle_looking    #1 228206a1d686ccf8
+    FPA PERCHER   idle_looking    #2 864717aab23cc7c1
+    FPA PERCHER   idle_looking    #3 ef71d3d94c4654fb
+    FPA PERCHER   walk            #1 135232c091c367ff
+    FPA PERCHER   walk            #2 7edd56d26d0ffe9e
+    FPA PERCHER   walk            #3 6de8d20e7a58cefe
+    FPA PERCHER   walk_turns      #1 a6fe51df6e8561f4
+    FPA PERCHER   walk_turns      #2 487fab5864142a93
+    FPA PERCHER   walk_turns      #3 8a8fa804ad65bac9
+    FPA PERCHER   sprint_stop     #1 fe338eaf3a9de82e
+    FPA PERCHER   sprint_stop     #2 2247746098387b9d
+    FPA PERCHER   sprint_stop     #3 c0cfe5d2c89a27d6
+    FPA PERCHER   camera_sweep    #1 6e15312dde4f80a9
+    FPA PERCHER   camera_sweep    #2 a2343c75be90c85c
+    FPA PERCHER   camera_sweep    #3 109a44a09a147b01
+    FPA PERCHER   corridor        #1 8c96e8d2dc08e12a
+    FPA PERCHER   corridor        #2 ea23cf28cf243f2d
+    FPA PERCHER   corridor        #3 08d2a7cd674287ce
+    FPA PERCHER   doorway         #1 0a5d3daf5e644fee
+    FPA PERCHER   doorway         #2 0a864751ee03a0e7
+    FPA PERCHER   doorway         #3 aae9f330cac0cfef
+    FPA PERCHER   forest          #1 71527e5fdf4a57aa
+    FPA PERCHER   forest          #2 369f0d4a804fe4b6
+    FPA PERCHER   forest          #3 74959b7056077605
+    FPA PERCHER   teleport        #1 29317e87929c1e3c
+    FPA PERCHER   teleport        #2 2d14c427ba139cdf
+    FPA PERCHER   teleport        #3 789aeb519ffad389
+    FPA PERCHER   elytra          #1 c8333f35a2072092
+    FPA PERCHER   elytra          #2 bf7f23f1d25f4af4
+    FPA PERCHER   elytra          #3 681a29c5fb695d00
+    FPA PERCHER   stairwell       #1 1b23c420d6617c28
+    FPA PERCHER   stairwell       #2 1084d409a9e8cc34
+    FPA PERCHER   stairwell       #3 24eb5276e140cac2
+    FPA PERCHER   low_ceiling     #1 2b978be3317c9418
+    FPA PERCHER   low_ceiling     #2 c527ec8b26dba048
+    FPA PERCHER   low_ceiling     #3 c9c0161c567bc4ff
+    FPA PERCHER   pond_dive       #1 241ff72a637f77d7
+    FPA PERCHER   pond_dive       #2 99be0362bb948271
+    FPA PERCHER   pond_dive       #3 d3c20cd114266682
+    FPA PERCHER   wading          #1 44f1f263d42ac6de
+    FPA PERCHER   wading          #2 93bf01919e0601bc
+    FPA PERCHER   wading          #3 760b8a8efe358744
+    FPA PERCHER   about_face      #1 e6a5062a9f11eb07
+    FPA PERCHER   about_face      #2 77403f19f7482ef2
+    FPA PERCHER   about_face      #3 e79bc2ba1a475f6a
+    FPA PERCHER   jumping         #1 0f3f43b82e516c22
+    FPA PERCHER   jumping         #2 be959db97aab4184
+    FPA PERCHER   jumping         #3 04e1b9818fc9ad03
+    FPA PERCHER   creative_flight #1 9b7580c32572ef66
+    FPA PERCHER   creative_flight #2 d7adf3dac0a5b52e
+    FPA PERCHER   creative_flight #3 f761e1f1c8e472f1
+    FPA PERCHER   held_items      #1 e54653b57dec6f89
+    FPA PERCHER   held_items      #2 28bed1a9a992e62c
+    FPA PERCHER   held_items      #3 67adbe6f85ab7c4e
+    FPA PERCHER   hostile_approach #1 677c5ffedffe7087
+    FPA PERCHER   hostile_approach #2 cff6955f3c67b6f5
+    FPA PERCHER   hostile_approach #3 a0016a749013d0b1
+    FPA PERCHER   cat_lounging    #1 c6216bc0034d7ab2
+    FPA PERCHER   cat_lounging    #2 9e1991bf6ce6ec5c
+    FPA PERCHER   cat_lounging    #3 b3a5c68a44317d22
+    FPA PERCHER   item_drops      #1 b63261d077286bfd
+    FPA PERCHER   item_drops      #2 34bdbb820fd6bcb3
+    FPA PERCHER   item_drops      #3 59be6152fb11a49a
+    FPA PERCHER   companion_passes #1 981ecd5efcb4e4af
+    FPA PERCHER   companion_passes #2 ccd75136483a834e
+    FPA PERCHER   companion_passes #3 e967a7fefe977af4
+    FPA TRIO      idle_fixed      #1 6314a2bf42ce30b8
+    FPA TRIO      idle_fixed      #2 00a1c598e414102f
+    FPA TRIO      idle_fixed      #3 8dd3760af4b0fe8c
+    FPA TRIO      idle_looking    #1 5be8309c2eb1a444
+    FPA TRIO      idle_looking    #2 3ae5db3f0d477101
+    FPA TRIO      idle_looking    #3 1e1331d5c22b575b
+    FPA TRIO      walk            #1 ad04ab3bbe758e21
+    FPA TRIO      walk            #2 36db0718194d61f0
+    FPA TRIO      walk            #3 338b33f0f9fba4ad
+    FPA TRIO      walk_turns      #1 3ae928c4d03789d9
+    FPA TRIO      walk_turns      #2 b8dff6c008ee3a05
+    FPA TRIO      walk_turns      #3 54392c5cd732aebc
+    FPA TRIO      sprint_stop     #1 2a17a6c8f3b7c018
+    FPA TRIO      sprint_stop     #2 dca708d1646f2c5a
+    FPA TRIO      sprint_stop     #3 8a7ecf256f611c28
+    FPA TRIO      camera_sweep    #1 a3d3fcae39c59ca5
+    FPA TRIO      camera_sweep    #2 0efbc4550501619f
+    FPA TRIO      camera_sweep    #3 b43dafa2bddda08f
+    FPA TRIO      corridor        #1 ac32ea9676341706
+    FPA TRIO      corridor        #2 f5301e4439499007
+    FPA TRIO      corridor        #3 333be756227314f9
+    FPA TRIO      doorway         #1 f53dc4d84795a321
+    FPA TRIO      doorway         #2 a8ea9d6f0770f95c
+    FPA TRIO      doorway         #3 043a3771e3b39c7e
+    FPA TRIO      forest          #1 a678afa1d7c07466
+    FPA TRIO      forest          #2 59b2c905f0d23541
+    FPA TRIO      forest          #3 8b00aedbec648fc6
+    FPA TRIO      teleport        #1 9074492c15c72e8f
+    FPA TRIO      teleport        #2 778ab1b40af01353
+    FPA TRIO      teleport        #3 11639747c3fdc458
+    FPA TRIO      elytra          #1 8ce237a6259bef24
+    FPA TRIO      elytra          #2 ac7660df7e517e83
+    FPA TRIO      elytra          #3 5817b5b152c82b5b
+    FPA TRIO      stairwell       #1 62160b976030d708
+    FPA TRIO      stairwell       #2 cbaddb07f2c47c8a
+    FPA TRIO      stairwell       #3 a02204ec5075fbab
+    FPA TRIO      low_ceiling     #1 5d7e632761933c6e
+    FPA TRIO      low_ceiling     #2 20de73226b19a82a
+    FPA TRIO      low_ceiling     #3 45cea75d1a035fe2
+    FPA TRIO      pond_dive       #1 bb9da858d29a3d50
+    FPA TRIO      pond_dive       #2 d160ab8ab258d39d
+    FPA TRIO      pond_dive       #3 b35c76eb28f50d5b
+    FPA TRIO      wading          #1 fff113fa0caba324
+    FPA TRIO      wading          #2 150368d5e4517290
+    FPA TRIO      wading          #3 07acd6b149bec8b5
+    FPA TRIO      about_face      #1 e0f3c70bcfea0a3b
+    FPA TRIO      about_face      #2 7ab79c6e9a92ff05
+    FPA TRIO      about_face      #3 10771da6f5d53c34
+    FPA TRIO      jumping         #1 12d201352b25fbba
+    FPA TRIO      jumping         #2 05ba4b895b77d1c3
+    FPA TRIO      jumping         #3 5d2a97eafc4e4ecf
+    FPA TRIO      creative_flight #1 10b7bc3cfa73a14b
+    FPA TRIO      creative_flight #2 b4ffbb934a7efdc0
+    FPA TRIO      creative_flight #3 1804a1e1f2834656
+    FPA TRIO      held_items      #1 e1516f2d7fca20e9
+    FPA TRIO      held_items      #2 c694fe86892f7676
+    FPA TRIO      held_items      #3 0aa6b9299c06448c
+    FPA TRIO      hostile_approach #1 11739051c398e6bc
+    FPA TRIO      hostile_approach #2 b182bdd749f0e2c0
+    FPA TRIO      hostile_approach #3 ddb03640b2febb0e
+    FPA TRIO      cat_lounging    #1 c52634b30ddae3b4
+    FPA TRIO      cat_lounging    #2 68d98842f1960916
+    FPA TRIO      cat_lounging    #3 800f9ae5b2b06e53
+    FPA TRIO      item_drops      #1 17e5d3e26741783f
+    FPA TRIO      item_drops      #2 d2e6489dcb78938c
+    FPA TRIO      item_drops      #3 62ea8988f6e1a1d6
+    FPA TRIO      companion_passes #1 8b72e5a2d388fb52
+    FPA TRIO      companion_passes #2 2ef7a6ce3000b3b0
+    FPA TRIO      companion_passes #3 b14d5576b4c6e3d6
+
+Test result: SUCCESS — 1 tests, 1 passed, 0 failed, 0 skipped
+
+BUILD SUCCESSFUL in 8s
+4 actionable tasks: 1 executed, 3 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.2.1/userguide/configuration_cache_enabling.html

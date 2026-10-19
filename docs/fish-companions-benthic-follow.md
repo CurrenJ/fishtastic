@@ -1016,3 +1016,33 @@ Turn on the overlay first: `/fishtastic companion debug true`. Equip with
    ground.
 9. **Mount and elytra:** ride a horse or glide; members climb on or fade onto the perch.
 10. **Another player (if available):** their benthic group walks and perches on their body for you.
+
+
+## 24 — Beat planner scan work (2026-10-12)
+
+The remaining long look-ahead checks are real route validation. Caps of 12, 16, 20,
+24 and 32 blocks were tested against the exact original planner with beats enabled
+in both arms, over 20 seeds each. Shortening only the lead and retaining the complete
+`time + lead + 2` owner-route check still reduced walking visibility: at 16 blocks,
+the sprinter on flat ground worsened in 19/20 seeds (2,854 fewer visible walking ticks)
+and the 0.6-block baseline worsened in 19/20 (2,523 fewer ticks). At 32 blocks the
+sprinter still worsened in 5 seeds and improved in 3; owner overlap increased in 2.
+Stairs and low ceilings were unchanged. No cap was adopted. The earlier sweep that
+compared beats off versus on did not isolate the cap's effect.
+
+Instead, `levelWalk` keeps its original 0.1-block positions and complete route, but
+reuses a successful floor answer while the four integer bounds of the footprint's
+columns remain identical. `footprintFloorFrom` depends only on those columns and the
+fixed floor height during this scan; the first footprint is always checked, and an
+obstacle or edge still ends the scan immediately. Reuse lasts only within one scan.
+
+`BenthicFootprintScanTest` compares both arms per seed across flat ground, meanders,
+stairs, low ceilings, step gaps and slabs, sizes 0.3 and 0.6, and 12 seeds with the
+sprinter temperament: all 144 pairs have identical complete sample lists, general
+metrics and ground metrics. Footprint evaluations fall from 523,751 to 117,270
+(77.6%). This reduces planner CPU work; underlying block query counts and their rare
+peaks stay unchanged because `LocalVoxels` already caches queried cells.
+
+All 516 fingerprints are identical to the resumed baseline, including all 447
+protected non-BENTHIC lines. Full fishsim validation is recorded with the integrated
+change. No owner-world or wall-clock performance claim is made here.

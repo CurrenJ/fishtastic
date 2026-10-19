@@ -1,0 +1,27 @@
+##### cap=12
+crawl solo 0.30                  mean   0.90/tick  p99   15  p99.9   33  worst   117  
+crawl solo 0.60 (spider crab)    mean   1.04/tick  p99   15  p99.9   44  worst   120  
+ripple solo 0.35 (plaice)        mean   0.91/tick  p99   16  p99.9   34  worst   117  
+line of 3, 0.25 (starfish)       mean   3.42/tick  p99   47  p99.9   91  worst   135  
+crowd of 3, 0.25 (sea slugs)     mean   3.65/tick  p99   51  p99.9   99  worst   147  
+walk_flat sprinter 0.3:     SEEDS up 5 down 3
+walk_meander sprinter 0.3:     SEEDS up 12 down 0
+walk_flat baseline 0.6:     SEEDS up 5 down 1
+##### cap=16
+crawl solo 0.30                  mean   0.90/tick  p99   15  p99.9   33  worst   117  
+crawl solo 0.60 (spider crab)    mean   1.16/tick  p99   17  p99.9   79  worst   145  
+ripple solo 0.35 (plaice)        mean   0.94/tick  p99   17  p99.9   38  worst   129  
+line of 3, 0.25 (starfish)       mean   3.43/tick  p99   48  p99.9   99  worst   135  
+crowd of 3, 0.25 (sea slugs)     mean   3.66/tick  p99   51  p99.9  102  worst   147  
+walk_flat sprinter 0.3:     SEEDS up 6 down 3
+walk_meander sprinter 0.3:     SEEDS up 12 down 0
+walk_flat baseline 0.6:     SEEDS up 11 down 1
+##### cap=20
+crawl solo 0.30                  mean   0.90/tick  p99   15  p99.9   33  worst   117  
+crawl solo 0.60 (spider crab)    mean   1.22/tick  p99   18  p99.9   90  worst   213  
+ripple solo 0.35 (plaice)        mean   0.94/tick  p99   17  p99.9   38  worst   129  
+line of 3, 0.25 (starfish)       mean   3.44/tick  p99   48  p99.9  100  worst   160  
+crowd of 3, 0.25 (sea slugs)     mean   3.66/tick  p99   51  p99.9  103  worst   147  
+walk_flat sprinter 0.3:     SEEDS up 6 down 3
+walk_meander sprinter 0.3:     SEEDS up 12 down 0
+walk_flat baseline 0.6:     SEEDS up 12 down 0

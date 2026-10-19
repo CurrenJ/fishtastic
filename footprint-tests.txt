@@ -1,0 +1,19 @@
+
+> Configure project :
+Architect Plugin: 3.5.170
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :fishsim:compileJava UP-TO-DATE
+> Task :fishsim:processResources NO-SOURCE
+> Task :fishsim:classes UP-TO-DATE
+> Task :fishsim:compileTestJava UP-TO-DATE
+> Task :fishsim:processTestResources UP-TO-DATE
+> Task :fishsim:testClasses UP-TO-DATE
+> Task :fishsim:test
+
+Test result: SUCCESS — 356 tests, 329 passed, 0 failed, 27 skipped
+
+BUILD SUCCESSFUL in 54s
+4 actionable tasks: 1 executed, 3 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.2.1/userguide/configuration_cache_enabling.html
