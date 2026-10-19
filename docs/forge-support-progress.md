@@ -513,3 +513,8 @@ self-test entries, the toggle build contains the expected eight, bytecode shows 
 each call, and a 1.20.1 Forge client smoke started cleanly. Both lines are bumped to 2.1.3
 (unpublished). Commits: 1.21.1 `2de14ba4`, 1.20.1 `622ccab2`. 26.1.2 already excluded the
 harness and stays at 2.1.2 until its next change.
+
+Owner follow-up (2026-10-20): 2.1.3 stays as the working version for the next release, but it is
+**not to be published yet** — the owner will add further changes first. The bumps on 1.21.1 and
+1.20.1 remain committed. 26.1.2 stays at 2.1.2 until it next changes; align it when the 2.1.3
+release is cut.
