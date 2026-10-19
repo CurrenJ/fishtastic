@@ -95,7 +95,7 @@ tasks.withType(Test).configureEach {
     // Measurement probes are @EnabledIfSystemProperty("simStdout") so they stay out of the normal
     // suite — they time things, which is slow and machine-dependent, not correctness.
     systemProperty 'simStdout', project.hasProperty('simStdout').toString()
-    ['trace', 'sweep', 'sweepClass', 'tweakA', 'tweakB', 'sweepLength', 'tracePos', 'fpAll', 'sweepTemperament', 'sweepTicks', 'sweepSeeds'].each { if (project.hasProperty(it)) systemProperty it, project.property(it) }
+    ['trace', 'sweep', 'sweepClass', 'tweakA', 'tweakB', 'sweepLength', 'tracePos', 'fpAll', 'sweepTemperament', 'sweepTicks', 'sweepSeeds', 'driftStyle', 'sweepPerSeed'].each { if (project.hasProperty(it)) systemProperty it, project.property(it) }
     afterSuite { desc, result ->
         if (!desc.parent) {
             println "\nTest result: ${result.resultType} — ${result.testCount} tests, " +

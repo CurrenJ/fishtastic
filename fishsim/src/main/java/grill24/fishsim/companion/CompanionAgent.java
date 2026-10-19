@@ -48,6 +48,7 @@ public final class CompanionAgent {
     private Vec lastChest;
     private final float length;
     private final Locomotion locomotion;
+    private final DriftStyle driftStyle;
 
     private float appear = 1f;
     private Fade fade = Fade.NONE;
@@ -99,11 +100,25 @@ public final class CompanionAgent {
      */
     public CompanionAgent(CompanionTunables t, long seed, Locomotion locomotion, float length, Temperament temperament,
                           GroundGait gait, CompanionWorld world) {
-        this(t, seed, locomotion, length, temperament, gait, world, null);
+        this(t, seed, locomotion, length, temperament, gait, DriftStyle.BELL, world, null);
+    }
+
+    /**
+     * @param driftStyle how a drifter propels itself (docs/fish-companions-drift.md §2); ignored for
+     *                   other classes
+     */
+    public CompanionAgent(CompanionTunables t, long seed, Locomotion locomotion, float length, Temperament temperament,
+                          GroundGait gait, DriftStyle driftStyle, CompanionWorld world) {
+        this(t, seed, locomotion, length, temperament, gait, driftStyle, world, null);
     }
 
     CompanionAgent(CompanionTunables t, long seed, Locomotion locomotion, float length, Temperament temperament,
                    GroundGait gait, CompanionWorld world, CompanionAgent groupLeader) {
+        this(t, seed, locomotion, length, temperament, gait, DriftStyle.BELL, world, groupLeader);
+    }
+
+    CompanionAgent(CompanionTunables t, long seed, Locomotion locomotion, float length, Temperament temperament,
+                   GroundGait gait, DriftStyle driftStyle, CompanionWorld world, CompanionAgent groupLeader) {
         OwnerState owner = world.owner();
         BlockQuery blocks = world.blocks();
         this.t = t;
@@ -112,6 +127,7 @@ public final class CompanionAgent {
         this.drives = groupLeader == null ? new Drives(temperament) : groupLeader.drives;
         this.length = length;
         this.locomotion = locomotion;
+        this.driftStyle = driftStyle == null ? DriftStyle.BELL : driftStyle;
         double radius = Math.max(0.08, Math.min(0.3, length * 0.3));
         voxels.update(blocks, owner.eye());
         Vec start = besideOwner(owner, radius);
@@ -133,7 +149,7 @@ public final class CompanionAgent {
         } else {
             this.perch = null;
             this.body = locomotion == Locomotion.DRIFT
-                    ? new DriftBody(t, start, owner.yawDeg(), radius, seed ^ 0x5DEECE66DL)
+                    ? new DriftBody(t, this.driftStyle, start, owner.yawDeg(), radius, seed ^ 0x5DEECE66DL)
                     : new Body(t, locomotion, start, owner.yawDeg(), radius, seed ^ 0x5DEECE66DL);
             this.mind = new Mind(t, body, seed, drives, temperament);
             if (body instanceof Body b) b.pace = temperament.pace();
@@ -347,9 +363,15 @@ public final class CompanionAgent {
     /** A drifter's thrust this tick, blocks/s² (0 for swimmers). */
     public double thrust() { return body instanceof DriftBody d ? d.lastThrust : 0; }
     public float spin() { return body instanceof DriftBody d ? d.spin : 0f; }
+    /** What the mind asked a drifter for this tick, blocks/s (zero for swimmers). */
+    public Vec driftAsked() { return body instanceof DriftBody d ? d.asked : Vec.ZERO; }
+    /** Whether a drifter started a new pulse cycle this tick. */
+    public boolean driftStrokeStart() { return body instanceof DriftBody d && d.strokeStart; }
     public double radius() { return body.radius; }
     public float length() { return length; }
     public Locomotion locomotion() { return locomotion; }
+    /** How a drifter propels itself; {@link DriftStyle#BELL} for every other class. */
+    public DriftStyle driftStyle() { return driftStyle; }
     /** This class's turn-rate cap, degrees per tick (for invariants and overlays). */
     public float turnRateCap() { return body.g.turnRateDegPerTick(); }
     public float appear() { return appear; }

@@ -26,6 +26,8 @@ final class DriftBody extends Motor {
     private static final float SQRT3 = 1.7320508f;
 
     private final CompanionTunables t;
+    /** How it propels itself (docs/fish-companions-drift.md §2). Not read yet: every style is the first-cut bell. */
+    final DriftStyle style;
     private long noise;
     /** Position in the current pulse cycle, [0, 1); the squeeze is the first {@code duty} of it. */
     private double phase;
@@ -43,10 +45,15 @@ final class DriftBody extends Motor {
     float pulse;
     /** Thrust actually applied this tick, blocks/s². */
     double lastThrust;
+    /** What the mind asked for this tick, before wall avoidance, blocks/s (for the harness's metrics). */
+    Vec asked = Vec.ZERO;
+    /** Whether a new pulse cycle started this tick (for the harness's metrics). */
+    boolean strokeStart;
 
-    DriftBody(CompanionTunables t, Vec pos, float yaw, double radius, long seed) {
+    DriftBody(CompanionTunables t, DriftStyle style, Vec pos, float yaw, double radius, long seed) {
         super(grill24.fishsim.core.Locomotion.DRIFT, Gait.of(grill24.fishsim.core.Locomotion.DRIFT, t), pos, radius);
         this.t = t;
+        this.style = style;
         this.noise = seed == 0 ? 0x9E3779B97F4A7C15L : seed;
         this.tiltYaw = yaw;
         this.yaw = yaw;
@@ -59,6 +66,7 @@ final class DriftBody extends Motor {
     @Override
     void step(Vec desired, double wanderScale, Vec extraAvoid, LocalVoxels voxels, Capsule body) {
         g = Gait.of(locomotion, t);
+        asked = desired;
         double sp = vel.length();
 
         // A slow current-like wander on where it is trying to go, like the tank's drift.
@@ -138,6 +146,7 @@ final class DriftBody extends Motor {
      */
     private void advancePulse(double along) {
         phase += DT / period;
+        strokeStart = phase >= 1;
         if (phase >= 1) {
             phase -= 1;
             period = t.driftPulseSeconds + (t.driftPulseFastSeconds - t.driftPulseSeconds) * effort;
