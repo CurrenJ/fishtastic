@@ -1016,3 +1016,66 @@ Turn on the overlay first: `/fishtastic companion debug true`. Equip with
    ground.
 9. **Mount and elytra:** ride a horse or glide; members climb on or fade onto the perch.
 10. **Another player (if available):** their benthic group walks and perches on their body for you.
+
+## 22. Alongside stall and under-feet experiments (2026-10-12)
+
+No production change accepted. Fork D's original walkability, tangent, braking and turning
+experiments were resumed on aee461ea and rejected after equal-ground A/B. The owner playtest
+and the §19 under-feet gap remain open.
+
+### 22.1 Original candidates: equal-seed rejection
+
+`ComeAlongsideProbe.ab`, 20 identical seeds per configuration, 2,400 ticks, five scripts
+(low_ceiling, jumping, walk_flat, walk_meander, stairs_up_down), lengths 0.30 and 0.60:
+
+- Wall-only alongside walkability (old mode 16) reduced pooled low_ceiling inside ticks
+  202→127 at 0.30 and 410→250 at 0.60, but walkSeen fell 3965→3889 (8 seeds up / 8 down)
+  and 3587→3399 (10 up / 8 down). At 0.60 it introduced one fade and one leash run.
+- Concrete reversals: low_ceiling 0.30 seed 12 unseen 17.8→46.5 seconds,
+  walkSeen 279→150; 0.60 seed 3 unseen 17.4→40.2 seconds and seed 12 13.4→29.9 seconds.
+- Tangent-only movement caused jumping 0.30 unseen 27.5→36.1 seconds and one seed lost
+  visibility. Braking-only increased low_ceiling 0.60 fades 0→2, unseen>30s runs 6→9
+  and walkSeen 3587→3294 (5 seeds up / 10 down).
+- Turning-only introduced a stair fade at 0.30. Combined tangent/braking/turning reached
+  84.5 seconds unseen and four fades/leash runs in low_ceiling 0.60.
+
+These are trajectory changes, not solutions justified by lower pooled overlap alone.
+The final production files were restored to the committed versions.
+
+### 22.2 Narrow stalled-approach retry also rejected
+
+A second experiment measured an alongside approach that made no movement for three seconds,
+released it to ordinary ground behaviour for five seconds, then retried. The broad A/B looked
+nearly neutral (only low_ceiling 0.30 improved by one visible walking tick), but a deterministic
+pillar exposed that the body dithers: consecutive stationary ticks never reached the threshold.
+
+Measuring lack of distance progress instead detected the stall and released/retried in all
+20 pillar seeds. It still did not recover: the final positions were identical for 17/20 seeds
+and barely changed for the other three. Approaching the blocked station can also obscure the
+straight route to the owner; clearing `wantClose` leaves `reachable` false, so normal routing
+cannot move it away. Merely asserting that a cooldown fired would give a misleading passing test.
+A recovery assertion must measure actual movement out of the blocked approach and a viable
+route, rather than just the desire flag.
+
+The progress version also failed the broad guardrails: low_ceiling 0.30 produced a new run
+above 1% inside-owner ticks and unseen>30s runs 2→3; 0.60 walkSeen fell 3587→3497
+(1 seed up / 4 down). It was rejected too. Future work needs to address recovery from this
+blocked position, separately from under-feet steering, with a real recovery test and per-seed A/B.
+
+### 22.3 Retained evidence
+
+The fork's untracked `build/` retains `d-ab-perseed.txt`, `d-ab-candidates.txt`,
+`d-ab-stall-retry.txt`, `d-ab-progress-retry.txt`, `d-ab-progress-retry2.txt`,
+`d-rejected-experiments.patch`, `d-rejected-retry.patch`, and the archived probe/test sources.
+No runtime diagnostic flags or rejected steering changes are included in the deliverable.
+
+Reproduce the pillar fixture without Minecraft: owner feet `(0.5, 0, 0.5)`, yaw 0;
+solid floor `y < 0`; pillar `x == -1 && z == 0 && y < 3`; crawler length 0.30,
+radius 0.15, initial body centre `(0.5, 0.15, -1.5)`; seeds 1–20, 1,200 ticks;
+set `wantClose = true` every tick before `GroundMind.step`. The owner's alongside station
+lies inside the pillar. Include recovery distance and route viability in assertions.
+
+After restoring production sources, `:fishsim:test` passes: 354 tests, 328 passed,
+26 diagnostic tests skipped, zero failed.
+`FingerprintProbe -PsimStdout -PfpAll=1`: all 447 non-BENTHIC `FP*` lines identical
+to the main tree's `build/fp-base-p2.txt` after trimming, sorting and comparison.

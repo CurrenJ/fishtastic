@@ -65,6 +65,13 @@ final class GroundMind {
      * comes up alongside the owner, on that side (+1 right, −1 left), close enough to hop up.
      */
     boolean wantClose;
+    private int blockedCloseTicks;
+    private int closeRetry;
+    private Vec closeOwner, closeAnchor, recoveryStation;
+    private float closeYaw;
+    /** Diagnostic A/B seam, like beatsEnabled; normal operation always recovers. */
+    static boolean alongsideRecoveryEnabled = true;
+    private static final int CLOSE_STALL_TICKS = 40;
     double closeSide = 1;
     /** Coming up alongside unhurried (to climb on to rest), not scurrying (to be seen). */
     boolean closeCalm;
@@ -149,6 +156,10 @@ final class GroundMind {
         ownerFloor = ownerFloor(o, v);
         double ownerSpeed = o.horizontalSpeed();
         ownerStill = ownerSpeed > OWNER_MOVING ? 0 : ownerStill + 1;
+        if (closeRetry > 0) {
+            closeRetry--;
+            wantClose = false;
+        }
 
         // The way is judged with its feet down: in the air (off a step, mid-hop) its floor is the
         // one it left, and a plan from there would read it as far behind or stranded.
@@ -160,6 +171,15 @@ final class GroundMind {
             lag = horizontal(g.pos, ownerFloor);
         }
 
+        Vec closeTarget = wantClose ? closeStation(o, v, o.velocity().horizontal().scale(0.3)) : null;
+        if (!wantClose) clearCloseRecovery();
+        if (down && recoveryStation != null) {
+            // The alternate station has its own checked route, even if approaching the pillar
+            // briefly obscured the direct route to the owner.
+            reachable = true;
+            via = -1;
+            lag = horizontal(g.pos, recoveryStation) + horizontal(recoveryStation, ownerFloor);
+        }
         if (down) {
             strandedTicks = reachable ? 0 : strandedTicks + 1;
             if (strandedTicks >= STRANDED_TICKS || lag > FADE_LAG) wantsFade = true;
@@ -221,8 +241,8 @@ final class GroundMind {
             // Up alongside the owner on its side, a little ahead of where they'll be: in reach of
             // the hand (and, ahead of their feet, nearer the bottom of their view).
             rhythm = closeCalm ? GroundBody.Rhythm.AMBLE : GroundBody.Rhythm.SCURRY;
-            Vec lead = o.velocity().horizontal().scale(0.3);
-            target = ownerFloor.add(o.flatRight().scale(0.75 * closeSide)).add(o.flatForward().scale(0.3)).add(lead);
+            target = closeTarget;
+            if (recoveryStation != null) push = null;
             want = closeCalm ? g.cruise() * 0.8 : Math.max(g.cruise(), ownerSpeed + 1.5 * horizontal(g.pos, target));
         } else if (desire != null) {
             target = desire;
@@ -344,6 +364,66 @@ final class GroundMind {
         }
         if (!feetApproaching && formationPush != null && push != null) push = push.add(formationPush);
         g.walk(target, want, rhythm, push, face, v);
+    }
+
+    private void clearCloseRecovery() {
+        blockedCloseTicks = 0;
+        closeOwner = closeAnchor = recoveryStation = null;
+    }
+
+    /** After a stationary approach stalls inside a tall wall, hop to a free station on that side. */
+    private Vec closeStation(OwnerState o, LocalVoxels v, Vec lead) {
+        Vec preferred = ownerFloor.add(o.flatRight().scale(0.75 * closeSide))
+                .add(o.flatForward().scale(0.3)).add(lead);
+        if (!alongsideRecoveryEnabled || o.horizontalSpeed() > OWNER_MOVING || !v.solid((int) Math.floor(preferred.x()),
+                (int) Math.floor(ownerFloor.y() + GroundBody.STEP_HOP + 0.01), (int) Math.floor(preferred.z()))) {
+            clearCloseRecovery();
+            return preferred;
+        }
+        if (closeOwner == null || horizontal(closeOwner, ownerFloor) > 0.25
+                || Math.abs(Body.wrap(o.yawDeg() - closeYaw)) > 10) {
+            clearCloseRecovery();
+            closeOwner = ownerFloor;
+            closeYaw = o.yawDeg();
+        }
+        if (recoveryStation != null) {
+            double floor = g.footprintFloorFrom(v, recoveryStation.x(), recoveryStation.z(), recoveryStation.y());
+            if (!Double.isNaN(floor) && Math.abs(floor - recoveryStation.y()) < 0.05
+                    && (!g.onFloor() || walkable(v, g.pos, recoveryStation))) {
+                if (g.onFloor() && horizontal(g.pos, recoveryStation) < 0.4) {
+                    clearCloseRecovery();
+                    closeRetry = 100;
+                    wantClose = false;
+                    return null;
+                }
+                return recoveryStation;
+            }
+            recoveryStation = null;
+        }
+        if (closeAnchor == null || horizontal(closeAnchor, g.pos) > 0.2) {
+            closeAnchor = g.pos;
+            blockedCloseTicks = 0;
+        }
+        if (!g.grounded() || daze > 0 || ++blockedCloseTicks < CLOSE_STALL_TICKS) return preferred;
+        Vec other = ownerFloor.add(o.flatRight().scale(0.75 * closeSide))
+                .add(o.flatForward().scale(-1.5)).add(lead);
+        double floor = g.footprintFloorFrom(v, other.x(), other.z(), ownerFloor.y());
+        if (Double.isNaN(floor) || Math.abs(floor - ownerFloor.y()) > 0.6) return failedCloseRecovery(preferred);
+        other = new Vec(other.x(), floor, other.z());
+        // A checked block arc must also stay outside the owner's body. This retreat goes
+        // away from the feet; reject a station whose straight leg would cross them.
+        Vec leg = other.sub(g.pos).horizontal();
+        double along = leg.lengthSqr() > 1e-9
+                ? Body.clamp(ownerFloor.sub(g.pos).horizontal().dot(leg) / leg.lengthSqr(), 0, 1) : 0;
+        if (horizontal(g.pos.add(leg.scale(along)), ownerFloor) < g.radius + OwnerState.BODY_RADIUS + 0.05) return failedCloseRecovery(preferred);
+        if (g.grounded() && g.hopTo(other.add(0, g.radius + LocalVoxels.GROUND_LIFT, 0), v)) return recoveryStation = other;
+        return failedCloseRecovery(preferred);
+    }
+
+    private Vec failedCloseRecovery(Vec preferred) {
+        // The owner can remain reachable while both this station and the retreat are blocked.
+        if (blockedCloseTicks >= STRANDED_TICKS) wantsFade = true;
+        return preferred;
     }
 
     // ── In-view beats ──────────────────────────────────────────────────────────────────────────
