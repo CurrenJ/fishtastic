@@ -133,6 +133,10 @@ shadowJar {
     exclude 'grill24/fishsim/render/**'
     exclude 'grill24/fishsim/harness/**'
     exclude 'grill24/fishsim/viewer/**'
+
+    // The client self-test harness is dev-only. Its only call site is guarded by
+    // DevEnvironmentCheck, so the class can be absent from the shipped jar.
+    exclude 'grill24/fishtastic/client/selftest/**'
 }
 
 remapJar {

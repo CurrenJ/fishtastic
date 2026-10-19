@@ -111,6 +111,8 @@ processResources {
 shadowJar {
     configurations = [project.configurations.shadowBundle]
     archiveClassifier = 'dev-shadow'
+    // The smoke build toggles a dev-only exclusion; declare it so the artifact cannot go stale.
+    inputs.property 'includeSelftest', project.hasProperty('includeSelftest')
 
     // Forge 1.20.1's production runtime is SRG-named, so the common mixin config needs a "refmap"
     // key or Forge Mixin resolves nothing in it: the client dies before the main menu with "Mixin
@@ -144,6 +146,12 @@ shadowJar {
     exclude 'grill24/fishsim/render/**'
     exclude 'grill24/fishsim/harness/**'
     exclude 'grill24/fishsim/viewer/**'
+
+    // The client self-test harness is dev-only. The release build drops it; -PincludeSelftest keeps
+    // it for the installed-layout smoke build, which is never published.
+    if (!project.hasProperty('includeSelftest')) {
+        exclude 'grill24/fishtastic/client/selftest/**'
+    }
 }
 
 remapJar {

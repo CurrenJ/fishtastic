@@ -330,8 +330,12 @@ public final class FishtasticForgeClient {
 
         // Update tick counter for animations
         Minecraft mc = Minecraft.getInstance();
-        // PORT-ONLY: the rendering self-test (inert unless its marker file exists; see RenderSelfTest).
-        grill24.fishtastic.client.selftest.RenderSelfTest.tick(mc, "forge");
+        // Dev-only: the self-test class is excluded from the shipped jar. Resolved reflectively so
+        // the release jar keeps no reference; the smoke build includes it and sets the property.
+        if (grill24.fishtastic.env.DevEnvironmentCheck.isDevelopmentEnvironment()
+                || Boolean.getBoolean("fishtastic.selftest")) {
+            tickRenderSelfTest(mc);
+        }
         ClientAmbientFish.tick();
         if (mc.level != null && !mc.isPaused()) {
             ClientTickHandler.tick(1.0f);
@@ -342,6 +346,29 @@ public final class FishtasticForgeClient {
             FishtasticKeyBinds.handleKeyPress(mc);
             // Tick quest progress notifications
             QuestProgressNotificationManager.getInstance().tick();
+        }
+    }
+
+    private static java.lang.reflect.Method renderSelfTestTick;
+    private static boolean renderSelfTestMissing;
+
+    private static void tickRenderSelfTest(Minecraft mc) {
+        if (renderSelfTestMissing) return;
+        if (renderSelfTestTick == null) {
+            try {
+                renderSelfTestTick = Class.forName("grill24.fishtastic.client.selftest.RenderSelfTest")
+                        .getMethod("tick", Minecraft.class, String.class);
+            } catch (ClassNotFoundException e) {
+                renderSelfTestMissing = true;
+                return;
+            } catch (NoSuchMethodException e) {
+                throw new IllegalStateException("RenderSelfTest.tick signature changed", e);
+            }
+        }
+        try {
+            renderSelfTestTick.invoke(null, mc, "forge");
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException("RenderSelfTest failed", e);
         }
     }
 
