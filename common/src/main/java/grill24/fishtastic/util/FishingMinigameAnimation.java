@@ -859,15 +859,23 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         // blit() only takes integer coordinates.
         float s = sizePx / texSize;
         guiGraphics.pose().scale(s, s, 1f);
-        // 1.21.1's blit takes no colour: tint through the shader colour, with blending on.
+        // Flush queued GUI geometry before changing the immediate draw's depth/write state.
+        guiGraphics.flush();
+        // These soft, translucent rays are a backdrop, not an occluder for later HUD layers.
+        RenderSystem.depthMask(false);
+        // This blit takes no colour: tint through the shader colour, with blending on.
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         RenderSystem.setShaderColor(((color >> 16) & 0xFF) / 255f, ((color >> 8) & 0xFF) / 255f,
                 (color & 0xFF) / 255f, ((color >>> 24) & 0xFF) / 255f);
-        guiGraphics.blit(texture, -texSize / 2, -texSize / 2, 0f, 0f, texSize, texSize, texSize, texSize);
-        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-        RenderSystem.disableBlend();
-        guiGraphics.pose().popPose();
+        try {
+            guiGraphics.blit(texture, -texSize / 2, -texSize / 2, 0f, 0f, texSize, texSize, texSize, texSize);
+        } finally {
+            RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+            RenderSystem.depthMask(true);
+            RenderSystem.disableBlend();
+            guiGraphics.pose().popPose();
+        }
     }
 
     private static int argb(float alpha, int rgb) {

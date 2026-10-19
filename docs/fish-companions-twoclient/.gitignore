@@ -1,0 +1,4 @@
+/run-fabric-*/
+/run-forge-*/
+/*.log
+/*.sh.log
