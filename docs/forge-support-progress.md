@@ -223,4 +223,23 @@ adapters, rendering/test harness fixes, toolchain changes and Forge documentatio
 Preserve pre-existing release, ambient filming, backport and runtime edits unstaged.
 Evidence destination: `build/forge-support/commit-checkpoint/`; verify staged whitespace,
 file inventory, commit parents and remaining dirty state. No new runtime acceptance is claimed.
-Pending: stage/review and create the two local commits, then record results here.
+Result: all four implementation commits created locally; commit parents verified against the
+original main port branches, with no staged files remaining. User explicitly included Gelatin UI.
+
+| Repository / version | Branch | Implementation commit | Parent branch |
+|---|---|---|---|
+| Fishtastic / 26.1.2 | `codex/forge-26.1.2` | `643411a4fc0fc3e37786f9a9f0ec116280921b5a` | `26.1.2` |
+| Fishtastic / 1.21.1 | `codex/forge-1.21.1` | `f3635876ced2c9c4eed125a89aebec1cd5bd1903` | `port/1.21.1` |
+| Gelatin UI / 26.1.2 | `codex/forge-26.1.2` | `8b9d4edb4950fef6814b1f9e939395e13148e7be` | `26.1.2` |
+| Gelatin UI / 1.21.1 | `codex/forge-1.21.1` | `8c3ccaf9a04213191952aaa91ce4a02d190a5a26` | `mc/1.21.1` |
+
+Fishtastic pre-commit unit-test tasks and Fabric GameTests passed on both lines (commit exit 0).
+Gelatin staged whitespace checks passed; its prior runtime acceptance remains documented above.
+Tests ran against the existing working trees, including their pre-existing release edits; this
+checkpoint does not claim a fresh clean-checkout build. Source changes were not edited here.
+Inventory/parents/remaining dirty state: `build/forge-support/commit-checkpoint/results.json`.
+26.1.2 hook output: `build/forge-support/commit-checkpoint/commit-26.1.2.log`;
+1.21.1 Fabric report: its `fabric/build/junit.xml`. Both original main port branches are unchanged.
+Unrelated edits and runtime output remain in place. No push or publication performed.
+Next action: continue the installed gameplay/companion persistence acceptance already listed
+above, then finish F10/F11; these commits are implementation checkpoints, not release approval.
