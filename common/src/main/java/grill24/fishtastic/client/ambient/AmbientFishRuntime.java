@@ -126,6 +126,8 @@ public final class AmbientFishRuntime {
         /** This individual's own lifetime, drawn once at spawn, independent of species. */
         final int lifetimeTicks;
         int slot;
+        /** Local filming specimen: bypasses fishing eligibility and ordinary timed turnover. */
+        boolean debug;
         final ItemStackRenderState state = new ItemStackRenderState();
         Matrix4f retirementPose;
         int engineIndex = -1;
@@ -657,7 +659,9 @@ public final class AmbientFishRuntime {
                 stats.contextGaps++;
                 if (st.unknownSince == Long.MIN_VALUE) st.unknownSince = time;
                 if (time - st.unknownSince >= AmbientContextStore.PENDING_TIMEOUT_TICKS) {
-                    for (Member member : st.members) beginRetire(st, member, REASON_INVALID, time);
+                    for (Member member : st.members) {
+                        if (!member.debug) beginRetire(st, member, REASON_INVALID, time);
+                    }
                 }
                 continue;
             }
@@ -701,6 +705,7 @@ public final class AmbientFishRuntime {
             SpeciesVisual visual = visuals.get(entry.species());
             if (visual != null) top = Math.max(top, visual.body().above());
         }
+        for (Member member : st.members) if (member.debug) top = Math.max(top, member.body.above());
         st.topMargin = top;
     }
 
@@ -731,7 +736,7 @@ public final class AmbientFishRuntime {
         java.util.Set<String> pool = new java.util.HashSet<>(ctx.candidates().size());
         for (var candidate : ctx.candidates()) pool.add(candidate.species().toString());
         for (Member m : st.members) {
-            if (m.retiring()) continue;
+            if (m.retiring() || m.debug) continue;
             if (!pool.contains(m.species)) beginRetire(st, m, REASON_EXCLUDED, time);
         }
     }
@@ -744,7 +749,7 @@ public final class AmbientFishRuntime {
     private void expireMembers(long time) {
         for (DomainState st : domains.values()) {
             for (Member m : st.members) {
-                if (m.retiring()) continue;
+                if (m.retiring() || m.debug) continue;
                 if (time - m.bornTick >= m.lifetimeTicks) beginRetire(st, m, REASON_EXPIRED, time);
             }
         }
@@ -1177,13 +1182,7 @@ public final class AmbientFishRuntime {
         // One draw per spawn attempt, spent even when the attempt fails: slots are filled by
         // independent individual draws, so nothing here can turn "hard to place" into "keeps
         // being retried". The stream is the patch's own and retention resumes it mid-sequence.
-        int slot = 0;
-        while (slot < AmbientPopulationRolls.MAX_SLOTS) {
-            boolean occupied = false;
-            for (Member member : best.members) if (member.slot == slot) occupied = true;
-            if (!occupied) break;
-            slot++;
-        }
+        int slot = freeSlot(best);
         if (slot == AmbientPopulationRolls.MAX_SLOTS) return spawnSkip("slots");
         DomainState chosen = best;
         AmbientPopulationRolls.Choice choice = best.rolls.choose(slot, best.appliedFingerprint, time,
@@ -1213,20 +1212,97 @@ public final class AmbientFishRuntime {
             return spawnSkip("nowhere " + spec.species());
         }
         spawnSkip("spawned " + spec.species());
-        Member m = new Member(nextId++, species, spec, body, visual.stack().copy(), visual.anim(),
-                time, (int) Math.max(1, choice.expiresTick() - time));
+        addMember(best, visual, spec, slot, time, (int) Math.max(1, choice.expiresTick() - time), false, found);
+        return 1;
+    }
+
+    private static int freeSlot(DomainState st) {
+        int slot = 0;
+        while (slot < AmbientPopulationRolls.MAX_SLOTS) {
+            boolean occupied = false;
+            for (Member member : st.members) if (member.slot == slot) occupied = true;
+            if (!occupied) break;
+            slot++;
+        }
+        return slot;
+    }
+
+    private void addMember(DomainState st, SpeciesVisual visual, FishSpec spec, int slot, long time,
+                           int lifetime, boolean debug, float[] position) {
+        Member m = new Member(nextId++, visual.species(), spec, visual.body(), visual.stack().copy(), visual.anim(), time, lifetime);
         m.slot = slot;
-        best.members.add(m);
-        reseed(best);
-        int index = best.members.size() - 1;
-        best.engine.placeFish(index, found[0], found[1], found[2]);
+        m.debug = debug;
+        st.members.add(m);
+        reseed(st);
+        int index = st.members.size() - 1;
+        st.engine.placeFish(index, position[0], position[1], position[2]);
         if (invariantStats) {
             stats.spawnFitChecks++;
-            if (!best.domain.bodyFits(best.engine.posL()[index], best.engine.posY()[index],
-                    best.engine.posD()[index], body)) stats.spawnFitFailures++;
+            if (!st.domain.bodyFits(st.engine.posL()[index], st.engine.posY()[index],
+                    st.engine.posD()[index], visual.body())) stats.spawnFitFailures++;
         }
         stats.spawns++;
-        return 1;
+    }
+
+    public record DebugSpawnResult(int count, String message) {}
+
+    /** Filming-only local spawns. Geometry, loaded-water checks and density caps still apply. */
+    public DebugSpawnResult spawnDebugFish(Identifier species, int count) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.level == null || mc.level != level || !armed) {
+            return new DebugSpawnResult(0, "Enter a world and enable ambient fish with a nonzero density first.");
+        }
+        if (count < 1 || count > MAX_INDIVIDUALS) {
+            return new DebugSpawnResult(0, "Count must be between 1 and " + MAX_INDIVIDUALS + ".");
+        }
+        var profiles = level.registryAccess().lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
+        if (profiles.getOptional(ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, species)).isEmpty()) {
+            return new DebugSpawnResult(0, "Unknown fish species: " + species + ". Use Tab to choose a fish profile.");
+        }
+        SpeciesVisual visual = visualFor(species, level);
+        if (visual == null) return new DebugSpawnResult(0, "Cannot render ambient species " + species + ".");
+        List<DomainState> nearby = domains.values().stream()
+                .filter(st -> !st.dying && st.domain != null)
+                .sorted(Comparator.comparingInt(st -> patchDistance(st.patch))).toList();
+        int population = domains.values().stream().mapToInt(st -> st.members.size()).sum();
+        int spawned = 0;
+        BlockPos player = mc.player.blockPosition();
+        for (int i = 0; i < count && population + spawned < budget.individuals(); i++) {
+            boolean placed = false;
+            for (DomainState st : nearby) {
+                int slot = freeSlot(st);
+                FishSpec base = visual.spec();
+                if (slot == AmbientPopulationRolls.MAX_SLOTS || !st.engine.passesGate(base.locomotion(), base.length())) continue;
+                FishSpec spec = new FishSpec(base.length(), base.locomotion(), random.nextBoolean(), base.species(), base.shelterUse());
+                float[] position = new float[3];
+                if (!findSpawn(st, spec, visual.body(), player.getX(), player.getZ(), position)) continue;
+                addMember(st, visual, spec, slot, level.getGameTime(), Integer.MAX_VALUE, true, position);
+                st.topMargin = Math.max(st.topMargin, visual.body().above());
+                spawned++;
+                placed = true;
+                break;
+            }
+            if (!placed) break;
+        }
+        recordStats();
+        String message = "Spawned " + spawned + "/" + count + " " + species + " ambient fish near you (client only).";
+        if (spawned < count) message += " Need nearby discovered water with room for this species and free ambient capacity; try density 100 or wait for water discovery.";
+        return new DebugSpawnResult(spawned, message);
+    }
+
+    /** Removes only filming specimens; ordinary populations continue normally. */
+    public int clearDebugFish() {
+        int removed = 0;
+        for (DomainState st : domains.values()) {
+            int before = st.members.size();
+            st.members.removeIf(member -> member.debug);
+            if (before == st.members.size()) continue;
+            removed += before - st.members.size();
+            reseed(st);
+            st.samplerGeometrySignature = Long.MIN_VALUE;
+        }
+        recordStats();
+        return removed;
     }
 
     int targetFor(DomainState st) {

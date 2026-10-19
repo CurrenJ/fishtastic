@@ -142,6 +142,28 @@ Use bounded caches, terrain invalidation, context versioning, and profiling coun
 8. Terrain queries, context requests, caches, and individuals stay within explicit caps. Profile combined tank/companion/ambient scenes before setting release defaults; agree a reference-machine performance budget before sign-off.
 9. Side-by-side tank/world comparisons for the same species and size show nearly identical body scale, animation, poses, and motion character under comparable conditions. Cover swimming, gliding, drifting, and bottom-associated modes. In a matching test domain with the same descriptors, seed, and parameters, shared simulation behavior agrees; any shared refactoring preserves existing tank behavior.
 
+## Debug filming commands
+
+Both loaders provide local client commands for staging specific species in nearby lakes:
+
+```text
+/fishtasticambient debug spawn fishtastic:neon_tetra 6
+/fishtasticambient debug clear
+```
+
+Use Tab to select a species ID. The count is optional (defaults to one), from 1 to 64.
+Enable ambient fish with a nonzero density, then stand near water and allow discovery to
+settle before spawning. Spawns use discovered water within ten blocks of the player and
+respect whole-body fit, locomotion requirements, separation, and the current density's
+global population cap. Feedback reports the actual count placed when space is limited.
+
+Debug specimens explicitly bypass fishing eligibility and timed population expiry for
+filming, so their presence says nothing about catchability. They still retire if their
+water disappears or they leave the simulated area. Repeat the spawn command to mix species;
+`debug clear` removes only debug specimens. Disconnecting, teleporting far away, or changing
+ambient settings resets them along with the local population. These commands affect only
+the issuing client's visuals and do not create entities, items, or fishing rewards.
+
 ## Delivery scope
 
 First, build a visual spike in river, ocean, and shallow artificial water using the existing tank engine/rendering and a fixed, known pool. Establish visual parity with tank fish, body containment, sprite readability, stable movement, and acceptable cost. Then connect the shared fishing resolver, the standard-worms default, and actual held-rod contexts. Finally tune visual flattening and population turnover through observed play, including whether rare sightings feel exciting and whether players incorrectly expect to catch the fish they can see.
