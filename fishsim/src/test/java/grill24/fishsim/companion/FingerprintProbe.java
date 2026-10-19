@@ -65,6 +65,17 @@ class FingerprintProbe {
                 System.out.printf("FPA %-9s %-15s #%d %016x%n", "TRIO", script, seed, h);
             }
         }
+        // Drifters by style (docs/fish-companions-drift.md §2); the plain DRIFT lines above are the bell.
+        for (DriftStyle style : List.of(DriftStyle.JET, DriftStyle.BOB)) {
+            for (String script : OwnerScript.NAMES) {
+                for (long seed = 1; seed <= 3; seed++) {
+                    CompanionRun run = CompanionRun.drifter(script, seed, style, Temperament.BASELINE,
+                            CompanionTunables.defaults(), true);
+                    run.run(2400);
+                    System.out.printf("FPA %-9s %-15s #%d %016x%n", "DRIFT_" + style, script, seed, hash(run));
+                }
+            }
+        }
     }
 
     private static long hash(CompanionRun run) {

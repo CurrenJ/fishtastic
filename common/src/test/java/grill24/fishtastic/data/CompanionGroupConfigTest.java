@@ -36,4 +36,15 @@ class CompanionGroupConfigTest {
                 FishProfile.CompanionGait.CODEC.parse(JavaOps.INSTANCE, "ripple").getOrThrow(IllegalStateException::new));
         assertTrue(FishProfile.CompanionGait.CODEC.parse(JavaOps.INSTANCE, "hop").error().isPresent());
     }
+
+    @Test
+    void parsesDriftStylesAndRejectsUnknownOnes() {
+        for (var style : FishProfile.CompanionDrift.values()) {
+            assertEquals(style, FishProfile.CompanionDrift.CODEC.parse(JavaOps.INSTANCE, style.getSerializedName())
+                    .getOrThrow(IllegalStateException::new));
+            // The sim's styles are the same names, mapped by name in ClientCompanion.
+            assertEquals(style.name(), grill24.fishsim.companion.DriftStyle.valueOf(style.name()).name());
+        }
+        assertTrue(FishProfile.CompanionDrift.CODEC.parse(JavaOps.INSTANCE, "sail").error().isPresent());
+    }
 }

@@ -125,6 +125,42 @@ public final class CompanionTunables {
     /** Ride height above the owner's chest, blocks: shoulder to head height. */
     public float driftRideHeight = 0.35f;
 
+    // Phase 1 of the drifter rework (docs/fish-companions-drift.md §3, §4, §13): each its own switch,
+    // for equal-ground A/B. All on is the adopted body; all off is the first cut, bitwise.
+    /** Pulse again as soon as it needs to, instead of waiting out a slow idle cycle. */
+    public boolean driftRetime = true;
+    /** Size each stroke to land at the asked velocity, and weaken one fired off the line of need. */
+    public boolean driftArrive = true;
+    /** How much of the velocity gap one cycle closes when strokes are sized to arrive. */
+    public float driftArriveGain = 0.9f;
+    /** The web-flare brake: extra drag, 1/s, extra sink, blocks/s², and the excess speed that flares it fully, blocks/s. */
+    public boolean driftFlare = true;
+    public float driftFlareDrag = 2.5f;
+    public float driftFlareSink = 0.8f;
+    public float driftFlareFull = 2.0f;
+    /**
+     * No climbing it didn't ask for: a stroke is cut so it leaves the bell rising no faster than it
+     * wants to (plus half a cycle's sink and a small margin). A bell can't push down, so lift it
+     * didn't want — a stroke fired while still leaning round — takes seconds of sinking to undo.
+     */
+    public boolean driftNoClimb = true;
+    /**
+     * Braking by room: no stroke carries it faster than its flare can stop in the open space ahead,
+     * and it flares when it is already going faster than that. Needs {@link #driftFlare}.
+     */
+    public boolean driftRoomBrake = true;
+    /** Extra tilt rate at rest, as a multiple of the base rate, fading out by {@link #driftSlowPivotSpeed}; 0 off. */
+    public float driftSlowPivot = 0f;
+    public float driftSlowPivotSpeed = 2.0f;
+    /** The slow-speed pivot only while it reverses: righting through upright and leaning out the other way. */
+    public boolean driftPivotSwingOnly = false;
+    /**
+     * Holds its height while it swings round: near upright a stroke may always be as big as holding
+     * height against the sink takes, even when where it wants to go is off to the side (and so out of
+     * the arrive gate). Without it a reversing bell sinks to the ground on its way through upright.
+     */
+    public boolean driftHoldHeight = true;
+
     // ── Mind (§3.3) ────────────────────────────────────────────────────────────────────────────
 
     /** Comfort band around the owner's chest, blocks. */
