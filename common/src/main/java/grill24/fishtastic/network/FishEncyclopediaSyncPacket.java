@@ -62,7 +62,7 @@ public record FishEncyclopediaSyncPacket(
         List<String> claimedRewardKeys = new ArrayList<>(data.getOrCreateQuestState(player).getClaimedEncyclopediaRewardsSnapshot());
 
         FishEncyclopediaSyncPacket packet = new FishEncyclopediaSyncPacket(catchCounts, personalBest, globalBest, claimedRewardKeys);
-        player.connection.send(new ClientboundCustomPayloadPacket(packet));
+        FishtasticTransport.sendToPlayer(player, packet);
     }
 
     public static ClientHandler clientHandler;

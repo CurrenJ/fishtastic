@@ -114,7 +114,7 @@ public record QuestSyncPacket(
                 triggeringItems, state.getPurchaseCountSnapshot(), cleanupGoal, gameTime,
                 baitDepletedItem, firstCatchItems, state.getShopRefreshCount(),
                 List.copyOf(state.getUnlockedCompanionSnapshot()), state.drainPendingCompanionBanners());
-        player.connection.send(new ClientboundCustomPayloadPacket(packet));
+        FishtasticTransport.sendToPlayer(player, packet);
     }
 
     public static ClientHandler clientHandler;

@@ -1,0 +1,34 @@
+modLoader = "javafml"
+loaderVersion = "[52,)"
+license = "${mod_license}"
+
+[[mods]]
+modId = "${mod_id}"
+version = "${version}"
+displayName = "${mod_name}"
+authors = "${mod_authors}"
+description = '''
+${mod_description}
+'''
+logoFile = "${mod_icon}"
+
+[[dependencies.fishtastic]]
+modId = "forge"
+mandatory = true
+versionRange = "${mod_forge_version_range}"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.fishtastic]]
+modId = "minecraft"
+mandatory = true
+versionRange = "${mod_minecraft_version_range}"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.fishtastic]]
+modId = "gelatinui"
+mandatory = true
+versionRange = "${mod_gelatinui_version_range}"
+ordering = "BEFORE"
+side = "BOTH"

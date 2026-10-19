@@ -48,6 +48,6 @@ public record TankInteriorLightSyncPacket(int level) implements CustomPacketPayl
     }
 
     public static void sendToPlayer(ServerPlayer player, int level) {
-        player.connection.send(new ClientboundCustomPayloadPacket(new TankInteriorLightSyncPacket(level)));
+        FishtasticTransport.sendToPlayer(player, new TankInteriorLightSyncPacket(level));
     }
 }

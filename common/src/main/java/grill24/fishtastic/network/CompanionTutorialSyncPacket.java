@@ -42,6 +42,6 @@ public record CompanionTutorialSyncPacket(CompanionTutorialStep step) implements
     }
 
     public static void sendToPlayer(ServerPlayer player, CompanionTutorialStep step) {
-        player.connection.send(new ClientboundCustomPayloadPacket(new CompanionTutorialSyncPacket(step)));
+        FishtasticTransport.sendToPlayer(player, new CompanionTutorialSyncPacket(step));
     }
 }

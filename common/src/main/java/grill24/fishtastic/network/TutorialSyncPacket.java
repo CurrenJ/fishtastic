@@ -42,6 +42,6 @@ public record TutorialSyncPacket(TutorialStep step) implements CustomPacketPaylo
     }
 
     public static void sendToPlayer(ServerPlayer player, TutorialStep step) {
-        player.connection.send(new ClientboundCustomPayloadPacket(new TutorialSyncPacket(step)));
+        FishtasticTransport.sendToPlayer(player, new TutorialSyncPacket(step));
     }
 }

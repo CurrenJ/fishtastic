@@ -1,5 +1,7 @@
 package grill24.fishtastic.client;
 
+import grill24.fishtastic.network.FishtasticTransport;
+
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItems;
@@ -147,11 +149,7 @@ public class FishingMinigameClientHandler {
         List<Integer> caughtIndices = currentAnimation.getCaughtTargetIndices();
 
         // Send packet to server with results
-        minecraft.player.connection.send(
-                new net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket(
-                        new FinishFishingMinigamePacket(currentSessionId, caughtIndices)
-                )
-        );
+        FishtasticTransport.sendToServer(new FinishFishingMinigamePacket(currentSessionId, caughtIndices));
 
         // Clean up
         currentSessionId = -1;

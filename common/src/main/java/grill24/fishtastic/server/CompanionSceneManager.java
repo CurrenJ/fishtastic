@@ -1,5 +1,7 @@
 package grill24.fishtastic.server;
 
+import grill24.fishtastic.network.FishtasticTransport;
+
 import grill24.fishsim.core.Locomotion;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.companion.CompanionGroups;
@@ -211,7 +213,7 @@ public final class CompanionSceneManager {
         if (sink != null) {
             sink.accept(recipient, packet);
         } else {
-            recipient.connection.send(new net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket(packet));
+            FishtasticTransport.sendToPlayer(recipient, packet);
         }
     }
 

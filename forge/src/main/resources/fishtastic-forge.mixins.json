@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "package": "grill24.fishtastic.forge.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "minVersion": "0.8",
+  "mixins": [],
+  "client": [
+    "ItemRenderPropertiesMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

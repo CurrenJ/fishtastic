@@ -49,6 +49,6 @@ public record ReducedEffectsSyncPacket(boolean reduced) implements CustomPacketP
     }
 
     public static void sendToPlayer(ServerPlayer player, boolean reduced) {
-        player.connection.send(new ClientboundCustomPayloadPacket(new ReducedEffectsSyncPacket(reduced)));
+        FishtasticTransport.sendToPlayer(player, new ReducedEffectsSyncPacket(reduced));
     }
 }

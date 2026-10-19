@@ -41,6 +41,7 @@ public class FishtasticPackets {
     public static final ResourceLocation RENAME_COMPANION_ID = Fishtastic.id("rename_companion");
     public static final ResourceLocation TAKE_PILE_FISH_ID = Fishtastic.id("take_pile_fish");
     public static final ResourceLocation COMPANION_FEEDBACK_ID = Fishtastic.id("companion_feedback");
+    public static final ResourceLocation COMPANION_PARTY_SYNC_ID = Fishtastic.id("companion_party_sync");
 
     /**
      * Initialize packet registration. Called during mod initialization.
@@ -245,6 +246,11 @@ public class FishtasticPackets {
                 AmbientContextResponsePacket.STREAM_CODEC,
                 AmbientContextResponsePacket::handleServerToClient
         );
+        registrar.registerServerToClient(
+                CompanionPartySyncPacket.TYPE,
+                CompanionPartySyncPacket.STREAM_CODEC,
+                CompanionPartySyncPacket::handleServerToClient
+        );
     }
 
     /**
@@ -273,6 +279,7 @@ public class FishtasticPackets {
         registrar.accept(CompanionFeedbackPacket.TYPE, CompanionFeedbackPacket.STREAM_CODEC);
         registrar.accept(CompanionScenePacket.TYPE, CompanionScenePacket.STREAM_CODEC);
         registrar.accept(AmbientContextResponsePacket.TYPE, AmbientContextResponsePacket.STREAM_CODEC);
+        registrar.accept(CompanionPartySyncPacket.TYPE, CompanionPartySyncPacket.STREAM_CODEC);
     }
 
     /**

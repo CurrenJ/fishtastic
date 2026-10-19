@@ -49,6 +49,6 @@ public record TankWaterFillSyncPacket(boolean enabled) implements CustomPacketPa
     }
 
     public static void sendToPlayer(ServerPlayer player, boolean enabled) {
-        player.connection.send(new ClientboundCustomPayloadPacket(new TankWaterFillSyncPacket(enabled)));
+        FishtasticTransport.sendToPlayer(player, new TankWaterFillSyncPacket(enabled));
     }
 }

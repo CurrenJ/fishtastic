@@ -1,5 +1,7 @@
 package grill24.fishtastic.network;
 
+import grill24.fishtastic.network.FishtasticTransport;
+
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.server.FishCatchSavedData;
 import net.minecraft.core.UUIDUtil;
@@ -61,8 +63,7 @@ public record RequestLeaderboardPacket(
 
             LeaderboardResponsePacket response = new LeaderboardResponsePacket(
                     packet.leaderboardType(), packet.ascending(), entries);
-            serverPlayer.connection.send(
-                    new net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket(response));
+            FishtasticTransport.sendToPlayer(serverPlayer, response);
 
             Fishtastic.LOGGER.debug("Sent {} leaderboard entries to {} (type={}, asc={})",
                     entries.size(), serverPlayer.getName().getString(), packet.leaderboardType(), packet.ascending());
