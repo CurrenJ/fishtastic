@@ -33,6 +33,9 @@ public final class FishtasticForgeClient {
     public static void init() {
         grill24.fishtastic.client.FishtasticClientSetup.registerItemModelTypes();
         FishTankItemModel.register();
+        net.minecraftforge.client.event.RegisterColorHandlersEvent.Block.BUS.addListener(event ->
+                event.register(grill24.fishtastic.forge.fishtank.FishTankCosmeticTints.sources(),
+                        FishtasticBlocks.FISH_TANK.value()));
         grill24.fishtastic.architectury.forge.ForgePacketRegistrar.installClientPlayer(
                 () -> Minecraft.getInstance().player);
         // Gelatin owns the menu types; FishTastic supplies the screen factories.
@@ -286,7 +289,7 @@ public final class FishtasticForgeClient {
     }
 
     private static void bakingCompleted(ModelEvent.BakingCompleted event) {
-        FishTankBakedModel tank = new FishTankBakedModel(ForgeModelBaker.of(event.getModelBakery()));
+        FishTankBakedModel tank = grill24.fishtastic.forge.fishtank.FishTankModelResources.bake(ForgeModelBaker.of(event.getModelBakery()));
         Minecraft.getInstance().execute(() -> installBlockModel(tank));
     }
 

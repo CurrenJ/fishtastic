@@ -358,3 +358,126 @@ publisher configuration, manifests and build/publish logs are retained under
 
 No publication operation remains pending. The broader F10/F11 acceptance work and
 existing backport parity markers remain at their previously recorded states.
+
+## PR review fixes and cross-loader validation (2026-10-19)
+
+Owner authorized fixing all six review findings and validating the same behavior on
+all eight supported loader/version combinations. Pending operation: implement Forge
+26.1.2 model-data refresh, shape/diagonal geometry, independent cosmetic meshes and
+tint sources; correct 26.1.2/1.21.1 Forge observer login sync and 1.21.1 payload
+handled state. Audit 1.20.1 Fabric/Forge and both newer Fabric/NeoForge attachment,
+geometry, tint and invalidation implementations. Evidence and exact command/results
+will be saved under `build/forge-pr-fixes/`. Run targeted regression coverage and
+the complete supported build/test matrix. Treat interrupted runtime probes as
+unverified; do not advance unrelated package or backport parity markers.
+
+### Continuation checkpoint (2026-10-19, second session)
+
+Resumed from `docs/forge-ports-2026-10-19-handoff.md`.
+
+Blocker 1 re-read from the artifacts: the image the handoff cited
+(`build/forge-pr-fixes/first-render-run/selftest-forge-forgereview-edited_vitrine.png`,
+21:29 run) is the pre-fix capture. The final run of that session wrote
+`docs/fish-companions-twoclient/run-forge-solo/screenshots/selftest-forge-forgereview-edited_vitrine.png`
+at 21:31:47, and it shows the vitrine shape with the diamond frame and the tree cosmetic.
+So the world-render acceptance already passed after the model-data refresh and mesh-cache
+changes; a fresh run is still required as part of the matrix below.
+
+Pending operation, in order:
+
+1. 26.1.2 full matrix in `D:/GitHub/fishtastic`: `:common:test`, `:fishsim:test`,
+   `:tools:tank-shape-gen:test`, `:fabric:assemble`, `:neoforge:assemble`, `:forge:build`,
+   then the Forge GameTests. Evidence: `build/forge-pr-fixes/matrix/26.1.2-*.log`.
+2. Fresh Forge 26.1.2 `forgereview` client run (acceptance screenshot).
+3. Forge 26.1.2 two-client party login regression: dedicated Forge server on 25602,
+   `partyseed` as FishB, `partyobserver` as FishA (owner offline), then `partyreturn` as
+   FishB. Evidence: `build/forge-pr-fixes/party/26.1.2/`.
+4. Same party regression on the 1.21.1 Forge worktree (port 25602 there too, separate
+   checkout), plus the client-log check that handled Fishtastic payloads no longer log
+   "Unknown custom packet payload".
+5. Re-run the 1.21.1 and 1.20.1 test/build matrices only if their working trees change;
+   their earlier logs in `build/forge-pr-fixes/` remain valid evidence for these edits.
+
+Interrupted runs stay unverified. No package gate or backport parity marker is advanced.
+
+### Continuation results (2026-10-19, second session)
+
+EXECUTION VERIFIED on Forge 26.1.2 (`D:/GitHub/fishtastic`, branch `codex/forge-26.1.2`):
+
+- `:common:test :fishsim:test :tools:tank-shape-gen:test :fabric:assemble
+  :neoforge:assemble :forge:build` — BUILD SUCCESSFUL in 1m43s
+  (`build/forge-pr-fixes/matrix/26.1.2-tests-build.log`).
+- `:forge:runGametest` — **378/378** required tests passed, BUILD SUCCESSFUL in 33s
+  (`build/forge-pr-fixes/matrix/26.1.2-gametests.log`). This closes the outstanding
+  26.1.2 GameTest item from the handoff.
+- Fresh `forgereview` client run — 15/15 checks PASS and BUILD SUCCESSFUL in 40s
+  (`build/forge-pr-fixes/matrix/26.1.2-forgereview.log`). The screenshot
+  `docs/fish-companions-twoclient/run-forge-solo/screenshots/selftest-forge-forgereview-edited_vitrine.png`
+  (22:09:49) shows the vitrine shape, diamond frame and tree cosmetic after the server-side
+  edit, so the stale-chunk-mesh blocker is closed. The earlier failing copy is retained at
+  `build/forge-pr-fixes/pre-rerun/selftest-forge-forgereview-edited_vitrine_2131.png`.
+- Two-client party regression on a dedicated Forge server (port 25602), evidence in
+  `build/forge-pr-fixes/party/26.1.2/`:
+  `partyseed.stored` PASS (FishB, bluegill in slot);
+  `partyobserver.owner_initially_offline` PASS and `partyobserver.returning_party` PASS
+  (`online=[FishA, FishB]`, 775 ticks) while FishB rejoined;
+  `partyreturn.persisted` PASS. The server was then killed and restarted, and a fresh FishB
+  session again reported `partyreturn.persisted` PASS, proving the
+  `world/data/fishtastic/companion_parties.dat` round-trip rather than only in-memory state.
+
+EXECUTION VERIFIED on Forge 1.21.1 (`D:/GitHub/fishtastic-worktrees/mc-1.21.1`,
+branch `codex/forge-1.21.1`), evidence in `build/forge-pr-fixes/party/1.21.1/`:
+
+- Two-client party regression: `partyseed.stored` PASS,
+  `partyobserver.owner_initially_offline` PASS, `partyobserver.returning_party` PASS
+  (815 ticks), `partyreturn.persisted` PASS.
+- Payload-handled fix: the same three client logs and both run-directory `latest.log` files
+  contain **0** "Unknown custom packet payload" lines, where the pre-fix F10 capture
+  (`build/forge-support/1.21.1/F10/twoclient/client-a.log`) has 7 (quest_sync,
+  companion_tutorial_sync, tutorial_sync, ...). The party payload itself was received, so the
+  handler path was exercised.
+
+Cross-loader runtime confirmation (same three scenes, dedicated server per loader):
+
+| Minecraft | Fabric | NeoForge | Forge |
+|---|---|---|---|
+| 26.1.2 | PASS (`party/fabric-26.1.2`) | PASS (`party/neoforge-26.1.2`) | PASS (`party/26.1.2`) |
+| 1.21.1 | PASS (`party/fabric-1.21.1`) | PASS (`party/neoforge-1.21.1`) | PASS (`party/1.21.1`) |
+| 1.20.1 | PASS after fix (`party/fabric-1.20.1/fixed`) | n/a | PASS after fix (`party/forge-1.20.1/fixed`) |
+
+Each PASS row means `partyobserver.owner_initially_offline`,
+`partyobserver.returning_party` and `partyreturn.persisted` all passed, under
+`build/forge-pr-fixes/party/`.
+
+### New 1.20.1 defect found by the shared scene (fixed)
+
+The first 1.20.1 runs reproduced a real, pre-existing bug that the newer branches do not have:
+the returning owner's **own** client saw an empty party (`partyreturn.persisted` FAIL), while the
+observer received it correctly. Instrumentation showed the cause: on 1.20.1,
+`CompanionStorage.onPlayerJoin` only sends parties while iterating
+`PlayerList#getPlayers()`, and the joining player is **not yet in that list** when the hook runs
+(Fabric fires it from the client-ready packet; Forge from datapack sync). The server log recorded
+`server join FishB self=<party> players=[]`. The loop therefore never sent the joining player
+their own party, and a reconnecting player's companions stayed invisible locally.
+
+Fix in `port/1.20.1` `common/.../companion/CompanionStorage.java`: send the joining player their
+own party explicitly before the loop, and keep the observer broadcast for everyone already listed.
+Re-ran seed/observer/return on both 1.20.1 loaders: all three checks PASS
+(`build/forge-pr-fixes/party/fabric-1.20.1/fixed/`, `.../forge-1.20.1/fixed/`).
+
+Post-fix 1.20.1 matrix: `:common:test :fabric:build :forge:build` BUILD SUCCESSFUL
+(`matrix/1.20.1-tests-build-2.log`); `:fabric:runGametest :forge:runGametest` 372/372 each,
+BUILD SUCCESSFUL (`matrix/1.20.1-gametests-2.log`).
+
+Committed locally (not pushed):
+
+| Repository / line | Branch | Commit |
+|---|---|---|
+| Fishtastic 26.1.2 | `codex/forge-26.1.2` | `2264a52a` |
+| Fishtastic 1.21.1 | `codex/forge-1.21.1` | `7350eb70` |
+| Fishtastic 1.20.1 | `port/1.20.1` | `e9268faf` |
+
+All three working trees are clean afterwards. Each commit ran the repository pre-commit hook
+(`common`/`fishsim`/`tank-shape-gen` tests plus Fabric GameTests) successfully. Gelatin UI was
+not touched. The next external step, if wanted, is pushing these three branches so PR #7/#8 pick
+the fixes up; no push or publication was performed here.

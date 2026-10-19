@@ -159,7 +159,24 @@ public class ForgeRegistrationApi implements IRegistrationApi {
 
     @Override
     public void requestModelDataUpdate(BlockEntity blockEntity) {
-        // F06 adds the Forge model-data invalidation hook.
+        if (blockEntity != null && blockEntity.getLevel() != null && blockEntity.getLevel().isClientSide()) {
+            blockEntity.requestModelDataUpdate();
+            ClientModelRefresh.markDirty(blockEntity);
+        }
+    }
+
+    /** Kept behind the client-side guard so dedicated servers never resolve Minecraft. */
+    private static final class ClientModelRefresh {
+        private static void markDirty(BlockEntity blockEntity) {
+            var minecraft = net.minecraft.client.Minecraft.getInstance();
+            var pos = blockEntity.getBlockPos().immutable();
+            minecraft.execute(() -> {
+                if (minecraft.levelRenderer != null) {
+                    minecraft.levelRenderer.setBlocksDirty(pos.getX(), pos.getY(), pos.getZ(),
+                            pos.getX(), pos.getY(), pos.getZ());
+                }
+            });
+        }
     }
 
     @Override

@@ -94,7 +94,7 @@ public final class FishtasticForge {
                 QuestSyncPacket.sendToPlayer(player,
                         FishCatchSavedData.getOrCreate(player.level().getServer()));
                 grill24.fishtastic.tutorial.TutorialManager.onPlayerJoin(player);
-                grill24.fishtastic.network.CompanionPartySyncPacket.syncAllTo(player);
+                grill24.fishtastic.network.CompanionPartySyncPacket.onPlayerJoin(player);
             }
         });
 

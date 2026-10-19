@@ -178,13 +178,7 @@ public class FishTankItemModel implements ItemModel {
 
         @Override
         public void resolveDependencies(ResolvableModel.Resolver resolver) {
-            for (FishTankShape shape : FishTankShape.values()) {
-                for (int permutation = 0; permutation < 64; permutation++) {
-                    resolver.markDependency(modelLocation(shape, "frame", permutation));
-                    resolver.markDependency(modelLocation(shape, "sand", permutation));
-                    resolver.markDependency(modelLocation(shape, "glass", permutation));
-                }
-            }
+            FishTankModelResources.resolveDependencies(resolver::markDependency);
         }
 
         @Override

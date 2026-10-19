@@ -154,7 +154,7 @@ public final class RenderSelfTest {
     /** Scenes that run only when the marker names them (they need something the default run lacks). */
     private static final List<String> OPT_IN_SCENES = List.of("matte", "matteclip", "fourwaters", "fishspin", "cathedral",
             "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench", "leaderboard", "tutorial", "companiontutorial",
-            "companionbond", "companionsim", "companionparty", "companioneel", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld", "companionparticles", "companionworldcost", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk", "celebrationoverlap");
+            "companionbond", "companionsim", "companionparty", "companioneel", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld", "companionparticles", "companionworldcost", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk", "celebrationoverlap", "forgereview", "partyseed", "partyobserver", "partyreturn");
 
     private static Boolean armed;
     /** Keep ordinary automatic features from interfering with explicitly armed fixture scenes. */
@@ -400,6 +400,8 @@ public final class RenderSelfTest {
             case "companionparty" -> queueCompanionPartyScene();
             case "companioneel" -> queueCompanionEelScene();
             case "twoclient" -> queueTwoClientScene();
+            case "forgereview" -> queueForgeReviewScene();
+            case "partyseed", "partyobserver", "partyreturn" -> queuePartyLoginRegression(scene);
             case "companionscenes" -> queueCompanionScenesScene();
             case "companionlod" -> queueCompanionLodScene();
             case "companionmoods" -> queueCompanionMoodsScene();
@@ -4745,6 +4747,55 @@ public final class RenderSelfTest {
      * <em>server</em> thread (fine in single-player only), which races its {@code tick} and loses
      * the event often enough to make the screenshot unreliable. Same call, same event.
      */
+    private static void queueForgeReviewScene() {
+        BlockPos pos = origin.offset(0, 0, -4);
+        queue(1, mc -> server(mc, s -> {
+            s.overworld().setBlockAndUpdate(pos,
+                    grill24.fishtastic.FishtasticBlocks.FISH_TANK.value().defaultBlockState());
+            placeStructure(tank(s.overworld(), pos), "oak_tree", 1, 1);
+        }));
+        queue(40, mc -> runForgeReviewChecks(mc, pos, false));
+        queue(1, mc -> server(mc, s -> {
+            FishTankBlockEntity tank = tank(s.overworld(), pos);
+            tank.setShape(FishTankShape.VITRINE);
+            tank.setMaterials(materials(new String[]{"minecraft:diamond_block", "minecraft:red_sand", "minecraft:glass"}));
+        }));
+        queue(40, mc -> runForgeReviewChecks(mc, pos, true));
+        queue(1, mc -> camera(mc, pos.getX() + 0.5, pos.getY() + 1.0, pos.getZ() + 3.0, 180, 12));
+        queue(20, mc -> screenshot(mc, "forgereview", "edited_vitrine"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void runForgeReviewChecks(Minecraft mc, BlockPos pos, boolean edited) {
+        try {
+            var type = Class.forName("grill24.fishtastic.client.selftest.ForgeReviewChecks");
+            var results = (java.util.Map<String, Boolean>) type.getMethod("check", Minecraft.class, BlockPos.class, boolean.class)
+                    .invoke(null, mc, pos, edited);
+            results.forEach((key, passed) -> check("forgereview." + key, passed, "phase=" + edited));
+        } catch (ReflectiveOperationException e) {
+            check("forgereview.execution", false, e.toString() + " cause=" + e.getCause());
+        }
+    }
+
+    private static void queuePartyLoginRegression(String scene) {
+        if (scene.equals("partyseed")) {
+            queue(1, mc -> mc.player.connection.sendCommand("fishtastic companion give @s fishtastic:bluegill 20 1"));
+            queueUntil("partyseed.stored", 200, mc -> !grill24.fishtastic.companion.CompanionStorage.party(mc.player).isEmpty(),
+                    () -> "party=" + grill24.fishtastic.companion.CompanionStorage.party(Minecraft.getInstance().player));
+        } else if (scene.equals("partyreturn")) {
+            queueUntil("partyreturn.persisted", 200, mc -> !grill24.fishtastic.companion.CompanionStorage.party(mc.player).isEmpty(),
+                    () -> "party=" + grill24.fishtastic.companion.CompanionStorage.party(Minecraft.getInstance().player));
+            queue(100, mc -> note("partyreturn owner stayed online for observer"));
+        } else {
+            queue(1, mc -> check("partyobserver.owner_initially_offline",
+                    mc.level.players().stream().noneMatch(p -> p.getName().getString().equals("FishB")), "waiting for FishB"));
+            queueUntil("partyobserver.returning_party", 3600, mc -> mc.level.players().stream()
+                            .anyMatch(p -> p.getName().getString().equals("FishB")
+                                    && !grill24.fishtastic.companion.CompanionStorage.party(p).isEmpty()),
+                    () -> "online=" + Minecraft.getInstance().level.players().stream().map(p -> p.getName().getString()).toList());
+        }
+    }
+
     // ── Fish companions ─────────────────────────────────────────────────────────
 
     /**
