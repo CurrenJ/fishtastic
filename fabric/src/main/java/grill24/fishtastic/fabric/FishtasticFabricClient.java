@@ -287,8 +287,12 @@ public final class FishtasticFabricClient implements ClientModInitializer {
             }
         });
 
-        // PORT-ONLY: the rendering self-test (inert unless its marker file exists; see RenderSelfTest).
-        ClientTickEvents.END_CLIENT_TICK.register(client -> grill24.fishtastic.client.selftest.RenderSelfTest.tick(client, "fabric"));
+        // Dev-only: the rendering self-test, inert unless its marker file exists (see RenderSelfTest).
+        // Not in the shipped jar, hence the guard.
+        if (grill24.fishtastic.env.DevEnvironmentCheck.isDevelopmentEnvironment()) {
+            ClientTickEvents.END_CLIENT_TICK.register(
+                    client -> grill24.fishtastic.client.selftest.RenderSelfTest.tick(client, "fabric"));
+        }
 
         // Register client tick event handler for animations
         ClientTickEvents.END_CLIENT_TICK.register(client -> {

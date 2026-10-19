@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.1.3
+
+- Release jars no longer bundle the development self-test harness.
+
 ## 2.1.2
 
 Fixed companion and message issues found in review.
