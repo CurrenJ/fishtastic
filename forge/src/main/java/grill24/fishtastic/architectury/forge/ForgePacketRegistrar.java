@@ -97,8 +97,13 @@ public class ForgePacketRegistrar implements FishtasticPackets.IPacketRegistrar 
                 delegate.encode(buf, value);
             }
         };
-        flow.add(type, boundedCodec, (payload, context) ->
-                handler.handle(payload, new ForgePacketContext(context)));
+        flow.add(type, boundedCodec, (payload, context) -> {
+            try {
+                handler.handle(payload, new ForgePacketContext(context));
+            } finally {
+                context.setPacketHandled(true);
+            }
+        });
     }
 
     private static final class ForgePacketContext implements FishtasticPackets.IPacketContext {

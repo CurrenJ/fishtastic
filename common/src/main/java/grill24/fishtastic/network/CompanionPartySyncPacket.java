@@ -45,4 +45,14 @@ public record CompanionPartySyncPacket(UUID owner, CompanionParty party) impleme
             sendToPlayer(to, owner.getUUID(), grill24.fishtastic.companion.CompanionStorage.party(owner));
         }
     }
+    /** Initialize the joining observer and announce their persisted party to existing observers. */
+    public static void onPlayerJoin(ServerPlayer joined) {
+        syncAllTo(joined);
+        var server = joined.level().getServer();
+        if (server == null) return;
+        var party = grill24.fishtastic.companion.CompanionStorage.party(joined);
+        for (ServerPlayer observer : server.getPlayerList().getPlayers()) {
+            if (observer != joined) sendToPlayer(observer, joined.getUUID(), party);
+        }
+    }
 }

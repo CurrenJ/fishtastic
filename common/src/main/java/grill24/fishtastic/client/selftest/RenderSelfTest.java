@@ -122,7 +122,7 @@ public final class RenderSelfTest {
             "guiscale", "fixes", "hud", "gizmos", "pertank", "highlight");
 
     /** Scenes that run only when the marker names them (they need something the default run lacks). */
-    private static final List<String> OPT_IN_SCENES = List.of("cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench", "leaderboard", "tutorial", "companiontutorial", "companionbond", "companionsim", "companionparty", "companioneel", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld", "companionparticles", "companionworldcost", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk", "celebrationoverlap");
+    private static final List<String> OPT_IN_SCENES = List.of("cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench", "leaderboard", "tutorial", "companiontutorial", "companionbond", "companionsim", "companionparty", "companioneel", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld", "companionparticles", "companionworldcost", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk", "celebrationoverlap", "partyseed", "partyobserver", "partyreturn");
 
     private static Boolean armed;
     /** Dev probe (§21): runs every client tick while non-null — tick-true sampling. */
@@ -357,6 +357,7 @@ public final class RenderSelfTest {
             case "companionparty" -> queueCompanionPartyScene();
             case "companioneel" -> queueCompanionEelScene();
             case "twoclient" -> queueTwoClientScene();
+            case "partyseed", "partyobserver", "partyreturn" -> queuePartyLoginRegression(scene);
             case "companionscenes" -> queueCompanionScenesScene();
             case "companionlod" -> queueCompanionLodScene();
             case "companionmoods" -> queueCompanionMoodsScene();
@@ -5315,6 +5316,25 @@ public final class RenderSelfTest {
      * Then it lingers so the peer's shots include it.
      */
     @SuppressWarnings("unchecked")
+    private static void queuePartyLoginRegression(String scene) {
+        if (scene.equals("partyseed")) {
+            queue(1, mc -> mc.player.connection.sendCommand("fishtastic companion give @s fishtastic:bluegill 20 1"));
+            queueUntil("partyseed.stored", 200, mc -> !grill24.fishtastic.companion.CompanionStorage.party(mc.player).isEmpty(),
+                    () -> "party=" + grill24.fishtastic.companion.CompanionStorage.party(Minecraft.getInstance().player));
+        } else if (scene.equals("partyreturn")) {
+            queueUntil("partyreturn.persisted", 200, mc -> !grill24.fishtastic.companion.CompanionStorage.party(mc.player).isEmpty(),
+                    () -> "party=" + grill24.fishtastic.companion.CompanionStorage.party(Minecraft.getInstance().player));
+            queue(100, mc -> note("partyreturn owner stayed online for observer"));
+        } else {
+            queue(1, mc -> check("partyobserver.owner_initially_offline",
+                    mc.level.players().stream().noneMatch(p -> p.getName().getString().equals("FishB")), "waiting for FishB"));
+            queueUntil("partyobserver.returning_party", 3600, mc -> mc.level.players().stream()
+                            .anyMatch(p -> p.getName().getString().equals("FishB")
+                                    && !grill24.fishtastic.companion.CompanionStorage.party(p).isEmpty()),
+                    () -> "online=" + Minecraft.getInstance().level.players().stream().map(p -> p.getName().getString()).toList());
+        }
+    }
+
     private static void queueTwoClientScene() {
         final boolean a = param("role", "a").equals("a");
         final int[] waited = {0};

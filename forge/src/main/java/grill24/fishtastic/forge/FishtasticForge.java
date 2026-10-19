@@ -97,7 +97,7 @@ public final class FishtasticForge {
             if (event.getEntity() instanceof net.minecraft.server.level.ServerPlayer player) {
                 QuestSyncPacket.sendToPlayer(player, FishCatchSavedData.getOrCreate(player.getServer()));
                 grill24.fishtastic.tutorial.TutorialManager.onPlayerJoin(player);
-                grill24.fishtastic.network.CompanionPartySyncPacket.syncAllTo(player);
+                grill24.fishtastic.network.CompanionPartySyncPacket.onPlayerJoin(player);
             }
         });
 
