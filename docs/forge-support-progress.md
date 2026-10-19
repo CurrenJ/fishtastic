@@ -501,3 +501,15 @@ files were submitted to project 1513269 with the required `gelatin-ui` relation;
 allow-listed CurseForge profiles now carry the matching 2.1.2 jar and Gelatin 1.0.38. Full table,
 hashes, source commits and backup paths: `docs/release-2.1.2.md`; raw evidence in
 `build/release-2.1.2/`. No backport parity marker was touched.
+
+### Post-release packaging cleanup (2026-10-20)
+
+Release jars on 1.21.1 and 1.20.1 no longer bundle the development self-test harness. The
+Fabric/NeoForge shadow jars and the 1.20.1 Forge release build exclude
+`grill24/fishtastic/client/selftest/**`. Client entrypoints are guarded by `DevEnvironmentCheck`
+(the 1.20.1 Forge call resolves the harness reflectively), and `-PincludeSelftest` keeps the
+harness for the installed-layout smoke build. Verified: all five 2.1.3 jars contain zero
+self-test entries, the toggle build contains the expected eight, bytecode shows the guard around
+each call, and a 1.20.1 Forge client smoke started cleanly. Both lines are bumped to 2.1.3
+(unpublished). Commits: 1.21.1 `2de14ba4`, 1.20.1 `622ccab2`. 26.1.2 already excluded the
+harness and stays at 2.1.2 until its next change.

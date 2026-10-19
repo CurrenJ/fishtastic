@@ -30,9 +30,10 @@ All three builds succeeded (`build/release-2.1.2/*-build.log`).
 All eight final jars passed CRC, version (`2.1.2+<mc>`), required-Gelatin metadata, and bundled
 tutorial/simulation class checks (`build/release-2.1.2/verify.log`, `artifacts.json`).
 
-Known, pre-existing packaging note: the 1.21.1 Fabric/NeoForge and 1.20.1 Fabric/Forge jars still
-contain the same eight `client/selftest` entries they contained in 2.1.1. They are inert in
-production. The 26.1.2 jars and the 1.21.1 Forge jar exclude them.
+Known, pre-existing packaging note: the 1.21.1 Fabric/NeoForge and 1.20.1 Fabric/Forge jars in
+2.1.2 still contain the same eight `client/selftest` entries they contained in 2.1.1. They are
+inert in production. The 26.1.2 jars and the 1.21.1 Forge jar exclude them. This was fixed for
+the next release: see "Post-release packaging cleanup" in `docs/forge-support-progress.md`.
 
 ## Published files
 
