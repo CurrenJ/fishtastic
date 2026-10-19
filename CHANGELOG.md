@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.2
+
+- A reconnecting player's companion party now reaches their own client and is announced to
+  players already on the server.
+- Celebration rays no longer draw over notification banners.
+
 ## 2.1.1
 
 Fixed Gelatin UI being treated as optional: all loaders now report it as a required dependency, and CurseForge installs it as a required dependency.
