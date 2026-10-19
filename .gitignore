@@ -130,3 +130,14 @@ CLAUDE.md
 
 ## Vanilla block textures for tools/sticker_sheet.html (Mojang assets, never commit)
 /tools/block_textures/
+
+# Local tooling and generated runtime files
+*.log
+*.log.gz
+**/hs_err_pid*.log
+**/replay_pid*.log
+/common/logs/
+AGENTS.md
+.agents/
+.codex/
+/.scratch/

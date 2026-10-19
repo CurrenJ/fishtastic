@@ -97,7 +97,8 @@ processResources {
             'mod_icon': rootProject.mod_icon,
             'mod_fabric_minecraft_version': "~${rootProject.minecraft_version}",
             'mod_java_version': ">=${rootProject.java_version}",
-            'mod_fabricloader_version': ">=${rootProject.fabric_loader_version}"
+            'mod_fabricloader_version': ">=${rootProject.fabric_loader_version}",
+            'mod_gelatinui_version': ">=${rootProject.gelatinui_version}"
         ])
     }
 

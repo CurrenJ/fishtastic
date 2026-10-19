@@ -155,6 +155,7 @@ tasks.register('publishCurseForge', TaskPublishCurseForge) {
     // remapJar, not shadowJar: on the remapping Loom, shadowJar is the named-mappings dev jar.
     def fabricJar = project(':fabric').tasks.named('remapJar').get().archiveFile
     def fabricUpload = upload(projectId, fabricJar)
+    fabricUpload.addRequirement('gelatin-ui')
     fabricUpload.changelog = changelogText
     fabricUpload.changelogType = 'markdown'
     fabricUpload.releaseType = releaseType
@@ -171,6 +172,7 @@ tasks.register('publishCurseForge', TaskPublishCurseForge) {
     // ── NeoForge ──
     def neoJar = project(':neoforge').tasks.named('remapJar').get().archiveFile
     def neoUpload = upload(projectId, neoJar)
+    neoUpload.addRequirement('gelatin-ui')
     neoUpload.changelog = changelogText
     neoUpload.changelogType = 'markdown'
     neoUpload.releaseType = releaseType

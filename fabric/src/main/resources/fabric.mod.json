@@ -43,10 +43,10 @@
     "fabricloader": "${mod_fabricloader_version}",
     "minecraft": "${mod_fabric_minecraft_version}",
     "java": "${mod_java_version}",
-    "fabric-api": "*"
+    "fabric-api": "*",
+    "gelatinui": "${mod_gelatinui_version}"
   },
   "suggests": {
-    "gelatinui": "*",
     "jei": "*"
   }
 }
