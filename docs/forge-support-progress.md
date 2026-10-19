@@ -473,7 +473,7 @@ Committed locally (not pushed):
 
 | Repository / line | Branch | Commit |
 |---|---|---|
-| Fishtastic 26.1.2 | `codex/forge-26.1.2` | `2264a52a` |
+| Fishtastic 26.1.2 | `codex/forge-26.1.2` | `a1035a66` |
 | Fishtastic 1.21.1 | `codex/forge-1.21.1` | `7350eb70` |
 | Fishtastic 1.20.1 | `port/1.20.1` | `e9268faf` |
 
