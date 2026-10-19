@@ -7,6 +7,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import grill24.fishtastic.FishtasticItemTags;
+import grill24.fishtastic.companion.CompanionParty;
 import grill24.fishtastic.companion.CompanionStorage;
 import grill24.fishtastic.companion.Companions;
 import grill24.fishtastic.util.FishingMinigameAnimation;
@@ -77,7 +78,8 @@ public class CompanionCommand {
         return Commands.literal("companion")
                 .requires(FishtasticPermissions.gamemaster())
                 .then(Commands.literal("on").executes(CompanionCommand::on))
-                .then(Commands.literal("off").executes(CompanionCommand::off))
+                .then(Commands.literal("off").executes(ctx -> off(ctx, Optional.empty()))
+                        .then(slotArgument().executes(ctx -> off(ctx, Optional.of(slotOf(ctx))))))
                 .then(Commands.literal("give")
                         .then(Commands.argument("player", EntityArgument.player())
                                 .then(Commands.argument("species", IdentifierArgument.id())
@@ -86,9 +88,11 @@ public class CompanionCommand {
                                                         .filter(item -> item.builtInRegistryHolder().is(FishtasticItemTags.FISH))
                                                         .map(item -> BuiltInRegistries.ITEM.getKey(item).toString()),
                                                 builder))
-                                        .executes(ctx -> give(ctx, Optional.empty()))
+                                        .executes(ctx -> give(ctx, Optional.empty(), Optional.empty()))
                                         .then(Commands.argument("size", FloatArgumentType.floatArg(1f, 2000f))
-                                                .executes(ctx -> give(ctx, Optional.of(FloatArgumentType.getFloat(ctx, "size"))))))))
+                                                .executes(ctx -> give(ctx, Optional.of(FloatArgumentType.getFloat(ctx, "size")), Optional.empty()))
+                                                .then(slotArgument().executes(ctx -> give(ctx,
+                                                        Optional.of(FloatArgumentType.getFloat(ctx, "size")), Optional.of(slotOf(ctx)))))))))
                 .then(Commands.literal("debug")
                         .then(Commands.argument("value", BoolArgumentType.bool()).executes(ctx -> client(ctx,
                                 () -> grill24.fishtastic.client.companion.ClientCompanions.devOverlay(
@@ -301,17 +305,40 @@ public class CompanionCommand {
         return 1;
     }
 
-    private static int off(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+    /** A party slot as players count it: 1 (the lead) to 3. */
+    private static com.mojang.brigadier.builder.RequiredArgumentBuilder<CommandSourceStack, Integer> slotArgument() {
+        return Commands.argument("slot", com.mojang.brigadier.arguments.IntegerArgumentType.integer(1, CompanionParty.SIZE));
+    }
+
+    /** The {@code slot} argument as a party index (0 = lead). */
+    private static int slotOf(CommandContext<CommandSourceStack> ctx) {
+        return com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "slot") - 1;
+    }
+
+    /** Returns one slot's companion, or with no slot named, the whole party. */
+    private static int off(CommandContext<CommandSourceStack> ctx, Optional<Integer> slot) throws CommandSyntaxException {
         ServerPlayer player = ctx.getSource().getPlayerOrException();
-        if (!Companions.unequip(player)) {
-            ctx.getSource().sendFailure(Component.literal("No companion equipped"));
+        int returned = 0;
+        for (int i = 0; i < CompanionParty.SIZE; i++) {
+            if (slot.isPresent() && slot.get() != i) continue;
+            if (Companions.unequip(player, i)) returned++;
+        }
+        if (returned == 0) {
+            ctx.getSource().sendFailure(Component.literal(slot.isPresent() ? "No companion in that slot" : "No companions in your party"));
             return 0;
         }
-        ctx.getSource().sendSuccess(() -> Component.literal("Companion unequipped").withStyle(ChatFormatting.GREEN), false);
+        int count = returned;
+        ctx.getSource().sendSuccess(() -> Component.literal(count == 1 ? "Companion unequipped" : count + " companions unequipped")
+                .withStyle(ChatFormatting.GREEN), false);
         return 1;
     }
 
-    private static int give(CommandContext<CommandSourceStack> ctx, Optional<Float> size) throws CommandSyntaxException {
+    /**
+     * Conjures a companion into a party slot: the named one (its previous fish returns to the
+     * inventory), or the first empty one. A full party with no slot named changes nothing.
+     */
+    private static int give(CommandContext<CommandSourceStack> ctx, Optional<Float> size, Optional<Integer> slot)
+            throws CommandSyntaxException {
         ServerPlayer player = EntityArgument.getPlayer(ctx, "player");
         Identifier id = IdentifierArgument.getId(ctx, "species");
         Optional<Item> item = BuiltInRegistries.ITEM.getOptional(id);
@@ -319,11 +346,17 @@ public class CompanionCommand {
             ctx.getSource().sendFailure(Component.literal("Not a fish: " + id));
             return 0;
         }
+        int target = slot.orElseGet(() -> CompanionStorage.party(player).firstEmpty());
+        if (target < 0) {
+            ctx.getSource().sendFailure(Component.literal("That party is full — name a slot (1-3) to replace"));
+            return 0;
+        }
         ItemStack fish = new ItemStack(item.get());
         size.ifPresent(cm -> ItemSizeHelper.setSize(fish, cm));
-        Companions.equip(player, fish);
+        Companions.equip(player, target, fish);
         ctx.getSource().sendSuccess(() -> Component.literal("Gave " + player.getName().getString() + " a "
-                + CompanionStorage.get(player).getHoverName().getString() + " companion").withStyle(ChatFormatting.GREEN), true);
+                + CompanionStorage.get(player, target).getHoverName().getString() + " companion in slot " + (target + 1))
+                .withStyle(ChatFormatting.GREEN), true);
         return 1;
     }
 

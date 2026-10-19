@@ -3,6 +3,7 @@ package grill24.fishtastic.menu;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.FishtasticMenuTypes;
 import grill24.fishtastic.companion.CompanionBondGate;
+import grill24.fishtastic.companion.CompanionParty;
 import grill24.fishtastic.companion.CompanionStorage;
 import grill24.fishtastic.companion.Companions;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -16,17 +17,28 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
-/** A persistent companion slot with ordinary, server-authoritative vanilla inventory handling. */
+/**
+ * The companion party's three persistent slots (docs/fish-companions-party.md §5.3) above the
+ * player's inventory, with ordinary, server-authoritative vanilla inventory handling. Menu slots
+ * 0–2 are party slots 0–2; slot 0 is the lead. Moving a fish between them reorders the party.
+ */
 public final class CompanionMenu extends AbstractContainerMenu {
     /** Installed only during client initialization; the dedicated server never loads client classes. */
     public static java.util.function.Predicate<ItemStack> clientEligibility = stack -> true;
-    public static final int INVENTORY_START = 1;
-    public static final int INVENTORY_END = 37;
+    public static final int PARTY_SLOTS = CompanionParty.SIZE;
+    public static final int INVENTORY_START = PARTY_SLOTS;
+    public static final int INVENTORY_END = INVENTORY_START + 36;
+    /** Menu x of each party slot's item origin; the frames are 26 px wide, centred on the panel. */
+    public static final int[] PARTY_SLOT_X = {54, 80, 106};
+    public static final int PARTY_SLOT_Y = 34;
     private final Player owner;
-    private final SimpleContainer companion = new SimpleContainer(1) {
+    private final SimpleContainer party = new SimpleContainer(PARTY_SLOTS) {
         @Override public void setChanged() {
             super.setChanged();
-            if (!readingStorage && owner instanceof ServerPlayer player) Companions.setFromMenu(player, getItem(0));
+            if (readingStorage || !(owner instanceof ServerPlayer player)) return;
+            for (int i = 0; i < PARTY_SLOTS; i++) {
+                if (!ItemStack.matches(getItem(i), CompanionStorage.get(player, i))) Companions.setFromMenu(player, i, getItem(i));
+            }
         }
     };
     private final DataSlot species = DataSlot.standalone();
@@ -41,14 +53,21 @@ public final class CompanionMenu extends AbstractContainerMenu {
         owner = inventory.player;
         species.set(highlightedSpecies == null ? -1 : BuiltInRegistries.ITEM.getId(highlightedSpecies));
         addDataSlot(species);
-        companion.setItem(0, CompanionStorage.get(owner).copy());
-        addSlot(new Slot(companion, 0, 80, 34) {
-            @Override public int getMaxStackSize() { return 1; }
-            @Override public boolean mayPlace(ItemStack stack) {
-                return stack.is(FishtasticItemTags.FISH)
-                        && (owner instanceof ServerPlayer player ? CompanionBondGate.isUnlocked(player, stack) : clientEligibility.test(stack));
-            }
-        });
+        readingStorage = true;
+        try {
+            for (int i = 0; i < PARTY_SLOTS; i++) party.setItem(i, CompanionStorage.get(owner, i).copy());
+        } finally {
+            readingStorage = false;
+        }
+        for (int i = 0; i < PARTY_SLOTS; i++) {
+            addSlot(new Slot(party, i, PARTY_SLOT_X[i], PARTY_SLOT_Y) {
+                @Override public int getMaxStackSize() { return 1; }
+                @Override public boolean mayPlace(ItemStack stack) {
+                    return stack.is(FishtasticItemTags.FISH)
+                            && (owner instanceof ServerPlayer player ? CompanionBondGate.isUnlocked(player, stack) : clientEligibility.test(stack));
+                }
+            });
+        }
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
                 addSlot(new Slot(inventory, col + row * 9 + 9, 8 + col * 18, 120 + row * 18));
@@ -61,6 +80,10 @@ public final class CompanionMenu extends AbstractContainerMenu {
         return species.get() < 0 ? null : BuiltInRegistries.ITEM.byId(species.get());
     }
 
+    public static boolean isPartySlot(int index) {
+        return index >= 0 && index < PARTY_SLOTS;
+    }
+
     /**
      * Attachment changes (pile selection, rename, return) also update this menu's mirror. Packets
      * handled earlier in the same tick can change the attachment before the next broadcast, so a
@@ -68,11 +91,15 @@ public final class CompanionMenu extends AbstractContainerMenu {
      */
     private void pullStorage() {
         if (!(owner instanceof ServerPlayer)) return;
-        ItemStack stored = CompanionStorage.get(owner);
-        if (ItemStack.matches(stored, companion.getItem(0))) return;
         readingStorage = true;
-        try { companion.setItem(0, stored.copy()); }
-        finally { readingStorage = false; }
+        try {
+            for (int i = 0; i < PARTY_SLOTS; i++) {
+                ItemStack stored = CompanionStorage.get(owner, i);
+                if (!ItemStack.matches(stored, party.getItem(i))) party.setItem(i, stored.copy());
+            }
+        } finally {
+            readingStorage = false;
+        }
     }
 
     @Override public void broadcastChanges() {
@@ -86,24 +113,24 @@ public final class CompanionMenu extends AbstractContainerMenu {
         pullStorage();
         if (input == net.minecraft.world.inventory.ContainerInput.QUICK_MOVE && (button == 0 || button == 1)) {
             // Vanilla repeats quickMove while the source still contains the same item type.
-            // A one-fish companion exchange must run exactly once, even for same-species swaps.
+            // A one-fish companion move must run exactly once, even for same-species fish.
             quickMoveStack(player, slot);
             return;
         }
-        if (slot == 0 && input == net.minecraft.world.inventory.ContainerInput.PICKUP && (button == 0 || button == 1)) {
-            clickCompanion(player);
+        if (isPartySlot(slot) && input == net.minecraft.world.inventory.ContainerInput.PICKUP && (button == 0 || button == 1)) {
+            clickCompanion(player, slot);
             return;
         }
         super.clicked(slot, button, input, player);
     }
 
     /**
-     * Plain take/place/swap for the companion slot. Vanilla would first offer the click to the items
+     * Plain take/place/swap for a party slot. Vanilla would first offer the click to the items
      * themselves, and a fish clicked onto a fish auto-piles (SizedItemClickMixin) straight into the
      * slot without asking {@link Slot#mayPlace} — two fish stored as one companion.
      */
-    private void clickCompanion(Player player) {
-        Slot slot = slots.get(0);
+    private void clickCompanion(Player player, int index) {
+        Slot slot = slots.get(index);
         ItemStack carried = getCarried(), current = slot.getItem();
         if (carried.isEmpty()) {
             if (!current.isEmpty()) setCarried(slot.safeTake(current.getCount(), Integer.MAX_VALUE, player));
@@ -120,37 +147,37 @@ public final class CompanionMenu extends AbstractContainerMenu {
         slot.setChanged();
     }
 
-    /** Double-click collecting a stack must not quietly pull the companion out with it. */
+    /** Double-click collecting a stack must not quietly pull a companion out with it. */
     @Override public boolean canTakeItemForPickAll(ItemStack carried, Slot target) {
-        return target.index != 0;
+        return !isPartySlot(target.index);
     }
 
+    /**
+     * Shift-click: out of a party slot returns that fish to the inventory; from the inventory, one
+     * fish goes into the first empty party slot. A full party takes nothing — shift-click never
+     * replaces a companion (§5.3).
+     */
     @Override public ItemStack quickMoveStack(Player player, int index) {
         if (index < 0 || index >= slots.size()) return ItemStack.EMPTY;
         Slot source = slots.get(index);
         if (!source.hasItem() || !source.mayPickup(player)) return ItemStack.EMPTY;
         ItemStack stack = source.getItem(), original = stack.copy();
-        if (index == 0) {
+        if (isPartySlot(index)) {
             if (!moveItemStackTo(stack, INVENTORY_START, INVENTORY_END, true)) return ItemStack.EMPTY;
             source.setByPlayer(stack.isEmpty() ? ItemStack.EMPTY : stack);
         } else {
-            Slot target = slots.get(0);
-            if (!target.mayPlace(stack)) return ItemStack.EMPTY;
-            ItemStack previous = target.getItem().copy();
-            if (stack.getCount() == 1) {
-                // A full inventory is fine: the old companion takes the source fish's place.
-                target.setByPlayer(stack.copyWithCount(1));
-                source.setByPlayer(previous);
-            } else {
-                // Never drop the old companion as a side effect of shift-clicking.
-                if (!previous.isEmpty() && !moveItemStackTo(previous, INVENTORY_START, INVENTORY_END, false)) {
-                    return ItemStack.EMPTY;
+            Slot target = null;
+            for (int i = 0; i < PARTY_SLOTS; i++) {
+                if (!slots.get(i).hasItem()) {
+                    target = slots.get(i);
+                    break;
                 }
-                ItemStack next = stack.copyWithCount(1);
-                stack.shrink(1);
-                source.setByPlayer(stack);
-                target.setByPlayer(next);
             }
+            if (target == null || !target.mayPlace(stack)) return ItemStack.EMPTY;
+            ItemStack next = stack.copyWithCount(1);
+            stack.shrink(1);
+            source.setByPlayer(stack.isEmpty() ? ItemStack.EMPTY : stack);
+            target.setByPlayer(next);
         }
         source.onTake(player, original);
         return original;

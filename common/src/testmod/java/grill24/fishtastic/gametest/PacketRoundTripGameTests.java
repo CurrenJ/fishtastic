@@ -315,19 +315,81 @@ public final class PacketRoundTripGameTests {
         helper.succeed();
     }
 
-    /** A pet-to-pet scene (§10): scene, both participant ids and the shared start time. */
+    /** A pet-to-pet scene (§10): scene, both participants as (owner, party slot), and the shared start time. */
     public static void companionScenePacketRoundTrips(GameTestHelper helper) {
         java.util.UUID first = java.util.UUID.randomUUID();
         java.util.UUID second = java.util.UUID.randomUUID();
         for (grill24.fishtastic.companion.CompanionSceneType scene
                 : grill24.fishtastic.companion.CompanionSceneType.values()) {
-            CompanionScenePacket original = new CompanionScenePacket(scene, first, second, 123456L);
+            CompanionScenePacket original = new CompanionScenePacket(scene, first, 2, second, 1, 123456L);
             RegistryFriendlyByteBuf buf = newBuf(helper);
             CompanionScenePacket.STREAM_CODEC.encode(buf, original);
             CompanionScenePacket decoded = CompanionScenePacket.STREAM_CODEC.decode(buf);
             helper.assertTrue(decoded.equals(original),
                     "CompanionScenePacket must round-trip for " + scene);
         }
+        helper.succeed();
+    }
+
+    /** The party slot travels with bond (including "first empty"), unequip and rename (party spec §5.2). */
+    public static void companionSlotPacketsRoundTrip(GameTestHelper helper) {
+        ItemStack fish = grill24.fishtastic.util.ItemSizeHelper.setSize(
+                new ItemStack(grill24.fishtastic.FishtasticItems.BLUEGILL.value()), 25f);
+        for (int slot : new int[]{grill24.fishtastic.companion.Companions.FIRST_EMPTY, 0, 2}) {
+            var bond = new grill24.fishtastic.network.BondCompanionPacket(fish, slot);
+            RegistryFriendlyByteBuf buf = newBuf(helper);
+            grill24.fishtastic.network.BondCompanionPacket.STREAM_CODEC.encode(buf, bond);
+            var decodedBond = grill24.fishtastic.network.BondCompanionPacket.STREAM_CODEC.decode(buf);
+            helper.assertTrue(decodedBond.slot() == slot && ItemStack.matches(decodedBond.fish(), fish),
+                    "BondCompanionPacket must round-trip for slot " + slot);
+        }
+        var unequip = new grill24.fishtastic.network.UnequipCompanionPacket(2);
+        RegistryFriendlyByteBuf buf = newBuf(helper);
+        grill24.fishtastic.network.UnequipCompanionPacket.STREAM_CODEC.encode(buf, unequip);
+        helper.assertTrue(grill24.fishtastic.network.UnequipCompanionPacket.STREAM_CODEC.decode(buf).equals(unequip),
+                "UnequipCompanionPacket must round-trip");
+        var rename = new grill24.fishtastic.network.RenameCompanionPacket(1, "Gilbert");
+        buf = newBuf(helper);
+        grill24.fishtastic.network.RenameCompanionPacket.STREAM_CODEC.encode(buf, rename);
+        helper.assertTrue(grill24.fishtastic.network.RenameCompanionPacket.STREAM_CODEC.decode(buf).equals(rename),
+                "RenameCompanionPacket must round-trip");
+        helper.succeed();
+    }
+
+    /**
+     * The party attachment (party spec §5.1): both persistent codecs and the sync codec round-trip a
+     * party with a gap in it, and both read their loader's pre-party save — Fabric's bare stack,
+     * NeoForge's {@code {stack: ...}} — into the lead slot.
+     */
+    public static void companionPartyCodecsMigrateAndRoundTrip(GameTestHelper helper) {
+        var ops = helper.getLevel().registryAccess().createSerializationContext(net.minecraft.nbt.NbtOps.INSTANCE);
+        ItemStack lead = grill24.fishtastic.util.ItemSizeHelper.setSize(
+                new ItemStack(grill24.fishtastic.FishtasticItems.BLUEGILL.value()), 25f);
+        lead.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME, net.minecraft.network.chat.Component.literal("Gilbert"));
+        ItemStack last = new ItemStack(grill24.fishtastic.FishtasticItems.STARFISH.value());
+        var party = new grill24.fishtastic.companion.CompanionParty(List.of(lead, ItemStack.EMPTY, last));
+
+        var fabricTag = grill24.fishtastic.companion.CompanionParty.CODEC.encodeStart(ops, party).getOrThrow();
+        var fabric = grill24.fishtastic.companion.CompanionParty.CODEC.parse(ops, fabricTag).getOrThrow();
+        helper.assertTrue(fabric.matches(party), "Fabric codec must round-trip, got " + fabric);
+        var neoCodec = grill24.fishtastic.companion.CompanionParty.MAP_CODEC.codec();
+        var neoTag = neoCodec.encodeStart(ops, party).getOrThrow();
+        var neo = neoCodec.parse(ops, neoTag).getOrThrow();
+        helper.assertTrue(neo.matches(party), "NeoForge codec must round-trip, got " + neo);
+
+        var oldFabric = ItemStack.CODEC.encodeStart(ops, lead).getOrThrow();
+        var migratedFabric = grill24.fishtastic.companion.CompanionParty.CODEC.parse(ops, oldFabric).getOrThrow();
+        helper.assertTrue(ItemStack.matches(migratedFabric.get(0), lead) && migratedFabric.size() == 1,
+                "an old Fabric save must become the lead, got " + migratedFabric);
+        var oldNeo = ItemStack.OPTIONAL_CODEC.fieldOf("stack").codec().encodeStart(ops, lead).getOrThrow();
+        var migratedNeo = neoCodec.parse(ops, oldNeo).getOrThrow();
+        helper.assertTrue(ItemStack.matches(migratedNeo.get(0), lead) && migratedNeo.size() == 1,
+                "an old NeoForge save must become the lead, got " + migratedNeo);
+
+        RegistryFriendlyByteBuf buf = newBuf(helper);
+        grill24.fishtastic.companion.CompanionParty.STREAM_CODEC.encode(buf, party);
+        var synced = grill24.fishtastic.companion.CompanionParty.STREAM_CODEC.decode(buf);
+        helper.assertTrue(synced.matches(party), "the sync codec must round-trip, got " + synced);
         helper.succeed();
     }
 

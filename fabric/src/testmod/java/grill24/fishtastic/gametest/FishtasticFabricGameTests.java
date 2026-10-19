@@ -1042,6 +1042,16 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionSlotPacketsRoundTrip(GameTestHelper helper) {
+        PacketRoundTripGameTests.companionSlotPacketsRoundTrip(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionPartyCodecsMigrateAndRoundTrip(GameTestHelper helper) {
+        PacketRoundTripGameTests.companionPartyCodecsMigrateAndRoundTrip(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void ambientContextRequestPacketRoundTrips(GameTestHelper helper) {
         PacketRoundTripGameTests.ambientContextRequestPacketRoundTrips(helper);
     }
@@ -1388,13 +1398,23 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void companionMenuShiftClickSameSpeciesSwapsOnce(GameTestHelper helper) {
-        CompanionMenuGameTests.shiftClickSameSpeciesSwapsOnce(helper, helper::makeMockServerPlayerInLevel);
+    public void companionMenuShiftClickFillsTheFirstEmptySlotOnce(GameTestHelper helper) {
+        CompanionMenuGameTests.shiftClickFillsTheFirstEmptySlotOnce(helper, helper::makeMockServerPlayerInLevel);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void companionMenuShiftClickWithAFullInventoryChangesNothing(GameTestHelper helper) {
-        CompanionMenuGameTests.shiftClickWithAFullInventoryChangesNothing(helper, helper::makeMockServerPlayerInLevel);
+    public void companionMenuShiftClickWithAFullPartyOrInventoryChangesNothing(GameTestHelper helper) {
+        CompanionMenuGameTests.shiftClickWithAFullPartyOrInventoryChangesNothing(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionMenuThreeSlotsEquipAndReturn(GameTestHelper helper) {
+        CompanionMenuGameTests.threeSlotsEquipAndReturn(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionMenuMovingBetweenSlotsReordersTheParty(GameTestHelper helper) {
+        CompanionMenuGameTests.movingBetweenSlotsReordersTheParty(helper, helper::makeMockServerPlayerInLevel);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
@@ -1453,8 +1473,23 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void bondingASecondFishReturnsTheFirst(GameTestHelper helper) {
-        CompanionGameTests.bondingASecondFishReturnsTheFirst(helper, helper::makeMockServerPlayerInLevel);
+    public void bondingASecondFishFillsTheNextSlot(GameTestHelper helper) {
+        CompanionGameTests.bondingASecondFishFillsTheNextSlot(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void bondIntoAFullPartyIsRefused(GameTestHelper helper) {
+        CompanionGameTests.bondIntoAFullPartyIsRefused(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void bondIntoANamedSlotReturnsItsFish(GameTestHelper helper) {
+        CompanionGameTests.bondIntoANamedSlotReturnsItsFish(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void threeOfOneSpeciesFillTheParty(GameTestHelper helper) {
+        CompanionGameTests.threeOfOneSpeciesFillTheParty(helper, helper::makeMockServerPlayerInLevel);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
@@ -1560,6 +1595,16 @@ public class FishtasticFabricGameTests {
     @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void companionSceneOneScenePerCompanion(GameTestHelper helper) {
         CompanionSceneGameTests.oneScenePerCompanion(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionSceneAGroupTakesPartThroughItsLeader(GameTestHelper helper) {
+        CompanionSceneGameTests.aGroupTakesPartThroughItsLeader(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void companionSceneOneScenePerOwnerPairAtATime(GameTestHelper helper) {
+        CompanionSceneGameTests.oneScenePerOwnerPairAtATime(helper, helper::makeMockServerPlayerInLevel);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")

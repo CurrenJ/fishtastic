@@ -35,7 +35,7 @@ public final class CompanionBondGameTests {
         ServerPlayer player = mockPlayer.get();
         player.getAbilities().instabuild = false;
         player.getInventory().clearContent();
-        CompanionStorage.set(player, ItemStack.EMPTY);
+        CompanionStorage.clear(player);
         FishCatchSavedData data = FishCatchSavedData.getOrCreate(player.level().getServer());
         data.getOrCreateQuestState(player).clearCompanionBonds();
         return player;
@@ -73,7 +73,7 @@ public final class CompanionBondGameTests {
         Companions.BondResult result = Companions.bond(player, fish.copy());
 
         helper.assertTrue(result == Companions.BondResult.LOCKED, "bond result " + result);
-        helper.assertTrue(CompanionStorage.get(player).isEmpty(), "companion must stay empty");
+        helper.assertTrue(CompanionStorage.lead(player).isEmpty(), "companion must stay empty");
         helper.assertTrue(ItemStack.matches(player.getInventory().getItem(4), fish), "the fish must stay in the inventory");
         helper.succeed();
     }
@@ -145,7 +145,7 @@ public final class CompanionBondGameTests {
         Companions.BondResult result = Companions.bond(player, faked);
 
         helper.assertTrue(result == Companions.BondResult.NOT_CARRIED, "bond result " + result);
-        helper.assertTrue(CompanionStorage.get(player).isEmpty(), "companion must stay empty");
+        helper.assertTrue(CompanionStorage.lead(player).isEmpty(), "companion must stay empty");
         helper.assertTrue(ItemStack.matches(player.getInventory().getItem(4), carried), "the carried fish must be untouched");
         helper.succeed();
     }
@@ -161,21 +161,21 @@ public final class CompanionBondGameTests {
         player.getInventory().setItem(4, fish.copy());
         Companions.bond(player, fish.copy());
 
-        helper.assertTrue(Companions.rename(player, "  Bubbles  "), "rename must succeed with a companion");
-        ItemStack renamed = CompanionStorage.get(player);
+        helper.assertTrue(Companions.rename(player, 0, "  Bubbles  "), "rename must succeed with a companion");
+        ItemStack renamed = CompanionStorage.lead(player);
         helper.assertTrue(renamed.getHoverName().getString().equals("Bubbles"),
                 "name must be trimmed and set, got " + renamed.getHoverName().getString());
         helper.assertTrue(renamed.is(FishtasticItems.BLUEGILL.value()), "renaming must keep the species");
         helper.assertTrue(ItemSizeHelper.getSize(renamed) == 25f,
                 "renaming must keep every other component, size=" + ItemSizeHelper.getSize(renamed));
 
-        Companions.rename(player, "x".repeat(64));
-        helper.assertTrue(CompanionStorage.get(player).getHoverName().getString().length()
+        Companions.rename(player, 0, "x".repeat(64));
+        helper.assertTrue(CompanionStorage.lead(player).getHoverName().getString().length()
                         == grill24.fishtastic.network.RenameCompanionPacket.MAX_NAME_LENGTH,
                 "long names must clamp to the wire limit");
 
-        Companions.rename(player, "");
-        helper.assertTrue(!CompanionStorage.get(player).has(net.minecraft.core.component.DataComponents.CUSTOM_NAME),
+        Companions.rename(player, 0, "");
+        helper.assertTrue(!CompanionStorage.lead(player).has(net.minecraft.core.component.DataComponents.CUSTOM_NAME),
                 "a blank rename must clear the custom name");
         helper.succeed();
     }

@@ -1,19 +1,15 @@
 package grill24.fishtastic.server;
 
-import grill24.FishtasticRegistries;
 import grill24.fishsim.core.Locomotion;
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.companion.CompanionGroups;
+import grill24.fishtastic.companion.CompanionParty;
 import grill24.fishtastic.companion.CompanionSceneType;
 import grill24.fishtastic.companion.CompanionStorage;
-import grill24.fishtastic.data.FishAnimationConfig;
-import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.network.CompanionScenePacket;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -43,8 +39,13 @@ import java.util.function.BiConsumer;
  *       roughly the cooldown's pace.</li>
  * </ul>
  *
+ * <p>A companion is (owner, party slot) (docs/fish-companions-party.md §5.2, §7). A group of one
+ * species takes part as one member, through its leader's slot. Scenes only pair companions of
+ * different owners for now; scenes inside one party arrive with the social drive (sim Phase 4).
+ * At most one scene per pair of owners runs at a time.
+ *
  * <p>Everything here is in memory only — nothing is saved, exactly like the spec says. Scenes are
- * purely cosmetic; the state is two numbers per player, so losing it on restart is free.
+ * purely cosmetic; the state is a few numbers per player, so losing it on restart is free.
  */
 public final class CompanionSceneManager {
     private CompanionSceneManager() {}
@@ -56,8 +57,11 @@ public final class CompanionSceneManager {
     /** How far a scene packet is worth sending, blocks — comfortably past where a companion is visible. */
     private static final double REACH = 128.0;
 
-    /** Owner UUID → the tick their involvement in the current scene (and its cooldown) ends at. */
-    private static final Map<UUID, Long> BUSY_UNTIL = new HashMap<>();
+    /** One companion: its owner and party slot (a group's leader slot). */
+    public record Member(UUID owner, int slot) {}
+
+    /** Companion → the tick its involvement in the current scene (and its cooldown) ends at. */
+    private static final Map<Member, Long> BUSY_UNTIL = new HashMap<>();
 
     /**
      * Dev/test seam: when set, scene packets go here instead of to the players' connections, so a
@@ -78,36 +82,45 @@ public final class CompanionSceneManager {
         }
     }
 
+    /** A schedulable companion of one player: a group (or a solo fish) in that player's party. */
+    private record Candidate(ServerPlayer player, CompanionGroups.Group group) {
+        Member member() { return new Member(player.getUUID(), group.leader()); }
+    }
+
     /**
      * The whole scheduler against an explicit clock — public so the game tests can step time
      * deterministically (game tests can't advance a level's game time).
      */
     public static void tickLevel(ServerLevel level, long now) {
         BUSY_UNTIL.values().removeIf(until -> until < now);
+        PARTNER.keySet().retainAll(BUSY_UNTIL.keySet());
 
         List<ServerPlayer> holders = new ArrayList<>();
         for (ServerPlayer player : level.players()) {
-            if (!CompanionStorage.get(player).isEmpty()) holders.add(player);
+            if (!CompanionStorage.party(player).isEmpty()) holders.add(player);
         }
         if (holders.size() < 2) return;
 
         // Best pair wins the tick: lowest scene ordinal = highest priority (§10's fixed order), so
         // a same-species pair anywhere in the level beats a free-swimmer pair. One scene per tick
         // per level is plenty — scenes last seconds and pairs re-evaluate every tick anyway.
-        ServerPlayer bestFirst = null, bestSecond = null;
+        Candidate bestFirst = null, bestSecond = null;
         CompanionSceneType bestScene = null;
         int bestPriority = Integer.MAX_VALUE;
         for (int i = 0; i < holders.size(); i++) {
             for (int j = i + 1; j < holders.size(); j++) {
                 ServerPlayer a = holders.get(i), b = holders.get(j);
-                CompanionSceneType scene = choose(level, a, b, now);
-                if (scene == null) continue;
-                int priority = scene.ordinal();
-                if (priority < bestPriority) {
-                    bestPriority = priority;
-                    bestFirst = a;
-                    bestSecond = b;
-                    bestScene = scene;
+                if (!ownersFree(level, a, b, now)) continue;
+                for (CompanionGroups.Group ga : CompanionGroups.of(CompanionStorage.party(a), level.registryAccess())) {
+                    for (CompanionGroups.Group gb : CompanionGroups.of(CompanionStorage.party(b), level.registryAccess())) {
+                        Candidate first = new Candidate(a, ga), second = new Candidate(b, gb);
+                        CompanionSceneType scene = choose(first, second, now);
+                        if (scene == null || scene.ordinal() >= bestPriority) continue;
+                        bestPriority = scene.ordinal();
+                        bestFirst = first;
+                        bestSecond = second;
+                        bestScene = scene;
+                    }
                 }
             }
         }
@@ -116,22 +129,38 @@ public final class CompanionSceneManager {
     }
 
     /**
+     * Whether this pair of owners may start a scene at all: in range, neither fishing, and not
+     * already sharing one (one scene per owner pair at a time).
+     */
+    private static boolean ownersFree(ServerLevel level, ServerPlayer a, ServerPlayer b, long now) {
+        if (a.position().distanceToSqr(b.position()) > RANGE * RANGE) return false;
+        if (busyFishing(level, a) || busyFishing(level, b)) return false;
+        for (int sa = 0; sa < CompanionParty.SIZE; sa++) {
+            for (int sb = 0; sb < CompanionParty.SIZE; sb++) {
+                if (sharing(new Member(a.getUUID(), sa), new Member(b.getUUID(), sb), now)) return false;
+            }
+        }
+        return true;
+    }
+
+    /** Pairs currently in a scene together (cooldowns don't count): both busy with the same end tick. */
+    private static final Map<Member, Member> PARTNER = new HashMap<>();
+
+    private static boolean sharing(Member a, Member b, long now) {
+        return b.equals(PARTNER.get(a)) && isBusy(a, now)
+                && BUSY_UNTIL.get(a) - COOLDOWN_TICKS >= now;
+    }
+
+    /**
      * The scene two companions should play right now, or null. This is the fixed priority order
      * (R5.6): same species first, then two free swimmers. Each later scene family slots in below
      * the ones above it.
      */
     @Nullable
-    private static CompanionSceneType choose(ServerLevel level, ServerPlayer a, ServerPlayer b, long now) {
-        if (isBusy(a.getUUID(), now) || isBusy(b.getUUID(), now)) return null;
-        if (a.position().distanceToSqr(b.position()) > RANGE * RANGE) return null;
-        if (busyFishing(level, a) || busyFishing(level, b)) return null;
-
-        ItemStack first = CompanionStorage.get(a);
-        ItemStack second = CompanionStorage.get(b);
-        if (first.is(second.getItem())) return CompanionSceneType.G1_SAME_SPECIES;
-        Locomotion firstClass = locomotionOf(level, first);
-        Locomotion secondClass = locomotionOf(level, second);
-        if (firstClass == Locomotion.FREE_SWIM && secondClass == Locomotion.FREE_SWIM) {
+    private static CompanionSceneType choose(Candidate a, Candidate b, long now) {
+        if (isBusy(a.member(), now) || isBusy(b.member(), now)) return null;
+        if (a.group().species() == b.group().species()) return CompanionSceneType.G1_SAME_SPECIES;
+        if (a.group().locomotion() == Locomotion.FREE_SWIM && b.group().locomotion() == Locomotion.FREE_SWIM) {
             return CompanionSceneType.G2_FREE_SWIM_EIGHT;
         }
         return null;
@@ -148,18 +177,22 @@ public final class CompanionSceneManager {
         return player.fishing != null && !player.fishing.isRemoved();
     }
 
-    private static void start(ServerLevel level, ServerPlayer first, ServerPlayer second,
+    private static void start(ServerLevel level, Candidate first, Candidate second,
                               CompanionSceneType scene, long now) {
         long until = now + scene.durationTicks() + COOLDOWN_TICKS;
-        BUSY_UNTIL.put(first.getUUID(), until);
-        BUSY_UNTIL.put(second.getUUID(), until);
+        BUSY_UNTIL.put(first.member(), until);
+        BUSY_UNTIL.put(second.member(), until);
+        PARTNER.put(first.member(), second.member());
+        PARTNER.put(second.member(), first.member());
 
-        CompanionScenePacket packet = new CompanionScenePacket(scene, first.getUUID(), second.getUUID(), now);
-        Fishtastic.LOGGER.debug("Companion scene {} between {} and {}", scene, first.getName().getString(),
-                second.getName().getString());
+        CompanionScenePacket packet = new CompanionScenePacket(scene, first.player().getUUID(), first.group().leader(),
+                second.player().getUUID(), second.group().leader(), now);
+        Fishtastic.LOGGER.debug("Companion scene {} between {} (slot {}) and {} (slot {})", scene,
+                first.player().getName().getString(), first.group().leader(),
+                second.player().getName().getString(), second.group().leader());
         for (ServerPlayer recipient : level.players()) {
-            if (recipient.distanceToSqr(first) > REACH * REACH
-                    && recipient.distanceToSqr(second) > REACH * REACH) continue;
+            if (recipient.distanceToSqr(first.player()) > REACH * REACH
+                    && recipient.distanceToSqr(second.player()) > REACH * REACH) continue;
             send(recipient, packet);
         }
     }
@@ -173,41 +206,20 @@ public final class CompanionSceneManager {
         }
     }
 
-    /** Whether {@code companion} (by owner UUID) is in a scene or its cooldown at {@code now}. */
-    public static boolean isBusy(UUID owner, long now) {
-        Long until = BUSY_UNTIL.get(owner);
+    /** Whether the companion in {@code slot} of {@code owner}'s party is in a scene or its cooldown at {@code now}. */
+    public static boolean isBusy(UUID owner, int slot, long now) {
+        return isBusy(new Member(owner, slot), now);
+    }
+
+    private static boolean isBusy(Member member, long now) {
+        Long until = BUSY_UNTIL.get(member);
         return until != null && until >= now;
     }
 
     /** Dev/test seam: forget every busied companion and the packet sink. */
     public static void resetForTest() {
         BUSY_UNTIL.clear();
+        PARTNER.clear();
         packetSinkForTest = null;
-    }
-
-    /**
-     * The companion species' locomotion class, resolved from its fish profile the same way the
-     * client's renderer resolves it. Deliberately a local mirror of {@code TankFlockAdapter
-     * .locomotionOf} (which lives in the client renderer and must stay off the server's classpath):
-     * pose and locomotion are linked by this table and only this table, so the two copies must be
-     * changed together.
-     */
-    private static Locomotion locomotionOf(ServerLevel level, ItemStack fish) {
-        FishAnimationConfig animation = BuiltInRegistries.ITEM.getResourceKey(fish.getItem())
-                .map(key -> level.registryAccess()
-                        .lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY)
-                        .getOptional(ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY,
-                                key.identifier()))
-                        .map(profile -> profile.animation().orElse(FishAnimationConfig.HorizontalSwim.DEFAULT))
-                        .orElse(FishAnimationConfig.HorizontalSwim.DEFAULT))
-                .orElse(FishAnimationConfig.HorizontalSwim.DEFAULT);
-        return switch (animation) {
-            case FishAnimationConfig.HorizontalSwim ignored -> Locomotion.FREE_SWIM;
-            case FishAnimationConfig.BellyDown ignored -> Locomotion.GLIDE;
-            case FishAnimationConfig.UprightFloat ignored -> Locomotion.DRIFT;
-            case FishAnimationConfig.FloorSit ignored -> Locomotion.BENTHIC;
-            case FishAnimationConfig.UprightSit ignored -> Locomotion.BENTHIC;
-            case FishAnimationConfig.Planted ignored -> Locomotion.ANCHORED;
-        };
     }
 }

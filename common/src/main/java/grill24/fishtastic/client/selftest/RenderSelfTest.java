@@ -4624,7 +4624,7 @@ public final class RenderSelfTest {
         queue(1, mc -> server(mc, s -> {
             run(s, "fishtastic companion unlock @p fishtastic:bluegill");
             for (ServerPlayer player : s.getPlayerList().getPlayers()) {
-                grill24.fishtastic.companion.Companions.unequip(player);
+                grill24.fishtastic.companion.CompanionStorage.clear(player);
                 player.getInventory().clearContent();
                 player.getInventory().setItem(0, fish("bluegill", 25f).copyWithCount(2));
                 player.getInventory().setItem(1, fish("bluegill", 31f));
@@ -4637,32 +4637,35 @@ public final class RenderSelfTest {
         queue(15, mc -> grill24.fishtastic.client.CompanionScreen.open(fish("bluegill", 25f)));
         queue(20, mc -> {
             check("bond.inventoryScreen", mc.screen instanceof grill24.fishtastic.client.CompanionScreen, "screen=" + mc.screen);
-            check("bond.slotCount", mc.player.containerMenu.slots.size() == 37, "slots=" + mc.player.containerMenu.slots.size());
+            check("bond.slotCount", mc.player.containerMenu.slots.size() == 39, "slots=" + mc.player.containerMenu.slots.size());
             screenshot(mc, "companionbond", "inventory_picker");
         });
-        queue(1, mc -> mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, 28, 0,
+        // Menu slots 0-2 are the party; the hotbar starts at 30 (party spec §5.3).
+        queue(1, mc -> mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, 30, 0,
                 net.minecraft.world.inventory.ContainerInput.QUICK_MOVE, mc.player));
         queue(15, mc -> {
-            check("bond.equipped", !grill24.fishtastic.companion.CompanionStorage.get(mc.player).isEmpty(), "");
+            check("bond.equipped", !grill24.fishtastic.companion.CompanionStorage.get(mc.player, 0).isEmpty(), "");
             check("bond.oneTaken", mc.player.getInventory().getItem(0).getCount() == 1, "");
             screenshot(mc, "companionbond", "equipped");
         });
-        queue(1, mc -> mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, 29, 0,
+        queue(1, mc -> mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, 31, 0,
                 net.minecraft.world.inventory.ContainerInput.QUICK_MOVE, mc.player));
         queue(15, mc -> {
-            check("bond.switched", grill24.fishtastic.util.ItemSizeHelper.getSize(grill24.fishtastic.companion.CompanionStorage.get(mc.player)) == 31f, "");
-            screenshot(mc, "companionbond", "switched");
+            check("bond.second", grill24.fishtastic.util.ItemSizeHelper.getSize(grill24.fishtastic.companion.CompanionStorage.get(mc.player, 1)) == 31f, "");
+            screenshot(mc, "companionbond", "pair");
         });
         queue(1, mc -> mc.player.connection.send(new net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket(
-                new grill24.fishtastic.network.RenameCompanionPacket("Bubbles"))));
+                new grill24.fishtastic.network.RenameCompanionPacket(0, "Bubbles"))));
         queue(15, mc -> {
-            check("bond.renamed", grill24.fishtastic.companion.CompanionStorage.get(mc.player).getHoverName().getString().equals("Bubbles"), "");
+            check("bond.renamed", grill24.fishtastic.companion.CompanionStorage.get(mc.player, 0).getHoverName().getString().equals("Bubbles"), "");
             screenshot(mc, "companionbond", "renamed");
         });
         queue(1, mc -> mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, 0, 0,
                 net.minecraft.world.inventory.ContainerInput.QUICK_MOVE, mc.player));
+        queue(1, mc -> mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, 1, 0,
+                net.minecraft.world.inventory.ContainerInput.QUICK_MOVE, mc.player));
         queue(15, mc -> {
-            check("bond.returned", grill24.fishtastic.companion.CompanionStorage.get(mc.player).isEmpty(), "");
+            check("bond.returned", grill24.fishtastic.companion.CompanionStorage.party(mc.player).isEmpty(), "");
             screenshot(mc, "companionbond", "returned");
             mc.player.closeContainer();
         });
@@ -4677,7 +4680,8 @@ public final class RenderSelfTest {
         String[][] fish = {{"bluegill", "12", "trio"}, {"bluegill", "25", "solo"}, {"starfish", "20", "benthic"},
                 {"garden_eel", "40", "anchored"}, {"glass_squid", "20", "drift"}, {"giant_manta_ray", "150", "glide"}};
         for (String[] f : fish) {
-            queue(1, mc -> server(mc, s -> run(s, "fishtastic companion give @p fishtastic:" + f[0] + " " + f[1])));
+            // Slot 1 (the lead) each time, so each fish replaces the last: one companion on screen.
+            queue(1, mc -> server(mc, s -> run(s, "fishtastic companion give @p fishtastic:" + f[0] + " " + f[1] + " 1")));
             queue(60, mc -> {
                 var local = grill24.fishtastic.client.companion.ClientCompanions.local();
                 check("companionsim." + f[2] + ".tracked", local != null && local.agent() != null,
@@ -4692,7 +4696,7 @@ public final class RenderSelfTest {
                 mc.options.setCameraType(CameraType.FIRST_PERSON);
             });
         }
-        queue(1, mc -> server(mc, s -> run(s, "fishtastic companion give @p fishtastic:bluegill 25")));
+        queue(1, mc -> server(mc, s -> run(s, "fishtastic companion give @p fishtastic:bluegill 25 1")));
         queue(60, mc -> grill24.fishtastic.client.companion.ClientCompanions.devFake("hostile"));
         queue(120, mc -> {
             companionLog("fake hostile close");

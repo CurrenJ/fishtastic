@@ -1064,7 +1064,11 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         Item item = BuiltInRegistries.ITEM.getOptional(fishId).orElse(null);
         if (item == null || mc.level == null) return;
         String status;
-        if (unlocked) {
+        int inParty = partySlotOf(mc, item);
+        if (inParty >= 0) {
+            status = translated(inParty == grill24.fishtastic.companion.CompanionParty.LEAD
+                    ? "screen.fishtastic.companion.in_party_lead" : "screen.fishtastic.companion.in_party");
+        } else if (unlocked) {
             boolean carried = mc.player != null && !CarriedFish.groupsOf(mc.player, item).isEmpty();
             status = translated(carried ? "screen.fishtastic.companion.ready" : "screen.fishtastic.companion.carry", new ItemStack(item).getHoverName().getString());
         } else if (CompanionBondUnlocks.isUnlisted(fishId)) {
@@ -1080,6 +1084,16 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
             bond.onClick(e -> CompanionScreen.open(new ItemStack(item)));
             companionInfo.addChild(bond);
         }
+    }
+
+    /** The first party slot holding this species, or -1 (slot 0 is the lead). */
+    private static int partySlotOf(Minecraft mc, Item item) {
+        if (mc.player == null) return -1;
+        var party = grill24.fishtastic.companion.CompanionStorage.party(mc.player);
+        for (int i = 0; i < grill24.fishtastic.companion.CompanionParty.SIZE; i++) {
+            if (party.get(i).is(item)) return i;
+        }
+        return -1;
     }
 
     // -------------------------------------------------------------------------
