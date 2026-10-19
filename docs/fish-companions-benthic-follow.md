@@ -767,3 +767,76 @@ integration (gait/group constructors, rendering every member, commands, the floo
 budget in game). The game still constructs the no-gait percher. Owner viewer look for the
 beats: `./gradlew :fishsim:runCompanionViewer`, BENTHIC (sprinter for frequent overtakes),
 `benthic_park` or walk_flat, watching the overlay's beat field.
+
+## 20. Formations completed (2026-10-12, uncommitted)
+
+Headless in `fishsim`; the owner's authorization in §15 holds and visual approval is still pending.
+The game still constructs the no-gait percher (Phase 5 is separate work).
+
+### 20.1 Fixes (each traced, then validated on equal seeds)
+
+- **Perched members shared a slot.** Two followers sat on RIGHT_HAND together (`hand()` maps both
+  the right shoulder's and the head's member there). And `coverSlot` sent all three to the head
+  from a cat, or to one shoulder from a hostile. Now only the leader goes to the hand (as from the
+  ground), and a group member's cover is its own home slot. A/B with the cover rule off:
+  cat_lounging had 287–579 shared-slot ticks, members coincident, in 5 of 6 runs; with it, 0, and
+  the same time up on the owner (e.g. 2266 vs 2271 member-ticks). Hostile runs are identical.
+- **Line members walked into each other.** Followers steer at their predecessor's newest trail
+  point, which lies under a slowing or pivoting predecessor, and line followers had no separation.
+  They now get the separation push at contact range (2 × radius + 0.04; the gap is still kept by
+  speed). The stand-still corner turn keeps that push while two members actually interpenetrate.
+  A/B: fewer line overlap ticks in 11 of 12 runs (walk_flat 129/54/89 → 66/50/42), no fade added.
+- **Rejected after A/B (not shipped):** a "yield" speed cap behind the member in front (line
+  fades 4–12 a run, overlaps often worse); separation for the line's leader (mixed per seed;
+  stairs seed 1 went 5 → 10 fades); crowd separation starting a body-width out (overlaps better
+  in 10/15 runs but worse in 4, underfoot up: walk_flat 6→13, 2→7, 2→13). A first, wider line
+  separation (the full 0.48 spacing) fought the spacing and added sprint fades; it was replaced
+  by the contact range.
+
+### 20.2 Measurements (`BenthicGroupProbe`, three seeds, line 0.4, crowd 0.12)
+
+- **Line order**, measured *along the leader's way* (each follower stands where the leader was
+  earlier than the follower before it). Measured against the owner's travel direction, a
+  follower still walking to a hairpin's bend looked "ahead", which is a metric artefact. Out of
+  order: walk_flat 3–4.5%, meander 0.2–1.2%, sprint 0–1.2%, passers 0–7.3%, backing up 6–13%,
+  stairs 4–12%.
+- **Line wave** (follower distance from its predecessor's last-2 s path while following):
+  mean 0.20–0.27 (max 2.1–2.6) on walk_flat, 0.32–0.37 on meander, 0.16 on a sprint. **Gap**:
+  1.6 blocks (CV 0.4) on walk_flat, 1.05–1.15 (CV 0.8–1.0) on meander.
+- **Crowd spread** (mean distance from the centroid): owner still 0.34–1.09, moving 0.59–1.49.
+  Note for the owner: tighter when stopped than when moving, the reverse of §4's "spread out
+  when stopped". Left as is pending a look.
+- **Overlap:** deep (centres within half the contact distance) worst 51 of 2400 ticks (crowd,
+  owner backing into it), mostly ≤ 30. Touching (> 15%) 11–177 ticks.
+- **Passers and backing up:** no fades; underfoot of any player ≤ 13 member-ticks of 7200.
+- **Climb cycles:** every member climbs and dismounts twice per two minutes; never a shared slot.
+
+### 20.3 New scripts, tests, probes
+
+- `OwnerScript.GROUND_NAMES` += `group_passers` (12 scripted players cross the group's area,
+  across the owner's feet when idle, behind them on slow and brisk walks, walking or
+  sprinting), `walk_backward` (backs up into the formation, then an about-face straight back
+  through it), and `climb_cycles` (stand 40 s, walk off and back, repeat). `OwnerScript.walkBackTo`
+  (walk with the view held) and `ScriptedPoints.crosser` support them. The solo crab matrix runs
+  them too (it covers all `GROUND_NAMES`) and passes.
+- `BenthicGroupTest`: `formationsKeepOrderRoomAndTheirFeetClear` (line + crowd × walk_flat,
+  meander, sprint, passers, backing up × 3 seeds: no shared slot, deep overlap ≤ 72 ticks,
+  underfoot ≤ 36 member-ticks, line order ≤ 8%, or ≤ 18% when jostled, no fade except slugs on
+  a sprint), `climbCyclesHandOutUniqueSlotsEachTime` (3 min, ≥ 2 climbs and dismounts each),
+  `coverFromCatsAndHostilesKeepsSlotsUnique`. Shared measures in `GroupRun`. Probes:
+  `BenthicGroupProbe` (table) and `GroupTraceProbe` (per-tick, `-Psweep=order` for order).
+
+### 20.4 Not done / open
+
+- **Crowd overlaps are bounded, not solved.** Heading-first bodies can't sidestep: slugs that
+  turn toward nearly the same point converge faster than a sideways push turns them. Neither
+  validated approach (yield, earlier separation) was a clean win.
+- Line order is weakest on stairs and when backing up. Stairs line runs still fade: 5/6/7 a
+  run (seeds 1–3) at 07920354, 5/6/8 now. That's a pre-existing gap, not asserted.
+- Pace-dependent leader meander (§4 "sometimes wavy") is still not enabled (§15.2). The line's
+  wave comes only from the leader's own path.
+- Crowd spread at rest vs moving (§20.2) is for the owner's eye.
+
+Validation: `:fishsim:test` 352 tests, 328 passed, 24 diagnostic probes skipped, 0 failed
+(`build/fork-b-validation.txt`). `FingerprintProbe -PsimStdout -PfpAll=1`: all 447 protected
+fingerprints identical to `build/fp-base-p2.txt`. `:common:compileJava` passes. `git diff --check` passes.

@@ -32,7 +32,10 @@ public final class OwnerScript {
             "walk_flat", "walk_meander", "stairs_up_down", "slab_path", "step_gaps", "parkour_gap",
             "ladder", "closed_door", "sprint_away", "ride_off", "elytra_glide", "plaice_walk_flat",
             // Phase 2: on and off the perch (spec section 3, 6).
-            "mine_in_place", "pace_chest", "long_idle_then_walk", "hurt_while_perched", "fall_landing");
+            "mine_in_place", "pace_chest", "long_idle_then_walk", "hurt_while_perched", "fall_landing",
+            // Formations (spec section 4, 5, 20): players walking through the group, the owner backing
+            // into it, and settling on and stepping off the perches cycle after cycle.
+            "group_passers", "walk_backward", "climb_cycles");
 
     public static final double WALK = 4.317, SPRINT = 5.612;
 
@@ -387,6 +390,33 @@ public final class OwnerScript {
                 t[0] = 0;
                 return true;
             }
+            return false;
+        };
+    }
+
+    /**
+     * Walks to a point without turning to face it: the view held where it was when the segment
+     * began (backing up, or side-stepping).
+     */
+    static Segment walkBackTo(double x, double z, double speed) {
+        float[] view = {Float.NaN, 0};
+        return p -> {
+            if (Float.isNaN(view[0])) {
+                view[0] = p.yaw;
+                view[1] = p.pitch;
+            }
+            p.look(view[0], view[1]);
+            Vec to = new Vec(x - p.feet.x(), 0, z - p.feet.z());
+            double d = to.length();
+            if (d < 0.25) {
+                p.move(Vec.ZERO);
+                if (p.vel.length() < 0.2) {
+                    view[0] = Float.NaN;
+                    return true;
+                }
+                return false;
+            }
+            p.move(to.normalize().scale(Math.min(speed, Math.sqrt(2 * Pilot.ACCEL * 0.5 * d))));
             return false;
         };
     }
@@ -949,6 +979,46 @@ public final class OwnerScript {
                 s.add(waitTicks(60));
                 s.add(walkTo(0.5, 0.5, WALK));
                 s.add(waitTicks(60));
+                return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s).withTerrain();
+            }
+            case "group_passers" -> {
+                // Another player walks through the group: across it while the owner stands among it,
+                // then behind the owner (through the line or crowd trailing them) on slow and brisk walks.
+                s.add(hold(300));
+                s.add(walkTo(0.5, 20.5, WALK * 0.6));
+                s.add(waitTicks(100));
+                s.add(walkTo(0.5, 0.5, WALK));
+                s.add(waitTicks(100));
+                List<ScriptedPoints.Track> crossers = new ArrayList<>();
+                int[] at = {150, 380, 430, 620, 910, 1140, 1190, 1380, 1670, 1900, 1950, 2140};
+                double[] behind = {1.2, 2.0, 3.5, 2.5};
+                for (int i = 0; i < at.length; i++) {
+                    crossers.add(ScriptedPoints.crosser(10 + i, 2400, at[i], behind[i % behind.length], 4.0,
+                            i % 2 == 0 ? WALK : SPRINT, i % 3 == 0 ? -1 : 1));
+                }
+                return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s).withTerrain().with(crossers);
+            }
+            case "walk_backward" -> {
+                // The owner backs up into the formation trailing them, then turns about on the spot
+                // and walks straight back through it.
+                s.add(waitTicks(40));
+                s.add(walkTo(0.5, 12.5, WALK));
+                s.add(waitTicks(30));
+                s.add(walkBackTo(0.5, 7.5, WALK * 0.7));
+                s.add(waitTicks(40));
+                s.add(walkTo(0.5, 18.5, WALK));
+                s.add(waitTicks(20));
+                s.add(walkTo(0.5, 0.5, WALK));
+                s.add(waitTicks(60));
+                return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s).withTerrain();
+            }
+            case "climb_cycles" -> {
+                // Stand long enough to settle (it climbs on), walk off (it steps down and follows),
+                // and again: the perches must be handed out afresh each time.
+                s.add(hold(800));
+                s.add(walkTo(0.5, 16.5, WALK));
+                s.add(waitTicks(20));
+                s.add(walkTo(0.5, 0.5, WALK));
                 return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s).withTerrain();
             }
             case "hurt_while_perched" -> {
