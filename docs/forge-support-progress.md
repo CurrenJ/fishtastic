@@ -243,3 +243,85 @@ Inventory/parents/remaining dirty state: `build/forge-support/commit-checkpoint/
 Unrelated edits and runtime output remain in place. No push or publication performed.
 Next action: continue the installed gameplay/companion persistence acceptance already listed
 above, then finish F10/F11; these commits are implementation checkpoints, not release approval.
+
+## Forge visual regressions — started 2026-10-19
+
+User reports Forge 1.21.1 ambient fish moving with camera rotation, stepped companion movement,
+and discovery-celebration rays cutting through notification banners. Inspect both Forge lines.
+Pending operation: reproduce with isolated Forge client self-test scenes, correct world-pass
+matrix/timing and celebration depth/blend boundaries, then rebuild and inspect scene captures.
+Evidence: `build/forge-support/1.21.1/render-regressions/` and corresponding 26.1.2 folder.
+LOCAL INSPECTED: Forge 52.1.2 AFTER_ENTITIES dispatch passes the projection matrix twice;
+its event partial tick maps to DeltaTracker.getRealtimeDeltaTicks, not interpolation alpha.
+26.1.2 uses a vanilla submitEntities mixin with an identity stack and game partial tick instead.
+Preserve unrelated release/ambient/backport edits. Do not change parity or acceptance markers.
+
+### Visual-regression checkpoint result (2026-10-19)
+
+Fixed on the 1.21.1 Forge branch:
+- World rendering starts with an identity PoseStack, matching vanilla entities; the broken Forge
+  AFTER_ENTITIES event projection matrix is no longer multiplied into camera-relative geometry.
+- Ambient/companion rendering uses `Minecraft.getTimer().getGameTimeDeltaPartialTick(false)`;
+  Forge's event frame-duration value is no longer used as the interpolation alpha.
+- Discovery/hero glow and ray blits flush pending GUI geometry and disable depth writes, restoring
+  depth/blend/tint state in a finally block so translucent rays cannot cut out later banners.
+
+Validation: Forge release build succeeds and excludes self-test classes. Before/after captures
+reproduce then remove the banner cutout. Ambient parity passes 14/14. The combined fixture run
+reported five companion reaction failures; a fresh isolated companion-only world at 60 FPS passes
+29/29 checks (including shader readiness), exit 0. Keep the failed combined result as evidence of
+scene isolation sensitivity rather than counting it as a passing acceptance run.
+
+26.1.2's existing Forge world-submit mixin already uses vanilla's identity pose and game partial
+ tick. Its isolated celebration overlap capture shows an intact banner (client exit 0). No
+production render fix was needed there for these identified causes. Both branches gain the opt-in
+`celebrationoverlap` screenshot scene; 1.21.1 also ignores the harness runtime directories.
+
+Evidence: `build/forge-support/1.21.1/render-regressions/{operation.md,results.json,before/,after/,
+after.log,companion-fresh.log}` and `build/forge-support/26.1.2/render-regressions/`.
+Source fixes and harness changes are uncommitted. The rebuilt 1.21.1 release jar is
+`D:/GitHub/fishtastic-worktrees/mc-1.21.1/forge/build/libs/fishtastic-forge-2.1.1+1.21.1.jar`.
+Next acceptance step: installed-jar playtest with camera rotation/translation, smooth companion
+motion and discovery rays overlapping banners; broader F10/F11 work remains pending.
+
+Deployment checkpoint: redeployed the validated fixed `fishtastic-forge-2.1.1+1.21.1.jar` to
+CurseForge profile `F2 1.21.1 Forge` on 2026-10-19. Source SHA-256 matched the tested artifact in
+`render-regressions/results.json`; deployed SHA-256 matches source and exactly one Fishtastic jar
+is present. Previous same-filename jar backed up under
+`D:/Curse Forge/Minecraft/_profile_backups/20261019-193821/F2 1.21.1 Forge/`.
+Installed playtest remains the next acceptance step.
+
+Installed playtest confirmation (2026-10-19): user reports the redeployed 1.21.1 build fixes the
+reported visual problems. User also confirms the celebration/banner transparency defect on Forge
+1.20.1; that narrow fix is tracked under `build/render-regressions/1.20.1/`, without changing any
+backport parity markers or the new-Forge package gates.
+
+## Verified fixes and session commits (2026-10-19)
+
+User confirmed the installed fixes on both Forge 1.21.1 and Forge 1.20.1. The 1.20.1 fix also
+passed its isolated celebration/banner screenshot run and was deployed with backup/hash checks;
+evidence is in `build/render-regressions/1.20.1/`.
+
+Authorized pending operation: commit remaining session changes only: Fishtastic 1.21.1 world
+transform/interpolation and celebration depth fixes; Fishtastic 1.20.1 celebration depth fix;
+celebrationoverlap scenes on all three lines, harness ignore files, this progress ledger; Gelatin
+UI 1.0.38 version bumps on 26.1.2 and 1.20.1. Gelatin 1.21.1 is already committed and clean.
+Preserve pre-session ambient-filming, backport, notes, runtime and other release edits unstaged. The user additionally authorized recording the already-released Fishtastic 2.1.1 version on all three lines.
+Run the repository hooks and verify committed inventories and residual dirty state.
+Evidence destination: `build/session-commits/`. The session commit set includes:
+
+| Repository / line | Branch | Rendering or dependency commit |
+|---|---|---|
+| Fishtastic 1.21.1 | `codex/forge-1.21.1` | `7c9a20b53315cb12ed2a788c4a0588f451982881` |
+| Fishtastic 1.20.1 | `port/1.20.1` | `1cff969fe5d1f6a58e76991668a33b54dce50b28` |
+| Gelatin UI 26.1.2 | `codex/forge-26.1.2` | `1186e06d3abb14142e561d4f470730556f328dfc` |
+| Gelatin UI 1.20.1 | `mc/1.20.1` | `b7d72f8c46527ae386a39fed5bf0817671976b8c` |
+
+This 26.1.2 checkpoint commit adds its celebrationoverlap scene, the progress record and the
+released 2.1.1 version. Additional version-only commits record 2.1.1 on both older Fishtastic lines.
+The existing Gelatin 1.21.1 Forge commit already includes 1.0.38. Final branch tips, committed file
+inventories, hook results and remaining dirty state are saved in `build/session-commits/results.json`.
+Required hooks run for every Fishtastic commit. Installed fixes were confirmed by the user on both
+older Forge lines; Gelatin's eight loader/version artifacts were built and deployed earlier in the
+session. Older unrelated changes remain outside the session commits. No push is part of this request.
+Next Forge implementation operation remains the broader pending F10/F11 acceptance work.
