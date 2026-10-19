@@ -139,6 +139,7 @@ tasks.register('publishCurseForge', TaskPublishCurseForge) {
     // ── Fabric ──
     def fabricJar = project(':fabric').tasks.named('shadowJar').get().archiveFile
     def fabricUpload = upload(projectId, fabricJar)
+    fabricUpload.addRequirement('gelatin-ui')
     fabricUpload.changelog = changelogText
     fabricUpload.changelogType = 'markdown'
     fabricUpload.releaseType = releaseType
@@ -155,6 +156,7 @@ tasks.register('publishCurseForge', TaskPublishCurseForge) {
     // ── NeoForge ──
     def neoJar = project(':neoforge').tasks.named('shadowJar').get().archiveFile
     def neoUpload = upload(projectId, neoJar)
+    neoUpload.addRequirement('gelatin-ui')
     neoUpload.changelog = changelogText
     neoUpload.changelogType = 'markdown'
     neoUpload.releaseType = releaseType
