@@ -122,7 +122,7 @@ public final class RenderSelfTest {
             "guiscale", "fixes", "hud", "gizmos", "pertank", "highlight");
 
     /** Scenes that run only when the marker names them (they need something the default run lacks). */
-    private static final List<String> OPT_IN_SCENES = List.of("cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench", "leaderboard", "tutorial", "companiontutorial", "companionbond", "companionsim", "companionparty", "companioneel", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld", "companionparticles", "companionworldcost", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk");
+    private static final List<String> OPT_IN_SCENES = List.of("cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench", "leaderboard", "tutorial", "companiontutorial", "companionbond", "companionsim", "companionparty", "companioneel", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld", "companionparticles", "companionworldcost", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk", "celebrationoverlap");
 
     private static Boolean armed;
     /** Dev probe (§21): runs every client tick while non-null — tick-true sampling. */
@@ -338,6 +338,7 @@ public final class RenderSelfTest {
             case "fixes" -> queueFixesScene();
             case "questbook" -> queueQuestBookScene();
             case "hud" -> queueHudScene();
+            case "celebrationoverlap" -> queueCelebrationOverlapScene();
             case "gizmos" -> queueGizmosScene();
             case "pertank" -> queuePerTankScene();
             case "highlight" -> queueHighlightScene();
@@ -4261,6 +4262,33 @@ public final class RenderSelfTest {
      * <em>server</em> thread (fine in single-player only), which races its {@code tick} and loses
      * the event often enough to make the screenshot unreliable. Same call, same event.
      */
+    /** Visual regression: discovery rays behind several notification banners. */
+    private static void queueCelebrationOverlapScene() {
+        queue(1, mc -> {
+            mc.options.hideGui = false;
+            mc.getToasts().clear();
+            mc.setScreen(null);
+
+            server(mc, s -> run(s, "gamemode creative @a"));
+        });
+        queue(20, mc -> {
+
+            mc.setScreen(null);
+            var preview = grill24.fishtastic.util.FishingMinigameAnimation.createCelebrationPreview(
+                    grill24.fishtastic.util.CatchCelebration.Tier.DISCOVERY,
+                    new ItemStack(FishtasticItems.BLUEGILL.value()));
+            ((IGameRendererExtension) mc.gameRenderer).fishtastic$displayItemActivation(preview);
+            for (String quest : new String[]{"bluegill_novice", "bluegill_adept", "bluegill_master"}) {
+                QuestProgressNotificationManager.getInstance().enqueue(new QuestProgressEvent(
+                        Ids.of("fishtastic", "mastery/" + quest), 2, 3, 5, false, ItemStack.EMPTY));
+            }
+        });
+        queue(25, mc -> screenshot(mc, "celebrationoverlap", "rays_early"));
+        queue(15, mc -> screenshot(mc, "celebrationoverlap", "rays_late"));
+        queue(1, mc -> ((IGameRendererExtension) mc.gameRenderer).fishtastic$cancelCurrentAnimation());
+        queue(1, mc -> screenshot(mc, "celebrationoverlap", "without_rays"));
+    }
+
     private static void queueHudScene() {
         queue(1, mc -> {
             mc.options.hideGui = false;

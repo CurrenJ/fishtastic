@@ -304,14 +304,19 @@ public final class FishtasticForgeClient {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_ENTITIES) {
             return;
         }
+        // Forge 52 passes the projection matrix as getPoseStack() at AFTER_ENTITIES.
+        // LevelRenderer already applied the camera rotation to RenderSystem's model-view stack,
+        // so these camera-relative vertices need an identity pose, just like vanilla entities.
         PoseStack poses = new PoseStack();
-        poses.mulPose(event.getPoseStack());
+        Minecraft mc = Minecraft.getInstance();
+        // Forge's event value is getRealtimeDeltaTicks(): frame duration, not tick interpolation.
+        float partialTick = mc.getTimer().getGameTimeDeltaPartialTick(false);
         CosmeticCaptureClientState.render(poses,
                 Minecraft.getInstance().renderBuffers().bufferSource(), event.getCamera().getPosition());
         ClientCompanions.submitWorld(poses,
-                Minecraft.getInstance().renderBuffers().bufferSource(), event.getPartialTick());
+                mc.renderBuffers().bufferSource(), partialTick);
         ClientAmbientFish.submitWorld(poses, Minecraft.getInstance().renderBuffers().bufferSource(),
-                event.getFrustum(), event.getPartialTick());
+                event.getFrustum(), partialTick);
         CosmeticPlacementPreview.render(poses,
                 Minecraft.getInstance().renderBuffers().bufferSource(), event.getCamera().getPosition());
     }
