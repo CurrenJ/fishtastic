@@ -767,3 +767,63 @@ integration (gait/group constructors, rendering every member, commands, the floo
 budget in game). The game still constructs the no-gait percher. Owner viewer look for the
 beats: `./gradlew :fishsim:runCompanionViewer`, BENTHIC (sprinter for frequent overtakes),
 `benthic_park` or walk_flat, watching the overlay's beat field.
+
+## 19. Come-alongside round the feet (2026-10-12, uncommitted)
+
+**Outcome: no fix shipped.** Every variant shortened one tail and lengthened another on equal
+seeds, so production code is unchanged from 07920354. The experiment, with its switch and probe,
+is saved as `docs/benthic-come-alongside-experiment.patch` (`git apply` it to resume).
+
+### 19.1 Mechanisms (traced; mode-0 inside-owner ticks classified over 60 seeds)
+
+Spider crab (0.6) in the cellar, 859 inside ticks: **crouch** after coming close 322 (still 208,
+moving 114); **walking under the feet while coming close** 197; hops passing through the body
+~143; the rest owner-walks-into-it and after-close idle. About two-thirds come from the
+come-alongside. Three separate causes:
+
+1. **Crossing.** The alongside spot is on the home side; from behind or the far side the straight
+   walk crosses the feet (§18.3, crab seed 1).
+2. **Crouch slide.** The crouch starts where the hop first clears, at the rim (0.46 from the feet),
+   but the crab is still walking at the feet at ~3.6 b/s. Braking at 11 b/s² takes ~0.6 blocks,
+   so it slides into the body during the crouch. This is why the §18.3 underfoot guard failed: it
+   checked the current position, which was outside.
+3. **Swing-in (big bodies).** At cruise (~5 b/s) and a 6.5°/tick turn limit, a spider's turning
+   radius is ~2.2 blocks. It can't make the bend onto a spot 0.8 away and swings through the feet
+   even when the straight leg doesn't cross them (spider seed 15).
+
+Also found: **a permanent stall.** The come-alongside walks straight at its spot with no obstacle
+awareness. Behind a cellar pillar the spot is unwalkable, the body refuses every tick and the
+crab parks for the rest of the run (spider seed 17: unseen 80 s). It exists in mode 0 too, as
+part of the cellar's pre-existing unseen > 30 s runs.
+
+The §18.3 round-the-feet waypoint failed for a moving owner: its fixed front point stays ahead
+of a walking owner, so the crab never gets alongside (spider walk_flat: 19 of 20 seeds lost seen).
+
+### 19.2 Variants (flags in the patch: T tangent while still, S stop-point guard, C heading-gated turn cap, W walkable come-alongside)
+
+60 seeds, baseline temperament, mode 0 → variant. Inside = inside-owner ticks (runs > 1%);
+unseen = runs over 30 s (max).
+
+| Variant | Crab cellar | Spider cellar | Costs elsewhere |
+|---|---|---|---|
+| T (tangent, owner still) | inside 414→235 (3→1) | inside 761→899 (7→12) | crab cellar walking-seen −4.6% |
+| T+S | 414→208 (3→1) | 761→804 (7→7), unseen max 63.6 s | crab cellar unseen 3→5 |
+| T+S+C (unconditional cap) | 414→155 (3→0) | 761→343 (7→0) | unseen 3→11 and 7→12 (max 80.8 s) |
+| T+S+C+W | 414→169 (3→1), unseen 3→6 | **761→359 (7→1)**, unseen 7→6, backstops 34→17 | spider jumping unseen 12→15; spider stairs seen −12%; crab stairs fade 0→1 |
+| W only | 414→337, fades 6→1 | 761→571 (7→5), fades 3→1 | spider stairs seen −11% (no hop up from a lower step) |
+| S+C / S+C+W | 249 / 247 | 599 / 461 | spider cellar unseen 7→11 / 7→13 (max ~72 s) |
+
+The tangent alone is not unconditional: applied with the owner moving too, crab jumping unseen
+went 27.5 → 37.6 s and stairs lost seen. Restricted to a still owner, the jumping difference was a
+knife-edge hop window (seed 18; 60 seeds: 2 → 3 runs, within noise).
+
+### 19.3 For the next attempt
+
+- The crouch slide (S, the stop point against the moving feet) and the swing-in (C) are the
+  spider's real mechanisms. Both cut inside time sharply, but slowing or delaying the approach
+  misses hop windows with a still owner who then sets off. An approach that keeps speed (e.g. an
+  alongside spot further out for big bodies, so the bend fits) is untested.
+- W's stall fix is real, but it must not disable hops from a lower stair: judge walkability to
+  the spot's level within a hop, not exactly level.
+- Tools in the patch: `ComeAlongsideProbe.ab` (per-mode tails and per-seed walking-seen vs mode 0),
+  `classify` (inside ticks by agent state), `lockstep` (first divergence plus tick-by-tick trace).
