@@ -8,8 +8,10 @@ import java.util.Arrays;
  *
  * <p>Cells are sampled lazily: the first question about a cell asks the {@link BlockQuery} and the
  * answer is kept until the window re-centres (the owner wandered far from its centre) or
- * {@link #invalidate} is called after a block change. Cells outside the window go straight to the
- * source, so a question is never wrong, only slower.
+ * {@link #invalidate} is called after a block change. Cells outside the window are kept in a small
+ * overflow map on the same terms, so a long look ahead (a beat's check of the owner's way, tens of
+ * blocks out, stepping 0.1) asks the source once per cell rather than once per step. A question is
+ * never wrong, only slower.
  */
 public final class LocalVoxels implements BlockQuery {
 
@@ -24,6 +26,10 @@ public final class LocalVoxels implements BlockQuery {
     private final long[] wet = new long[WORDS];
     /** A solid cell's {@link BlockQuery#top} in sixteenths (16 = a full block); 0 for other cells. */
     private final byte[] tops = new byte[SIZE * SIZE * SIZE];
+    /** Cells outside the window: bit 0 solid, bit 1 water, bits 2.. a solid cell's top in sixteenths. */
+    private final java.util.HashMap<Long, Integer> outside = new java.util.HashMap<>();
+    /** The overflow map is dropped whole past this many cells, bounding a run of long scans. */
+    private static final int OUTSIDE_CAP = 1 << 16;
     private BlockQuery source = (x, y, z) -> false;
     private int minX, minY, minZ;
     private boolean placed;
@@ -50,12 +56,13 @@ public final class LocalVoxels implements BlockQuery {
         Arrays.fill(solid, 0L);
         Arrays.fill(wet, 0L);
         Arrays.fill(tops, (byte) 0);
+        outside.clear();
     }
 
     @Override
     public boolean solid(int x, int y, int z) {
         int bit = bit(x, y, z);
-        if (bit < 0) return source.solid(x, y, z);
+        if (bit < 0) return (outside(x, y, z) & 1) != 0;
         sample(bit, x, y, z);
         return (solid[bit >>> 6] & (1L << (bit & 63))) != 0;
     }
@@ -63,7 +70,7 @@ public final class LocalVoxels implements BlockQuery {
     @Override
     public boolean water(int x, int y, int z) {
         int bit = bit(x, y, z);
-        if (bit < 0) return source.water(x, y, z);
+        if (bit < 0) return (outside(x, y, z) & 2) != 0;
         sample(bit, x, y, z);
         return (wet[bit >>> 6] & (1L << (bit & 63))) != 0;
     }
@@ -78,6 +85,19 @@ public final class LocalVoxels implements BlockQuery {
         int lx = x - minX, ly = y - minY, lz = z - minZ;
         if (lx < 0 || ly < 0 || lz < 0 || lx >= SIZE || ly >= SIZE || lz >= SIZE) return -1;
         return (lx * SIZE + ly) * SIZE + lz;
+    }
+
+    /** An out-of-window cell, sampled exactly as {@link #sample} samples one in the window. */
+    private int outside(int x, int y, int z) {
+        long key = ((long) x & 0x3FFFFFFL) << 38 | ((long) y & 0xFFFL) << 26 | ((long) z & 0x3FFFFFFL);
+        Integer known = outside.get(key);
+        if (known != null) return known;
+        int cell;
+        if (source.solid(x, y, z)) cell = 1 | Math.max(1, Math.min(16, Math.round(source.top(x, y, z) * 16))) << 2;
+        else cell = source.water(x, y, z) ? 2 : 0;
+        if (outside.size() >= OUTSIDE_CAP) outside.clear();
+        outside.put(key, cell);
+        return cell;
     }
 
     private void sample(int bit, int x, int y, int z) {
@@ -96,7 +116,7 @@ public final class LocalVoxels implements BlockQuery {
     @Override
     public float top(int x, int y, int z) {
         int bit = bit(x, y, z);
-        if (bit < 0) return source.solid(x, y, z) ? source.top(x, y, z) : 0f;
+        if (bit < 0) return (outside(x, y, z) >>> 2) / 16f;
         sample(bit, x, y, z);
         return tops[bit] / 16f;
     }
@@ -104,7 +124,7 @@ public final class LocalVoxels implements BlockQuery {
     /** How high a solid cell's collision reaches, blocks above its floor (1 for a full block). */
     private double topOf(int x, int y, int z) {
         int bit = bit(x, y, z);
-        return bit < 0 ? source.top(x, y, z) : tops[bit] / 16.0;
+        return bit < 0 ? (outside(x, y, z) >>> 2) / 16.0 : tops[bit] / 16.0;
     }
 
     /** Whether a sphere of radius {@code r} at {@code p} touches no solid block. */

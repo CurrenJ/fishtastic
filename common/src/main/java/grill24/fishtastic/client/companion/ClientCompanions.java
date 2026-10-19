@@ -376,6 +376,28 @@ public final class ClientCompanions {
         return "Companion drowsy — stand still and it settles";
     }
 
+    /** Dev-only (`/fishtastic companion ground`): a ground benthic (and its group) back down off the perch. */
+    public static String devGround() {
+        ClientCompanion local = local();
+        if (local == null) return "No local companion";
+        return local.devGround() ? "Companion back down to the ground" : "Your companion doesn't walk on the ground";
+    }
+
+    /** Dev-only (`/fishtastic companion climb`): a ground benthic (and its group, in turn) climbs onto the perch. */
+    public static String devClimb() {
+        ClientCompanion local = local();
+        if (local == null) return "No local companion";
+        return local.devClimb() ? "Companion climbing on — stand still" : "Your companion doesn't walk on the ground";
+    }
+
+    /** Dev-only (`/fishtastic companion tumble`): a perched ground benthic is knocked off (waits until attached). */
+    public static String devTumble() {
+        ClientCompanion local = local();
+        if (local == null) return "No local companion";
+        return local.devTumble() ? "Companion tumbles off once it's perched and out of cooldown"
+                : "Your companion doesn't walk on the ground";
+    }
+
     /** Dev-only (`/fishtastic companion debug on|off`): the debug overlay. */
     public static String devOverlay(boolean on) {
         overlay = on;

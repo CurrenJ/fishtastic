@@ -767,3 +767,119 @@ integration (gait/group constructors, rendering every member, commands, the floo
 budget in game). The game still constructs the no-gait percher. Owner viewer look for the
 beats: `./gradlew :fishsim:runCompanionViewer`, BENTHIC (sprinter for frequent overtakes),
 `benthic_park` or walk_flat, watching the overlay's beat field.
+
+## 21. Game integration (2026-10-12, uncommitted)
+
+Phase 5 wiring in `common/` (fork C, worktree branch `worktree-agent-a08898232d0db3098` from
+07920354). Built and tested headless and in game tests only: **nothing here has been seen in game.**
+The in-game look and feel is the owner's playtest (§21.4).
+
+### 21.1 What's wired
+
+- **Gait and group from the profile.** `FishProfile` gains `companion_gait` (`crawl` default,
+  `ripple`); `plaice.json` declares `ripple`. `ClientCompanion` reads the profile once. A BENTHIC
+  species now gets the ground constructor (`CompanionAgent(..., GroundGait, world)`), and a
+  `companion_group` with a count over 1 builds a `BenthicGroup` (starfish: a line of 3;
+  trapania_scurra and willans_chromodoris: crowds of 3). Every other class passes a null gait,
+  which is the old constructor's path: FREE_SWIM, GLIDE, DRIFT, ANCHORED and trios are unchanged.
+  **This retires the no-gait percher in game:** all six benthic species (common_octopus,
+  japanese_spider_crab, plaice, starfish and the two sea slugs) walk on land.
+- **Drawing every member.** The world pass loops over the members. A member on the ground (walking,
+  crouching, or in a hop or fall from the ground) is drawn at its feet: body centre − radius −
+  `GROUND_LIFT`, then the pose's own `FishAnimator.floorPoseLift` (the same lift the tank and the
+  perch layer use). In water a member swims, drawn about its centre as before. The silhouette
+  envelope is the larger of the gait's push-off `shape` and the crouch/landing squash. The plaice's
+  floor-sit sway runs on its gait tail clock, not game time, so the ripple quickens with its glide
+  and stills when it stops. Members use render slots 0–2, so their idle draws differ.
+- **Up to three riders.** `CompanionPerchLayer` draws each riding member at its own slot (a group
+  allocates left shoulder, right shoulder, head). Perched members idle on clocks 23 ticks apart, so
+  three riders don't breathe in unison. The first-person hand ride stays the lead's (followers never
+  take the hand).
+- **Debug commands** (single player, dev only, next to `hurt`/`drowsy`):
+  `/fishtastic companion ground` (the viewer's G), `/fishtastic companion climb` (P; a group climbs
+  one after another), `/fishtastic companion tumble` (B; waits until perched and out of cooldown),
+  and the existing `/fishtastic companion hurt` (K). `/fishtastic companion debug true` adds two
+  lines for a ground benthic: gait, group count and formation, current beat with overtake and
+  roadside counts, climbs, dismounts and tumbles; then per member the land mode, lag and slot.
+  The existing line already shows land mode, lag, trail size and reachable/stranded.
+- **Unchanged and already in place (§16):** PLAYER points, riding/elytra flags and landed falls
+  from the adapter. Block invalidation now reaches every group member.
+
+### 21.2 Floor-sampling cost (measured headless)
+
+`BenthicSamplingProbe` (-PsimStdout) counts what the game's overlay counts: one sample per
+`solid` query; `top` reuses it. It covers 6 ground scripts × 3 seeds × 2,400 ticks, against the
+plan's 25 samples per tick per companion.
+
+| Config | Mean / tick | p99 | p99.9 | Worst tick | Ticks over budget |
+|---|---|---|---|---|---|
+| swimmer 0.30 (reference) | 1.60 | 25 | 38 | 51 | 0.94% (> 25) |
+| no-gait percher 0.30 (old game path) | 0.04 | 1 | 3 | 35 | 0.01% |
+| crawl solo 0.30 | 0.91 | 15 | 34 | 177 | 0.22% |
+| crawl solo 0.60 (spider crab) | 1.24 | 18 | 88 | 267 | 0.56% |
+| ripple solo 0.35 (plaice) | 0.93 | 17 | 38 | 135 | 0.38% |
+| line of 3, 0.25 (starfish) | 3.45 | 48 | 102 | 160 | 0.31% (> 75) |
+| crowd of 3, 0.25 (sea slugs) | 3.65 | 51 | 103 | 147 | 0.33% (> 75) |
+
+Means sit well inside the budget. A ground walker samples less on average than a swimmer, but its
+rare worst ticks are higher.
+
+**Spike found and fixed (behaviour-neutral).** Before the fix the spider crab's worst tick was
+3,411 samples (crab 1,248, starfish line 1,531). Attributed by caller
+(`BenthicSamplingSpikeProbe`), ~5,900 samples over two spike ticks came from the §18 beat planner's
+two `levelWalk` checks: along the owner's way ahead (`(time + lead + 2) × speed`, up to ~50 blocks)
+and along the route to the station. Both step every 0.1 blocks, mostly outside the 32-block voxel
+window, where cells weren't cached, so each column was asked ~10 times. `LocalVoxels` now keeps
+out-of-window cells in an overflow map, cleared with the window and capped at 65,536 cells. Answers
+are identical (an out-of-window `top` is now quantized to sixteenths like in-window cells). **All
+516 fingerprints, BENTHIC included, are bitwise identical** to the 07920354 run
+(`build/beats-fingerprints.txt`).
+
+Open question for whoever owns the beats (not changed here): a 50-block look ahead is still the
+largest single scan. Shortening it is a behaviour change.
+
+Group members each keep their own `LocalVoxels`, so a group samples about 3× a solo (3.5/tick).
+Sharing one window across members would be behaviour-neutral but lives in `BenthicGroup`; it was
+left alone. In-game time per sample is not measured here. The overlay's cost line
+(`blocks …/tick … us/tick`, peaks) shows it live.
+
+### 21.3 Verification
+
+- `:fishsim:test` 349 tests, 0 failed (24 diagnostic probes skipped); `:common:test` 763 tests,
+  0 failed (new: `companion_gait` codec parse/reject); `:fabric:build` and `:neoforge:build` pass,
+  including the id-construction backport guard.
+- `:fabric:runGametest`: all 317 required tests pass, 2 of them new
+  (`CompanionProfileGameTests`, registered on both loaders): the loaded registry has plaice ripple,
+  starfish a line of 3, both sea slugs crowds of 3, the spider crab a solo crawler, and no
+  non-benthic species declares a group or a gait. NeoForge game tests were not run (known hang).
+- `FingerprintProbe -PsimStdout -PfpAll=1`: 516/516 identical to 07920354; 447 protected identical
+  to `build/fp-base-p2.txt`.
+- **Not run:** `runClient`, the RenderSelfTest companion scene (its "tracked and stepping" check
+  should still hold: starfish is now a line), anything in the owner's world.
+
+### 21.4 Owner playtest checklist (solo world, dev build)
+
+Turn on the overlay first: `/fishtastic companion debug true`. Equip with
+`/fishtastic companion give @p fishtastic:<species> [size]`.
+
+1. **Crab-like solo:** `japanese_spider_crab 55`. Walk on flat ground, then stairs. It walks
+   behind you, feet on the floor (not floating, not sunk to the waist), scuttles with the push-off
+   squash, and hops up steps. Watch the overlay's `blocks …/tick` and its peak while walking.
+2. **Hand hop and beats:** keep walking unseen; it comes alongside and leaps onto your hand now and
+   then. `/fishtastic companion temperament sprinter` makes overtakes frequent (the overlay's beat
+   field reads `overtake`/`roadside`).
+3. **Climb and dismount:** stand still, `/fishtastic companion climb` (or just wait). It climbs onto
+   its shoulder, drawn on the shoulder in third person (F5). Walk ~6 blocks: it hops down.
+   `/fishtastic companion ground` sends it down at once.
+4. **Tumble:** while it's perched, `/fishtastic companion tumble` (or `/fishtastic companion hurt`,
+   or a ≥ 3-block drop). It falls off sideways, squashes on landing and pauses. No flip.
+5. **Starfish line:** `starfish 20`. Three walk in a line behind you. `climb`: left shoulder, right
+   shoulder and head fill one after another. Check that all three ride, breathing out of step.
+6. **Sea slug crowd:** `trapania_scurra 3` (or `willans_chromodoris`). Three mill as a crowd and
+   scatter from your feet when you walk back into them.
+7. **Plaice:** `plaice 35`. Lies flat and ripple-glides; the sway quickens as it speeds up and
+   settles when it stops.
+8. **Water:** walk into water; members swim, drawn about their centres, and come back out onto the
+   ground.
+9. **Mount and elytra:** ride a horse or glide; members climb on or fade onto the perch.
+10. **Another player (if available):** their benthic group walks and perches on their body for you.
