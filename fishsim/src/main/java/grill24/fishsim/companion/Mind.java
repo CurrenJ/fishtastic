@@ -153,6 +153,9 @@ final class Mind {
         updateDrives();
         choose();
         goalTicks++;
+        // A drifter calms while it idles — but not while it, or where it is going, is in the middle of
+        // the owner's view: from there it leaves at its travelling self (§13.7).
+        body.idling = (goal == Goal.LOITER || goal == Goal.SETTLE) && centreTicks == 0;
         return switch (goal) {
             case LOITER -> loiter(o, v);
             case SETTLE -> settle(o, v);
@@ -455,16 +458,49 @@ final class Mind {
             wanderScale = 0.8;
             if (d < 0.35 && !centred) {
                 dwelling = true;
-                dwellTicks = drawTicks(t.dwellMinSeconds * temperament.dwell(), t.dwellMaxSeconds * temperament.dwell());
+                dwellTicks = drawTicks(t.dwellMinSeconds * temperament.dwell() * idleDwell(),
+                        t.dwellMaxSeconds * temperament.dwell() * idleDwell());
             }
-            double speed = Math.min(body.g.cruiseSpeed() * body.burstDrive, 0.1 + d * 1.2);
+            // Out of the middle of the view it goes at its own pace, never the calm one (§13.7).
+            double pace = centreTicks > 0 ? 1 : idlePace();
+            double speed = Math.min(body.g.cruiseSpeed() * idleSurge() * pace, 0.1 + d * 1.2);
             return aroundOwner(o, v, spot).sub(body.pos).normalize().scale(speed);
         }
         // Lingering: a slow mill held loosely to the spot (a still temperament hangs almost motionless).
         wanderScale = 1.2 * (1 - 0.7 * temperament.stillness());
         if (--dwellTicks <= 0) spot = null;
         Vec heading = Vec.fromYawPitch(body.yaw, 0);
-        return heading.scale(0.25 * body.g.cruiseSpeed() * body.burstDrive * (1 - temperament.stillness())).add(to.scale(0.6));
+        return heading.scale(0.25 * body.g.cruiseSpeed() * idleSurge() * idlePace() * (1 - temperament.stillness())).add(to.scale(0.6));
+    }
+
+    // A drifter's calm idle (docs/fish-companions-drift.md §13.7). For every other body these are the
+    // identity, so a swimmer's idle is untouched to the bit.
+
+    private boolean drifter() {
+        return body.locomotion == grill24.fishsim.core.Locomotion.DRIFT;
+    }
+
+    /**
+     * How far a drifter's idle has calmed, 0..1: eased in over a second of its owner standing still.
+     * (Waiting a moment longer before calming was measured worse on equal seeds — §13.7.)
+     */
+    private double calmK() {
+        return drifter() ? Math.min(1, stillTicks / (double) TPS) : 0;
+    }
+
+    /** Pace of an idle move, as a multiple of the cruise. */
+    private double idlePace() {
+        return drifter() ? 1 + (t.driftIdlePace - 1) * calmK() : 1;
+    }
+
+    /** Scale on how long it lingers at an idle spot. */
+    private double idleDwell() {
+        return drifter() ? 1 + (t.driftIdleDwell - 1) * calmK() : 1;
+    }
+
+    /** The burst surge on an idle ask: a swimmer's tail beat, a steady drifter's none. */
+    private float idleSurge() {
+        return t.driftIdleSteady && calmK() > 0 ? 1f : body.burstDrive;
     }
 
     // ── SETTLE ──
@@ -500,9 +536,10 @@ final class Mind {
             wanderScale = 0.6;
             if (d < 0.3 && !centred) {
                 dwelling = true;
-                dwellTicks = drawTicks(t.dwellMinSeconds * 3 * temperament.dwell(), t.dwellMaxSeconds * 3 * temperament.dwell());
+                dwellTicks = drawTicks(t.dwellMinSeconds * 3 * temperament.dwell() * idleDwell(),
+                        t.dwellMaxSeconds * 3 * temperament.dwell() * idleDwell());
             }
-            double speed = Math.min(0.6 * body.g.cruiseSpeed() * body.burstDrive, 0.1 + d * 1.0);
+            double speed = Math.min(0.6 * body.g.cruiseSpeed() * idleSurge() * idlePace(), 0.1 + d * 1.0);
             if (centred) speed = Math.max(speed, body.g.cruiseSpeed());
             return aroundOwner(o, v, spot).sub(body.pos).normalize().scale(speed);
         }

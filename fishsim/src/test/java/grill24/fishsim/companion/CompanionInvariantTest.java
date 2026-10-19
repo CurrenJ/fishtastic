@@ -25,7 +25,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class CompanionInvariantTest {
 
     private static final long[] SEEDS = {1, 2, 3};
-    /** DRIFT isn't in the table yet: a first cut with open problems (plan §9.3). */
+    /**
+     * DRIFT has its own rows below (docs/fish-companions-drift.md §13): the swimmer's turn, facing and
+     * jerk checks are blind for a bell, so it gets drift-aware ones.
+     */
     private static final List<Locomotion> CLASSES = List.of(
             Locomotion.FREE_SWIM, Locomotion.GLIDE, Locomotion.BENTHIC, Locomotion.ANCHORED);
     private static final int TICKS = 2400;
@@ -325,6 +328,194 @@ class CompanionInvariantTest {
         all((key, m) -> {
             int shortest = m.shortestNonEmergencyGoalTicks();
             assertTrue(shortest < 0 || shortest >= 20, key + " dithered " + m.summary());
+        });
+    }
+
+    // ── DRIFT (docs/fish-companions-drift.md §13) ─────────────────────────────────────────────
+    //
+    // The bell (Phase 1: the shared drift core and the flapjack's style) × every owner script × the
+    // same three seeds. Blocks, tail-first, the owner, visibility, keep-up and commitment are the
+    // swimmer's checks; the body checks are drift-aware: the bell's axis turns at a capped rate,
+    // coasting is smooth, and a stroke's jerk is the stroke envelope's own. Where a bound doesn't
+    // hold yet the gap is named, with the measured worst over 8 seeds (§13.3).
+
+    private record DriftRun(CompanionRun.Metrics m, CompanionRun.DriftBodyMetrics b) {}
+
+    private static Map<String, DriftRun> driftResults;
+
+    private static synchronized Map<String, DriftRun> driftResults() {
+        if (driftResults == null) {
+            driftResults = new LinkedHashMap<>();
+            for (String script : OwnerScript.NAMES) {
+                for (long seed : SEEDS) {
+                    CompanionRun run = CompanionRun.drifter(script, seed, DriftStyle.BELL, Temperament.BASELINE,
+                            CompanionTunables.defaults(), true);
+                    run.run(TICKS);
+                    driftResults.put("DRIFT_BELL/" + script + "#" + seed, new DriftRun(run.metrics(), run.driftBodyMetrics()));
+                }
+            }
+        }
+        return driftResults;
+    }
+
+    private static void allDrift(BiConsumer<String, DriftRun> check) {
+        assertAll(driftResults().entrySet().stream()
+                .map(e -> (Executable) () -> check.accept(e.getKey(), e.getValue())));
+    }
+
+    private static String driftSummary(DriftRun r) {
+        return r.m().summary() + " | " + r.b().summary();
+    }
+
+    /**
+     * Hard catches where the bell meets a block at speed (8 seeds: forest 6.9, stairwell 6.5, pond_dive
+     * 5.9, low_ceiling 5.6, doorway 3.4 b/s; the first cut reached 7.1–7.5). Braking by room took the
+     * tight-scene mean down by half; these are the catch-up tails it doesn't reach. Bound 7.5 there.
+     */
+    private static final Set<String> DRIFT_IMPACT_GAPS = Set.of("forest", "stairwell", "pond_dive", "low_ceiling", "doorway");
+    /**
+     * The 3-wide stairwell: the bell grazes the walls and steps on the way round (8 seeds: 76
+     * contacts in 2 min, gentle — braking by room traded hard bumps for these). Bound 45/min there.
+     */
+    private static final Set<String> DRIFT_CONTACT_GAPS = Set.of("stairwell");
+    /**
+     * A bell can't dodge (it has no sideways or downward push), and the new body actually reaches its
+     * owner: an owner stopping in front of it, jumping up through it or turning into it overlaps it
+     * on every script that moves them (8 seeds: up to 7.0% of ticks inside, 5.0% near the camera,
+     * sprint_stop). Owner braking was tried and measured worse (§13.2); this is the mind's to solve —
+     * spots and paths that don't run through the owner. Bounds 8.5% inside, 6.5% near the camera,
+     * and a 60-tick centre dwell (8 seeds: 52, cat_lounging).
+     */
+    private static final double DRIFT_INSIDE_BOUND = 0.085, DRIFT_CLIP_BOUND = 0.065;
+    private static final int DRIFT_CENTRE_BOUND = 60;
+    /**
+     * Still trailing out of view on these (8 seeds, longest unseen / least seen): walk_turns 48 s / 2%,
+     * sprint_stop 39 s, forest 50 s / 3%, teleport 40 s, low_ceiling 48 s / 1%, pond_dive 71 s / 1%,
+     * wading 37 s, creative_flight 31 s; doorway and elytra seen just under 5% (4.9%, 4%) — plus the
+     * swimmers' about_face and stairwell. Where it
+     * rides made no difference (§13.2); the attention beats of Phase 4 are where this goes.
+     */
+    private static final Set<String> DRIFT_VISIBILITY_GAPS = Set.of("walk_turns", "sprint_stop", "forest", "teleport",
+            "low_ceiling", "pond_dive", "wading", "creative_flight", "doorway", "elytra", "about_face", "stairwell",
+            "jumping");
+    // The calm idle (docs/fish-companions-drift.md §13.7) shifted these tails. Equal-ground A/B over the
+    // stop-and-go scripts was neutral (48 runs); these are single seeds of a chaotic system, named
+    // rather than tuned against:
+    //  - jumping (added above): longest unseen 25.6–29.1 s before, 18.7–44.9 s after (3 of 8 seeds
+    //    over 40 s) — the scripted sprints are catch-up parked behind the owner (§13.5 item 1), and a
+    //    second of calm in the 0.7–2 s pauses moves which catch-ups it starts from. Waiting before
+    //    calming was measured worse everywhere else.
+    /** The 1-wide tunnel: one seed in 8 grazes 50 times in 2 min (25/min; the rest 9–18). Bound 30/min. */
+    private static final double DRIFT_TUNNEL_CONTACT_BOUND = 30;
+    /** forest: one fade in 2 min on 2 of 8 seeds (none before §13.7). Bound 1 there. */
+    private static final Set<String> DRIFT_LEASH_GAPS = Set.of("forest");
+    // DRIFT_FLOOR_GRAZE: in the open a bell may touch the floor once, gently (≤ 1 b/s), when a swoop
+    // past the owner's view (SHOW_OFF) or toward a dropped item (INSPECT) carries it low — it can't
+    // push down or pull out of a dive. 8 seeds: item_drops 0.76–0.90 b/s before and after §13.7,
+    // camera_sweep 0.93 b/s after.
+    /**
+     * Left more than 5 blocks behind for longer than the swimmer's 8 s (8 seeds): stairwell 15.5,
+     * forest 11.2, low_ceiling 10.8, walk 8.0 s — and the 1-wide tunnel, where it falls behind and
+     * up onto the roof (18.6 s, up to 4 fades in 2 min). Bound 20 s there, 5 fades in the tunnel.
+     */
+    private static final Set<String> DRIFT_KEEP_UP_GAPS = Set.of("stairwell", "forest", "low_ceiling", "walk", "corridor");
+
+    @Test
+    void driftNeverInsideABlock() {
+        allDrift((key, r) -> assertEquals(0, r.m().solidPenetrations(), key + " " + driftSummary(r)));
+    }
+
+    @Test
+    void driftWallContactIsRareAndGentle() {
+        allDrift((key, r) -> {
+            CompanionRun.Metrics m = r.m();
+            if (!OBSTACLE_SCRIPTS.contains(script(key))) {
+                // A graze of the floor, at most, out of a low swoop (DRIFT_FLOOR_GRAZE).
+                assertTrue(m.backstops() <= 1 && m.maxImpact() <= 1.0, key + ": no blocks to touch in the open " + driftSummary(r));
+                return;
+            }
+            double perMinute = m.backstops() / (m.ticks() / 20.0 / 60.0);
+            double contactBound = DRIFT_CONTACT_GAPS.contains(script(key)) ? 45
+                    : TUNNEL_SCRIPTS.contains(script(key)) ? DRIFT_TUNNEL_CONTACT_BOUND : 8;
+            assertTrue(perMinute <= contactBound, key + ": " + perMinute + " contacts/min " + driftSummary(r));
+            double impactBound = DRIFT_IMPACT_GAPS.contains(script(key)) ? 7.5 : 3.0;
+            assertTrue(m.maxImpact() <= impactBound, key + ": impact " + m.maxImpact() + " b/s " + driftSummary(r));
+        });
+    }
+
+    @Test
+    void driftBodyStaysInsideItsLimits() {
+        CompanionTunables t = CompanionTunables.defaults();
+        // The axis tilts at most the tilt rate a tick and its lean direction swings at most twice that.
+        double tiltCap = Math.hypot(t.driftTiltRateDegPerTick, 2 * t.driftTiltRateDegPerTick) + 0.05;
+        // A full stroke less nothing, plus the sink; drag and the flare only take speed away.
+        double accelCap = t.driftThrust + t.driftSink + 2;
+        // A stroke's jerk is its envelope's: d/dt of peak·sin²(πu) tops out at π·peak/(duty·cycle),
+        // highest for the strongest stroke on the fastest cycle; drag and the flare add a little.
+        double strokeJerkCap = Math.PI * t.driftThrust / (t.driftPulseDuty * t.driftPulseFastSeconds) + 100;
+        // Coasting, only the flare opening and folding changes the deceleration (measured ≤ 160).
+        double coastJerkCap = 200;
+        allDrift((key, r) -> {
+            CompanionRun.DriftBodyMetrics b = r.b();
+            assertTrue(b.maxTiltStepDeg() <= tiltCap, key + " tilt " + driftSummary(r));
+            assertTrue(b.maxAccel() <= accelCap, key + " accel " + driftSummary(r));
+            assertTrue(b.maxStrokeJerk() <= strokeJerkCap, key + " stroke jerk " + driftSummary(r));
+            assertTrue(b.maxCoastJerk() <= coastJerkCap, key + " coast jerk " + driftSummary(r));
+        });
+    }
+
+    @Test
+    void driftRarelyPulsesTentaclesFirst() {
+        // Counted only while it is pushing: a bell sinking between strokes is just sinking. The
+        // first cut did this 3–17% of the time; the flare took it to ≤ 1.6% (8 seeds, wading). With the
+        // calm idle (§13.7) one idle seed reaches 2.0% (cat_lounging), a bell starting a slow stroke as
+        // it drifts back past its spot; bound 2.5%.
+        allDrift((key, r) -> assertTrue(r.m().tailFirstFraction() <= 0.025, key + " " + driftSummary(r)));
+    }
+
+    @Test
+    void driftStaysOutOfTheOwnersBodyAndFace() {
+        allDrift((key, r) -> {
+            if (TUNNEL_SCRIPTS.contains(script(key))) return;
+            CompanionRun.Metrics m = r.m();
+            double inside = m.insideOwnerTicks() / (double) m.ticks();
+            double clip = m.nearClipTicks() / (double) m.ticks();
+            assertTrue(inside <= DRIFT_INSIDE_BOUND, key + " inside owner " + inside + " " + driftSummary(r));
+            assertTrue(clip <= DRIFT_CLIP_BOUND, key + " near clip " + clip + " " + driftSummary(r));
+            assertTrue(m.longestCentreDwellTicks() <= DRIFT_CENTRE_BOUND, key + " parked on screen centre " + driftSummary(r));
+        });
+    }
+
+    @Test
+    void driftOwnerSeesItRegularly() {
+        allDrift((key, r) -> {
+            if (TUNNEL_SCRIPTS.contains(script(key)) || DRIFT_VISIBILITY_GAPS.contains(script(key))) return;
+            assertTrue(r.m().longestUnseenSeconds() <= 30, key + " unseen too long " + driftSummary(r));
+            assertTrue(r.m().seenFraction() >= 0.05, key + " barely seen " + driftSummary(r));
+        });
+    }
+
+    @Test
+    void driftKeepsUpWithoutTheLeash() {
+        allDrift((key, r) -> {
+            CompanionRun.Metrics m = r.m();
+            if (LEASH_SCRIPTS.contains(script(key))) {
+                assertTrue(m.leashEvents() >= 1, key + " should have faded at least once " + driftSummary(r));
+                return;
+            }
+            if (LEASH_ALLOWED.contains(script(key))) return;
+            long leashBound = TUNNEL_SCRIPTS.contains(script(key)) ? 5 : DRIFT_LEASH_GAPS.contains(script(key)) ? 1 : 0;
+            assertTrue(m.leashEvents() <= leashBound, key + " needed the leash " + driftSummary(r));
+            double farBound = DRIFT_KEEP_UP_GAPS.contains(script(key)) ? 20 : 8;
+            assertTrue(m.longestFarSeconds() <= farBound, key + " left behind " + driftSummary(r));
+        });
+    }
+
+    @Test
+    void driftGoalsAreCommittedTo() {
+        allDrift((key, r) -> {
+            int shortest = r.m().shortestNonEmergencyGoalTicks();
+            assertTrue(shortest < 0 || shortest >= 20, key + " dithered " + driftSummary(r));
         });
     }
 

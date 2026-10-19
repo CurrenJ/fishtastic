@@ -91,6 +91,8 @@ public final class CompanionViewer {
     private Locomotion locomotion = Locomotion.FREE_SWIM;
     /** A benthic's ground gait and length (the class dropdown's crab, plaice, slug, spider crab). */
     private GroundGait gait = GroundGait.CRAWL;
+    /** A drifter's style (docs/fish-companions-drift.md §2): the class dropdown's flapjack, squid, man o' war. */
+    private grill24.fishsim.companion.DriftStyle driftStyle = grill24.fishsim.companion.DriftStyle.BELL;
     private float benthicLength = CompanionRun.lengthOf(Locomotion.BENTHIC);
     private boolean jumpNext;
     private Temperament temperament = Temperament.BASELINE;
@@ -299,7 +301,7 @@ public final class CompanionViewer {
                     gait, 3, benthicFormation, world());
             return benthicGroup.leader();
         }
-        return new CompanionAgent(tunables, seed, locomotion, length, temperament, gait, world());
+        return new CompanionAgent(tunables, seed, locomotion, length, temperament, gait, driftStyle, world());
     }
 
     /** What the companion perceives: the owner and the scene, plus the script's points of interest when one plays. */
@@ -435,13 +437,17 @@ public final class CompanionViewer {
             reset((String) sceneBox.getSelectedItem(), (String) ownerBox.getSelectedItem());
             canvas.requestFocusInWindow();
         };
-        JComboBox<String> classBox = new JComboBox<>(new String[]{"FREE_SWIM", "TRIO", "GLIDE", "DRIFT",
+        JComboBox<String> classBox = new JComboBox<>(new String[]{"FREE_SWIM", "TRIO", "GLIDE",
+                "DRIFT bell (flapjack)", "DRIFT jet (squid)", "DRIFT bob (man o' war)",
                 "BENTHIC", "BENTHIC plaice", "BENTHIC slug", "BENTHIC spider crab",
                 "BENTHIC starfish line", "BENTHIC slug crowd", "ANCHORED"});
         classBox.addActionListener(e -> {
             String c = (String) classBox.getSelectedItem();
             trio = c.equals("TRIO");
             gait = c.equals("BENTHIC plaice") ? GroundGait.RIPPLE : GroundGait.CRAWL;
+            driftStyle = c.startsWith("DRIFT jet") ? grill24.fishsim.companion.DriftStyle.JET
+                    : c.startsWith("DRIFT bob") ? grill24.fishsim.companion.DriftStyle.BOB
+                    : grill24.fishsim.companion.DriftStyle.BELL;
             benthicFormation = c.equals("BENTHIC starfish line") ? grill24.fishsim.companion.BenthicGroup.Formation.LINE
                     : c.equals("BENTHIC slug crowd") ? grill24.fishsim.companion.BenthicGroup.Formation.CROWD : null;
             benthicLength = switch (c) {
@@ -452,7 +458,8 @@ public final class CompanionViewer {
                 case "BENTHIC spider crab" -> 0.6f;
                 default -> CompanionRun.lengthOf(Locomotion.BENTHIC);
             };
-            locomotion = trio ? Locomotion.FREE_SWIM : c.startsWith("BENTHIC") ? Locomotion.BENTHIC : Locomotion.valueOf(c);
+            locomotion = trio ? Locomotion.FREE_SWIM : c.startsWith("BENTHIC") ? Locomotion.BENTHIC
+                    : c.startsWith("DRIFT") ? Locomotion.DRIFT : Locomotion.valueOf(c);
             apply.run();
         });
         sceneBox.addActionListener(e -> apply.run());
