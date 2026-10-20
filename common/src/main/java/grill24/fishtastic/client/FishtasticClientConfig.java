@@ -26,6 +26,7 @@ public final class FishtasticClientConfig {
     private static final int DEFAULT_TANK_INTERIOR_LIGHT = 13;
     private static final String NOTIFICATION_VOLUME_KEY = "notificationVolume";
     private static final String SHAPE_GALLERY_OPEN_KEY = "shapeGalleryOpen";
+    private static final String ENCYCLOPEDIA_PORTRAIT_ANIMATIONS_KEY = "encyclopediaPortraitAnimations";
     private static final String REDUCED_CELEBRATION_EFFECTS_KEY = "reducedCelebrationEffects";
     /** Don't draw other players' fish companions (docs/fish-companions.md §11 settings). */
     public static final String HIDE_OTHER_COMPANIONS_KEY = "hideOtherCompanions";
@@ -62,6 +63,10 @@ public final class FishtasticClientConfig {
             # Toggled by the gallery button in that screen, which also rewrites this file.
             shapeGalleryOpen=true
 
+            # Animated bubbles in the Fishopedia's fish portraits. Toggled by the pause button in
+            # the portrait's corner (applies to every fish), which also rewrites this file.
+            encyclopediaPortraitAnimations=true
+
             # Accessibility: tones down the catch celebrations (legendary + first-discovery). Removes the
             # screen flash, shake, dimming, confetti, sparkles, spinning rays and hopping text; the
             # silhouette reveal, a still glow and the name banner remain. Set via
@@ -81,6 +86,7 @@ public final class FishtasticClientConfig {
     private static Integer tankInteriorLight;
     private static Integer notificationVolume;
     private static Boolean shapeGalleryOpen;
+    private static Boolean encyclopediaPortraitAnimations;
     private static Boolean reducedCelebrationEffects;
     private static Boolean hideOtherCompanions;
     private static Boolean hideOwnCompanionFirstPerson;
@@ -165,6 +171,7 @@ public final class FishtasticClientConfig {
         tankInteriorLight = null;
         notificationVolume = null;
         shapeGalleryOpen = null;
+        encyclopediaPortraitAnimations = null;
         reducedCelebrationEffects = null;
         hideOtherCompanions = null;
         hideOwnCompanionFirstPerson = null;
@@ -251,6 +258,20 @@ public final class FishtasticClientConfig {
         persist();
     }
 
+    /** Whether Fishopedia portraits animate (bubbles, plumes, bursts). One global choice, default on. */
+    public static boolean isEncyclopediaPortraitAnimations() {
+        if (encyclopediaPortraitAnimations == null) {
+            encyclopediaPortraitAnimations = Boolean.parseBoolean(load().getProperty(ENCYCLOPEDIA_PORTRAIT_ANIMATIONS_KEY, "true"));
+        }
+        return encyclopediaPortraitAnimations;
+    }
+
+    /** Persists the portrait pause toggle (docs/encyclopedia-redesign/bubbles/PLAN.md §4a) and caches it. */
+    public static void setEncyclopediaPortraitAnimations(boolean animate) {
+        encyclopediaPortraitAnimations = animate;
+        persist();
+    }
+
     /**
      * Whether catch celebrations should play their reduced (accessibility) form. Read once when a
      * celebration starts, so flipping it mid-celebration doesn't change one already in flight.
@@ -320,6 +341,7 @@ public final class FishtasticClientConfig {
         props.setProperty(TANK_WATER_FILL_KEY, String.valueOf(isTankWaterFillEnabled()));
         props.setProperty(TANK_INTERIOR_LIGHT_KEY, String.valueOf(getTankInteriorLight()));
         props.setProperty(SHAPE_GALLERY_OPEN_KEY, String.valueOf(isShapeGalleryOpen()));
+        props.setProperty(ENCYCLOPEDIA_PORTRAIT_ANIMATIONS_KEY, String.valueOf(isEncyclopediaPortraitAnimations()));
         props.setProperty(REDUCED_CELEBRATION_EFFECTS_KEY, String.valueOf(isReducedCelebrationEffects()));
         props.setProperty(HIDE_OTHER_COMPANIONS_KEY, String.valueOf(storedHideOtherCompanions()));
         props.setProperty(HIDE_OWN_COMPANION_FIRST_PERSON_KEY, String.valueOf(storedHideOwnCompanionFirstPerson()));
