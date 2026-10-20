@@ -73,6 +73,7 @@ import java.util.function.Supplier;
  */
 public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private UIElement<?> companionEntryButton;
+    private net.minecraft.client.gui.components.Button dismissHint;
     private static final float DISC_RADIUS = 70f;
     private static final float DISC_SIZE = DISC_RADIUS * 2f + 32f;
     private static final float INFO_ICON_SCALE = 3.0f;
@@ -198,6 +199,10 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
             });
         }
         super.init();
+        dismissHint = addRenderableWidget(net.minecraft.client.gui.components.Button.builder(
+                Component.translatable("tutorial.fishtastic.dismiss"), b -> EncyclopediaTutorialClientHandler.dismiss())
+                .bounds(width - 112, height - 28, 104, 20).build());
+        dismissHint.visible = EncyclopediaTutorialClientHandler.hasActiveLesson();
     }
 
     @Override
@@ -211,7 +216,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     @Override
     public void onClose() {
         if (closingScreen) return;
-        if (selectedFishKey != null) EncyclopediaTutorialClientHandler.onInfoPageClosed();
+        EncyclopediaTutorialClientHandler.dismiss();
         closingScreen = true;
         closingAtNanos = System.nanoTime();
         if (sphere != null) sphere.startOutroAnimation();
@@ -251,6 +256,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     @Override
     protected void containerTick() {
         super.containerTick();
+        if (dismissHint != null) dismissHint.visible = EncyclopediaTutorialClientHandler.hasActiveLesson();
         for (Runnable updater : spawnConditionPipUpdaters) {
             updater.run();
         }
@@ -712,6 +718,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private VBox buildZonesContent(FishProfile profile) {
         zonePipUpdaters.clear();
         VBox content = UI.vbox().spacing(2).alignment(VBox.Alignment.CENTER);
+        content.addChild(label(translated("tutorial.fishtastic.zones.help"), 0xFF888888));
         if (profile.zones().isEmpty()) {
             content.addChild(label(translated("screen.fishtastic.encyclopedia.no_zone_restrictions"), 0xFF888888));
             return content;
@@ -981,6 +988,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         CoinClaimButton btn = new CoinClaimButton(btnWidth, btnHeight, icon);
         btn.texture(claimButtonSprite());
         btn.onMouseEnter(e -> btn.setTargetScale(1.15f, true));
+        btn.tooltip(uiScreen, label(translated("tutorial.fishtastic.rewards.help"), 0xFFFFFFFF));
         btn.onMouseExit(e -> btn.setTargetScale(1.0f, true));
         btn.onClick(e -> {
             btn.addClickBounceEffect();

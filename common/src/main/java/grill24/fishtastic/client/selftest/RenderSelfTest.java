@@ -140,6 +140,7 @@ public final class RenderSelfTest {
     private static BlockPos origin;
     private static TutorialSteps savedTutorialStep;
     private static boolean savedPauseOnLostFocus;
+    private static boolean testingHelpMenus;
 
     private record Step(int delayTicks, Consumer<Minecraft> action) {}
 
@@ -160,7 +161,7 @@ public final class RenderSelfTest {
             grill24.fishtastic.client.ambient.ClientAmbientFish.harnessActive(true);
         }
         if (!armed) return;
-        if (mc.screen instanceof PauseScreen) mc.setScreen(null);
+        if (mc.screen instanceof PauseScreen && !testingHelpMenus) mc.setScreen(null);
         // §21 probe: sampled every client tick while set (the step queue advances one step per
         // TWO ticks, so per-step samples can't measure per-tick rates).
         if (tickProbe != null) tickProbe.accept(mc);
@@ -4424,11 +4425,9 @@ public final class RenderSelfTest {
             screenshot(mc, "tutorial", "minigame_intro");
             check("tutorial.intro_waits", grill24.fishtastic.client.TutorialClientHandler.getCurrentStep()
                     == grill24.fishtastic.tutorial.TutorialStep.MINIGAME_INTRO, "no automatic advance");
-            grill24.fishtastic.client.TutorialClientHandler.onMinigameImpulse();
         });
         queue(65, mc -> {
             screenshot(mc, "tutorial", "minigame_controls");
-            grill24.fishtastic.client.TutorialClientHandler.onMinigameImpulse();
         });
         queue(10, mc -> {
             ((IGameRendererExtension) mc.gameRenderer).fishtastic$cancelCurrentAnimation();

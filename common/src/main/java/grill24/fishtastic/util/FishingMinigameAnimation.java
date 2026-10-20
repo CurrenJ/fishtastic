@@ -8,7 +8,6 @@ import grill24.fishtastic.FishtasticSounds;
 import grill24.fishtastic.client.FishtasticClientConfig;
 import grill24.fishtastic.client.FishtasticKeyBinds;
 import grill24.fishtastic.client.QuestProgressNotificationManager;
-import grill24.fishtastic.client.TutorialClientHandler;
 import grill24.fishtastic.client.renderer.FishtasticGlintState;
 import grill24.fishtastic.client.renderer.FishtasticTextureOutlineEffect;
 import grill24.fishtastic.client.renderer.ZoneIconTextures;
@@ -681,10 +680,6 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
                 // accumulated velocity per second is frame-rate independent.
                 if (!minigameState.isPaused()) {
                     minigameState.applyImpulse(HOLD_IMPULSE_STRENGTH * inputForceMultiplier * deltaTime);
-                }
-                if (!wasImpulseKeyDown) {
-                    // Fire the tutorial callback only on the initial press, not every frame.
-                    TutorialClientHandler.onMinigameImpulse();
                 }
             }
             wasImpulseKeyDown = isImpulseDown;
