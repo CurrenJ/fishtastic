@@ -90,16 +90,18 @@ public final class EncyclopediaTutorialManagerGameTests {
     /** Walks the entire encyclopedia tutorial from first open through COMPLETE via the public hooks. */
     public static void encyclopediaTutorialWalksFullChainToCompletion(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
         ServerPlayer player = mockPlayer.get();
-
         EncyclopediaTutorialManager.onEncyclopediaOpened(player);
-        helper.assertTrue(getStep(helper, player) == EncyclopediaTutorialStep.INTRO, "Expected INTRO after first open");
-
+        helper.assertTrue(getStep(helper, player) == EncyclopediaTutorialStep.INTRO, "Show one species hint");
         EncyclopediaTutorialManager.advanceStep(player, EncyclopediaTutorialStep.INTRO);
-        helper.assertTrue(getStep(helper, player) == EncyclopediaTutorialStep.ZONES_AND_REWARDS, "Expected ZONES_AND_REWARDS");
-
-        EncyclopediaTutorialManager.advanceStep(player, EncyclopediaTutorialStep.ZONES_AND_REWARDS);
-        helper.assertTrue(getStep(helper, player) == EncyclopediaTutorialStep.COMPLETE, "Expected COMPLETE as the final step");
-
+        helper.assertTrue(getStep(helper, player) == EncyclopediaTutorialStep.COMPLETE, "Selecting a fish ends the hint");
+        EncyclopediaTutorialManager.replay(player);
+        helper.assertTrue(getStep(helper, player) == EncyclopediaTutorialStep.INTRO, "Help can restore the hint");
+        EncyclopediaTutorialManager.dismiss(player);
+        EncyclopediaTutorialManager.onEncyclopediaOpened(player);
+        helper.assertTrue(getStep(helper, player) == EncyclopediaTutorialStep.COMPLETE, "Closing or dismissing is persistent");
+        setStep(helper, player, EncyclopediaTutorialStep.ZONES_AND_REWARDS);
+        EncyclopediaTutorialManager.onEncyclopediaOpened(player);
+        helper.assertTrue(getStep(helper, player) == EncyclopediaTutorialStep.COMPLETE, "Old second lessons migrate to complete");
         helper.succeed();
     }
 }

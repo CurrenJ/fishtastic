@@ -25,6 +25,10 @@ public class EncyclopediaTutorialManager {
         if (main != TutorialStep.NOT_STARTED && main != TutorialStep.COMPLETE && main != TutorialStep.DEFERRED) return;
         FishCatchSavedData data = FishCatchSavedData.getOrCreate(player.level().getServer());
         EncyclopediaTutorialStep step = data.getEncyclopediaTutorialStep(player);
+        if (step == EncyclopediaTutorialStep.ZONES_AND_REWARDS) {
+            dismiss(player);
+            return;
+        }
         if (step == EncyclopediaTutorialStep.NOT_STARTED) {
             step = EncyclopediaTutorialStep.INTRO;
             data.setEncyclopediaTutorialStep(player, step);
@@ -40,7 +44,7 @@ public class EncyclopediaTutorialManager {
         if (data.getEncyclopediaTutorialStep(player) != fromStep) return;
 
         EncyclopediaTutorialStep next = switch (fromStep) {
-            case INTRO -> EncyclopediaTutorialStep.ZONES_AND_REWARDS;
+            case INTRO -> EncyclopediaTutorialStep.COMPLETE;
             case ZONES_AND_REWARDS -> EncyclopediaTutorialStep.COMPLETE;
             default -> null;
         };
@@ -48,5 +52,17 @@ public class EncyclopediaTutorialManager {
             data.setEncyclopediaTutorialStep(player, next);
             EncyclopediaTutorialSyncPacket.sendToPlayer(player, next);
         }
+    }
+
+    public static void dismiss(ServerPlayer player) {
+        FishCatchSavedData.getOrCreate(player.level().getServer())
+                .setEncyclopediaTutorialStep(player, EncyclopediaTutorialStep.COMPLETE);
+        EncyclopediaTutorialSyncPacket.sendToPlayer(player, EncyclopediaTutorialStep.COMPLETE);
+    }
+
+    public static void replay(ServerPlayer player) {
+        FishCatchSavedData.getOrCreate(player.level().getServer())
+                .setEncyclopediaTutorialStep(player, EncyclopediaTutorialStep.INTRO);
+        EncyclopediaTutorialSyncPacket.sendToPlayer(player, EncyclopediaTutorialStep.INTRO);
     }
 }

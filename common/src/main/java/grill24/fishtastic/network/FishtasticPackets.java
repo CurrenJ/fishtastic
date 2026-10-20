@@ -55,6 +55,8 @@ public class FishtasticPackets {
      * Register client-to-server packets
      */
     public static void registerClientToServerPackets(IPacketRegistrar registrar) {
+        registrar.registerClientToServer(TutorialActionPacket.TYPE, TutorialActionPacket.STREAM_CODEC,
+                TutorialActionPacket::handleClientToServer);
         registrar.registerClientToServer(OpenCompanionMenuPacket.TYPE, OpenCompanionMenuPacket.STREAM_CODEC,
                 OpenCompanionMenuPacket::handleClientToServer);
         registrar.registerClientToServer(

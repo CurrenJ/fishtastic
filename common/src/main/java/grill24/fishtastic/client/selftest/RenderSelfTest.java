@@ -177,6 +177,7 @@ public final class RenderSelfTest {
     private static BlockPos origin;
     private static TutorialSteps savedTutorialStep;
     private static boolean savedPauseOnLostFocus;
+    private static boolean testingHelpMenus;
 
     private record Step(int delayTicks, Consumer<Minecraft> action) {}
 
@@ -197,7 +198,7 @@ public final class RenderSelfTest {
             ClientAmbientFish.harnessActive(true);
         }
         if (!armed) return;
-        if (mc.screen instanceof PauseScreen) mc.setScreen(null);
+        if (mc.screen instanceof PauseScreen && !testingHelpMenus) mc.setScreen(null);
         // §21 probe: sampled every client tick while set (the step queue advances one step per
         // TWO ticks — step, then a tick of wait — so per-step samples can't measure per-tick
         // rates; anything needing tick-true curves goes through here).
@@ -6173,14 +6174,14 @@ public final class RenderSelfTest {
     /** The actual companion menu and packet path, with optional custom shortcuts unbound. */
     private static void queueCompanionTutorialScene() {
         queue(1, mc -> {
+            testingHelpMenus = true;
             mc.options.hideGui = false;
             FishtasticKeyBinds.bondCompanion.setKey(com.mojang.blaze3d.platform.InputConstants.UNKNOWN);
-            FishtasticKeyBinds.openFishEncyclopedia.setKey(com.mojang.blaze3d.platform.InputConstants.UNKNOWN);
-            server(mc, s -> {
-                run(s, "gamemode survival @a");
-                run(s, "clear @a");
-                for (ServerPlayer player : s.getPlayerList().getPlayers()) {
-                    var data = FishCatchSavedData.getOrCreate(s);
+            server(mc, server -> {
+                run(server, "gamemode survival @a");
+                run(server, "clear @a");
+                for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+                    var data = FishCatchSavedData.getOrCreate(server);
                     data.setTutorialStep(player, grill24.fishtastic.tutorial.TutorialStep.COMPLETE);
                     grill24.fishtastic.network.TutorialSyncPacket.sendToPlayer(player, grill24.fishtastic.tutorial.TutorialStep.COMPLETE);
                     data.setEncyclopediaTutorialStep(player, grill24.fishtastic.tutorial.EncyclopediaTutorialStep.COMPLETE);
@@ -6190,92 +6191,54 @@ public final class RenderSelfTest {
                     data.getOrCreateQuestState(player).unlockCompanionBond(Ids.of("fishtastic", "bluegill"));
                     grill24.fishtastic.tutorial.CompanionTutorialManager.onBondUnlocked(player);
                     player.getInventory().setItem(1, fish("bluegill", 25));
-                    ItemStack pile = item("pile_of_fish");
-                    FishtasticItemData.setBundleContents(pile, new net.minecraft.world.item.component.BundleContents(List.of(
-                            net.minecraft.world.item.ItemStackTemplate.fromNonEmptyStack(fish("bluegill", 20)),
-                            net.minecraft.world.item.ItemStackTemplate.fromNonEmptyStack(fish("bluegill", 30)))));
-                    player.getInventory().setItem(2, pile);
                     grill24.fishtastic.network.QuestSyncPacket.sendToPlayer(player, data);
                 }
             });
         });
-        queue(25, mc -> {
-            mc.getToastManager().clear();
-            screenshot(mc, "companiontutorial", "book_hint");
-            useTutorialBook(mc, FishtasticItems.FISHOPEDIA.value());
-        });
-        queue(30, mc -> {
-            screenshot(mc, "companiontutorial", "encyclopedia");
-            check("companiontutorial.main_has_no_entry_button",
-                    mc.screen instanceof grill24.fishtastic.client.FishEncyclopediaScreen encyclopedia
-                            && !encyclopedia.hasCompanionEntryButton(), "main encyclopedia");
-            mc.setScreen(null);
-            grill24.fishtastic.client.FishEncyclopediaScreen.selectOnNextOpen(
-                    net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(FishtasticItems.BLUEGILL.value()));
-        });
-        queue(15, mc -> useTutorialBook(mc, FishtasticItems.FISHOPEDIA.value()));
-        queue(35, mc -> {
-            screenshot(mc, "companiontutorial", "species_entry");
-            check("companiontutorial.species_has_choose_fish",
-                    mc.screen instanceof grill24.fishtastic.client.FishEncyclopediaScreen encyclopedia
-                            && encyclopedia.hasCompanionEntryButton(), "unlocked species entry");
-            grill24.fishtastic.client.CompanionScreen.open(new ItemStack(FishtasticItems.BLUEGILL.value()));
-        });
+        queue(20, mc -> mc.setScreen(new PauseScreen(true)));
+        queue(5, mc -> pressHelpButton(mc, "tutorial.fishtastic.help.title"));
+        queue(5, mc -> pressHelpButton(mc, "tutorial.fishtastic.help.companions"));
         queue(20, mc -> {
             checkCompanionLesson("equip", grill24.fishtastic.tutorial.CompanionTutorialStep.EQUIP);
             screenshot(mc, "companiontutorial", "equip");
             ((grill24.fishtastic.client.CompanionScreen) mc.screen).clickSlot(
-                    grill24.fishtastic.menu.CompanionMenu.INVENTORY_END - 8, 0, net.minecraft.world.inventory.ContainerInput.QUICK_MOVE);
-        });
-        queue(15, mc -> {
-            checkCompanionLesson("return", grill24.fishtastic.tutorial.CompanionTutorialStep.RETURN);
-            screenshot(mc, "companiontutorial", "return");
-            ((grill24.fishtastic.client.CompanionScreen) mc.screen).clickSlot(0, 0, net.minecraft.world.inventory.ContainerInput.PICKUP);
-        });
-        queue(8, mc -> {
-            checkCompanionLesson("plain_pickup_returns", grill24.fishtastic.tutorial.CompanionTutorialStep.REEQUIP);
-            ((grill24.fishtastic.client.CompanionScreen) mc.screen).clickSlot(
                     grill24.fishtastic.menu.CompanionMenu.INVENTORY_END - 8, 0, net.minecraft.world.inventory.ContainerInput.PICKUP);
         });
-        queue(15, mc -> {
-            checkCompanionLesson("reequip", grill24.fishtastic.tutorial.CompanionTutorialStep.REEQUIP);
-            screenshot(mc, "companiontutorial", "reequip");
-            ((grill24.fishtastic.client.CompanionScreen) mc.screen).clickSlot(
-                    grill24.fishtastic.menu.CompanionMenu.INVENTORY_END - 8, 0, net.minecraft.world.inventory.ContainerInput.QUICK_MOVE);
-        });
-        queue(15, mc -> {
-            checkCompanionLesson("lead", grill24.fishtastic.tutorial.CompanionTutorialStep.LEAD);
-            screenshot(mc, "companiontutorial", "lead");
-            pressCompanionButton(mc, "tutorial.fishtastic.companion.next");
-        });
-        queue(15, mc -> {
-            checkCompanionLesson("rename", grill24.fishtastic.tutorial.CompanionTutorialStep.RENAME);
-            ((grill24.fishtastic.client.CompanionScreen) mc.screen).openEditor(0);
-        });
+        queue(10, mc -> pressHelpButton(mc, "tutorial.fishtastic.dismiss"));
         queue(10, mc -> {
-            screenshot(mc, "companiontutorial", "rename");
-            mc.screen.children().stream().filter(child -> child instanceof net.minecraft.client.gui.components.EditBox)
-                    .map(child -> (net.minecraft.client.gui.components.EditBox) child).findFirst().orElseThrow().setValue("Bubbles");
-            pressCompanionButton(mc, ""); // The save button's check mark has no translation key.
+            checkCompanionLesson("dismiss_with_cursor", grill24.fishtastic.tutorial.CompanionTutorialStep.COMPLETE);
+            check("companiontutorial.carried_fish_safe", !mc.player.containerMenu.getCarried().isEmpty(), "Dismissal keeps the carried fish");
+            mc.screen.onClose();
+        });
+        queue(10, mc -> mc.setScreen(new PauseScreen(true)));
+        queue(5, mc -> pressHelpButton(mc, "tutorial.fishtastic.help.title"));
+        queue(5, mc -> pressHelpButton(mc, "tutorial.fishtastic.help.companions"));
+        queue(20, mc -> {
+            checkCompanionLesson("replay", grill24.fishtastic.tutorial.CompanionTutorialStep.EQUIP);
+            for (int i = grill24.fishtastic.menu.CompanionMenu.INVENTORY_START;
+                    i < grill24.fishtastic.menu.CompanionMenu.INVENTORY_END; i++) {
+                if (mc.player.containerMenu.getSlot(i).getItem().is(FishtasticItems.BLUEGILL.value())) {
+                    ((grill24.fishtastic.client.CompanionScreen) mc.screen).clickSlot(i, 0, net.minecraft.world.inventory.ContainerInput.QUICK_MOVE);
+                    break;
+                }
+            }
         });
         queue(15, mc -> {
-            checkCompanionLesson("groups", grill24.fishtastic.tutorial.CompanionTutorialStep.GROUPS);
-            screenshot(mc, "companiontutorial", "groups");
-            pressCompanionButton(mc, "tutorial.fishtastic.companion.next");
-        });
-        queue(15, mc -> {
-            checkCompanionLesson("piles", grill24.fishtastic.tutorial.CompanionTutorialStep.PILES);
-            pressCompanionButton(mc, "screen.fishtastic.companion.piles");
-        });
-        queue(10, mc -> {
-            screenshot(mc, "companiontutorial", "piles");
-            pressCompanionButton(mc, "tutorial.fishtastic.companion.finish");
-        });
-        queue(15, mc -> {
-            checkCompanionLesson("complete", grill24.fishtastic.tutorial.CompanionTutorialStep.COMPLETE);
+            checkCompanionLesson("first_equip_finishes", grill24.fishtastic.tutorial.CompanionTutorialStep.COMPLETE);
+            check("companiontutorial.keeps_fish_equipped", mc.player.containerMenu.getSlot(0).hasItem(), "Leave the first companion equipped");
             screenshot(mc, "companiontutorial", "complete");
-            if (mc.screen != null) mc.screen.onClose();
+            mc.screen.onClose();
+            testingHelpMenus = false;
         });
+    }
+
+    private static void pressHelpButton(Minecraft mc, String key) {
+        String label = Component.translatable(key).getString();
+        var button = mc.screen.children().stream().filter(child -> child instanceof net.minecraft.client.gui.components.Button)
+                .map(child -> (net.minecraft.client.gui.components.Button) child)
+                .filter(child -> child.visible && child.active && child.getMessage().getString().equals(label)).findFirst();
+        check("tutorial.button", button.isPresent(), "label=" + label);
+        button.orElseThrow().onPress(null);
     }
 
     private static void checkCompanionLesson(String name, grill24.fishtastic.tutorial.CompanionTutorialStep expected) {
@@ -6335,15 +6298,15 @@ public final class RenderSelfTest {
     private static void queueTutorialScene() {
         int[] session = {-1};
         queue(1, mc -> {
+            testingHelpMenus = true;
             mc.options.hideGui = false;
             FishtasticKeyBinds.openQuestLog.setKey(com.mojang.blaze3d.platform.InputConstants.UNKNOWN);
             FishtasticKeyBinds.openFishEncyclopedia.setKey(com.mojang.blaze3d.platform.InputConstants.UNKNOWN);
-            FishtasticKeyBinds.openLeaderboards.setKey(com.mojang.blaze3d.platform.InputConstants.UNKNOWN);
-            server(mc, s -> {
-                run(s, "gamemode survival @a");
-                run(s, "clear @a");
-                for (ServerPlayer player : s.getPlayerList().getPlayers()) {
-                    var data = FishCatchSavedData.getOrCreate(s);
+            server(mc, server -> {
+                run(server, "gamemode survival @a");
+                run(server, "clear @a");
+                for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+                    var data = FishCatchSavedData.getOrCreate(server);
                     data.setTutorialStep(player, grill24.fishtastic.tutorial.TutorialStep.NOT_STARTED);
                     data.getOrCreateQuestState(player).resetProgress(grill24.fishtastic.tutorial.TutorialManager.TUTORIAL_QUEST_KEY);
                     player.getInventory().setItem(0, item("copper_fishing_rod"));
@@ -6352,116 +6315,95 @@ public final class RenderSelfTest {
             });
         });
         queue(20, mc -> {
-            check("tutorial.fishing_offer", mc.screen instanceof net.minecraft.client.gui.screens.ConfirmScreen,
-                    "A new rod must offer Play tutorial / Skip for later");
-            screenshot(mc, "tutorial", "fishing_offer");
-            mc.screen.children().stream()
-                    .filter(child -> child instanceof net.minecraft.client.gui.components.Button)
-                    .map(child -> (net.minecraft.client.gui.components.Button) child)
-                    .filter(button -> button.getMessage().getString().equals(Component.translatable("tutorial.fishtastic.fishing_offer.later").getString()))
-                    .findFirst().orElseThrow().onPress(null);
+            check("tutorial.offer", mc.screen instanceof net.minecraft.client.gui.screens.ConfirmScreen, "First offer");
+            screenshot(mc, "tutorial", "offer");
+            pressHelpButton(mc, "tutorial.fishtastic.fishing_offer.later");
         });
         queue(10, mc -> {
-            check("tutorial.fishing_later", grill24.fishtastic.client.TutorialClientHandler.getCurrentStep()
-                    == grill24.fishtastic.tutorial.TutorialStep.DEFERRED, "Skipping must leave ordinary fishing available");
             mc.player.getInventory().setSelectedSlot(0);
-            mc.gameMode.useItem(mc.player, net.minecraft.world.InteractionHand.MAIN_HAND);
+            mc.gameMode.useItem(mc.player, InteractionHand.MAIN_HAND);
         });
         queue(15, mc -> {
-            check("tutorial.fishing_retry_on_cast", mc.screen instanceof net.minecraft.client.gui.screens.ConfirmScreen
-                    && grill24.fishtastic.client.TutorialClientHandler.getCurrentStep() == grill24.fishtastic.tutorial.TutorialStep.FISHING_OFFER,
-                    "A copper cast after Skip for later must offer the lesson again");
-            mc.screen.children().stream()
-                    .filter(child -> child instanceof net.minecraft.client.gui.components.Button)
-                    .map(child -> (net.minecraft.client.gui.components.Button) child)
-                    .filter(button -> button.getMessage().getString().equals(Component.translatable("tutorial.fishtastic.fishing_offer.show").getString()))
-                    .findFirst().orElseThrow().onPress(null);
+            check("tutorial.dismiss_persists", mc.screen == null
+                    && grill24.fishtastic.client.TutorialClientHandler.getCurrentStep()
+                    == grill24.fishtastic.tutorial.TutorialStep.DEFERRED, "Casting must not reopen the offer");
+            mc.setScreen(new PauseScreen(true));
+        });
+        queue(5, mc -> {
+            screenshot(mc, "tutorial", "pause_help");
+            pressHelpButton(mc, "tutorial.fishtastic.help.title");
+        });
+        queue(5, mc -> {
+            check("tutorial.help_accessible", mc.screen instanceof grill24.fishtastic.client.TutorialHelpScreen, "No custom keys required");
+            screenshot(mc, "tutorial", "help");
+            pressHelpButton(mc, "tutorial.fishtastic.help.fishing");
         });
         queue(15, mc -> {
-            check("tutorial.fishing_play", grill24.fishtastic.client.TutorialClientHandler.getCurrentStep()
-                    == grill24.fishtastic.tutorial.TutorialStep.BAIT_LOAD, "Play must begin the bait lesson");
+            check("tutorial.replay", grill24.fishtastic.client.TutorialClientHandler.getCurrentStep()
+                    == grill24.fishtastic.tutorial.TutorialStep.BAIT_LOAD, "Explicit practice");
             mc.setScreen(new InventoryScreen(mc.player));
         });
         queue(10, mc -> screenshot(mc, "tutorial", "bait"));
         queue(1, mc -> {
             mc.screen.onClose();
-            server(mc, s -> {
-                ServerPlayer player = s.getPlayerList().getPlayers().get(0);
+            server(mc, server -> {
+                ServerPlayer player = server.getPlayerList().getPlayers().get(0);
                 grill24.fishtastic.item.FishtasticFishingRodItem.setBait(player.getInventory().getItem(0), item("worms"));
                 grill24.fishtastic.tutorial.TutorialManager.onBaitLoaded(player);
                 grill24.fishtastic.tutorial.TutorialManager.onHookCast(player, player.getInventory().getItem(0));
                 session[0] = grill24.fishtastic.server.FishingMinigameManager.get(player.level()).startTutorialSession(player);
             });
         });
-        queue(25, mc -> {
-            screenshot(mc, "tutorial", "minigame_intro");
-            check("tutorial.intro_waits", grill24.fishtastic.client.TutorialClientHandler.getCurrentStep()
-                    == grill24.fishtastic.tutorial.TutorialStep.MINIGAME_INTRO, "no automatic advance");
-            grill24.fishtastic.client.TutorialClientHandler.onMinigameImpulse();
-        });
-        queue(65, mc -> {
-            screenshot(mc, "tutorial", "minigame_controls");
-            grill24.fishtastic.client.TutorialClientHandler.onMinigameImpulse();
-        });
-        queue(10, mc -> {
-            ((IGameRendererExtension) mc.gameRenderer).fishtastic$cancelCurrentAnimation();
-            grill24.fishtastic.client.FishingMinigameClientHandler.cancel();
-            server(mc, s -> {
-                ServerPlayer player = s.getPlayerList().getPlayers().get(0);
+        queue(20, mc -> {
+            var animation = ((IGameRendererExtension) mc.gameRenderer).fishtastic$getActiveAnimation();
+            check("tutorial.immediate_practice", grill24.fishtastic.client.TutorialClientHandler.getCurrentStep()
+                    == grill24.fishtastic.tutorial.TutorialStep.MINIGAME_CATCH
+                    && animation instanceof grill24.fishtastic.util.FishingMinigameAnimation fishing
+                    && !fishing.getMinigameState().isPaused(), "No acknowledgement or three-second gate");
+            screenshot(mc, "tutorial", "practice");
+            server(mc, server -> {
+                ServerPlayer player = server.getPlayerList().getPlayers().get(0);
                 grill24.fishtastic.server.FishingMinigameManager.get(player.level())
                         .handleMinigameComplete(player, session[0], List.of(0));
             });
         });
-        queue(25, mc -> {
-            screenshot(mc, "tutorial", "quest_book_hint");
-            useTutorialBook(mc, FishtasticItems.QUEST_BOOK.value());
-        });
-        queue(25, mc -> {
-            check("tutorial.book_without_keys", mc.screen instanceof QuestLogScreen
-                    && grill24.fishtastic.client.TutorialClientHandler.getCurrentStep()
-                    == grill24.fishtastic.tutorial.TutorialStep.QUEST_CLAIM, "screen=" + mc.screen);
-            screenshot(mc, "tutorial", "claim");
-            if (mc.screen != null) mc.screen.onClose();
-        });
         queue(15, mc -> {
-            screenshot(mc, "tutorial", "reopen_hint");
+            check("tutorial.ends_on_catch", grill24.fishtastic.client.TutorialClientHandler.getCurrentStep()
+                    == grill24.fishtastic.tutorial.TutorialStep.COMPLETE, "No quest/shop/encyclopedia chain");
+            check("tutorial.keeps_animation", ((IGameRendererExtension) mc.gameRenderer).fishtastic$getActiveAnimation()
+                    instanceof grill24.fishtastic.util.FishingMinigameAnimation, "Completion must not cancel the catch animation");
+            ((IGameRendererExtension) mc.gameRenderer).fishtastic$cancelCurrentAnimation();
+            grill24.fishtastic.client.FishingMinigameClientHandler.cancel();
             useTutorialBook(mc, FishtasticItems.QUEST_BOOK.value());
         });
-        queue(15, mc -> mc.player.connection.send(new net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket(
-                new grill24.fishtastic.network.CompleteQuestPacket(grill24.fishtastic.tutorial.TutorialManager.TUTORIAL_QUEST_KEY.identifier()))));
-        queue(25, mc -> {
-            screenshot(mc, "tutorial", "shop_hint");
+        queue(20, mc -> {
+            check("tutorial.rewards_without_lesson", mc.screen instanceof QuestLogScreen
+                    && grill24.fishtastic.client.QuestClientCache.getProgress(
+                    grill24.fishtastic.tutorial.TutorialManager.TUTORIAL_QUEST_KEY.identifier()).completed(),
+                    "First Catch reward is ready after the lesson ends");
             try {
-                var field = QuestLogScreen.class.getDeclaredField("questTabs");
+                var field = QuestLogScreen.class.getDeclaredField("questRowRefs");
                 field.setAccessible(true);
-                ((io.github.currenj.gelatinui.gui.components.ItemTabs) field.get(mc.screen)).select(5);
-            } catch (ReflectiveOperationException e) {
-                throw new IllegalStateException(e);
-            }
+                check("tutorial.reward_row_visible", ((java.util.Map<?, ?>) field.get(mc.screen)).containsKey(
+                        grill24.fishtastic.tutorial.TutorialManager.TUTORIAL_QUEST_KEY.identifier()), "Reward row remains visible");
+            } catch (ReflectiveOperationException e) { throw new IllegalStateException(e); }
+            screenshot(mc, "tutorial", "reward");
+            mc.screen.onClose();
+            mc.setScreen(new PauseScreen(true));
         });
-        queue(15, mc -> {
-            screenshot(mc, "tutorial", "shop_visited");
-            if (mc.screen != null) mc.screen.onClose();
+        queue(5, mc -> pressHelpButton(mc, "tutorial.fishtastic.help.title"));
+        queue(5, mc -> pressHelpButton(mc, "tutorial.fishtastic.help.encyclopedia"));
+        queue(20, mc -> {
+            check("tutorial.encyclopedia_hint", mc.screen instanceof FishEncyclopediaScreen
+                    && grill24.fishtastic.client.EncyclopediaTutorialClientHandler.hasActiveLesson(), "One optional hint");
+            screenshot(mc, "tutorial", "encyclopedia_hint");
+            pressHelpButton(mc, "tutorial.fishtastic.dismiss");
         });
-        queue(15, mc -> {
-            check("tutorial.offer", mc.screen instanceof net.minecraft.client.gui.screens.ConfirmScreen, "screen=" + mc.screen);
-            screenshot(mc, "tutorial", "offer");
-            if (mc.screen instanceof net.minecraft.client.gui.screens.ConfirmScreen) {
-                mc.screen.children().stream().filter(child -> child instanceof net.minecraft.client.gui.components.Button)
-                        .map(child -> (net.minecraft.client.gui.components.Button) child).findFirst().orElseThrow().onPress(null);
-            }
+        queue(10, mc -> {
+            check("tutorial.hint_dismissed", !grill24.fishtastic.client.EncyclopediaTutorialClientHandler.hasActiveLesson(), "Explicit dismissal");
+            mc.screen.onClose();
+            testingHelpMenus = false;
         });
-        queue(15, mc -> {
-            screenshot(mc, "tutorial", "fishopedia_hint");
-            useTutorialBook(mc, FishtasticItems.FISHOPEDIA.value());
-        });
-        queue(30, mc -> {
-            check("tutorial.handoff", mc.screen instanceof FishEncyclopediaScreen
-                    && grill24.fishtastic.client.TutorialClientHandler.getCurrentStep()
-                    == grill24.fishtastic.tutorial.TutorialStep.COMPLETE, "screen=" + mc.screen);
-            screenshot(mc, "tutorial", "encyclopedia");
-        });
-        queue(1, mc -> { if (mc.screen != null) mc.screen.onClose(); });
     }
 
     private static void useTutorialBook(Minecraft mc, net.minecraft.world.item.Item book) {

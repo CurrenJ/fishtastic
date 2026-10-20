@@ -50,7 +50,7 @@ public final class CompanionScreen extends AbstractContainerScreen<CompanionMenu
     private static final long FLASH_MS = 600, FEEDBACK_TICKS = 100;
     private EditBox name;
     private Button save, piles, previous, next;
-    private Button tutorialNext, tutorialSkip;
+    private Button tutorialSkip;
     private boolean guidedLayout;
     private int guideWidth;
     /** The party slot whose name row is open, or -1; the row closes if that slot's fish changes. */
@@ -100,16 +100,15 @@ public final class CompanionScreen extends AbstractContainerScreen<CompanionMenu
             page = 0;
             clearFeedback();
             closeEditor();
-        }).bounds(leftPos + 120, topPos + 4, 48, 12).build());
+        }).bounds(leftPos + 120, topPos + 4, 48, 12)
+                .tooltip(net.minecraft.client.gui.components.Tooltip.create(text("pile_hint"))).build());
         previous = addRenderableWidget(Button.builder(Component.literal("<"), b -> { page--; updateControls(); })
                 .bounds(leftPos + 8, topPos + 34, 22, 16).build());
         next = addRenderableWidget(Button.builder(Component.literal(">"), b -> { page++; updateControls(); })
                 .bounds(leftPos + 146, topPos + 34, 22, 16).build());
         if (guidedLayout) {
             int x = leftPos - guideWidth - 12;
-            tutorialNext = addRenderableWidget(Button.builder(Component.translatable("tutorial.fishtastic.companion.next"),
-                    b -> CompanionTutorialClientHandler.advance(false)).bounds(x + 8, topPos + imageHeight - 47, guideWidth - 16, 20).build());
-            tutorialSkip = addRenderableWidget(Button.builder(Component.translatable("tutorial.fishtastic.companion.skip"),
+            tutorialSkip = addRenderableWidget(Button.builder(Component.translatable("tutorial.fishtastic.dismiss"),
                     b -> CompanionTutorialClientHandler.advance(true)).bounds(x + 8, topPos + imageHeight - 23, guideWidth - 16, 20).build());
         }
         editing = -1;
@@ -117,6 +116,11 @@ public final class CompanionScreen extends AbstractContainerScreen<CompanionMenu
     }
 
     private static Component text(String key) { return Component.translatable("screen.fishtastic.companion." + key); }
+
+    @Override public void onClose() {
+        if (CompanionTutorialClientHandler.isActive()) CompanionTutorialClientHandler.advance(true);
+        super.onClose();
+    }
 
     // ── Name row ────────────────────────────────────────────────────────────────
 
@@ -202,14 +206,10 @@ public final class CompanionScreen extends AbstractContainerScreen<CompanionMenu
 
     private void updateControls() {
         boolean cursorEmpty = menu.getCarried().isEmpty();
-        if (guidedLayout && tutorialNext != null) {
-            CompanionTutorialStep step = CompanionTutorialClientHandler.currentStep();
-            tutorialNext.visible = step.canContinue();
-            tutorialNext.active = tutorialSkip.active = cursorEmpty && !CompanionTutorialClientHandler.awaitingReply();
-            tutorialNext.setMessage(Component.translatable(step == CompanionTutorialStep.PILES
-                    ? "tutorial.fishtastic.companion.finish" : "tutorial.fishtastic.companion.next"));
-            tutorialNext.setY(topPos + imageHeight - (step == CompanionTutorialStep.PILES ? 23 : 47));
-            tutorialSkip.visible = step != CompanionTutorialStep.PILES;
+        if (guidedLayout && tutorialSkip != null) {
+            tutorialSkip.visible = CompanionTutorialClientHandler.isActive();
+            tutorialSkip.active = !CompanionTutorialClientHandler.awaitingReply();
+            tutorialSkip.setY(topPos + tutorialGuideHeight() - 28);
         }
         name.visible = save.visible = editing >= 0;
         piles.active = cursorEmpty && (!pileFish().isEmpty() || pileView);
@@ -493,24 +493,35 @@ public final class CompanionScreen extends AbstractContainerScreen<CompanionMenu
     }
 
     private void extractTutorialGuide(GuiGraphicsExtractor graphics) {
+        if (!CompanionTutorialClientHandler.isActive()) return;
         int x = leftPos - guideWidth - 12;
-        graphics.fill(x, topPos, x + guideWidth, topPos + imageHeight, 0xF0101820);
-        graphics.outline(x, topPos, guideWidth, imageHeight, 0xFF44CC88);
+        int height = tutorialGuideHeight();
+        graphics.fill(x, topPos, x + guideWidth, topPos + height, 0xF0101820);
+        graphics.outline(x, topPos, guideWidth, height, 0xFF44CC88);
         int y = topPos + 9;
-        int number = CompanionTutorialClientHandler.currentStep().lessonNumber();
-        if (number > 0) {
-            graphics.text(font, Component.translatable("tutorial.fishtastic.companion.progress", number, 7), x + 8, y, 0xFF88CCAA);
-            y += 14;
-        }
         for (var line : font.split(CompanionTutorialClientHandler.title(), guideWidth - 16)) {
             graphics.text(font, line, x + 8, y, 0xFFFFFFFF);
             y += 10;
         }
         y += 6;
-        for (var line : font.split(CompanionTutorialClientHandler.body(), guideWidth - 16)) {
+        for (var line : font.split(tutorialBody(), guideWidth - 16)) {
             graphics.text(font, line, x + 8, y, 0xFFDDDDDD);
             y += 10;
         }
+    }
+
+    private Component tutorialBody() {
+        boolean needsPile = menu.getCarried().isEmpty() && !pileFish().isEmpty()
+                && menu.slots.subList(CompanionMenu.INVENTORY_START, CompanionMenu.INVENTORY_END).stream()
+                .noneMatch(slot -> slot.getItem().is(FishtasticItemTags.FISH) && unlocked(slot.getItem()));
+        return needsPile ? Component.translatable("tutorial.fishtastic.companion.equip_from_pile")
+                : CompanionTutorialClientHandler.body();
+    }
+
+    private int tutorialGuideHeight() {
+        int lines = font.split(CompanionTutorialClientHandler.title(), guideWidth - 16).size()
+                + font.split(tutorialBody(), guideWidth - 16).size();
+        return 16 + lines * 10 + 6 + 28;
     }
 
     private void extractTutorialHighlights(GuiGraphicsExtractor graphics) {
@@ -534,6 +545,7 @@ public final class CompanionScreen extends AbstractContainerScreen<CompanionMenu
         List<Component> tooltip = new ArrayList<>(super.getTooltipFromContainerItem(stack));
         if (hoveredSlot != null && CompanionMenu.isPartySlot(hoveredSlot.index)) {
             if (hoveredSlot.index == CompanionParty.LEAD) tooltip.add(text("lead"));
+            if (!stack.isEmpty()) tooltip.add(Component.translatable("tutorial.fishtastic.companion.remove_hint"));
             return tooltip;
         }
         if (stack.is(FishtasticItemTags.FISH)) tooltip.add(text(unlocked(stack) ? "eligible" : "locked"));
@@ -543,6 +555,10 @@ public final class CompanionScreen extends AbstractContainerScreen<CompanionMenu
 
     @Override protected void extractTooltip(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         super.extractTooltip(graphics, mouseX, mouseY);
+        if (mouseX >= leftPos + 8 && mouseX < leftPos + 168
+                && mouseY >= topPos + PREVIEW_Y && mouseY < topPos + PREVIEW_Y + 10 && !shownParty().isEmpty()) {
+            graphics.setTooltipForNextFrame(font, Component.translatable("tutorial.fishtastic.companion.groups_hint"), mouseX, mouseY);
+        }
         int tab = tabAt(mouseX, mouseY);
         if (tab >= 0 && menu.getCarried().isEmpty()) {
             graphics.setTooltipForNextFrame(font, text(menu.getSlot(tab).hasItem() ? "rename" : "rename_empty"), mouseX, mouseY);

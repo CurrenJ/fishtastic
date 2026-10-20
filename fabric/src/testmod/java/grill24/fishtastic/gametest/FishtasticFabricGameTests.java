@@ -665,17 +665,17 @@ public class FishtasticFabricGameTests {
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void companionTutorialRealMenuWalksAllLessons(GameTestHelper helper) {
-        CompanionTutorialManagerGameTests.realMenuWalksAllCompanionLessons(helper, helper::makeMockServerPlayerInLevel);
+        CompanionTutorialManagerGameTests.firstEquipCompletesCompanionLesson(helper, helper::makeMockServerPlayerInLevel);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void companionTutorialShortcutsAndShiftReturns(GameTestHelper helper) {
-        CompanionTutorialManagerGameTests.shortcutsAndShiftReturnsAdvanceTheSameLessons(helper, helper::makeMockServerPlayerInLevel);
+        CompanionTutorialManagerGameTests.shortcutEquipCompletesCompanionLesson(helper, helper::makeMockServerPlayerInLevel);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void companionTutorialClosingWithCursorFish(GameTestHelper helper) {
-        CompanionTutorialManagerGameTests.closingWithReturnedFishResumesWithoutLosingIt(helper, helper::makeMockServerPlayerInLevel);
+        CompanionTutorialManagerGameTests.dismissWithCarriedFishPreservesInventory(helper, helper::makeMockServerPlayerInLevel);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
@@ -694,13 +694,13 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void onlyCopperCastsStartTutorialAndGrantBooksOnce(GameTestHelper helper) {
-        TutorialManagerGameTests.onlyCopperCastsStartTutorialAndGrantBooksOnce(helper, helper::makeMockServerPlayerInLevel);
+    public void copperOfferDismissalPersistsAcrossRecastsAndRejoin(GameTestHelper helper) {
+        TutorialManagerGameTests.copperOfferDismissalPersistsAcrossRecastsAndRejoin(helper, helper::makeMockServerPlayerInLevel);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void booksAdvanceTutorialAndEncyclopediaChoiceIsOptional(GameTestHelper helper) {
-        TutorialManagerGameTests.booksAdvanceTutorialAndEncyclopediaChoiceIsOptional(helper, helper::makeMockServerPlayerInLevel);
+    public void questAccessAndLegacyTutorialMigration(GameTestHelper helper) {
+        TutorialManagerGameTests.questAccessAndLegacyTutorialMigration(helper, helper::makeMockServerPlayerInLevel);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
@@ -759,8 +759,8 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void onQuestClaimedOnlyAdvancesOnMatchingTutorialQuestId(GameTestHelper helper) {
-        TutorialManagerGameTests.onQuestClaimedOnlyAdvancesOnMatchingTutorialQuestId(helper, helper::makeMockServerPlayerInLevel);
+    public void questClaimsAndReplayStayIndependent(GameTestHelper helper) {
+        TutorialManagerGameTests.questClaimsAndReplayStayIndependent(helper, helper::makeMockServerPlayerInLevel);
     }
 
     // -------------------------------------------------------------------------

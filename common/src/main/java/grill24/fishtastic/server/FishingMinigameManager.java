@@ -450,7 +450,8 @@ public class FishingMinigameManager {
                     session.environment.zones(), session.hookBaitId);
         }
 
-        TutorialManager.onMinigameComplete(player);
+        TutorialManager.onMinigameComplete(player,
+                result.questStacks().stream().anyMatch(stack -> stack.is(FishtasticItemTags.FISH)));
 
         ItemStack baitDepletedItem = ItemStack.EMPTY;
         if (!result.rewards().isEmpty()) {

@@ -6,8 +6,6 @@ import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.QuestCategory;
 import grill24.fishtastic.data.QuestDifficulty;
-import grill24.fishtastic.tutorial.TutorialManager;
-import grill24.fishtastic.tutorial.TutorialStep;
 import grill24.fishtastic.data.QuestObjective;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.network.QuestSyncPacket;
@@ -70,7 +68,6 @@ public class QuestTracker {
             Quest quest = entry.getValue();
 
             if (quest.category() == QuestCategory.DAILY && !activeDailies.contains(questKey)) continue;
-            if (quest.category() == QuestCategory.TUTORIAL && !isTutorialQuestActive(player, questKey, state)) continue;
             // Driven by onDailyQuestClaimed instead — never matched against a caught fish.
             if (quest.objective().allDailiesClaimedToday()) continue;
             // Driven by onTankChanged instead — a caught (not yet displayed) fish must never
@@ -160,7 +157,6 @@ public class QuestTracker {
             Quest quest = entry.getValue();
 
             if (quest.category() == QuestCategory.DAILY && !activeDailies.contains(questKey)) continue;
-            if (quest.category() == QuestCategory.TUTORIAL && !isTutorialQuestActive(player, questKey, state)) continue;
             // Driven by onDailyQuestClaimed instead — never matched against a caught fish.
             if (quest.objective().allDailiesClaimedToday()) continue;
             // Driven by onTankChanged instead — a caught (not yet displayed) fish must never
@@ -487,14 +483,6 @@ public class QuestTracker {
             if (!ItemSizeHelper.hasSize(stack) || ItemSizeHelper.getSize(stack) < obj.minSize().get()) return false;
         }
         return true;
-    }
-
-    private static boolean isTutorialQuestActive(ServerPlayer player, ResourceKey<Quest> questKey,
-                                                  PlayerQuestState state) {
-        // Tutorial quests only track during the tutorial's minigame/catch phases
-        TutorialStep step = TutorialManager.getStep(player);
-        return step == TutorialStep.MINIGAME_CATCH || step == TutorialStep.CATCH_RESULT
-                || step == TutorialStep.QUEST_INTRO || step == TutorialStep.QUEST_CLAIM;
     }
 
     /**
