@@ -1,0 +1,15 @@
+scale=4 fish=betta screen=480x270 maxScrollY=344.38983 pageScale=1.0 pageSize=288.0x541.5458 pageTop=80.0
+scale=4 fish=glass_squid screen=480x270 maxScrollY=405.20343 pageScale=1.0 pageSize=288.0x589.7288 pageTop=80.0
+scale=4 fish=bluegill screen=480x270 maxScrollY=312.4463 pageScale=1.0 pageSize=288.0x496.71075 pageTop=80.0
+scale=4 fish=arctic_char screen=480x270 maxScrollY=420.32965 pageScale=1.0 pageSize=288.0x624.356 pageTop=80.0
+scale=4 fish=portuguese_man_o_war screen=480x270 maxScrollY=247.43805 pageScale=1.0 pageSize=288.0x433.7554 pageTop=80.0
+scale=3 fish=betta screen=640x360 maxScrollY=430.52545 pageScale=1.0 pageSize=384.0x725.7356 pageTop=80.0
+scale=3 fish=glass_squid screen=640x360 maxScrollY=512.4915 pageScale=1.0 pageSize=384.0x790.678 pageTop=80.0
+scale=3 fish=bluegill screen=640x360 maxScrollY=387.4712 pageScale=1.0 pageSize=384.0x665.3059 pageTop=80.0
+scale=3 fish=arctic_char screen=640x360 maxScrollY=532.87915 pageScale=1.0 pageSize=384.0x837.3494 pageTop=80.0
+scale=3 fish=portuguese_man_o_war screen=640x360 maxScrollY=299.85132 pageScale=1.0 pageSize=384.0x580.453 pageTop=80.0
+scale=2 fish=betta screen=960x540 maxScrollY=602.79663 pageScale=1.0 pageSize=576.0x1094.1152 pageTop=80.0
+scale=2 fish=glass_squid screen=960x540 maxScrollY=727.06775 pageScale=1.0 pageSize=576.0x1192.5763 pageTop=80.0
+scale=2 fish=bluegill screen=960x540 maxScrollY=537.5206 pageScale=1.0 pageSize=576.0x1002.4958 pageTop=80.0
+scale=2 fish=arctic_char screen=960x540 maxScrollY=757.978 pageScale=1.0 pageSize=576.0x1263.3363 pageTop=80.0
+scale=2 fish=portuguese_man_o_war screen=960x540 maxScrollY=404.67767 pageScale=1.0 pageSize=576.0x948.4264 pageTop=80.0

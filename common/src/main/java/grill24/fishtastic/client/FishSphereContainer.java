@@ -419,6 +419,30 @@ public class FishSphereContainer extends UIContainer<FishSphereContainer> {
     }
 
     /**
+     * Info-page browsing: declares {@code icon} (a child, still hidden at scale 0 on its rest slot)
+     * the disc's selected icon, in place of the one that left earlier. The caller then reparents it
+     * out of the disc itself and later hands the previous icon back via {@link #parkSilently}.
+     */
+    public void markSelected(IUIElement icon) {
+        selectedChild = icon;
+        hoveredChild = null;
+    }
+
+    /**
+     * Info-page browsing: puts an icon that left the disc back exactly as the other hidden icons
+     * are while a page is open (scale 0, invisible, on its rest slot), with no regrow. The disc
+     * stays "selected" until {@link #reinstateAfterClose}.
+     */
+    public void parkSilently(IUIElement icon) {
+        if (!(icon instanceof UIElement<?> ui)) return;
+        if (!children.contains(icon)) ui.reparentTo(this, false);
+        Vector2f topLeft = getRestTopLeft(icon, defaultItemScale);
+        ui.setTargetScale(0f, false);
+        if (topLeft != null) ui.setPosition(topLeft);
+        ui.setVisible(false);
+    }
+
+    /**
      * Reverses {@link #triggerSelect}: re-adds {@code child} (the icon that just finished
      * traveling back from the info page) if it isn't already a child, then makes every disc icon
      * visible again and eases them all (including the returning one) back to
