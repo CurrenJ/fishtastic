@@ -406,7 +406,12 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private static final Identifier STATUS_PIP_DEFAULT_TEXTURE = Fishtastic.id("textures/gui/status_indicator_pip_default.png");
     private static final Identifier STATUS_PIP_GREEN_TEXTURE = Fishtastic.id("textures/gui/status_indicator_pip_green.png");
     private static final float STATUS_PIP_SIZE = 5f;
-    private static final float STATUS_PIP_TOOLTIP_SCALE = 0.7f;
+
+    /** One look for every quest-log tooltip: same panel colour, padding, outline and text scale. */
+    private static SpriteRectangle.SpriteRectangleImpl tooltipPanel(String text, int textColor) {
+        return UI.spriteRectangle(0, 0, COLOR_SHELL).text(text, textColor)
+                .autoSize(true).padding(4, 3).outline(true);
+    }
 
     // Scale (relative to ItemRenderer's 16x16 base) for the single-species icon shown to the
     // left of a quest's progress bar, and for each member icon in a tag-quest's discovered-fish
@@ -1300,11 +1305,9 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private void addCollapsedRewardPreview(ManualContainer row, Quest quest, int headerHeight, boolean showTokens) {
         List<QuestReward.RewardItem> rewards = quest.reward().items();
         int previewCount = Math.min(3, rewards.size());
-        SpriteRectangle.SpriteRectangleImpl rewardTooltip = rewardTooltip(quest);
         for (int i = 0; i < previewCount; i++) {
             ItemStack stack = rewards.get(i).toStack();
             UIElement<?> icon = inspectionItem(stack);
-            icon.tooltip(uiScreen, rewardTooltip);
             place(row, icon, 164 + i * 10, (headerHeight - 16) / 2);
         }
         if (rewards.size() > 3) {
@@ -1329,30 +1332,9 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             }
         };
         icon.showCount(false).clearOnMouseEnter().clearOnMouseExit();
-        Minecraft mc = Minecraft.getInstance();
-        String tooltip = stack.getTooltipLines(Item.TooltipContext.of(mc.level), mc.player,
-                net.minecraft.world.item.TooltipFlag.NORMAL).stream().map(Component::getString)
-                .collect(java.util.stream.Collectors.joining("\n"));
-        icon.tooltip(uiScreen, UI.spriteRectangle(0, 0, COLOR_SHELL).text(tooltip, 0xFFFFFFFF)
-                .autoSize(true).padding(4, 3).outline(true));
+        String tooltip = stack.getHoverName().getString() + " x" + stack.getCount();
+        icon.tooltip(uiScreen, tooltipPanel(tooltip, 0xFFFFFFFF));
         return icon;
-    }
-
-    private SpriteRectangle.SpriteRectangleImpl rewardTooltip(Quest quest) {
-        StringBuilder text = new StringBuilder();
-        if (quest.reward().questTokens() > 0) {
-            text.append(quest.reward().questTokens()).append(" tokens");
-        }
-        for (QuestReward.RewardItem item : quest.reward().items()) {
-            if (text.length() > 0) text.append("\n");
-            ItemStack stack = item.toStack();
-            text.append(stack.getHoverName().getString()).append(" x").append(stack.getCount());
-            Minecraft mc = Minecraft.getInstance();
-            var lines = stack.getTooltipLines(Item.TooltipContext.of(mc.level), mc.player, net.minecraft.world.item.TooltipFlag.NORMAL);
-            for (int i = 1; i < lines.size(); i++) text.append("\n").append(lines.get(i).getString());
-        }
-        return UI.spriteRectangle(0, 0, 0xFF002244).text(text.toString(), 0xFFFFFFFF)
-                .autoSize(true).padding(4, 3).outline(true);
     }
 
     private VBox buildExpandedQuestDetails(Quest quest, PlayerQuestState.QuestProgress progress) {
@@ -1681,10 +1663,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         icon.setSilhouette(!discovered);
 
         String tooltipText = discovered ? itemDisplayName(item) : "???";
-        SpriteRectangle.SpriteRectangleImpl tooltip = UI.spriteRectangle(0, 0, 0xFF002244)
-                .text(tooltipText, 0xFFFFFFFF).autoSize(true).padding(3, 2).outline(true);
-        tooltip.scale(STATUS_PIP_TOOLTIP_SCALE);
-        icon.tooltip(uiScreen, tooltip);
+        icon.tooltip(uiScreen, tooltipPanel(tooltipText, discovered ? 0xFFFFFFFF : COLOR_MUTED));
 
         return icon;
     }
@@ -1762,9 +1741,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
         SilhouetteItemButton icon = new SilhouetteItemButton(ItemStack.EMPTY).requireClickInside();
         icon.itemScale(scale);
-        SpriteRectangle.SpriteRectangleImpl tooltip = UI.spriteRectangle(0, 0, 0xFF002244)
-                .text("", 0xFFFFFFFF).autoSize(true).padding(3, 2).outline(true);
-        tooltip.scale(STATUS_PIP_TOOLTIP_SCALE);
+        SpriteRectangle.SpriteRectangleImpl tooltip = tooltipPanel("", 0xFFFFFFFF);
         icon.tooltip(uiScreen, tooltip);
 
         CyclingIconState state = new CyclingIconState(icon, tooltip, members);
@@ -1872,11 +1849,9 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             statusPip = UI.spriteRectangle(STATUS_PIP_SIZE, STATUS_PIP_SIZE, STATUS_PIP_DEFAULT_TEXTURE)
                     .texture(new SpriteData(met ? STATUS_PIP_GREEN_TEXTURE : STATUS_PIP_DEFAULT_TEXTURE));
             statusPip.setVisible(!claimed);
-            SpriteRectangle.SpriteRectangleImpl pipTooltip = UI.spriteRectangle(0, 0, 0xFF002244)
-                    .text(buildConditionTooltipText(quest.objective()), 0xFFFFFFFF)
-                    .autoSize(true).padding(3, 2).outline(true);
-            pipTooltip.scale(STATUS_PIP_TOOLTIP_SCALE);
-            statusPip.tooltip(uiScreen, pipTooltip);
+            String state = translated(met ? "screen.fishtastic.quest_log.condition_met" : "screen.fishtastic.quest_log.condition_unmet");
+            statusPip.tooltip(uiScreen, tooltipPanel(buildConditionTooltipText(quest.objective()) + "\n" + state,
+                    met ? 0xFF8CE68C : COLOR_MUTED));
         }
 
         // Pip sits tight against the title (its own low-spacing group); the wider spacing(8)
@@ -2294,9 +2269,8 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             reroll.setSize(QUEST_PAGE_WIDTH, 55);
             place(reroll, copy("shop.need", COLOR_MUTED, price - QuestClientCache.getTokenBalance()), 8, 41);
         }
-        if (!affordable) reroll.tooltip(uiScreen, UI.spriteRectangle(0, 0, COLOR_SHELL)
-                .text(translated("screen.fishtastic.quest_log.shop.need", price - QuestClientCache.getTokenBalance()), COLOR_MUTED)
-                .autoSize(true).padding(4, 3));
+        if (!affordable) reroll.tooltip(uiScreen, tooltipPanel(
+                translated("screen.fishtastic.quest_log.shop.need", price - QuestClientCache.getTokenBalance()), COLOR_MUTED));
         page.addChild(reroll);
         return page;
     }

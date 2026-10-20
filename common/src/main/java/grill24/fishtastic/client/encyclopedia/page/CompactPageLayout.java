@@ -12,7 +12,6 @@ import org.joml.Vector2f;
 import java.util.ArrayList;
 import java.util.List;
 
-import static grill24.fishtastic.client.encyclopedia.page.ScaledTooltip.line;
 
 /**
  * The narrow-window fallback for the encyclopedia. The full spread is 416x232, which is wider
@@ -114,7 +113,6 @@ public final class CompactPageLayout {
         if (selected) surface.rect(x, TOP + 57, w, 1, GOLD);
         surface.text(x + 4, TOP + 47, PageSurface.truncate(label, w - 8), selected ? YELLOW : GREY);
         HitArea hit = new HitArea(w, 14, true).label(label).click(() -> p.actions().selectTab(target));
-        hit.tip(p.ui(), ScaledTooltip.of(p.k(), line(label, WHITE)));
         hits.add(place(hit, x, TOP + 44));
         return x + w;
     }

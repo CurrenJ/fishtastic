@@ -120,6 +120,13 @@ public final class EncyclopediaPageLayout {
     }
 
     /** A hover-tooltip spot over {@code x,y,w,h}. */
+    private HitArea tipNow(int x, int y, int w, int h, boolean now, ScaledTooltip.Line... lines) {
+        if (!now) return tip(x, y, w, h, lines);
+        ScaledTooltip.Line[] all = java.util.Arrays.copyOf(lines, lines.length + 1);
+        all[lines.length] = line(t("tooltip.now"), 0x8CE68C);
+        return tip(x, y, w, h, all);
+    }
+
     private HitArea tip(int x, int y, int w, int h, ScaledTooltip.Line... lines) {
         HitArea area = new HitArea(w, h, false);
         area.tip(p.ui(), ScaledTooltip.of(p.k(), lines));
@@ -375,7 +382,7 @@ public final class EncyclopediaPageLayout {
             zx += 19;
             s.text(zx, y + 4, name, here ? WHITE : 0xD8D0C8);
             zx += PageSurface.width(name) + 6;
-            tip(startX - 1, y - 1, zx - startX - 5, 18, line(name, WHITE));
+            tipNow(startX - 1, y - 1, zx - startX - 5, 18, here, line(name, WHITE));
         }
         y += 20;
 
@@ -400,7 +407,7 @@ public final class EncyclopediaPageLayout {
                 s.text(bx + 6 + PageSurface.width(name), y + 2, word, boost ? 0xC8FFC0 : 0xFFC0C0);
                 boolean here = env != null && i < weights.size() && weights.get(i).biome().contains(env.biome());
                 if (here) s.outline(bx - 1, y - 1, cw + 2, 13, WHITE);
-                tip(bx, y, cw, 11, line(name, WHITE), line(effectLine(b.tier(), b.multiplier()), GREY));
+                tipNow(bx, y, cw, 11, here, line(name, WHITE), line(effectLine(b.tier(), b.multiplier()), GREY));
                 bx += cw + 3;
             }
             y += 15;
@@ -435,7 +442,7 @@ public final class EncyclopediaPageLayout {
                     s.rect(bx - 1, by - 1, 18, 18, BLACK, 70);
                     s.text(bx + 19, by + 4, shown, WHITE);
                     overlays.add(place(UI.itemRenderer(bait).showCount(false), bx, by));
-                    tip(bx - 1, by - 1, colW - 2, 18, line(full, WHITE));
+                    if (!shown.equals(full)) tip(bx - 1, by - 1, colW - 2, 18, line(full, WHITE));
                 }
                 y += 18 * ((m.baits().size() + 1) / 2) + 2;
             }
@@ -505,9 +512,9 @@ public final class EncyclopediaPageLayout {
                 if (now) s.outline(cx - 1, y - 1, mw + 1, 16, WHITE);
                 String name = t("moon." + phases[ph].getSerializedName());
                 if (c != null) {
-                    tip(cx, y, mw - 1, 14, line(name, WHITE), line(effectLine(c.tier(), c.multiplier()), GREY));
+                    tipNow(cx, y, mw - 1, 14, now, line(name, WHITE), line(effectLine(c.tier(), c.multiplier()), GREY));
                 } else {
-                    tip(cx, y, mw - 1, 14, line(name, WHITE));
+                    tipNow(cx, y, mw - 1, 14, now, line(name, WHITE));
                 }
             }
             y += 16;
@@ -529,9 +536,9 @@ public final class EncyclopediaPageLayout {
             if (pin) s.icon(PageIcons.PIN, cx + cw / 2 - 3, y - 4, WHITE);
         }
         if (c != null) {
-            tip(cx, y, cw - 2, 14, line(name, WHITE), line(effectLine(c.tier(), c.multiplier()), GREY));
+            tipNow(cx, y, cw - 2, 14, now, line(name, WHITE), line(effectLine(c.tier(), c.multiplier()), GREY));
         } else {
-            tip(cx, y, cw - 2, 14, line(name, WHITE));
+            tipNow(cx, y, cw - 2, 14, now, line(name, WHITE));
         }
     }
 
