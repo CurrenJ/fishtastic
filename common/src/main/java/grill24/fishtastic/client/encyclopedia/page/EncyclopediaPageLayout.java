@@ -87,7 +87,10 @@ public final class EncyclopediaPageLayout {
         layout.layout();
         host.addChild(layout.s);
         for (UIElement<?> overlay : layout.overlays) host.addChild(overlay);
-        for (UIElement<?> hit : layout.hits) host.addChild(hit);
+        for (UIElement<?> hit : layout.hits) {
+            if (hit instanceof HitArea area) area.bind(layout.s);
+            host.addChild(hit);
+        }
         return new Result(layout.bondButton, layout.rightBottom);
     }
 
@@ -307,7 +310,7 @@ public final class EncyclopediaPageLayout {
             if (locked) {
                 tip(tx, TOP + 4, tw, 13, line(catchesText("unlock_at", m.thresholds().loreCatches()), GREY));
             } else if (!active) {
-                HitArea hit = new HitArea(tw, 13, true);
+                HitArea hit = new HitArea(tw, 13, true).label(label);
                 hit.click(() -> p.actions().selectTab(target));
                 hits.add(place(hit, tx, TOP + 4));
             }
@@ -585,7 +588,7 @@ public final class EncyclopediaPageLayout {
             s.panel(PageSurface.PANEL_GREEN, bxx, by, bw, bh);
             s.text(bxx + 6, by + (bh - 8) / 2, label, WHITE);
             overlays.add(place(EncyclopediaCoins.icon(unclaimed), bxx + bw - 5 - 16, by + (bh - 16) / 2));
-            HitArea hit = new HitArea(bw, bh, true);
+            HitArea hit = new HitArea(bw, bh, true).label(label);
             hit.tip(p.ui(), ScaledTooltip.of(p.k(), line(Component.translatable("tutorial.fishtastic.rewards.help").getString(), WHITE)));
             hit.click(() -> p.actions().claim(hit));
             hits.add(place(hit, bxx, by));

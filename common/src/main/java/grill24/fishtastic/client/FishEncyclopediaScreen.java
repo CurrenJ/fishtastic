@@ -119,6 +119,15 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private FreeformContainer claimAllGroup;
     private final Map<ResourceKey<FishProfile>, SilhouetteItemButton> iconRefs = new LinkedHashMap<>();
     private final List<ResourceKey<FishProfile>> discOrder = new ArrayList<>();
+    public UiKeyboardNav keyboardNav() {
+        return keyboardNav;
+    }
+
+    private final UiKeyboardNav keyboardNav = new UiKeyboardNav(null)
+            .glyphNames(Map.of(">", Component.translatable("narration.fishtastic.next_fish").getString(),
+                    "<", Component.translatable("narration.fishtastic.previous_fish").getString()));
+    private boolean narratedPageOpen;
+    private ResourceKey<FishProfile> narratedPageKey;
     private boolean deepLinkOpen;
 
     // ----- info page: non-null / true only while it is showing
@@ -193,6 +202,14 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        boolean pageKeys = pageOpen && !closing
+                && (keyCode == GLFW.GLFW_KEY_ESCAPE || keyCode == GLFW.GLFW_KEY_LEFT
+                || keyCode == GLFW.GLFW_KEY_RIGHT);
+        if (!pageKeys && !closing && !browsing && uiScreen != null && root != null) {
+            // On the disc every fish icon is a stop; on a page, only the page's own controls.
+            IUIElement scope = pageOpen ? canvas : root;
+            if (scope != null && keyboardNav.keyPressed(keyCode, modifiers, uiScreen, scope)) return true;
+        }
         if (pageOpen && !closing) {
             // Escape returns to the disc before it closes the screen; arrows browse.
             if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
@@ -209,6 +226,38 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
             }
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        super.render(graphics, mouseX, mouseY, partialTick);
+        keyboardNav.renderFocus(graphics);
+        if (pageOpen != narratedPageOpen || (pageOpen && shownKey != narratedPageKey)) {
+            narratedPageOpen = pageOpen;
+            narratedPageKey = shownKey;
+            keyboardNav.mouseUsed();
+            triggerImmediateNarration(false);
+        } else if (keyboardNav.consumeNarrationRequest()) {
+            triggerImmediateNarration(false);
+        }
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        keyboardNav.mouseUsed();
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    protected void updateNarratedWidget(net.minecraft.client.gui.narration.NarrationElementOutput output) {
+        if (pageOpen && model != null) {
+            output.add(net.minecraft.client.gui.narration.NarratedElementType.TITLE,
+                    Component.translatable("narration.fishtastic.encyclopedia.page", model.displayName(), model.catches()));
+        }
+        keyboardNav.narrate(output);
+        output.add(net.minecraft.client.gui.narration.NarratedElementType.USAGE,
+                Component.translatable(pageOpen ? "narration.fishtastic.encyclopedia.page_usage"
+                        : "narration.fishtastic.encyclopedia.disc_usage"));
     }
 
     @Override
@@ -400,13 +449,21 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private void syncIcon(ResourceKey<FishProfile> fishKey, SilhouetteItemButton icon) {
         Minecraft mc = Minecraft.getInstance();
         ResourceLocation fishId = fishKey.location();
-        icon.setSilhouette(FishEncyclopediaClientCache.getCatchCount(fishId) <= 0);
+        boolean caughtFish = FishEncyclopediaClientCache.getCatchCount(fishId) > 0;
+        icon.setSilhouette(!caughtFish);
         boolean onPage = pageOpen && icon == shownIcon;
         Item species = BuiltInRegistries.ITEM.getOptional(fishId).orElse(null);
         icon.setBondAvailable(!onPage && species != null && mc.player != null
                 && QuestClientCache.isBondUnlocked(fishId) && !CarriedFish.groupsOf(mc.player, species).isEmpty());
         icon.setHasUnclaimedReward(!onPage && mc.level != null
                 && FishEncyclopediaClientHelper.fishHasUnclaimedReward(mc.level.registryAccess(), fishKey, fishId));
+        StringBuilder spoken = new StringBuilder(caughtFish
+                ? icon.getItemStack().getHoverName().getString()
+                : Component.translatable("narration.fishtastic.encyclopedia.undiscovered").getString());
+        if (icon.hasUnclaimedReward()) {
+            spoken.append(". ").append(Component.translatable("narration.fishtastic.encyclopedia.reward_ready").getString());
+        }
+        icon.setNarration(spoken.toString());
     }
 
     /** Staggers reward-pip and bond-heart pop-ins across the disc, in icon order. Called once on screen open only. */
