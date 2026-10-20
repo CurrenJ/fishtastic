@@ -33,8 +33,6 @@ public class TutorialManager {
             ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY,
                     Ids.of("fishtastic", "tutorial/first_catch"));
 
-    private static final Identifier TUTORIAL_QUEST_ID = TUTORIAL_QUEST_KEY.identifier();
-
     /**
      * The {@code minecraft:recipe_crafted} advancement that {@code PlayerAdvancementsMixin}
      * watches for to drive {@link #onItemCrafted}. Also referenced by {@code TutorialCommand}'s
@@ -53,9 +51,9 @@ public class TutorialManager {
     public static void onPlayerJoin(ServerPlayer player) {
         CompanionTutorialManager.onPlayerJoin(player);
         TutorialStep step = getStep(player);
-        // Also supply missing access books when upgrading an unfinished tutorial.
-        if (step.hasOverlay() && step != TutorialStep.FISHING_OFFER) giveBooks(player);
-        if (isPracticeStep(step) || step == TutorialStep.HOOK_IN_WATER) {
+        if (isPostCatchStep(step)) {
+            setStep(player, TutorialStep.COMPLETE);
+        } else if (isPracticeStep(step) || step == TutorialStep.HOOK_IN_WATER) {
             // Sessions and bobbers cannot be reconstructed from a saved tutorial step.
             setStep(player, TutorialStep.WAITING_FOR_CAST);
         } else {
@@ -90,21 +88,20 @@ public class TutorialManager {
      * advancement (i.e. actually crafted the starter rod, by any take-from-result-slot path).
      */
     public static void onItemCrafted(ServerPlayer player) {
-        if (getStep(player) == TutorialStep.NOT_STARTED || getStep(player) == TutorialStep.DEFERRED) {
+        if (getStep(player) == TutorialStep.NOT_STARTED) {
+            giveQuestBook(player);
             setStep(player, TutorialStep.FISHING_OFFER);
         }
     }
 
     private static void giveStarterItems(ServerPlayer player) {
         give(player, new ItemStack(FishtasticItems.WORMS.value(), 8));
-        giveBooks(player);
+        giveQuestBook(player);
     }
 
-    private static void giveBooks(ServerPlayer player) {
-        for (var book : List.of(FishtasticItems.QUEST_BOOK.value(), FishtasticItems.FISHOPEDIA.value(),
-                FishtasticItems.LEADERBOARDS_BOOK.value())) {
-            if (!player.getInventory().contains(stack -> stack.is(book))) give(player, new ItemStack(book));
-        }
+    private static void giveQuestBook(ServerPlayer player) {
+        var book = FishtasticItems.QUEST_BOOK.value();
+        if (!player.getInventory().contains(stack -> stack.is(book))) give(player, new ItemStack(book));
     }
 
     private static void give(ServerPlayer player, ItemStack stack) {
@@ -128,7 +125,8 @@ public class TutorialManager {
     public static void onHookCast(ServerPlayer player, ItemStack rod) {
         if (!rod.is(FishtasticItems.COPPER_FISHING_ROD.value())) return;
         TutorialStep step = getStep(player);
-        if (step == TutorialStep.NOT_STARTED || step == TutorialStep.DEFERRED) {
+        if (step == TutorialStep.NOT_STARTED) {
+            giveQuestBook(player);
             setStep(player, TutorialStep.FISHING_OFFER);
             return;
         }
@@ -143,15 +141,48 @@ public class TutorialManager {
                 || step == TutorialStep.MINIGAME_CATCH;
     }
 
+    private static boolean isPostCatchStep(TutorialStep step) {
+        return step == TutorialStep.CATCH_RESULT || step == TutorialStep.QUEST_INTRO
+                || step == TutorialStep.QUEST_CLAIM || step == TutorialStep.SHOP_BROWSE
+                || step == TutorialStep.ENCYCLOPEDIA_OFFER || step == TutorialStep.ENCYCLOPEDIA_OPEN;
+    }
+
+    /** Dismissal is persistent. It never clears catches, quest rewards or inventory. */
+    public static void dismiss(ServerPlayer player) {
+        setStep(player, TutorialStep.DEFERRED);
+    }
+
+    /** Explicit replay supplies no items and never resets earned quest progress. */
+    public static void replay(ServerPlayer player) {
+        if (grill24.fishtastic.server.FishingMinigameManager.get(player.level()).isPlayerInActiveSession(player.getUUID())) {
+            player.sendSystemMessage(net.minecraft.network.chat.Component.translatable("tutorial.fishtastic.finish_catch"));
+            return;
+        }
+        boolean hasRod = player.getInventory().contains(stack -> stack.is(FishtasticItems.COPPER_FISHING_ROD.value()));
+        if (!hasRod) {
+            player.sendSystemMessage(net.minecraft.network.chat.Component.translatable("tutorial.fishtastic.need_rod"));
+            return;
+        }
+        if (player.fishing != null) {
+            player.fishing.discard();
+            player.fishing = null;
+        }
+        beginPractice(player);
+    }
+
+    private static void beginPractice(ServerPlayer player) {
+        boolean baited = player.getInventory().contains(rod -> rod.is(FishtasticItems.COPPER_FISHING_ROD.value())
+                && !grill24.fishtastic.item.FishtasticFishingRodItem.getBait(rod).isEmpty());
+        setStep(player, baited ? TutorialStep.WAITING_FOR_CAST : TutorialStep.BAIT_LOAD);
+    }
+
     public static void onPracticeInterrupted(ServerPlayer player) {
         if (isPracticeStep(getStep(player))) setStep(player, TutorialStep.WAITING_FOR_CAST);
     }
 
     public static void onQuestLogOpened(ServerPlayer player) {
         TutorialStep step = getStep(player);
-        if (step == TutorialStep.CATCH_RESULT || step == TutorialStep.QUEST_INTRO) {
-            setStep(player, TutorialStep.QUEST_CLAIM);
-        }
+        if (isPostCatchStep(step)) setStep(player, TutorialStep.COMPLETE);
     }
 
     public static void onEncyclopediaOpened(ServerPlayer player) {
@@ -169,24 +200,20 @@ public class TutorialManager {
     /** Call when FishingMinigameManager sends StartFishingMinigamePacket. */
     public static void onMinigameStarted(ServerPlayer player) {
         if (getStep(player) == TutorialStep.HOOK_IN_WATER) {
-            setStep(player, TutorialStep.MINIGAME_INTRO);
+            setStep(player, TutorialStep.MINIGAME_CATCH);
         }
     }
 
     /** Call when FishingMinigameManager.handleMinigameComplete fires. */
-    public static void onMinigameComplete(ServerPlayer player) {
+    public static void onMinigameComplete(ServerPlayer player, boolean caughtFish) {
         if (getStep(player) == TutorialStep.MINIGAME_CATCH) {
-            setStep(player, TutorialStep.CATCH_RESULT);
+            setStep(player, caughtFish ? TutorialStep.COMPLETE : TutorialStep.WAITING_FOR_CAST);
         }
     }
 
-    /** Accept an early claim too: a player may already have caught fish before starting the lesson. */
+    /** Rewards do not change optional help progress. */
     public static void onQuestClaimed(ServerPlayer player, Identifier questId) {
-        TutorialStep step = getStep(player);
-        if (TUTORIAL_QUEST_ID.equals(questId) && step.hasOverlay() && step != TutorialStep.SHOP_BROWSE
-                && step != TutorialStep.FISHING_OFFER && step != TutorialStep.ENCYCLOPEDIA_OFFER && step != TutorialStep.ENCYCLOPEDIA_OPEN) {
-            setStep(player, TutorialStep.SHOP_BROWSE);
-        }
+        // Rewards are independent of the optional lesson.
     }
 
     /** Called by TutorialAdvancePacket — client-initiated step advance. */
@@ -194,10 +221,10 @@ public class TutorialManager {
         advanceStep(player, fromStep, false);
     }
 
-    public static void advanceStep(ServerPlayer player, TutorialStep fromStep, boolean showEncyclopedia) {
+    public static void advanceStep(ServerPlayer player, TutorialStep fromStep, boolean accepted) {
         if (getStep(player) != fromStep) return;
         if (fromStep == TutorialStep.FISHING_OFFER) {
-            if (!showEncyclopedia) {
+            if (!accepted) {
                 setStep(player, TutorialStep.DEFERRED);
                 return;
             }
@@ -207,24 +234,15 @@ public class TutorialManager {
                 player.fishing = null;
             }
             giveStarterItems(player);
-            boolean baited = false;
-            for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
-                ItemStack rod = player.getInventory().getItem(slot);
-                if (rod.is(FishtasticItems.COPPER_FISHING_ROD.value())
-                        && !grill24.fishtastic.item.FishtasticFishingRodItem.getBait(rod).isEmpty()) baited = true;
-            }
-            setStep(player, baited ? TutorialStep.WAITING_FOR_CAST : TutorialStep.BAIT_LOAD);
+            beginPractice(player);
             return;
         }
 
         TutorialStep next = switch (fromStep) {
             case BAIT_LOAD         -> TutorialStep.WAITING_FOR_CAST;
-            case MINIGAME_INTRO    -> TutorialStep.MINIGAME_CONTROL;
+            case MINIGAME_INTRO    -> TutorialStep.MINIGAME_CATCH;
             case MINIGAME_CONTROL  -> TutorialStep.MINIGAME_CATCH;
-            case CATCH_RESULT      -> TutorialStep.QUEST_INTRO;
-            case QUEST_INTRO       -> TutorialStep.QUEST_CLAIM;
-            case SHOP_BROWSE       -> TutorialStep.ENCYCLOPEDIA_OFFER;
-            case ENCYCLOPEDIA_OFFER -> showEncyclopedia ? TutorialStep.ENCYCLOPEDIA_OPEN : TutorialStep.COMPLETE;
+            case CATCH_RESULT, QUEST_INTRO, SHOP_BROWSE, ENCYCLOPEDIA_OFFER -> TutorialStep.COMPLETE;
             default -> null;
         };
         if (next != null) setStep(player, next);

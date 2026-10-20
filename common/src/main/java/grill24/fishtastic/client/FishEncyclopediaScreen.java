@@ -1,59 +1,48 @@
 package grill24.fishtastic.client;
 
-import grill24.fishtastic.network.FishtasticTransport;
-import grill24.fishtastic.companion.CompanionBondUnlocks;
-
 import grill24.FishtasticRegistries;
-import grill24.fishtastic.Fishtastic;
-import grill24.fishtastic.FishtasticDataComponents;
-import grill24.fishtastic.FishtasticItemData;
+import grill24.fishtastic.network.FishtasticTransport;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.client.effects.CoinArcEffect;
-import grill24.fishtastic.client.renderer.ZoneIconTextures;
-import grill24.fishtastic.component.CharmEffect;
+import grill24.fishtastic.client.encyclopedia.EncyclopediaCoins;
+import grill24.fishtastic.client.encyclopedia.EnvSnapshot;
+import grill24.fishtastic.client.encyclopedia.FishPageModel;
+import grill24.fishtastic.client.encyclopedia.page.CompactPageLayout;
+import grill24.fishtastic.client.encyclopedia.page.EncyclopediaPageLayout;
+import grill24.fishtastic.client.encyclopedia.page.HitArea;
+import grill24.fishtastic.client.encyclopedia.page.PageSurface;
+import grill24.fishtastic.client.encyclopedia.page.ScaledTooltip;
+import grill24.fishtastic.client.encyclopedia.portrait.Portrait;
+import grill24.fishtastic.companion.CompanionBondUnlocks;
+import grill24.fishtastic.companion.CompanionParty;
+import grill24.fishtastic.companion.CompanionStorage;
 import grill24.fishtastic.data.EncyclopediaRewardSection;
 import grill24.fishtastic.data.EncyclopediaTiers;
-import grill24.fishtastic.data.FishEncyclopediaEntry;
-import grill24.fishtastic.data.FishMoonPhase;
 import grill24.fishtastic.data.FishProfile;
-import grill24.fishtastic.data.Quest;
-import grill24.fishtastic.item.CopperFishingRod;
-import grill24.fishtastic.network.ClaimEncyclopediaRewardPacket;
+import grill24.fishtastic.network.ClaimAllEncyclopediaRewardsPacket;
 import grill24.fishtastic.network.FishEncyclopediaSyncPacket;
 import grill24.fishtastic.network.LeaderboardEntry;
-import grill24.fishtastic.network.RequestQuestLogPacket;
-import grill24.fishtastic.util.Utility;
 import io.github.currenj.gelatinui.GelatinUIScreen;
 import io.github.currenj.gelatinui.gui.GelatinMenu;
-import io.github.currenj.gelatinui.gui.IRenderContext;
 import io.github.currenj.gelatinui.gui.IUIElement;
 import io.github.currenj.gelatinui.gui.UI;
 import io.github.currenj.gelatinui.gui.UIElement;
 import io.github.currenj.gelatinui.gui.animation.FloatKeyframeAnimation;
+import io.github.currenj.gelatinui.gui.animation.Easing;
 import io.github.currenj.gelatinui.gui.animation.Keyframe;
-import io.github.currenj.gelatinui.gui.components.HBox;
 import io.github.currenj.gelatinui.gui.components.ItemRenderer;
-import io.github.currenj.gelatinui.gui.components.Label;
 import io.github.currenj.gelatinui.gui.components.ManualContainer;
-import io.github.currenj.gelatinui.gui.components.SpriteButton;
-import io.github.currenj.gelatinui.gui.components.SpriteData;
-import io.github.currenj.gelatinui.gui.components.SpriteProgressBar;
-import io.github.currenj.gelatinui.gui.components.SpriteRectangle;
-import io.github.currenj.gelatinui.gui.components.SpriteRenderMode;
-import io.github.currenj.gelatinui.gui.components.VBox;
-import io.github.currenj.gelatinui.gui.minecraft.MinecraftRenderContext;
+import io.github.currenj.gelatinui.gui.components.Rectangle;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
-import net.minecraft.core.BlockPos;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -66,75 +55,48 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BooleanSupplier;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
+import java.util.Optional;
 
 /**
- * Fish encyclopedia: a home screen disc of every fish (silhouettes for never-caught fish),
- * clicking one travels the icon into an info page with progressively-unlocking sections.
- * Structured like {@link QuestLogScreen}: a single screen class with private builder methods.
+ * Fish encyclopedia: a home screen disc of every fish (silhouettes for never-caught fish).
+ * Clicking one flies that same icon into the portrait of a fixed 416x232 field-guide page
+ * (docs/encyclopedia-redesign/README.md): specimen on the left, a live "How to catch" guide on the
+ * right, one unlock track and one Claim button along the bottom, prev/next browsing. The page is
+ * drawn on an integer-scaled canvas ({@code k = max(1, min(W/416, H/232))}) so text stays crisp;
+ * a compact 300x228 card is used when the full spread cannot fit. See {@code gelatin-spike.md}
+ * for the six gelatin-ui rules this follows.
  */
 public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
-    private UIElement<?> companionEntryButton;
     private static final float DISC_RADIUS = 70f;
     private static final float DISC_SIZE = DISC_RADIUS * 2f + 32f;
-    private static final float INFO_ICON_SCALE = 3.0f;
-    private static final float INFO_ICON_SIZE = 16f * INFO_ICON_SCALE;
-    private static final float INFO_ICON_TOP_MARGIN = 24f;
-    private static final float CLOSE_TRAVEL_DURATION = 0.3f;
     private static final float SCREEN_FADE_DURATION = 0.2f;
+
+    /** The icon travels for this long and reaches the exact slot / scale on the final frame. */
+    private static final float FLIGHT_SNAP_SECONDS = 0.45f;
+    private static final float PAGE_FADE_SECONDS = 0.2f;
+    private static final float BROWSE_SECONDS = 0.15f;
+    private static final float BROWSE_SLIDE = 24f;
+    private static final int CURTAIN_RGB = 0x101014;
+    private static final float BACKDROP_ALPHA = 0.93f;
+
+    /** Where the portrait's fish slot sits on the canvas, and the icon's local scale that fills it. */
+    private static final Vector2f SLOT = new Vector2f(
+            EncyclopediaPageLayout.PLATE_X + Portrait.FISH_SLOT_X, EncyclopediaPageLayout.PLATE_Y + Portrait.FISH_SLOT_Y);
+    private static final float SLOT_SCALE = Portrait.FISH_SLOT_SIZE / 16f;
 
     // Staggers unclaimed-reward pip pop-ins across the disc instead of all popping at once.
     private static final float REWARD_PIP_POP_INITIAL_DELAY = 1.2f;
     private static final float REWARD_PIP_POP_STAGGER = 0.1f;
 
-    // Status pip shown to the left of each spawn condition row — lit green while that
-    // condition currently holds for the player, dim otherwise. Mirrors QuestLogScreen's
-    // per-objective status pip, but evaluated per spawn-weight row rather than per quest.
-    private static final Identifier STATUS_PIP_DEFAULT_TEXTURE = Fishtastic.id("textures/gui/status_indicator_pip_default.png");
-    private static final Identifier STATUS_PIP_GREEN_TEXTURE = Fishtastic.id("textures/gui/status_indicator_pip_green.png");
-    private static final Identifier STATUS_PIP_RED_TEXTURE = Fishtastic.id("textures/gui/status_indicator_pip_red.png");
-    private static final float STATUS_PIP_SIZE = 5f;
+    private static final int LIVE_REFRESH_TICKS = 5;
 
-    // Shared cap on the unscaled width of the info page's widest wrappable content elements
-    // (lore text, and merged spawn-condition rows — see addSpawnConditionRows). Without a
-    // shared cap, a fish with a long lore string or many same-tier conditions merged onto one
-    // comma-joined row (see addAxisRows) would produce a wider element than other fish, which
-    // becomes the info page's widest child and drags its single page.scaleToWidth(...) factor
-    // down — shrinking every section's text, not just the long one. Keeping both content types
-    // wrapped to the same width keeps every fish's widest content element in the same ballpark,
-    // so text size stays consistent across the encyclopedia regardless of content. Bump this to
-    // let lore/spawn lines run wider before wrapping; both call sites must stay in sync.
-    private static final float CONTENT_MAX_WIDTH = 220f;
-
-    // Zone icon shown atop each Zones-section column, same art (and outline shader) the fishing
-    // minigame's HUD zone stack uses — rendered larger than a normal row icon since Zones is now
-    // its own always-visible section rather than a line item tucked into Types.
-    private static final float ZONE_ICON_SIZE = 32f;
-    private static final float ZONE_ICON_HOVER_SCALE = 2.0f;
-
-    // Reward claim button background, reused from QuestLogScreen's claimed-panel texture.
-    private static final Identifier CLAIM_BUTTON_TEXTURE = Fishtastic.id("textures/gui/green_generic_item_panel_2.png");
-    private static final int CLAIM_BUTTON_SOURCE_WIDTH = 20;
-    private static final int CLAIM_BUTTON_SOURCE_HEIGHT = 24;
-    private static final int CLAIM_BUTTON_SLICE_LEFT = 4;
-    private static final int CLAIM_BUTTON_SLICE_TOP = 4;
-    private static final int CLAIM_BUTTON_SLICE_RIGHT = CLAIM_BUTTON_SOURCE_WIDTH - (CLAIM_BUTTON_SLICE_LEFT + 12);
-    private static final int CLAIM_BUTTON_SLICE_BOTTOM = CLAIM_BUTTON_SOURCE_HEIGHT - (CLAIM_BUTTON_SLICE_TOP + 16);
-    // Coin icon blitted over the claim button in place of "+N" text; button size follows the icon.
-    private static final float CLAIM_BUTTON_ICON_PADDING = 3f;
-    private record CoinIcon(Identifier texture, float width, float height) {}
-    private static final CoinIcon COIN_ICON_ONE = new CoinIcon(Fishtastic.id("textures/gui/one_coin.png"), 8f, 7f);
-    private static final CoinIcon COIN_ICON_TWO = new CoinIcon(Fishtastic.id("textures/gui/two_coins.png"), 12f, 8f);
-    private static final CoinIcon COIN_ICON_THREE = new CoinIcon(Fishtastic.id("textures/gui/three_coins.png"), 8f, 11f);
+    private net.minecraft.client.gui.components.Button dismissHint;
+    private UIElement<?> companionEntryButton;
 
     private boolean closingScreen = false;
     private long closingAtNanos = -1L;
 
     private java.util.Set<Identifier> lastSeenUnlocks = java.util.Set.of();
-    private VBox companionInfo;
 
     // Set by another screen (e.g. QuestLogScreen's tag checklist) right before it requests the
     // encyclopedia menu reopen; consumed once by the next buildUI() to jump straight to that
@@ -148,42 +110,55 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         pendingAutoSelectFishId = fishId;
     }
 
-    private MinecraftRenderContext tempContext;
     private boolean handlerInstalled = false;
     private FishEncyclopediaSyncPacket.ClientHandler savedHandler;
 
+    // ----- disc
     private FreeformContainer root;
     private FishSphereContainer sphere;
-    // Zero-size overlay hosting the reward coin-fly flourish; screen-scoped like QuestLogScreen's coinFlyOverlay.
+    // Zero-size overlay hosting the reward coin-fly flourish; kept above the page.
     private ManualContainer rewardFlyOverlay;
+    private FreeformContainer claimAllGroup;
     private final Map<ResourceKey<FishProfile>, SilhouetteItemButton> iconRefs = new LinkedHashMap<>();
+    private final List<ResourceKey<FishProfile>> discOrder = new ArrayList<>();
+    public UiKeyboardNav keyboardNav() {
+        return keyboardNav;
+    }
 
-    // Info page state — non-null only while the info page is showing.
-    private ResourceKey<FishProfile> selectedFishKey;
-    private FishProfile selectedProfile;
-    private FishEncyclopediaEntry selectedEntry;
-    private IUIElement selectedIcon;
-    private VBox infoPageRoot;
-    private SpriteButton backButton;
-    private boolean closing = false;
-    private IUIElement closingIcon;
-    private Label nameLabel;
-    private SpriteButton nameClaimButton;
-    private Label caughtCountLabel;
-    private VBox recordsContainer;
-    private VBox zonesContainer;
-    private VBox statsContainer;
-    private VBox typesContainer;
-    private VBox spawnContainer;
-    private VBox loreContainer;
-    // Re-evaluated every tick so a spawn condition's pip reacts live to the player walking
-    // between biomes, day/night passing, or weather changing — see containerTick().
-    private final List<Runnable> spawnConditionPipUpdaters = new ArrayList<>();
-    // Separate list for the always-visible Zones section's pips — kept apart from
-    // spawnConditionPipUpdaters because that list is cleared inside buildSpawnConditionsContent,
-    // which (being gated) doesn't always run on a given refresh; Zones always runs, so it owns
-    // its own clear/populate lifecycle.
-    private final List<Runnable> zonePipUpdaters = new ArrayList<>();
+    private final UiKeyboardNav keyboardNav = new UiKeyboardNav(null)
+            .glyphNames(Map.of(">", Component.translatable("narration.fishtastic.next_fish").getString(),
+                    "<", Component.translatable("narration.fishtastic.previous_fish").getString()));
+    private boolean narratedPageOpen;
+    private ResourceKey<FishProfile> narratedPageKey;
+    private boolean deepLinkOpen;
+
+    // ----- info page: non-null / true only while it is showing
+    private boolean pageOpen;
+    /** True from the moment the page starts closing until the icon is back in the disc. */
+    private boolean closing;
+    private boolean browsing;
+    private ResourceKey<FishProfile> shownKey;
+    private SilhouetteItemButton shownIcon;
+    private FishPageModel model;
+    private FishProfile profile;
+    private EncyclopediaPageLayout.Tab tab = EncyclopediaPageLayout.Tab.CATCH;
+    private boolean compactPage;
+    private int k = 1;
+    private int canvasX, canvasY;
+    private FreeformContainer canvas, contentHost, backHost, iconLayer, frontHost;
+    private Rectangle curtain;
+    private Portrait portrait;
+    private EnvSnapshot lastEnv;
+    private String lastBondSignature = "";
+    private int pollTicks;
+    // The icon sliding out during a browse; parked back into the disc when the slide ends.
+    private SilhouetteItemButton leavingIcon;
+    private ResourceKey<FishProfile> leavingKey;
+
+    // Dark backdrop behind the page, so the HUD does not show through; eased in and out.
+    private float backdropFrom, backdropTo;
+    private long backdropStartNanos;
+    private float backdropSeconds;
 
     public FishEncyclopediaScreen(GelatinMenu menu, Inventory inv) {
         super(menu, inv, Component.translatable("screen.fishtastic.encyclopedia.title"));
@@ -203,6 +178,10 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
             });
         }
         super.init();
+        dismissHint = addRenderableWidget(net.minecraft.client.gui.components.Button.builder(
+                Component.translatable("tutorial.fishtastic.dismiss"), b -> EncyclopediaTutorialClientHandler.dismiss())
+                .bounds(width - 112, height - 28, 104, 20).build());
+        dismissHint.visible = EncyclopediaTutorialClientHandler.hasActiveLesson();
     }
 
     @Override
@@ -216,7 +195,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     @Override
     public void onClose() {
         if (closingScreen) return;
-        if (selectedFishKey != null) EncyclopediaTutorialClientHandler.onInfoPageClosed();
+        EncyclopediaTutorialClientHandler.dismiss();
         closingScreen = true;
         closingAtNanos = System.nanoTime();
         if (sphere != null) sphere.startOutroAnimation();
@@ -225,18 +204,69 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
 
     @Override
     public boolean keyPressed(KeyEvent event) {
-        // Escape deselects the active fish (back to disc) before closing the screen.
-        if (event.key() == GLFW.GLFW_KEY_ESCAPE && selectedFishKey != null && !closing) {
-            goBackToDisc();
-            return true;
+        boolean pageKeys = pageOpen && !closing
+                && (event.key() == GLFW.GLFW_KEY_ESCAPE || event.key() == GLFW.GLFW_KEY_LEFT
+                || event.key() == GLFW.GLFW_KEY_RIGHT);
+        if (!pageKeys && !closing && !browsing && uiScreen != null && root != null) {
+            // On the disc every fish icon is a stop; on a page, only the page's own controls.
+            IUIElement scope = pageOpen ? canvas : root;
+            if (scope != null && keyboardNav.keyPressed(event, uiScreen, scope)) return true;
+        }
+        if (pageOpen && !closing) {
+            // Escape returns to the disc before it closes the screen; arrows browse.
+            if (event.key() == GLFW.GLFW_KEY_ESCAPE) {
+                closePage();
+                return true;
+            }
+            if (event.key() == GLFW.GLFW_KEY_LEFT) {
+                browse(-1);
+                return true;
+            }
+            if (event.key() == GLFW.GLFW_KEY_RIGHT) {
+                browse(1);
+                return true;
+            }
         }
         return super.keyPressed(event);
+    }
+
+    @Override
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+        keyboardNav.renderFocus(graphics);
+        if (pageOpen != narratedPageOpen || (pageOpen && shownKey != narratedPageKey)) {
+            narratedPageOpen = pageOpen;
+            narratedPageKey = shownKey;
+            keyboardNav.mouseUsed();
+            triggerImmediateNarration(false);
+        } else if (keyboardNav.consumeNarrationRequest()) {
+            triggerImmediateNarration(false);
+        }
+    }
+
+    @Override
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+        keyboardNav.mouseUsed();
+        return super.mouseClicked(event, doubleClick);
+    }
+
+    @Override
+    protected void updateNarratedWidget(net.minecraft.client.gui.narration.NarrationElementOutput output) {
+        if (pageOpen && model != null) {
+            output.add(net.minecraft.client.gui.narration.NarratedElementType.TITLE,
+                    Component.translatable("narration.fishtastic.encyclopedia.page", model.displayName(), model.catches()));
+        }
+        keyboardNav.narrate(output);
+        output.add(net.minecraft.client.gui.narration.NarratedElementType.USAGE,
+                Component.translatable(pageOpen ? "narration.fishtastic.encyclopedia.page_usage"
+                        : "narration.fishtastic.encyclopedia.disc_usage"));
     }
 
     @Override
     public void extractTransparentBackground(GuiGraphicsExtractor graphics) {
         if (!closingScreen) {
             super.extractTransparentBackground(graphics);
+            drawPageBackdrop(graphics, 1f);
             return;
         }
         float elapsed = (System.nanoTime() - closingAtNanos) / 1_000_000_000f;
@@ -246,6 +276,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         graphics.fillGradient(0, 0, this.width, this.height,
                 (a1 << 24) | 0x101010,
                 (a2 << 24) | 0x101010);
+        drawPageBackdrop(graphics, alpha);
         if (elapsed >= SCREEN_FADE_DURATION) {
             closingScreen = false;
             closingAtNanos = -1L;
@@ -253,18 +284,43 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         }
     }
 
+    private void drawPageBackdrop(GuiGraphicsExtractor graphics, float factor) {
+        float a = backdropAlpha() * factor;
+        if (a <= 0.003f) return;
+        graphics.fill(0, 0, this.width, this.height, ((int) (a * 255) << 24) | 0x0C0C10);
+    }
+
+    private float backdropAlpha() {
+        if (backdropSeconds <= 0f) return backdropTo;
+        float t = (System.nanoTime() - backdropStartNanos) / 1_000_000_000f / backdropSeconds;
+        if (t >= 1f) return backdropTo;
+        return backdropFrom + (backdropTo - backdropFrom) * Math.max(0f, t);
+    }
+
+    private void fadeBackdropTo(float target, float seconds) {
+        backdropFrom = backdropAlpha();
+        backdropTo = target;
+        backdropStartNanos = System.nanoTime();
+        backdropSeconds = seconds;
+    }
+
     @Override
     protected void containerTick() {
         super.containerTick();
-        for (Runnable updater : spawnConditionPipUpdaters) {
-            updater.run();
-        }
-        for (Runnable updater : zonePipUpdaters) {
-            updater.run();
-        }
+        if (dismissHint != null) dismissHint.visible = EncyclopediaTutorialClientHandler.hasActiveLesson();
         if (!lastSeenUnlocks.equals(QuestClientCache.getUnlockedCompanions())) {
             lastSeenUnlocks = QuestClientCache.getUnlockedCompanions();
             refreshFromCache();
+        }
+        // The verdict and the "now" outlines follow time, weather and position (~4x a second).
+        if (pageOpen && !closing && ++pollTicks >= LIVE_REFRESH_TICKS) {
+            pollTicks = 0;
+            Minecraft mc = Minecraft.getInstance();
+            EncyclopediaPageLayout.Bond bond = bondInfo(mc);
+            String signature = bond == null ? "" : bond.text() + "|" + bond.unlocked();
+            if (!java.util.Objects.equals(EnvSnapshot.fromClient(), lastEnv) || !signature.equals(lastBondSignature)) {
+                rebuildContent();
+            }
         }
     }
 
@@ -273,28 +329,28 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
 
     @Override
     protected void buildUI() {
-        tempContext = new MinecraftRenderContext(null, this.font);
         iconRefs.clear();
-        selectedFishKey = null;
-        selectedProfile = null;
-        selectedEntry = null;
-        selectedIcon = null;
-        infoPageRoot = null;
-        backButton = null;
+        discOrder.clear();
+        pageOpen = false;
         closing = false;
-        closingIcon = null;
-        nameLabel = null;
-        nameClaimButton = null;
-        caughtCountLabel = null;
-        recordsContainer = null;
-        zonesContainer = null;
-        statsContainer = null;
-        typesContainer = null;
-        spawnContainer = null;
-        loreContainer = null;
-        spawnConditionPipUpdaters.clear();
-        zonePipUpdaters.clear();
-        companionInfo = null;
+        browsing = false;
+        shownKey = null;
+        shownIcon = null;
+        model = null;
+        profile = null;
+        compactPage = false;
+        canvas = null;
+        contentHost = backHost = iconLayer = frontHost = null;
+        curtain = null;
+        portrait = null;
+        leavingIcon = null;
+        leavingKey = null;
+        companionEntryButton = null;
+        claimAllGroup = null;
+        lastEnv = null;
+        lastBondSignature = "";
+        backdropFrom = backdropTo = 0f;
+        backdropSeconds = 0f;
         lastSeenUnlocks = QuestClientCache.getUnlockedCompanions();
 
         Minecraft mc = Minecraft.getInstance();
@@ -302,55 +358,37 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         root = new FreeformContainer();
         root.setSize(this.width, this.height);
 
-        companionEntryButton = null;
+        sphere = new FishSphereContainer()
+                .discRadius(DISC_RADIUS)
+                .onFishSelected(this::onFishSelected);
+        sphere.setSize(DISC_SIZE, DISC_SIZE);
+        sphere.setPosition(new Vector2f((this.width - DISC_SIZE) / 2f, (this.height - DISC_SIZE) / 2f));
 
-        {
-            sphere = new FishSphereContainer()
-                    .discRadius(DISC_RADIUS)
-                    .onFishSelected(this::onFishSelected);
-            sphere.setSize(DISC_SIZE, DISC_SIZE);
-            sphere.setPosition(new Vector2f((this.width - DISC_SIZE) / 2f, (this.height - DISC_SIZE) / 2f));
+        if (mc.level != null) {
+            List<Map.Entry<ResourceKey<FishProfile>, FishProfile>> fishList =
+                    FishEncyclopediaClientHelper.getAllFishProfilesSorted(mc.level.registryAccess());
 
-            if (mc.level != null) {
-                List<Map.Entry<ResourceKey<FishProfile>, FishProfile>> fishList =
-                        FishEncyclopediaClientHelper.getAllFishProfilesSorted(mc.level.registryAccess());
+            List<Map.Entry<ResourceKey<FishProfile>, SilhouetteItemButton>> iconItems = new ArrayList<>();
+            for (Map.Entry<ResourceKey<FishProfile>, FishProfile> entry : fishList) {
+                ResourceKey<FishProfile> fishKey = entry.getKey();
+                Item item = BuiltInRegistries.ITEM.getOptional(fishKey.identifier()).orElse(Items.COD);
+                boolean caught = FishEncyclopediaClientCache.getCatchCount(fishKey.identifier()) > 0;
 
-                List<Map.Entry<ResourceKey<FishProfile>, SilhouetteItemButton>> iconItems = new ArrayList<>();
-                for (Map.Entry<ResourceKey<FishProfile>, FishProfile> entry : fishList) {
-                    ResourceKey<FishProfile> fishKey = entry.getKey();
-                    Item item = BuiltInRegistries.ITEM.getOptional(fishKey.identifier()).orElse(Items.COD);
-                    boolean caught = FishEncyclopediaClientCache.getCatchCount(fishKey.identifier()) > 0;
+                // Unlisted fish (secret one-off variants) don't even get a silhouette slot —
+                // they're absent from the disc entirely until the player has caught one.
+                if (!caught && item.builtInRegistryHolder().is(FishtasticItemTags.UNLISTED_FISH)) continue;
 
-                    // Unlisted fish (secret one-off variants) don't even get a silhouette slot —
-                    // they're absent from the disc entirely until the player has caught one.
-                    if (!caught && item.builtInRegistryHolder().is(FishtasticItemTags.UNLISTED_FISH)) continue;
-
-                    SilhouetteItemButton icon = new SilhouetteItemButton(new ItemStack(item));
-                    icon.setSilhouette(!caught);
-                    icon.setBondAvailable(QuestClientCache.isBondUnlocked(fishKey.identifier())
-                            && mc.player != null && !CarriedFish.groupsOf(mc.player, item).isEmpty());
-                    icon.setHasUnclaimedReward(FishEncyclopediaClientHelper.fishHasUnclaimedReward(
-                            mc.level.registryAccess(), fishKey, fishKey.identifier()));
-                    iconItems.add(Map.entry(fishKey, icon));
-                    iconRefs.put(fishKey, icon);
-                }
-                sphere.setFishItems(iconItems);
+                SilhouetteItemButton icon = new SilhouetteItemButton(new ItemStack(item));
+                syncIcon(fishKey, icon);
+                iconItems.add(Map.entry(fishKey, icon));
+                iconRefs.put(fishKey, icon);
+                discOrder.add(fishKey);
             }
-
-            root.addChild(sphere);
-
-            Identifier autoSelectFishId = pendingAutoSelectFishId;
-            pendingAutoSelectFishId = null;
-            if (autoSelectFishId != null) {
-                ResourceKey<FishProfile> autoSelectKey = ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, autoSelectFishId);
-                IUIElement autoSelectIcon = iconRefs.get(autoSelectKey);
-                if (autoSelectIcon != null) {
-                    sphere.selectChild(autoSelectIcon);
-                }
-            }
-
-            scheduleRewardPipPopIns();
+            sphere.setFishItems(iconItems);
         }
+
+        root.addChild(sphere);
+        scheduleRewardPipPopIns();
 
         rewardFlyOverlay = UI.manualContainer().setSize(0, 0);
         rewardFlyOverlay.setDebugName("encyclopediaRewardCoinOverlay");
@@ -359,7 +397,21 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
         uiScreen.setRoot(root);
         uiScreen.setAutoCenterRoot(false);
         uiScreen.setScrollEnabled(true);
-        updateRootContentSize();
+
+        rebuildClaimAll();
+
+        Identifier autoSelectFishId = pendingAutoSelectFishId;
+        pendingAutoSelectFishId = null;
+        if (autoSelectFishId != null) {
+            // Opening straight onto a page (Quest Log link): there is no click and no disc on
+            // screen to fly from, so the fish simply starts in the portrait slot.
+            SilhouetteItemButton icon = iconRefs.get(ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, autoSelectFishId));
+            if (icon != null) {
+                deepLinkOpen = true;
+                sphere.selectChild(icon);
+                deepLinkOpen = false;
+            }
+        }
     }
 
     /** Uses the element's live bounds, including layout/animation transforms. */
@@ -371,51 +423,49 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     }
 
     public boolean hasCompanionEntryButton() {
-        return selectedFishKey != null && companionEntryButton != null;
+        return pageOpen && companionEntryButton != null;
+    }
+
+    /** Re-reads every icon (and the info page) from the client cache, e.g. after a sync. */
+    private void refreshFromCache() {
+        for (Map.Entry<ResourceKey<FishProfile>, SilhouetteItemButton> entry : iconRefs.entrySet()) {
+            syncIcon(entry.getKey(), entry.getValue());
+        }
+        rebuildClaimAll();
+        if (pageOpen && shownKey != null) {
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.level != null) {
+                FishPageModel fresh = FishPageModel.build(mc.level.registryAccess(), shownKey);
+                if (fresh != null) {
+                    model = fresh;
+                    rebuildContent();
+                }
+            }
+        }
     }
 
     /**
-     * {@code root} is a {@link FreeformContainer} sized to the screen — necessary so the disc
-     * and the traveling icon can be positioned absolutely — but {@code UIScreen}'s scroll system
-     * computes how far there is to scroll from {@code root.getSize()} vs. the viewport, not from
-     * an actual bounding box of children. Left at a fixed screen-sized {@code root}, content
-     * that runs past the bottom of the screen (a fish with a long Spawn Conditions list and/or
-     * lore text) is simply unreachable — the framework thinks there's nothing below to scroll to.
-     * Call this whenever the displayed content's extent could have changed (info page built or
-     * refreshed, or back to just the disc) so {@code root}'s reported height tracks reality.
+     * Brings one disc icon in line with the cache. The icon currently on the page carries no
+     * badges (a pip or heart would be drawn at 4x on the portrait).
      */
-    private void updateRootContentSize() {
-        if (root == null) return;
-        float contentBottom = this.height;
-        if (infoPageRoot != null) {
-            infoPageRoot.forceLayout();
-            contentBottom = Math.max(contentBottom, infoPageRoot.getPosition().y + infoPageRoot.getSize().y + 16f);
-
-        } else if (sphere != null) {
-            contentBottom = Math.max(contentBottom, sphere.getPosition().y + DISC_SIZE + 16f);
-        }
-        root.setSize(this.width, contentBottom);
-    }
-
-    private void refreshFromCache() {
+    private void syncIcon(ResourceKey<FishProfile> fishKey, SilhouetteItemButton icon) {
         Minecraft mc = Minecraft.getInstance();
-        for (Map.Entry<ResourceKey<FishProfile>, SilhouetteItemButton> entry : iconRefs.entrySet()) {
-            ResourceKey<FishProfile> fishKey = entry.getKey();
-            Identifier fishId = fishKey.identifier();
-            entry.getValue().setSilhouette(FishEncyclopediaClientCache.getCatchCount(fishId) <= 0);
-            Item species = BuiltInRegistries.ITEM.getOptional(fishId).orElse(null);
-            entry.getValue().setBondAvailable(species != null && mc.player != null
-                    && QuestClientCache.isBondUnlocked(fishId) && !CarriedFish.groupsOf(mc.player, species).isEmpty());
-            if (mc.level != null) {
-                entry.getValue().setHasUnclaimedReward(
-                        FishEncyclopediaClientHelper.fishHasUnclaimedReward(mc.level.registryAccess(), fishKey, fishId));
-            }
+        Identifier fishId = fishKey.identifier();
+        boolean caughtFish = FishEncyclopediaClientCache.getCatchCount(fishId) > 0;
+        icon.setSilhouette(!caughtFish);
+        boolean onPage = pageOpen && icon == shownIcon;
+        Item species = BuiltInRegistries.ITEM.getOptional(fishId).orElse(null);
+        icon.setBondAvailable(!onPage && species != null && mc.player != null
+                && QuestClientCache.isBondUnlocked(fishId) && !CarriedFish.groupsOf(mc.player, species).isEmpty());
+        icon.setHasUnclaimedReward(!onPage && mc.level != null
+                && FishEncyclopediaClientHelper.fishHasUnclaimedReward(mc.level.registryAccess(), fishKey, fishId));
+        StringBuilder spoken = new StringBuilder(caughtFish
+                ? icon.getItemStack().getHoverName().getString()
+                : Component.translatable("narration.fishtastic.encyclopedia.undiscovered").getString());
+        if (icon.hasUnclaimedReward()) {
+            spoken.append(". ").append(Component.translatable("narration.fishtastic.encyclopedia.reward_ready").getString());
         }
-        if (selectedFishKey != null) {
-            refreshInfoPage();
-            updateRootContentSize();
-        }
-
+        icon.setNarration(spoken.toString());
     }
 
     /** Staggers reward-pip and bond-heart pop-ins across the disc, in icon order. Called once on screen open only. */
@@ -429,608 +479,450 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     }
 
     // -------------------------------------------------------------------------
-    // Phase 5: selection transition (click -> travel to info page)
+    // Disc: Claim all
 
-    private void onFishSelected(IUIElement icon, ResourceKey<FishProfile> fishKey) {
-        if (fishKey == null || !(icon instanceof UIElement<?> uiIcon)) return;
+    private static int unclaimedCoins(RegistryAccess access, ResourceKey<FishProfile> key) {
+        var thresholds = EncyclopediaTiers.thresholdsFor(access, key);
+        int catches = FishEncyclopediaClientCache.getCatchCount(key.identifier());
+        int coins = 0;
+        for (EncyclopediaRewardSection section : EncyclopediaRewardSection.values()) {
+            if (catches >= section.threshold(thresholds) && !FishEncyclopediaClientCache.isRewardClaimed(key.identifier(), section)) {
+                coins += section.coinReward();
+            }
+        }
+        return coins;
+    }
 
-        EncyclopediaTutorialClientHandler.onFishClicked();
-
-        uiIcon.reparentTo(root, true);
-        uiScreen.setScrollY(0f);
-
-        // ItemButton.init() registers its own onMouseEnter/onMouseExit handlers that drive the
-        // hover-zoom (scale 1.5 / scale 1.0) seen on the disc. Once this icon leaves the disc and
-        // travels to its fixed info-page slot, the cursor naturally ends up off of it within a
-        // few frames, firing HOVER_EXIT — which would clobber our INFO_ICON_SCALE target right
-        // back down to 1.0 (and the position math below assumes the icon renders at
-        // INFO_ICON_SCALE, so a silent scale reset also looks mispositioned: the rendered box
-        // shrinks but its top-left anchor point doesn't move). The icon is no longer interactive
-        // on the info page, so clear all of its action handlers before asserting our own scale.
-        uiIcon.clearAllActions();
-
-        float iconTargetX = this.width / 2f - INFO_ICON_SIZE / 2f;
-        float iconTargetY = INFO_ICON_TOP_MARGIN;
-        uiIcon.setTargetPosition(new Vector2f(iconTargetX, iconTargetY), true);
-        uiIcon.setTargetScale(INFO_ICON_SCALE, true);
-
-        selectedIcon = icon;
-        selectedFishKey = fishKey;
-
+    /** (Re)builds the green "Claim all N" button under the disc; absent while nothing is claimable. */
+    private void rebuildClaimAll() {
+        if (root == null || sphere == null) return;
+        if (claimAllGroup != null) {
+            root.removeChild(claimAllGroup);
+            claimAllGroup = null;
+        }
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;
-        selectedProfile = mc.level.registryAccess().lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY)
-                .getOptional(fishKey).orElse(null);
-        selectedEntry = FishEncyclopediaClientHelper.getEncyclopediaEntry(mc.level.registryAccess(), fishKey);
-        if (selectedProfile == null) return;
+        int coins = 0, fish = 0;
+        for (ResourceKey<FishProfile> key : iconRefs.keySet()) {
+            int c = unclaimedCoins(mc.level.registryAccess(), key);
+            if (c > 0) {
+                coins += c;
+                fish++;
+            }
+        }
+        if (coins <= 0) return;
 
-        buildInfoPage(iconTargetY + INFO_ICON_SIZE + 8f);
+        String label = translated("screen.fishtastic.encyclopedia.claim_all", coins);
+        String sub = translated("screen.fishtastic.encyclopedia.claim_all_sub", fish);
+        int bw = 6 + PageSurface.width(label) + 3 + 16 + 5, bh = 20;
+        int gw = Math.max(bw, PageSurface.width(sub)), gh = bh + 3 + 9;
+        int bx = (gw - bw) / 2;
+
+        PageSurface surface = new PageSurface(gw, gh);
+        surface.panel(PageSurface.PANEL_GREEN, bx, 0, bw, bh);
+        surface.text(bx + 6, (bh - 8) / 2, label, 0xFFFFFF);
+        surface.textCentered(gw / 2, bh + 3, sub, 0x8C7F7A);
+
+        FreeformContainer group = new FreeformContainer();
+        group.setSize(gw, gh);
+        group.addChild(surface);
+        UIElement<?> coin = EncyclopediaCoins.icon(coins);
+        coin.setPosition(new Vector2f(bx + bw - 5 - 16, (bh - 16) / 2f));
+        group.addChild(coin);
+        HitArea hit = new HitArea(bw, bh, true);
+        hit.tip(uiScreen, ScaledTooltip.of(1, ScaledTooltip.line(translated("tutorial.fishtastic.rewards.help"), 0xFFFFFF)));
+        hit.click(() -> {
+            sendClaimAll(Optional.empty());
+            playRewardClaimFlourish(hit);
+        });
+        hit.setPosition(new Vector2f(bx, 0));
+        group.addChild(hit);
+
+        group.setPosition(new Vector2f(Math.round((this.width - gw) / 2f), Math.round(sphere.getPosition().y + DISC_SIZE - 4f)));
+        root.addChild(group);
+        claimAllGroup = group;
+        group.setVisible(!pageOpen);
+        bringOverlayToFront();
     }
 
-    /**
-     * Click handler only. {@code root}/{@code sphere} tree mutations (reparenting,
-     * {@code removeChild}/{@code addChild}) used to be unsafe to run synchronously here — this
-     * fires from inside {@code UIElement.onEvent}'s {@code onClickActions} dispatch loop, and a
-     * structural change to a list some ancestor was mid-iterating (directly, or a frame later
-     * when the keyframe-animation completion callback below fired during
-     * {@code UIContainer.update}'s own child loop) used to throw
-     * {@code ConcurrentModificationException}. Gelatin UI's container/event-dispatch loops are
-     * now defensive-copied, so this is no longer strictly required for correctness — but
-     * {@code uiScreen.runDeferred(...)} is still used here to run the actual tree work at a
-     * clean, predictable point (start of the next {@code UIScreen.update()}) rather than mid-event,
-     * which is good practice regardless of what the framework happens to tolerate today.
-     */
-    private void goBackToDisc() {
-        if (closing || selectedIcon == null) {
-            return;
+    private void sendClaimAll(Optional<Identifier> fishId) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null) {
+            FishtasticTransport.sendToServer(new ClaimAllEncyclopediaRewardsPacket(fishId));
         }
-        closing = true;
-        uiScreen.runDeferred(this::startCloseTravel);
     }
 
-    /**
-     * Mirrors {@link #onFishSelected} in reverse: eases the info-page icon back to its disc rest
-     * position/scale (the same continuous {@code setTargetPosition}/{@code setTargetScale}
-     * technique the opening travel animation uses, so closing feels like the same motion played
-     * backwards) and removes the info page immediately. The icon isn't reparented back into
-     * {@link #sphere} — and the rest of the disc isn't shown again — until the travel-back
-     * finishes; the other icons were only ever hidden (never moved) while the info page was
-     * open, so they grow back from scale 0 at the exact rest position they shrank to, rather
-     * than flying in from somewhere else.
-     */
-    private void startCloseTravel() {
-        if (!(selectedIcon instanceof UIElement<?> uiIcon)) {
-            closing = false;
-            return;
-        }
-
-        EncyclopediaTutorialClientHandler.onInfoPageClosed();
-
-        if (backButton != null) {
-            root.removeChild(backButton);
-            backButton = null;
-        }
-        if (infoPageRoot != null) {
-            root.removeChild(infoPageRoot);
-            infoPageRoot = null;
-        }
-        updateRootContentSize();
-        uiScreen.setScrollY(0f);
-
-        float defaultScale = sphere.getDefaultItemScale();
-        Vector2f restTopLeft = sphere.getRestTopLeft(selectedIcon, defaultScale);
-        Vector2f targetPos = restTopLeft != null
-                ? new Vector2f(sphere.getPosition()).add(restTopLeft)
-                : new Vector2f(sphere.getPosition());
-        uiIcon.setTargetPosition(targetPos, true);
-        uiIcon.setTargetScale(defaultScale, true);
-
-        closingIcon = selectedIcon;
-        selectedIcon = null;
-        selectedFishKey = null;
-        selectedProfile = null;
-        selectedEntry = null;
-        nameLabel = null;
-        caughtCountLabel = null;
-        recordsContainer = null;
-        zonesContainer = null;
-        statsContainer = null;
-        typesContainer = null;
-        spawnContainer = null;
-        loreContainer = null;
-        spawnConditionPipUpdaters.clear();
-        zonePipUpdaters.clear();
-
-        // Piggybacks the keyframe-animation system purely for its completion callback — the
-        // actual motion above is driven by the exponential setTargetPosition/setTargetScale
-        // smoothing, matching how the open animation works, not by this keyframe's value.
-        // onComplete fires from inside UIContainer.update()'s loop over root's children
-        // (closingIcon is one of them at this point); runDeferred runs the reparenting at the
-        // start of the next update() pass instead, same reasoning as goBackToDisc() above.
-        uiIcon.playAnimation(new FloatKeyframeAnimation(
-                "fishEncyclopediaCloseTravel",
-                List.of(new Keyframe(0f, 0f), new Keyframe(CLOSE_TRAVEL_DURATION, 1f)),
-                v -> {},
-                () -> uiScreen.runDeferred(() -> {
-                    // reinstateAfterClose detaches closingIcon from its current parent (root)
-                    // and reattaches it to sphere itself, via UIElement.reparentTo — don't
-                    // remove it from root here first, or reparentTo loses the parent reference
-                    // it needs to read the icon's true on-screen position before moving it.
-                    sphere.reinstateAfterClose(closingIcon);
-                    closingIcon = null;
-                    closing = false;
-                })
-        ));
+    private void bringOverlayToFront() {
+        if (rewardFlyOverlay == null || root == null) return;
+        root.removeChild(rewardFlyOverlay);
+        root.addChild(rewardFlyOverlay);
     }
 
     // -------------------------------------------------------------------------
-    // Phase 6: info page content & unlock gating
+    // Selection: the clicked icon flies into the portrait slot
 
-    private void buildInfoPage(float startY) {
-        SpriteButton backBtn = UI.spriteButton(40f, 14f, 0xFF666666).text(translated("screen.fishtastic.encyclopedia.back"), 0xFFFFFFFF);
-        backBtn.onMouseEnter(e -> backBtn.setTargetScale(1.1f, true));
-        backBtn.onMouseExit(e -> backBtn.setTargetScale(1.0f, true));
-        backBtn.onClick(e -> goBackToDisc());
-        backBtn.setPosition(new Vector2f(12f, 12f));
-        root.addChild(backBtn);
-        backButton = backBtn;
-
-        float pageWidth = this.width * 0.6f;
-
-        VBox page = UI.vbox().spacing(8).padding(6).alignment(VBox.Alignment.CENTER);
-
-        HBox nameRow = UI.hbox().spacing(4).alignment(HBox.Alignment.CENTER);
-        nameLabel = new Label("", 0xFFFFD700).init(tempContext);
-        nameLabel.scale(1.2f);
-        nameRow.addChild(nameLabel);
-        nameClaimButton = buildClaimButton(selectedFishKey.identifier(), EncyclopediaRewardSection.NAME_REVEAL);
-        nameRow.addChild(nameClaimButton);
-        page.addChild(nameRow);
-
-        caughtCountLabel = new Label("", 0xFFAAAAAA).init(tempContext);
-        page.addChild(caughtCountLabel);
-
-        recordsContainer = UI.vbox().spacing(3).padding(4).alignment(VBox.Alignment.CENTER);
-        page.addChild(recordsContainer);
-
-        zonesContainer = UI.vbox().spacing(3).padding(4).alignment(VBox.Alignment.CENTER);
-        page.addChild(zonesContainer);
-
-        statsContainer = UI.vbox().spacing(3).padding(4).alignment(VBox.Alignment.CENTER);
-        page.addChild(statsContainer);
-
-        typesContainer = UI.vbox().spacing(3).padding(4).alignment(VBox.Alignment.CENTER);
-        page.addChild(typesContainer);
-
-        spawnContainer = UI.vbox().spacing(3).padding(4).alignment(VBox.Alignment.CENTER);
-        page.addChild(spawnContainer);
-
-        loreContainer = UI.vbox().spacing(3).padding(4).alignment(VBox.Alignment.CENTER);
-        page.addChild(loreContainer);
-
-        companionInfo = UI.vbox().spacing(4).alignment(VBox.Alignment.CENTER);
-        page.addChild(companionInfo);
-
-        page.scaleToWidth(pageWidth);
-        page.setPosition(new Vector2f((this.width - pageWidth) / 2f, startY));
-        root.addChild(page);
-        infoPageRoot = page;
-
-        refreshInfoPage();
-        updateRootContentSize();
-    }
-
-    private void refreshInfoPage() {
-        if (selectedFishKey == null || selectedProfile == null) return;
-        Identifier fishId = selectedFishKey.identifier();
-        refreshCompanionInfo(fishId);
-        int catchCount = FishEncyclopediaClientCache.getCatchCount(fishId);
+    private void onFishSelected(IUIElement icon, ResourceKey<FishProfile> fishKey) {
+        if (fishKey == null || !(icon instanceof SilhouetteItemButton button)) return;
         Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null) return;
-        FishEncyclopediaEntry.UnlockThresholds thresholds = EncyclopediaTiers.thresholdsFor(mc.level.registryAccess(), selectedFishKey);
-
-        boolean nameRevealed = isSectionUnlocked(fishId, EncyclopediaRewardSection.NAME_REVEAL, catchCount, thresholds.nameRevealCatches());
-        String displayName = nameRevealed
-                ? BuiltInRegistries.ITEM.getOptional(fishId).map(item -> item.getName(new ItemStack(item))).map(Component::getString)
-                        .orElseGet(() -> Utility.prettyName(fishId.getPath()))
-                : translated("screen.fishtastic.encyclopedia.locked_placeholder");
-        nameLabel.text(displayName).color(nameRevealed ? 0xFFFFFFFF : 0xFF888888);
-        nameClaimButton.setVisible(nameRevealed && !FishEncyclopediaClientCache.isRewardClaimed(fishId, EncyclopediaRewardSection.NAME_REVEAL));
-        caughtCountLabel.text(nameRevealed ? translated("screen.fishtastic.encyclopedia.caught_count", catchCount) : "");
-        caughtCountLabel.setVisible(nameRevealed);
-
-        populateRecordsSection(fishId, catchCount);
-        zonesContainer.clearChildren();
-        zonesContainer.addChild(buildUngatedSection(translated("screen.fishtastic.encyclopedia.section.zones"), () -> buildZonesContent(selectedProfile)));
-        statsContainer.clearChildren();
-        statsContainer.addChild(buildGatedSection(translated("screen.fishtastic.encyclopedia.section.stats"), catchCount, thresholds.statsCatches(),
-                fishId, EncyclopediaRewardSection.STATS, () -> buildStatsContent(selectedProfile)));
-        typesContainer.clearChildren();
-        typesContainer.addChild(buildGatedSection(translated("screen.fishtastic.encyclopedia.section.types"), catchCount, thresholds.typesCatches(),
-                fishId, EncyclopediaRewardSection.TYPES, () -> buildTypesContent(fishId)));
-        spawnContainer.clearChildren();
-        spawnContainer.addChild(buildGatedSection(translated("screen.fishtastic.encyclopedia.section.spawn_conditions"), catchCount, thresholds.spawnConditionsCatches(),
-                fishId, EncyclopediaRewardSection.SPAWN_CONDITIONS, () -> buildSpawnConditionsContent(selectedProfile)));
-        loreContainer.clearChildren();
-        loreContainer.addChild(buildGatedSection(translated("screen.fishtastic.encyclopedia.section.lore"), catchCount, thresholds.loreCatches(),
-                fishId, EncyclopediaRewardSection.LORE, () -> buildLoreContent(selectedEntry)));
-    }
-
-    private void populateRecordsSection(Identifier fishId, int catchCount) {
-        recordsContainer.clearChildren();
-        if (catchCount < 1) return;
-
-        VBox card = UI.vbox().spacing(3).padding(6).alignment(VBox.Alignment.CENTER).backgroundColor(0x55222222);
-
-        LeaderboardEntry personalBest = FishEncyclopediaClientCache.getPersonalBest(fishId);
-        if (personalBest != null) {
-            card.addChild(label(translated("screen.fishtastic.encyclopedia.your_best",
-                    Component.translatable("tooltip.fishtastic.item_size.cm", String.format("%.0f", personalBest.size())),
-                    personalBest.quality().getTranslatableName()), 0xFFFFFFFF));
+        FishPageModel built = mc.level == null ? null : FishPageModel.build(mc.level.registryAccess(), fishKey);
+        if (built == null) {
+            // No profile to show: put the disc back rather than leave it shrunk with no page.
+            sphere.reinstateAfterClose(icon);
+            return;
         }
-        card.addChild(label(translated("screen.fishtastic.encyclopedia.your_catches", catchCount), 0xFFFFFFFF));
+        EncyclopediaTutorialClientHandler.onFishClicked();
+        openPage(fishKey, button, built, deepLinkOpen);
+    }
 
-        LeaderboardEntry globalBest = FishEncyclopediaClientCache.getGlobalBest(fishId);
-        if (globalBest != null) {
-            Component holder = globalBest.playerName().<Component>map(Component::literal)
-                    .orElseGet(() -> Component.translatable("screen.fishtastic.encyclopedia.unknown_player"));
-            card.addChild(label(translated("screen.fishtastic.encyclopedia.server_best",
-                    holder, Component.translatable("tooltip.fishtastic.item_size.cm", String.format("%.0f", globalBest.size()))), 0xFFFFAA00));
+    private void openPage(ResourceKey<FishProfile> key, SilhouetteItemButton icon, FishPageModel built, boolean instant) {
+        Minecraft mc = Minecraft.getInstance();
+        shownKey = key;
+        shownIcon = icon;
+        model = built;
+        profile = mc.level.registryAccess().lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY).getOptional(key).orElse(null);
+        tab = EncyclopediaPageLayout.Tab.CATCH;
+        pageOpen = true;
+        closing = false;
+        browsing = false;
+        pollTicks = 0;
+
+        // Integer scale only. A narrow screen gets the approved compact card instead of a clipped
+        // two-page spread; larger screens keep the full field-guide layout.
+        compactPage = this.width < EncyclopediaPageLayout.W || this.height < EncyclopediaPageLayout.H;
+        int pageW = pageWidth(), pageH = pageHeight();
+        k = compactPage ? 1 : Math.max(1, Math.min(this.width / pageW, this.height / pageH));
+        int cw = pageW * k, ch = pageH * k;
+        canvasX = Math.max(0, (this.width - cw) / 2);
+        canvasY = Math.max(0, (this.height - ch) / 2);
+        boolean fits = this.width >= cw && this.height >= ch;
+        root.setSize(this.width, fits ? this.height : Math.max(this.height, canvasY + ch + 4));
+        uiScreen.setScrollEnabled(!fits);
+        uiScreen.setScrollY(0f);
+
+        canvas = new FreeformContainer();
+        canvas.setSize(pageW, pageH);
+        canvas.setTargetScale(k, false);   // never scale(k): that one animates (spike rule 1)
+        canvas.setPosition(new Vector2f(canvasX, canvasY));
+        contentHost = host();
+        backHost = host();
+        iconLayer = host();
+        frontHost = host();
+        // Z-order: page content < portrait plate < (fade curtain) < the fish icon < front bubbles + toggle.
+        canvas.addChild(contentHost);
+        canvas.addChild(backHost);
+        curtain = null;
+        if (!instant) {
+            addCurtain(PAGE_FADE_SECONDS, 1f);
         }
+        canvas.addChild(iconLayer);
+        canvas.addChild(frontHost);
+        root.addChild(canvas);
+        bringOverlayToFront();
+        if (claimAllGroup != null) claimAllGroup.setVisible(false);
+        if (dismissHint != null) dismissHint.visible = EncyclopediaTutorialClientHandler.hasActiveLesson();
 
-        recordsContainer.addChild(card);
-    }
+        buildPortrait();
+        rebuildContent();
+        fadeBackdropTo(BACKDROP_ALPHA, instant ? 0f : 0.12f);
 
-    private VBox buildStatsContent(FishProfile profile) {
-        VBox content = UI.vbox().spacing(2).alignment(VBox.Alignment.CENTER);
-        content.addChild(label(translated("screen.fishtastic.encyclopedia.base_weight", profile.baseWeight()), 0xFFFFFFFF));
-        content.addChild(label(translated("screen.fishtastic.encyclopedia.average_size",
-                String.format("%.0f", profile.size().mean()), String.format("%.0f", profile.size().stdDev())), 0xFFFFFFFF));
-        return content;
-    }
-
-    private VBox buildTypesContent(Identifier fishId) {
-        VBox content = UI.vbox().spacing(2).alignment(VBox.Alignment.CENTER);
-        Item item = BuiltInRegistries.ITEM.getOptional(fishId).orElse(Items.COD);
-        List<TagKey<Item>> groups = FishtasticItemTags.FISH_GROUPS.stream()
-                .filter(item.builtInRegistryHolder()::is)
-                .toList();
-        if (groups.isEmpty()) {
-            content.addChild(label(translated("screen.fishtastic.encyclopedia.no_bait_affinities"), 0xFF888888));
+        icon.setHasUnclaimedReward(false);
+        icon.setBondAvailable(false);
+        adoptIcon(icon);
+        if (instant) {
+            land(icon);
         } else {
-            for (TagKey<Item> group : groups) {
-                content.addChild(label(Utility.prettyName(group.location().getPath()), 0xFFCCCCCC));
-            }
+            animateIconTo(icon, slot(), slotScale(), FLIGHT_SNAP_SECONDS, "fishEncyclopediaTravel",
+                    () -> uiScreen.runDeferred(() -> land(icon)));
         }
-        return content;
+    }
+
+    private int pageWidth() {
+        return compactPage ? CompactPageLayout.W : EncyclopediaPageLayout.W;
+    }
+
+    private int pageHeight() {
+        return compactPage ? CompactPageLayout.H : EncyclopediaPageLayout.H;
+    }
+
+    private Vector2f slot() {
+        return compactPage
+                ? new Vector2f(CompactPageLayout.FISH_X, CompactPageLayout.FISH_Y)
+                : new Vector2f(SLOT);
+    }
+
+    private float slotScale() {
+        return compactPage ? CompactPageLayout.FISH_SCALE : SLOT_SCALE;
+    }
+
+    private FreeformContainer host() {
+        FreeformContainer host = new FreeformContainer();
+        host.setSize(pageWidth(), pageHeight());
+        return host;
     }
 
     /**
-     * Builds the Zones section content: one column per zone the fish can be caught in, each a
-     * largeish {@link ZoneIconRectangle} (same art and outline shader the fishing minigame's HUD
-     * zone stack uses) with a status pip + name beneath it — the pip lit green while the player
-     * currently stands in that zone, red otherwise, live-updated via {@link #zonePipUpdaters}
-     * (see {@link #containerTick}). Ungated (unlike the other info sections below it): a fish's
-     * zones are a hard gate on catchability, so the player needs this before their first catch,
-     * not as a reward for one.
+     * Moves a disc icon into the icon layer keeping its on-screen position AND size: reparenting
+     * preserves position but not scale, so the local scale is rewritten from the global one before
+     * (gelatin-spike rule 5).
      */
-    private VBox buildZonesContent(FishProfile profile) {
-        zonePipUpdaters.clear();
-        VBox content = UI.vbox().spacing(2).alignment(VBox.Alignment.CENTER);
-        if (profile.zones().isEmpty()) {
-            content.addChild(label(translated("screen.fishtastic.encyclopedia.no_zone_restrictions"), 0xFF888888));
-            return content;
-        }
-        HBox row = UI.hbox().spacing(8).alignment(HBox.Alignment.CENTER);
-        for (FishProfile.Zone zone : profile.zones()) {
-            row.addChild(buildZoneColumn(zone, zonePipUpdaters));
-        }
-        content.addChild(row);
-        return content;
+    private void adoptIcon(SilhouetteItemButton icon) {
+        float globalScale = icon.getGlobalScale();
+        icon.clearAllActions();
+        icon.reparentTo(iconLayer, true);
+        icon.setTargetScale(globalScale / iconLayer.getGlobalScale(), false);
+        icon.setVisible(true);
     }
 
-    /** One icon+name column within {@link #buildZonesContent}; skips the icon if {@code zone} has no registered texture. */
-    private VBox buildZoneColumn(FishProfile.Zone zone, List<Runnable> pipUpdaters) {
-        VBox column = UI.vbox().spacing(2).alignment(VBox.Alignment.CENTER);
-        Identifier icon = ZoneIconTextures.get(zone);
-        if (icon != null) {
-            ZoneIconRectangle iconElement = new ZoneIconRectangle(ZONE_ICON_SIZE, icon, ZoneIconTextures.TEXTURE_PX);
-            iconElement.onMouseEnter(e -> iconElement.setTargetScale(ZONE_ICON_HOVER_SCALE, true));
-            iconElement.onMouseExit(e -> iconElement.setTargetScale(1.0f, true));
-            column.addChild(iconElement);
-        }
-        ConditionSegment segment = new ConditionSegment(Utility.prettyName(zone.name()), () -> isZoneMet(zone));
-        HBox statusRow = UI.hbox().spacing(2).alignment(HBox.Alignment.CENTER);
-        SpriteRectangle.SpriteRectangleImpl pip = UI.spriteRectangle(STATUS_PIP_SIZE, STATUS_PIP_SIZE, STATUS_PIP_DEFAULT_TEXTURE)
-                .texture(new SpriteData(segment.metCheck().getAsBoolean() ? STATUS_PIP_GREEN_TEXTURE : STATUS_PIP_RED_TEXTURE));
-        pipUpdaters.add(() ->
-                pip.texture(new SpriteData(segment.metCheck().getAsBoolean() ? STATUS_PIP_GREEN_TEXTURE : STATUS_PIP_RED_TEXTURE)));
-        statusRow.addChild(pip);
-        statusRow.addChild(label(segment.text(), 0xFF88CCFF));
-        column.addChild(statusRow);
-        return column;
-    }
-
-    private VBox buildSpawnConditionsContent(FishProfile profile) {
-        spawnConditionPipUpdaters.clear();
-        VBox content = UI.vbox().spacing(2).alignment(VBox.Alignment.CENTER);
-        boolean any = false;
-        any |= addAxisRows(content, profile.biomeWeights(), FishProfile.BiomeWeight::tier, FishProfile.BiomeWeight::multiplier,
-                bw -> Utility.prettyName(bw.pathDisplay()), FishEncyclopediaScreen::isBiomeWeightMet);
-        any |= addAxisRows(content, profile.timeWeights(), FishProfile.TimeWeight::tier, FishProfile.TimeWeight::multiplier,
-                tw -> Utility.prettyName(tw.time().name()), FishEncyclopediaScreen::isTimeWeightMet);
-        any |= addAxisRows(content, profile.weatherWeights(), FishProfile.WeatherWeight::tier, FishProfile.WeatherWeight::multiplier,
-                ww -> Utility.prettyName(ww.weather().name()), FishEncyclopediaScreen::isWeatherWeightMet);
-        any |= addAxisRows(content, profile.moonWeights(), FishProfile.MoonWeight::tier, FishProfile.MoonWeight::multiplier,
-                mw -> Utility.prettyName(mw.phase().name()), FishEncyclopediaScreen::isMoonWeightMet);
-        if (!any) {
-            content.addChild(label(translated("screen.fishtastic.encyclopedia.no_special_conditions"), 0xFF888888));
-        }
-        return content;
+    /** Snaps the icon to the exact slot and integer scale (spike rule 6). */
+    private void land(SilhouetteItemButton icon) {
+        if (!pageOpen || icon != shownIcon || iconLayer == null) return;
+        icon.setTargetPosition(slot(), false);
+        icon.setTargetScale(slotScale(), false);
     }
 
     /**
-     * Adds one row per tier present in {@code weights} for a single axis (biome/time/weather/
-     * moon), merging same-tier entries onto a single row — e.g. two PRIMARY biome
-     * entries ("Jungle x2.0", "River x1.5") share one row instead of two. Each entry still gets
-     * its own status pip within that row (rather than one shared pip for the whole row), since
-     * with multiple mutually-exclusive options only one can be active at a time and a single
-     * pip can't say which. PRIMARY entries are labelled with their multiplier ("xN.N"),
-     * SECONDARY entries with their flat bonus ("+N%"). Returns whether any row was added (used
-     * to detect an entirely condition-free profile).
+     * Drives an icon's position and scale from their current values to exact final values.
+     *
+     * <p>{@link UIElement#setTargetPosition(Vector2f, boolean)} uses exponential smoothing, so
+     * it is still a small distance from its target when a fixed-duration travel animation ends.
+     * Applying the final transform from the keyframe itself keeps the endpoint continuous while
+     * still preserving the exact pixel-aligned landing values.
      */
-    private <T> boolean addAxisRows(VBox content, List<T> weights, Function<T, FishProfile.ConditionTier> tierGetter,
-                                     Function<T, Float> multiplierGetter, Function<T, String> nameGetter, Predicate<T> metCheck) {
-        if (weights.isEmpty()) return false;
-        for (FishProfile.ConditionTier tier : FishProfile.ConditionTier.values()) {
-            List<T> group = weights.stream().filter(w -> tierGetter.apply(w) == tier).toList();
-            if (group.isEmpty()) continue;
-            List<ConditionSegment> segments = group.stream()
-                    .map(w -> new ConditionSegment(
-                            nameGetter.apply(w) + " (" + formatMultiplier(tier, multiplierGetter.apply(w)) + ")",
-                            () -> metCheck.test(w)))
-                    .toList();
-            addSpawnConditionRows(content, segments, spawnConditionPipUpdaters, 0xFFCCCCCC, STATUS_PIP_DEFAULT_TEXTURE);
-        }
-        return true;
+    private void animateIconTo(SilhouetteItemButton icon, Vector2f targetPosition, float targetScale,
+                               float duration, String channel, Runnable onComplete) {
+        Vector2f startPosition = icon.getPosition();
+        float startScale = icon.getCurrentScale();
+        Vector2f endPosition = new Vector2f(targetPosition);
+
+        // Freeze the interpolation targets at the current transform. The keyframe callback below
+        // owns both properties for the duration, so UIElement.animate() cannot move them first.
+        icon.setTargetPosition(startPosition, false);
+        icon.setTargetScale(startScale, false);
+        icon.playAnimation(new FloatKeyframeAnimation(channel,
+                List.of(new Keyframe(0f, 0f),
+                        new Keyframe(duration, 1f, Easing.EASE_OUT_CUBIC)),
+                progress -> {
+                    icon.setPosition(new Vector2f(startPosition).lerp(endPosition, progress));
+                    icon.setTargetScale(startScale + (targetScale - startScale) * progress, false);
+                },
+                onComplete));
     }
 
-    /**
-     * Adds one or more rows for {@code segments}, wrapping onto a new row whenever the next
-     * segment would push the current row's estimated width past {@link #SPAWN_ROW_MAX_WIDTH}.
-     * See {@link #SPAWN_ROW_MAX_WIDTH}'s javadoc for why this cap exists.
-     */
-    private void addSpawnConditionRows(VBox content, List<ConditionSegment> segments, List<Runnable> pipUpdaters,
-                                        int textColor, Identifier unmetTexture) {
-        List<ConditionSegment> currentRow = new ArrayList<>();
-        float currentRowWidth = 0f;
-        for (ConditionSegment segment : segments) {
-            float segmentWidth = STATUS_PIP_SIZE + 2 + tempContext.getStringWidth(segment.text());
-            float addedWidth = segmentWidth + (currentRow.isEmpty() ? 0 : tempContext.getStringWidth(",") + 2);
-            if (!currentRow.isEmpty() && currentRowWidth + addedWidth > CONTENT_MAX_WIDTH) {
-                content.addChild(buildSpawnConditionRow(currentRow, pipUpdaters, textColor, unmetTexture));
-                currentRow = new ArrayList<>();
-                addedWidth = segmentWidth;
-            }
-            currentRow.add(segment);
-            currentRowWidth += addedWidth;
-        }
-        if (!currentRow.isEmpty()) {
-            content.addChild(buildSpawnConditionRow(currentRow, pipUpdaters, textColor, unmetTexture));
-        }
+    /** A full-canvas cover in the backdrop colour that fades away; removed at the end so it never eats clicks. */
+    private void addCurtain(float seconds, float startAlpha) {
+        dropCurtain();
+        Rectangle cover = new Rectangle(pageWidth(), pageHeight(), argb(startAlpha));
+        curtain = cover;
+        // Curtain sits between the plate (backHost) and the icon layer.
+        int index = canvas.getChildren().indexOf(backHost) + 1;
+        List<IUIElement> above = new ArrayList<>(canvas.getChildren().subList(index, canvas.getChildCount()));
+        for (IUIElement element : above) canvas.removeChild(element);
+        canvas.addChild(cover);
+        for (IUIElement element : above) canvas.addChild(element);
+        cover.playAnimation(new FloatKeyframeAnimation("fishEncyclopediaPageFade",
+                List.of(new Keyframe(0f, 0f), new Keyframe(seconds, 1f)),
+                v -> cover.color(argb(startAlpha * (1f - v))),
+                () -> uiScreen.runDeferred(() -> {
+                    if (curtain == cover) dropCurtain();
+                })));
     }
 
-    private static String formatMultiplier(FishProfile.ConditionTier tier, float multiplier) {
-        return tier == FishProfile.ConditionTier.SECONDARY
-                ? String.format("%+.0f%%", (multiplier - 1.0f) * 100.0f)
-                : "x" + multiplier;
+    private void dropCurtain() {
+        if (curtain != null && canvas != null) canvas.removeChild(curtain);
+        curtain = null;
     }
 
-    private record ConditionSegment(String text, BooleanSupplier metCheck) {}
+    private static int argb(float alpha) {
+        return ((int) (Math.max(0f, Math.min(1f, alpha)) * 255) << 24) | CURTAIN_RGB;
+    }
 
-    /**
-     * Builds a single condition row from one or more segments, each rendered as its own
-     * status pip (lit green while that segment's condition currently holds for the client
-     * player, {@code unmetTexture} otherwise) followed by its label text. Registers a live-update
-     * callback per pip into {@code pipUpdaters} so it tracks its segment every tick — see
-     * {@link #containerTick}. Callers pick which list (spawn-condition rows vs. the always-
-     * visible Types zone rows use separate lists with separate clear lifecycles), a text color so
-     * different row categories read as visually distinct at a glance, and an unmet-state texture —
-     * red for Types zone rows, since a fish's zones are a hard gate on catchability (see
-     * {@link FishProfile#zones}) rather than the soft multipliers the other axes represent.
-     */
-    private HBox buildSpawnConditionRow(List<ConditionSegment> segments, List<Runnable> pipUpdaters, int textColor, Identifier unmetTexture) {
-        HBox row = UI.hbox().spacing(2).alignment(HBox.Alignment.CENTER);
-        for (int i = 0; i < segments.size(); i++) {
-            if (i > 0) row.addChild(label(",", textColor));
-            ConditionSegment segment = segments.get(i);
-            SpriteRectangle.SpriteRectangleImpl pip = UI.spriteRectangle(STATUS_PIP_SIZE, STATUS_PIP_SIZE, STATUS_PIP_DEFAULT_TEXTURE)
-                    .texture(new SpriteData(segment.metCheck().getAsBoolean() ? STATUS_PIP_GREEN_TEXTURE : unmetTexture));
-            pipUpdaters.add(() ->
-                    pip.texture(new SpriteData(segment.metCheck().getAsBoolean() ? STATUS_PIP_GREEN_TEXTURE : unmetTexture)));
-            row.addChild(pip);
-            row.addChild(label(segment.text(), textColor));
+    private void buildPortrait() {
+        backHost.clearChildren();
+        frontHost.clearChildren();
+        if (compactPage) {
+            portrait = null;
+            return;
         }
-        return row;
+        portrait = new Portrait(uiScreen, model.themeZone(), shownKey.identifier().hashCode(), !model.caught(), k);
+        backHost.addChild(portrait.backLayer());
+        frontHost.addChild(portrait.frontLayer());
+        frontHost.addChild(portrait.toggle());
+        portrait.placeAt(EncyclopediaPageLayout.PLATE_X, EncyclopediaPageLayout.PLATE_Y);
     }
 
-    private static boolean isBiomeWeightMet(FishProfile.BiomeWeight bw) {
+    /** Rebuilds all page content from {@link #model} and the live environment; the icon and portrait stay. */
+    private void rebuildContent() {
+        if (!pageOpen || contentHost == null || model == null) return;
         Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null || mc.player == null) return false;
-        return bw.biome().contains(mc.level.getBiome(mc.player.blockPosition()));
-    }
+        uiScreen.clearTooltip();
+        contentHost.clearChildren();
+        lastEnv = EnvSnapshot.fromClient();
+        EncyclopediaPageLayout.Bond bond = bondInfo(mc);
+        lastBondSignature = bond == null ? "" : bond.text() + "|" + bond.unlocked();
 
-    private static boolean isTimeWeightMet(FishProfile.TimeWeight tw) {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null) return false;
-        return getEffectiveTimeOfDay(mc) == tw.time();
-    }
+        LeaderboardEntry best = FishEncyclopediaClientCache.getPersonalBest(shownKey.identifier());
+        int quality = 0xAAAAAA;
+        if (best != null && best.quality().getColor().getColor() != null) quality = best.quality().getColor().getColor();
 
-    /**
-     * Time of day used for spawn-condition evaluation, accounting for charm overrides
-     * (e.g. luna charm forcing night) the same way {@link FishingMinigameManager} does.
-     */
-    private static FishProfile.TimeOfDay getEffectiveTimeOfDay(Minecraft mc) {
-        CharmEffect charmEffect = getEquippedCharmEffect();
-        return (charmEffect != null && charmEffect.forceNightFishing())
-                ? FishProfile.TimeOfDay.NIGHT
-                : FishProfile.TimeOfDay.fromGameTime(mc.level.getOverworldClockTime());
-    }
-
-    /**
-     * Charm equipped in the player's held fishing rod's charm slot, if any — mirrors the
-     * rod lookup in {@link FishingMinigameClientHandler} so pips reflect the same charm
-     * overrides (e.g. luna charm forcing night) that the server minigame applies.
-     */
-    private static CharmEffect getEquippedCharmEffect() {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null) return null;
-        ItemStack rod = mc.player.getMainHandItem();
-        if (!rod.is(FishtasticItems.COPPER_FISHING_ROD)) {
-            rod = mc.player.getOffhandItem();
-        }
-        if (!rod.is(FishtasticItems.COPPER_FISHING_ROD)) return null;
-        ItemStack charm = CopperFishingRod.getCharm(rod);
-        if (charm.isEmpty()) return null;
-        return FishtasticItemData.get(charm, FishtasticDataComponents.CHARM_EFFECT);
-    }
-
-    private static boolean isWeatherWeightMet(FishProfile.WeatherWeight ww) {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null || mc.player == null) return false;
-        return FishProfile.WeatherCondition.fromLevel(mc.level, mc.player.blockPosition()) == ww.weather();
-    }
-
-    private static boolean isMoonWeightMet(FishProfile.MoonWeight mw) {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null || mc.player == null) return false;
-        // Moon is only visible at night under clear skies — mirrors the same gate applied
-        // in FishProfile.computeEnvironmentMultiplier.
-        boolean isNight = getEffectiveTimeOfDay(mc) == FishProfile.TimeOfDay.NIGHT;
-        boolean isClear = FishProfile.WeatherCondition.fromLevel(mc.level, mc.player.blockPosition()) == FishProfile.WeatherCondition.CLEAR;
-        if (!isNight || !isClear) return false;
-        return FishMoonPhase.at(mc.level, mc.player.blockPosition()) == mw.phase();
-    }
-
-    private static boolean isZoneMet(FishProfile.Zone zone) {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null || mc.player == null) return false;
-        BlockPos pos = mc.player.blockPosition();
-        return FishProfile.Zone.resolve(mc.level.getBiome(pos), pos.getY(), mc.level.getSeaLevel()).contains(zone);
-    }
-
-    private VBox buildLoreContent(FishEncyclopediaEntry entry) {
-        VBox content = UI.vbox().spacing(2).padding(4).alignment(VBox.Alignment.CENTER).backgroundColor(0x44222222);
-        String lore = entry.lore().orElseGet(() -> translated("screen.fishtastic.encyclopedia.no_lore"));
-        content.addChild(new Label(lore, 0xFFDDDDDD).maxWidth(CONTENT_MAX_WIDTH).centered(true).init(tempContext));
-        return content;
-    }
-
-    /**
-     * Renders {@code contentBuilder}'s content under a title, with no catch-count gate.
-     * Used for sections that tell the player how to catch a fish (e.g. Types) — that
-     * information must be available before the grind it would shorten, not after.
-     */
-    private VBox buildUngatedSection(String title, Supplier<VBox> contentBuilder) {
-        VBox section = UI.vbox().spacing(3).alignment(VBox.Alignment.CENTER);
-        section.addChild(new Label(title, 0xFFFFD700).init(tempContext));
-        section.addChild(contentBuilder.get());
-        return section;
-    }
-
-    /**
-     * Renders {@code unlockedContentBuilder}'s content if unlocked, else a ghost row with progress bar.
-     * Adds a claim button next to the title while unlocked but unclaimed.
-     */
-    private VBox buildGatedSection(String title, int currentCatches, int targetCatches, Identifier fishId,
-                                    EncyclopediaRewardSection rewardSection, Supplier<VBox> unlockedContentBuilder) {
-        VBox section = UI.vbox().spacing(3).alignment(VBox.Alignment.CENTER);
-        boolean unlocked = isSectionUnlocked(fishId, rewardSection, currentCatches, targetCatches);
-
-        if (unlocked && !FishEncyclopediaClientCache.isRewardClaimed(fishId, rewardSection)) {
-            HBox titleRow = UI.hbox().spacing(4).alignment(HBox.Alignment.CENTER);
-            titleRow.addChild(new Label(title, 0xFFFFD700).init(tempContext));
-            titleRow.addChild(buildClaimButton(fishId, rewardSection));
-            section.addChild(titleRow);
+        var params = new EncyclopediaPageLayout.Params(
+                model, profile, lastEnv, tab, Math.max(0, discOrder.indexOf(shownKey)), discOrder.size(),
+                bond, quality, uiScreen, k, new PageActions());
+        UIElement<?> bondButton;
+        if (compactPage) {
+            bondButton = CompactPageLayout.build(contentHost, params).bondButton();
         } else {
-            section.addChild(new Label(title, 0xFFFFD700).init(tempContext));
+            bondButton = EncyclopediaPageLayout.build(contentHost, params).bondButton();
         }
-
-        if (unlocked) {
-            section.addChild(unlockedContentBuilder.get());
-        } else {
-            section.addChild(label(translated("screen.fishtastic.encyclopedia.locked_placeholder"), 0xFF666666));
-            SpriteProgressBar bar = UI.progressBar();
-            float fraction = targetCatches > 0 ? Math.min(1f, (float) currentCatches / targetCatches) : 0f;
-            bar.progressImmediate(fraction);
-            section.addChild(bar);
-            section.addChild(label(translated("screen.fishtastic.encyclopedia.unlock_progress",
-                    Math.max(0, targetCatches - currentCatches), title, currentCatches, targetCatches), 0xFF888888));
-        }
-        return section;
+        companionEntryButton = bondButton;
     }
 
-    /**
-     * A section is open once the catch count reaches its threshold, or for good once its reward
-     * has been claimed — so a claimed section never re-locks if the derived thresholds move.
-     */
-    private static boolean isSectionUnlocked(Identifier fishId, EncyclopediaRewardSection section, int catchCount, int threshold) {
-        return catchCount >= threshold || FishEncyclopediaClientCache.isRewardClaimed(fishId, section);
-    }
-
-    /** Claim button for one fish's reward slot; disappearance is driven by the next server sync, not optimistically. */
-    private SpriteButton buildClaimButton(Identifier fishId, EncyclopediaRewardSection rewardSection) {
-        CoinIcon icon = coinIconFor(rewardSection.coinReward());
-        float btnWidth = icon.width() + CLAIM_BUTTON_ICON_PADDING * 2f;
-        float btnHeight = icon.height() + CLAIM_BUTTON_ICON_PADDING * 2f;
-        CoinClaimButton btn = new CoinClaimButton(btnWidth, btnHeight, icon);
-        btn.texture(claimButtonSprite());
-        btn.onMouseEnter(e -> btn.setTargetScale(1.15f, true));
-        btn.onMouseExit(e -> btn.setTargetScale(1.0f, true));
-        btn.onClick(e -> {
-            btn.addClickBounceEffect();
-            Minecraft mc = Minecraft.getInstance();
-            if (mc.player != null) {
-                FishtasticTransport.sendToServer(new ClaimEncyclopediaRewardPacket(fishId, rewardSection));
-            }
-            playRewardClaimFlourish(btn);
-        });
-        return btn;
-    }
-
-    private SpriteData claimButtonSprite() {
-        return new SpriteData(CLAIM_BUTTON_TEXTURE)
-                .uv(0, 0, CLAIM_BUTTON_SOURCE_WIDTH, CLAIM_BUTTON_SOURCE_HEIGHT)
-                .textureSize(CLAIM_BUTTON_SOURCE_WIDTH, CLAIM_BUTTON_SOURCE_HEIGHT)
-                .renderMode(SpriteRenderMode.SLICE)
-                .slice(CLAIM_BUTTON_SLICE_LEFT, CLAIM_BUTTON_SLICE_RIGHT, CLAIM_BUTTON_SLICE_TOP, CLAIM_BUTTON_SLICE_BOTTOM);
-    }
-
-    private static CoinIcon coinIconFor(int coinReward) {
-        return switch (coinReward) {
-            case 1 -> COIN_ICON_ONE;
-            case 2 -> COIN_ICON_TWO;
-            default -> COIN_ICON_THREE;
-        };
-    }
-
-    /** A {@link SpriteButton} that blits a coin-count icon over its background instead of "+N" text. */
-    private static class CoinClaimButton extends SpriteButton {
-        private final CoinIcon icon;
-
-        CoinClaimButton(float width, float height, CoinIcon icon) {
-            super(width, height, CLAIM_BUTTON_TEXTURE);
-            this.icon = icon;
+    private final class PageActions implements EncyclopediaPageLayout.Actions {
+        @Override
+        public void close() {
+            closePage();
         }
 
         @Override
-        protected void renderSelf(IRenderContext context) {
-            super.renderSelf(context);
-            context.drawSprite(new SpriteData(icon.texture()),
-                    CLAIM_BUTTON_ICON_PADDING, CLAIM_BUTTON_ICON_PADDING,
-                    (int) icon.width(), (int) icon.height());
+        public void browse(int dir) {
+            FishEncyclopediaScreen.this.browse(dir);
+        }
+
+        @Override
+        public void selectTab(EncyclopediaPageLayout.Tab target) {
+            tab = target;
+            rebuildContent();
+        }
+
+        @Override
+        public void claim(UIElement<?> origin) {
+            if (shownKey == null) return;
+            sendClaimAll(Optional.of(shownKey.identifier()));
+            if (portrait != null) portrait.claimBurst();
+            playRewardClaimFlourish(origin);
+        }
+
+        @Override
+        public void openBond(ItemStack species) {
+            CompanionScreen.open(species);
         }
     }
+
+    // -------------------------------------------------------------------------
+    // Browsing (prev / next)
+
+    private void browse(int dir) {
+        if (!pageOpen || closing || browsing || discOrder.size() < 2) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null) return;
+        int index = discOrder.indexOf(shownKey);
+        ResourceKey<FishProfile> nextKey = discOrder.get(Math.floorMod(index + dir, discOrder.size()));
+        SilhouetteItemButton nextIcon = iconRefs.get(nextKey);
+        FishPageModel nextModel = FishPageModel.build(mc.level.registryAccess(), nextKey);
+        if (nextIcon == null || nextModel == null) return;
+
+        browsing = true;
+        uiScreen.clearTooltip();
+        SilhouetteItemButton outgoing = shownIcon;
+        ResourceKey<FishProfile> outgoingKey = shownKey;
+        leavingIcon = outgoing;
+        leavingKey = outgoingKey;
+
+        // Remove the old portrait icon before adding the incoming one. Keeping both in iconLayer
+        // makes their transparent sprites cross and visibly overlap during the slide.
+        sphere.parkSilently(outgoing);
+
+        // The incoming icon leaves the (hidden) disc already at 4x and slides in from the far side.
+        sphere.markSelected(nextIcon);
+        nextIcon.setHasUnclaimedReward(false);
+        nextIcon.setBondAvailable(false);
+        nextIcon.clearAllActions();
+        nextIcon.reparentTo(iconLayer, false);
+        nextIcon.setTargetScale(slotScale(), false);
+        nextIcon.setVisible(true);
+        Vector2f currentSlot = slot();
+        nextIcon.setPosition(new Vector2f(currentSlot.x - dir * BROWSE_SLIDE, currentSlot.y));
+
+        shownKey = nextKey;
+        shownIcon = nextIcon;
+        model = nextModel;
+        profile = mc.level.registryAccess().lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY).getOptional(nextKey).orElse(null);
+        if (tab == EncyclopediaPageLayout.Tab.NOTES && !model.loreUnlocked()) tab = EncyclopediaPageLayout.Tab.CATCH;
+        buildPortrait();
+        rebuildContent();
+        addCurtain(BROWSE_SECONDS, 0.7f);
+
+        animateIconTo(nextIcon, currentSlot, slotScale(), BROWSE_SECONDS, "fishEncyclopediaBrowse",
+                () -> uiScreen.runDeferred(this::finishBrowse));
+    }
+
+    /** Ends a slide: the previous fish is already parked, and the incoming fish is already at its slot. */
+    private void finishBrowse() {
+        if (!browsing) return;
+        browsing = false;
+        if (leavingIcon != null) {
+            sphere.parkSilently(leavingIcon);
+            syncIcon(leavingKey, leavingIcon);
+            leavingIcon = null;
+            leavingKey = null;
+        }
+        if (shownIcon != null) land(shownIcon);
+    }
+
+    // -------------------------------------------------------------------------
+    // Closing: the shown fish flies back to its own disc slot
+
+    private void closePage() {
+        if (!pageOpen || closing || shownIcon == null) return;
+        if (browsing) {
+            shownIcon.cancelAnimationChannel("fishEncyclopediaBrowse");
+            finishBrowse();
+        }
+        closing = true;
+        EncyclopediaTutorialClientHandler.onInfoPageClosed();
+        uiScreen.clearTooltip();
+
+        SilhouetteItemButton icon = shownIcon;
+        icon.cancelAnimationChannel("fishEncyclopediaTravel");
+        // Back to screen space, keeping position and size (spike rule 5, in reverse).
+        float globalScale = icon.getGlobalScale();
+        icon.reparentTo(root, true);
+        icon.setTargetScale(globalScale / root.getGlobalScale(), false);
+
+        root.removeChild(canvas);
+        canvas = null;
+        contentHost = backHost = iconLayer = frontHost = null;
+        curtain = null;
+        portrait = null;
+        companionEntryButton = null;
+        ResourceKey<FishProfile> key = shownKey;
+        pageOpen = false;
+        shownIcon = null;
+        shownKey = null;
+        model = null;
+        profile = null;
+        root.setSize(this.width, this.height);
+        uiScreen.setScrollY(0f);
+        uiScreen.setScrollEnabled(true);
+        fadeBackdropTo(0f, 0.15f);
+
+        float defaultScale = sphere.getDefaultItemScale();
+        Vector2f restTopLeft = sphere.getRestTopLeft(icon, defaultScale);
+        Vector2f target = restTopLeft != null
+                ? new Vector2f(sphere.getPosition()).add(restTopLeft)
+                : new Vector2f(sphere.getPosition());
+        animateIconTo(icon, target, defaultScale, FLIGHT_SNAP_SECONDS, "fishEncyclopediaCloseTravel",
+                () -> uiScreen.runDeferred(() -> {
+                    // The keyframe already reached the exact slot; hand the icon back to the disc
+                    // without changing its visible transform.
+                    sphere.reinstateAfterClose(icon);
+                    syncIcon(key, icon);
+                    closing = false;
+                    rebuildClaimAll();
+                }));
+    }
+
+    // -------------------------------------------------------------------------
+    // Reward flourish
 
     /** A single mini coin arcing up and fading away from {@code origin}; a smaller {@link QuestLogScreen} claim burst. */
     private void playRewardClaimFlourish(UIElement<?> origin) {
@@ -1061,57 +953,89 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
                 () -> uiScreen.runDeferred(() -> rewardFlyOverlay.removeChild(coin))));
     }
 
-    private void refreshCompanionInfo(Identifier fishId) {
-        if (companionInfo == null) return;
-        companionInfo.clearChildren();
-        companionEntryButton = null;
-        boolean unlocked = QuestClientCache.isBondUnlocked(fishId);
-        Minecraft mc = Minecraft.getInstance();
+    // -------------------------------------------------------------------------
+    // Companion bond status (unchanged logic, now feeds the page's bond strip)
+
+    private EncyclopediaPageLayout.Bond bondInfo(Minecraft mc) {
+        if (shownKey == null || model == null || mc.level == null) return null;
+        Identifier fishId = shownKey.identifier();
         Item item = BuiltInRegistries.ITEM.getOptional(fishId).orElse(null);
-        if (item == null || mc.level == null) return;
+        if (item == null) return null;
+        boolean unlocked = QuestClientCache.isBondUnlocked(fishId);
+        ItemStack species = new ItemStack(item);
         String status;
         int inParty = partySlotOf(mc, item);
         if (inParty >= 0) {
-            status = translated(inParty == grill24.fishtastic.companion.CompanionParty.LEAD
+            status = translated(inParty == CompanionParty.LEAD
                     ? "screen.fishtastic.companion.in_party_lead" : "screen.fishtastic.companion.in_party");
         } else if (unlocked) {
             boolean carried = mc.player != null && !CarriedFish.groupsOf(mc.player, item).isEmpty();
-            status = translated(carried ? "screen.fishtastic.companion.ready" : "screen.fishtastic.companion.carry", new ItemStack(item).getHoverName().getString());
+            status = translated(carried ? "screen.fishtastic.companion.ready" : "screen.fishtastic.companion.carry", species.getHoverName().getString());
         } else if (CompanionBondUnlocks.isUnlisted(fishId)) {
             status = translated("screen.fishtastic.encyclopedia.companions.bond_hidden_quest");
         } else {
-            var thresholds = EncyclopediaTiers.thresholdsFor(mc.level.registryAccess(), selectedFishKey);
+            var thresholds = model.thresholds();
             int required = java.util.Arrays.stream(EncyclopediaRewardSection.values()).mapToInt(section -> section.threshold(thresholds)).max().orElse(0);
             status = translated("screen.fishtastic.companion.remaining", Math.max(0, required - FishEncyclopediaClientCache.getCatchCount(fishId)));
         }
-        companionInfo.addChild(label(status, unlocked ? 0xFFFFA4B4 : 0xFFAAAAAA));
-        if (unlocked) {
-            SpriteButton bond = UI.spriteButton(100f, 14f, 0xFF666666).text(translated("screen.fishtastic.companion.choose"), 0xFFFFFFFF);
-            companionEntryButton = bond;
-            bond.onClick(e -> CompanionScreen.open(new ItemStack(item)));
-            companionInfo.addChild(bond);
-        }
+        return new EncyclopediaPageLayout.Bond(status, unlocked, species);
     }
 
     /** The first party slot holding this species, or -1 (slot 0 is the lead). */
     private static int partySlotOf(Minecraft mc, Item item) {
         if (mc.player == null) return -1;
-        var party = grill24.fishtastic.companion.CompanionStorage.party(mc.player);
-        for (int i = 0; i < grill24.fishtastic.companion.CompanionParty.SIZE; i++) {
+        var party = CompanionStorage.party(mc.player);
+        for (int i = 0; i < CompanionParty.SIZE; i++) {
             if (party.get(i).is(item)) return i;
         }
         return -1;
     }
 
     // -------------------------------------------------------------------------
-    // Helpers
+    // Hooks for the render self-test and in-game debugging
 
-    private Label label(String text, int color) {
-        return new Label(text, color).init(tempContext);
+    /** Selects a disc icon exactly as a click would (flight included). No-op for unknown or open pages. */
+    public void selectFish(Identifier fishId) {
+        SilhouetteItemButton icon = iconRefs.get(ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, fishId));
+        if (icon != null && !pageOpen && !closing) sphere.selectChild(icon);
     }
+
+    public void browseFish(int dir) {
+        browse(dir);
+    }
+
+    public void closeInfoPage() {
+        closePage();
+    }
+
+    public void showNotesTab() {
+        if (pageOpen && model != null && model.loreUnlocked()) {
+            tab = EncyclopediaPageLayout.Tab.NOTES;
+            rebuildContent();
+        }
+    }
+
+    public boolean isInfoPageOpen() {
+        return pageOpen;
+    }
+
+    /** True when the narrow-window 300x228 fallback card is active instead of the full spread. */
+    public boolean isCompactPage() {
+        return pageOpen && compactPage;
+    }
+
+    public boolean isClosingInfoPage() {
+        return closing;
+    }
+
+    public Identifier shownFishId() {
+        return shownKey == null ? null : shownKey.identifier();
+    }
+
+    // -------------------------------------------------------------------------
+    // Helpers
 
     private static String translated(String key, Object... args) {
         return Component.translatable(key, args).getString();
     }
-
 }

@@ -1,0 +1,30 @@
+// Design evidence capture. This keeps the normal loader run directories and worlds untouched.
+gradle.projectsEvaluated {
+    def loader = gradle.startParameter.projectProperties.get('questLoader')
+    if (!(loader in ['fabric', 'neoforge'])) throw new GradleException('Set -PquestLoader=fabric or neoforge')
+    def target = rootProject.file("docs/quest-log-redesign/run-${loader}").canonicalFile
+    def parent = rootProject.file('docs/quest-log-redesign').canonicalFile
+    if (target.parentFile != parent) throw new GradleException('Unexpected capture directory')
+    target.mkdirs()
+    new File(target, 'fishtastic_render_selftest').text = (gradle.startParameter.projectProperties.get('questScene') ?: 'fixes') + '\n'
+    def options = new File(target, 'options.txt')
+    def lines = options.exists() ? options.readLines() : []
+    def captureOptions = [
+        'onboardAccessibility':'false',
+        'overrideWidth':'960',
+        'overrideHeight':'540',
+        'fullscreen':'false',
+        'guiScale':'2',
+        'renderDistance':'4',
+        'simulationDistance':'4',
+        'maxFps':'30',
+        'enableVsync':'false'
+    ]
+    lines.removeAll { line -> captureOptions.keySet().any { key -> line.startsWith(key + ':') } }
+    options.text = (lines + captureOptions.collect { key, value -> key + ':' + value }).join('\n') + '\n'
+    def platform = rootProject.project(":${loader}")
+    platform.loom.runs.client.runDir(platform.projectDir.toPath().relativize(target.toPath()).toString())
+    platform.loom.runs.client.vmArg('-Xms256m')
+    platform.loom.runs.client.vmArg('-Xmx1536m')
+    platform.loom.runs.client.vmArg('-XX:ActiveProcessorCount=4')
+}

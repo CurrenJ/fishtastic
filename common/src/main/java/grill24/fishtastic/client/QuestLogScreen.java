@@ -6,6 +6,10 @@ import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.client.effects.CoinArcEffect;
+import grill24.fishtastic.client.effects.SlideFromEffect;
+import grill24.fishtastic.client.encyclopedia.page.PageIcons;
+import grill24.fishtastic.client.encyclopedia.page.PageSurface;
+import grill24.fishtastic.client.renderer.ZoneIconTextures;
 import grill24.fishtastic.client.effects.DropOffEffect;
 import grill24.fishtastic.client.effects.PendulumSwingEffect;
 import grill24.fishtastic.data.FishProfile;
@@ -15,7 +19,6 @@ import grill24.fishtastic.data.QuestDifficulty;
 import grill24.fishtastic.data.QuestObjective;
 import grill24.fishtastic.data.QuestReward;
 import grill24.fishtastic.data.ShopEntry;
-import grill24.fishtastic.tutorial.TutorialStep;
 import grill24.fishtastic.network.CompleteQuestPacket;
 import grill24.fishtastic.network.FishEncyclopediaSyncPacket;
 import grill24.fishtastic.network.PurchaseShopEntryPacket;
@@ -29,6 +32,7 @@ import io.github.currenj.gelatinui.gui.IUIElement;
 import io.github.currenj.gelatinui.gui.PivotMode;
 import io.github.currenj.gelatinui.gui.UI;
 import io.github.currenj.gelatinui.gui.UIContainer;
+import io.github.currenj.gelatinui.gui.UIEvent;
 import io.github.currenj.gelatinui.gui.UIElement;
 import io.github.currenj.gelatinui.gui.GelatinMenu;
 import io.github.currenj.gelatinui.gui.components.*;
@@ -66,6 +70,13 @@ import java.util.concurrent.ThreadLocalRandom;
 public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
     private MinecraftRenderContext tempContext;
+    public UiKeyboardNav keyboardNav() {
+        return keyboardNav;
+    }
+
+    private final UiKeyboardNav keyboardNav = new UiKeyboardNav(this::revealInViewport)
+            .glyphNames(Map.of(">", Component.translatable("narration.fishtastic.expand").getString(),
+                    "^", Component.translatable("narration.fishtastic.collapse").getString()));
     private boolean handlerInstalled = false;
     private QuestSyncPacket.ClientHandler savedHandler;
     private boolean encyclopediaHandlerInstalled = false;
@@ -76,6 +87,28 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     // once by the next buildUI: switches to the quest's category tab and pulses its row, so the
     // "unlocks via quest" link lands on the quest itself, not just the quest log in general.
     private static ResourceKey<Quest> pendingFocusQuest;
+
+    /** The filters belong to each destination, not to the book as a whole. */
+    private enum QuestFilter {
+        ALL, IN_PROGRESS, READY
+    }
+
+    private final Map<Integer, QuestFilter> questFilters = new HashMap<>();
+    private final Map<Integer, Identifier> expandedQuestByDestination = new HashMap<>();
+    private QuestViewport questViewport;
+    private final Map<Integer, Float> destinationScroll = new HashMap<>();
+    private int renderedDestination;
+    private final Set<Identifier> pendingClaims = new HashSet<>();
+    private final Map<Identifier, Long> pendingClaimTimes = new HashMap<>();
+    private final Map<Integer, List<Identifier>> displayedOrder = new HashMap<>();
+    private Identifier heldQuest;
+    // Wall-clock time the in-flight claim coins land. A UI rebuild before then would discard the coin overlay.
+    private long claimAnimEndMs;
+    private boolean rebuildAfterClaimAnim;
+    private boolean fadingHeldQuest;
+    private boolean keepScrollOffset;
+    private Identifier scrollAnchor;
+    private float scrollAnchorY;
 
     /** See {@link #pendingFocusQuest}. */
     public static void selectOnNextOpen(ResourceKey<Quest> quest) {
@@ -100,10 +133,6 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private final Map<Identifier, CyclingIconState> cyclingIconRefs = new LinkedHashMap<>();
     private final Map<ResourceKey<ShopEntry>, ShopCardRefs> shopCardRefs = new LinkedHashMap<>();
     private ItemTabs questTabs;
-    private UIElement<?> tutorialShopTab;
-    private TutorialStep lastTutorialStep;
-    private Label tutorialGuideTitle;
-    private Label tutorialGuideBody;
     private VBox questHeader;
     private VBox questContent;
     private final Map<QuestCategory, List<ResourceKey<Quest>>> questKeysByCategory = new EnumMap<>(QuestCategory.class);
@@ -115,8 +144,150 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             QuestCategory.CHALLENGE, 4
     );
 
+    private static final int SHELL_WIDTH = 416;
+    private static final int SHELL_HEIGHT = 232;
+    private static final int RAIL_WIDTH = 74;
+    private static final int CONTENT_WIDTH = 338;
+    private static final int CONTENT_INSET = 11;
+    private static final int QUEST_VIEWPORT_WIDTH = CONTENT_WIDTH - CONTENT_INSET * 2;
+    private static final int QUEST_VIEWPORT_HEIGHT = 180;
+    private static final int QUEST_SCROLL_GUTTER = 8;
+    private static final int QUEST_PAGE_WIDTH = QUEST_VIEWPORT_WIDTH - QUEST_SCROLL_GUTTER;
+    private static final int QUEST_ROW_WIDTH = QUEST_PAGE_WIDTH;
+    private static final int QUEST_HEADER_HEIGHT = 36;
+    private static final int COLOR_SHELL = 0xFF201A24;
+    private static final int COLOR_RAIL = 0xFF2A202B;
+    private static final int COLOR_PANEL_EDGE = 0xFF72505B;
+    private static final int COLOR_MUTED = 0xFFC9B8BE;
+    private static final int COLOR_SELECTION = 0xFFFFAA00;
+    private static final int COLOR_READY = 0xFF5DCC7A;
+    private static final int COLOR_PROGRESS = 0xFFB86E88;
+    private static final int COLOR_TIMER = 0xFF8CCBFF;
+
+    /**
+     * A clipped, independently scrolling list. UIScreen's built-in scroll bar moves its root,
+     * which is correct for most gelatin screens but would make the Captain's Log rail slide away.
+     */
+    private static final class QuestViewport extends ManualContainer {
+        private IUIElement content;
+        private float scrollOffset;
+        private float dragGrab;
+        /** Starts a screen-level drag on this viewport, so DRAG events keep arriving off the track. */
+        private java.util.function.BiConsumer<IUIElement, Float> dragStarter;
+
+        QuestViewport(float width, float height) {
+            setSize(width, height);
+            setDebugName("questBookViewport");
+        }
+
+        void setContent(IUIElement content) {
+            clearChildren();
+            this.content = content;
+            if (content == null) return;
+            if (content instanceof UIContainer<?> container) container.forceLayout();
+            addChildAt(content, content.getSize().x / 2f, content.getSize().y / 2f);
+            repositionContent();
+            forceLayout();
+        }
+
+        private void repositionContent() {
+            if (content == null) return;
+            if (content instanceof UIContainer<?> container) container.forceLayout();
+            updateChildPosition(content, content.getSize().x / 2f,
+                    content.getSize().y / 2f - scrollOffset);
+        }
+
+        private float maxScroll() {
+            return content == null ? 0f : Math.max(0f, content.getSize().y - getSize().y);
+        }
+
+        private void setScrollOffset(float offset) {
+            scrollOffset = Math.max(0f, Math.min(maxScroll(), offset));
+            repositionContent();
+            markDirty();
+        }
+
+        @Override
+        public boolean handleEvent(UIEvent event) {
+            boolean dragging = event.getType() == UIEvent.Type.DRAG || event.getType() == UIEvent.Type.DRAG_END;
+            if (!dragging && !getBounds().contains(event.getMouseX(), event.getMouseY())) return false;
+            return super.handleEvent(event);
+        }
+
+        private float localY(UIEvent event) {
+            return (event.getMouseY() - getGlobalPosition().y) / getGlobalScale();
+        }
+
+        private float localX(UIEvent event) {
+            return (event.getMouseX() - getGlobalPosition().x) / getGlobalScale();
+        }
+
+        private float thumbHeight() {
+            float trackH = getSize().y;
+            return Math.max(18f, trackH * trackH / content.getSize().y);
+        }
+
+        @Override
+        protected boolean onEvent(UIEvent event) {
+            float max = maxScroll();
+            if (max > 0f) {
+                float travel = Math.max(1f, getSize().y - thumbHeight());
+                switch (event.getType()) {
+                    case CLICK -> {
+                        // Rows stop short of the gutter, so this only fires for clicks on the bar itself.
+                        if (localX(event) < getSize().x - QUEST_SCROLL_GUTTER) break;
+                        float thumbY = travel * scrollOffset / max;
+                        float y = localY(event);
+                        dragGrab = (y >= thumbY && y <= thumbY + thumbHeight()) ? y - thumbY : thumbHeight() / 2f;
+                        setScrollOffset((y - dragGrab) / travel * max);
+                        if (dragStarter != null) dragStarter.accept(this, event.getMouseY() * 1f);
+                        return true;
+                    }
+                    case DRAG -> {
+                        setScrollOffset((localY(event) - dragGrab) / travel * max);
+                        return true;
+                    }
+                    case DRAG_END -> {
+                        return true;
+                    }
+                    default -> { }
+                }
+            }
+            if (event.getType() == UIEvent.Type.SCROLL && maxScroll() > 0f) {
+                setScrollOffset(scrollOffset - event.getScrollDelta() * 18f);
+                return true;
+            }
+            return super.onEvent(event);
+        }
+
+        @Override
+        protected void renderChildren(io.github.currenj.gelatinui.gui.IRenderContext context, Rectangle2D viewport) {
+            if (context instanceof MinecraftRenderContext mc) {
+                // UIElement.render already has this viewport's parent pose on the stack.
+                // MinecraftRenderContext transforms scissor coordinates through that pose, so
+                // passing global coordinates here would apply the shell offset twice.
+                mc.pushScissor(0, 0, Math.round(getSize().x), Math.round(getSize().y));
+                super.renderChildren(context, viewport);
+                mc.popScissor();
+            } else {
+                super.renderChildren(context, viewport);
+            }
+
+            float max = maxScroll();
+            if (max <= 0f) return;
+            int trackX = Math.round(getSize().x - 4);
+            int trackH = Math.round(getSize().y);
+            int thumbH = Math.max(18, Math.round(trackH * getSize().y / content.getSize().y));
+            int thumbY = Math.round((trackH - thumbH) * scrollOffset / max);
+            context.fill(trackX - 1, 0, trackX + 3, trackH, COLOR_PANEL_EDGE);
+            context.fill(trackX, 0, trackX + 2, trackH, 0xFF352A32);
+            context.fill(trackX, thumbY, trackX + 2, thumbY + thumbH, 0xFFC58A58);
+            context.fill(trackX, thumbY, trackX + 1, thumbY + thumbH, 0xFFFFE0A0);
+        }
+    }
+
     private record QuestRowRefs(
-            VBox row,
+            UIElement<?> row,
             Label nameLabel,
             SpriteButton claimButton,
             ThinProgressBar progressBar,
@@ -236,13 +407,18 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private static final Identifier STATUS_PIP_DEFAULT_TEXTURE = Fishtastic.id("textures/gui/status_indicator_pip_default.png");
     private static final Identifier STATUS_PIP_GREEN_TEXTURE = Fishtastic.id("textures/gui/status_indicator_pip_green.png");
     private static final float STATUS_PIP_SIZE = 5f;
-    private static final float STATUS_PIP_TOOLTIP_SCALE = 0.7f;
+
+    /** One look for every quest-log tooltip: same panel colour, padding, outline and text scale. */
+    private static SpriteRectangle.SpriteRectangleImpl tooltipPanel(String text, int textColor) {
+        return UI.spriteRectangle(0, 0, COLOR_SHELL).text(text, textColor)
+                .autoSize(true).padding(4, 3).outline(true);
+    }
 
     // Scale (relative to ItemRenderer's 16x16 base) for the single-species icon shown to the
     // left of a quest's progress bar, and for each member icon in a tag-quest's discovered-fish
     // list. The list icons are smaller since a whole row of them sits together.
     private static final float QUEST_SPECIES_ICON_SCALE = 0.7f;
-    private static final float QUEST_TAG_LIST_ICON_SCALE = 0.55f;
+    private static final float QUEST_TAG_LIST_ICON_SCALE = 1.25f;
     // Number of tag-list fish icons laid out side-by-side before wrapping to a new row.
     private static final int QUEST_TAG_LIST_ICONS_PER_ROW = 10;
     // How long (in game ticks) a non-distinct tag quest's progress-bar icon shows one species
@@ -260,6 +436,8 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
     // Quest claim reward feedback — mini coins that fly from the claimed quest row up to the
     // token balance display, arcing with some randomness, while the balance counts up.
+    private static final float QUEST_CLAIM_FADE_SECONDS = 0.25f;
+    private static final float QUEST_REFLOW_SECONDS = 0.3f;
     private static final int QUEST_CLAIM_MIN_COINS = 6;
     private static final int QUEST_CLAIM_MAX_COINS = 14;
     private static final float COIN_FLIGHT_DURATION_MIN = 0.9f;
@@ -285,19 +463,24 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             savedHandler = QuestSyncPacket.clientHandler;
             handlerInstalled = true;
             QuestSyncPacket.registerClientHandler(packet -> {
-                int previousShopRefreshCount = QuestClientCache.getShopRefreshCount();
                 QuestClientCache.update(packet.questProgress(), packet.tokenBalance(), packet.triggeringItems(),
                         packet.purchaseCounts(), packet.cleanupGoal(), packet.serverGameTime(),
                         packet.baitDepletedItem(), packet.firstCatchItems(), packet.shopRefreshCount(),
                         packet.unlockedCompanions(), packet.newlyUnlockedCompanions());
                 Minecraft mc = Minecraft.getInstance();
                 if (mc.screen == this) {
-                    // A shop refresh changes which entries are active, not just their visuals -
-                    // a full rebuild is needed rather than the usual in-place widget update.
-                    if (packet.shopRefreshCount() != previousShopRefreshCount) {
-                        buildUI();
-                    } else {
+                    // The redesign derives destination counts, filters and ordering from the
+                    // authoritative snapshot. Rebuild the clipped content atomically so a
+                    // claim/rotation never leaves a stale Ready count or a mismatched row order.
+                    // The selected destination/filter and expanded quest IDs are retained by the
+                    // screen, so a sync does not throw the player back to the top of the book.
+                    pendingClaims.clear();
+                    if (System.currentTimeMillis() < claimAnimEndMs) {
+                        // Keep the coin overlay alive; show the claimed state in place and rebuild once they land.
                         updateInPlace();
+                        rebuildAfterClaimAnim = true;
+                    } else {
+                        buildUI();
                     }
                 }
             });
@@ -329,22 +512,30 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     @Override
     protected void containerTick() {
         super.containerTick();
-        TutorialStep tutorial = TutorialClientHandler.getCurrentStep();
-        if (tutorial != lastTutorialStep && questTabs != null) {
-            lastTutorialStep = tutorial;
-            updateTutorialGuide();
-            if (tutorial == TutorialStep.QUEST_CLAIM) {
-                questTabs.select(0);
-                uiScreen.runDeferred(() -> {
-                    pulseQuestRow(grill24.fishtastic.tutorial.TutorialManager.TUTORIAL_QUEST_KEY);
-                    QuestRowRefs row = questRowRefs.get(grill24.fishtastic.tutorial.TutorialManager.TUTORIAL_QUEST_KEY.identifier());
-                    if (row != null) row.claimButton().addBreatheEffect();
-                });
-            }
-            if (tutorial == TutorialStep.SHOP_BROWSE && tutorialShopTab != null) tutorialShopTab.addBreatheEffect();
+        long now = System.currentTimeMillis();
+        if (pendingClaimTimes.values().stream().anyMatch(start -> now - start > 5000)) {
+            pendingClaims.clear();
+            pendingClaimTimes.clear();
+            buildUI();
         }
-        if (tutorial == TutorialStep.SHOP_BROWSE && questTabs != null && questTabs.getSelectedIndex() == 5) {
-            TutorialClientHandler.onShopVisited();
+        if (rebuildAfterClaimAnim && now >= claimAnimEndMs) {
+            rebuildAfterClaimAnim = false;
+            buildUI();
+        }
+        if (heldQuest != null && !fadingHeldQuest && now >= claimAnimEndMs && !pendingClaims.contains(heldQuest)
+                && !heldQuest.equals(expandedQuestByDestination.get(activeTabIndex))) {
+            QuestRowRefs held = questRowRefs.get(heldQuest);
+            Minecraft client = Minecraft.getInstance();
+            double mx = client.mouseHandler.xpos() * width / client.getWindow().getScreenWidth();
+            double my = client.mouseHandler.ypos() * height / client.getWindow().getScreenHeight();
+            if (held == null || !held.row().getBounds().contains(mx, my)) {
+                if (held != null && held.row() instanceof ManualContainer row) {
+                    fadeOutHeldQuest(row);
+                } else {
+                    heldQuest = null;
+                    buildUI();
+                }
+            }
         }
         // Ticked locally every frame rather than only on quest-sync packets, so the countdown
         // text counts down smoothly instead of jumping only when the player catches something.
@@ -378,18 +569,45 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         }
     }
 
-    /** Part of the layout, so instructions never cover the tabs or the quest being taught. */
-    private void updateTutorialGuide() {
-        if (tutorialGuideTitle == null || questHeader == null) return;
-        Component title = TutorialClientHandler.questGuideTitle();
-        Component body = TutorialClientHandler.questGuideBody();
-        boolean visible = title != null && body != null;
-        tutorialGuideTitle.text(visible ? title.getString() : "");
-        tutorialGuideBody.text(visible ? body.getString() : "");
-        tutorialGuideTitle.setVisible(visible);
-        tutorialGuideBody.setVisible(visible);
-        questHeader.forceLayout();
-        if (questContent != null) recenterContent(questContent);
+    /**
+     * Fades the claimed card out before it is dropped from the list. Elements have no opacity,
+     * so a cover in the page colour is faded in over the card, then the list is rebuilt without it.
+     */
+    private void fadeOutHeldQuest(ManualContainer row) {
+        fadingHeldQuest = true;
+        float w = row.getSize().x;
+        float h = row.getSize().y;
+        int rgb = COLOR_RAIL & 0x00FFFFFF;
+        var cover = UI.rectangle(w, h, rgb);
+        row.addChildAt(cover, w / 2f, h / 2f);
+        row.playAnimation(new FloatKeyframeAnimation(
+                "quest-claim-fade",
+                List.of(new Keyframe(0f, 0f), new Keyframe(QUEST_CLAIM_FADE_SECONDS, 1f)),
+                v -> cover.color((Math.round(Math.min(1f, v) * 255) << 24) | rgb),
+                () -> {
+                    // Screen-space rows (list position minus scroll), since the rebuild may also re-anchor the scroll.
+                    float oldScroll = questViewport == null ? 0f : questViewport.scrollOffset;
+                    Map<Identifier, Float> oldY = new HashMap<>();
+                    for (Map.Entry<Identifier, QuestRowRefs> e : questRowRefs.entrySet()) {
+                        oldY.put(e.getKey(), e.getValue().row().getPosition().y - oldScroll);
+                    }
+                    fadingHeldQuest = false;
+                    heldQuest = null;
+                    // Same scroll offset, not an anchored one: the cards below close the gap, the view stays put.
+                    keepScrollOffset = true;
+                    buildUI();
+                    // Remaining cards glide from where they were to their new slot.
+                    float newScroll = questViewport == null ? 0f : questViewport.scrollOffset;
+                    for (Map.Entry<Identifier, QuestRowRefs> e : questRowRefs.entrySet()) {
+                        Float before = oldY.get(e.getKey());
+                        if (before == null) continue;
+                        UIElement<?> card = e.getValue().row();
+                        float dy = before - (card.getPosition().y - newScroll);
+                        if (Math.abs(dy) > 0.5f) {
+                            card.addEffect(new SlideFromEffect("quest-reflow", 2, QUEST_REFLOW_SECONDS, 0f, dy));
+                        }
+                    }
+                }));
     }
 
     /** Formats a tick countdown as "Xd HH:MM:SS" / "H:MM:SS" / "MM:SS", shrinking to whichever units are non-zero, and substitutes it into {@code translationKey} (e.g. "Dailies reset in %s"). */
@@ -412,13 +630,37 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
     @Override
     protected void buildUI() {
+        if (questViewport != null) {
+            destinationScroll.put(renderedDestination, questViewport.scrollOffset);
+            if (scrollAnchor == null && !keepScrollOffset && renderedDestination == activeTabIndex) {
+                // Anchor on the topmost visible row, never the held (just-claimed) one: it is about
+                // to be re-sorted to the end of the list and would drag the scroll down with it.
+                float anchorTop = Float.MAX_VALUE;
+                for (var entry : questRowRefs.entrySet()) {
+                    UIElement<?> row = entry.getValue().row();
+                    float top = row.getPosition().y;
+                    if (!entry.getKey().equals(heldQuest) && top + row.getSize().y > questViewport.scrollOffset
+                            && top < anchorTop) {
+                        anchorTop = top;
+                        scrollAnchor = entry.getKey();
+                        scrollAnchorY = top - questViewport.scrollOffset;
+                    }
+                }
+            }
+        }
+        keepScrollOffset = false;
+        keyboardNav.resetLabels();
+        renderedDestination = activeTabIndex;
         questRowRefs.clear();
         cyclingIconRefs.clear();
         shopCardRefs.clear();
         questTabs = null;
+        questViewport = null;
         tokenBalanceLabel = null;
         tokenIconRow = null;
         coinFlyOverlay = null;
+        fadingHeldQuest = false;
+        rebuildAfterClaimAnim = false;
         cleanupGoalTotalLabel = null;
         cleanupGoalCountLabel = null;
         cleanupGoalBar = null;
@@ -495,16 +737,10 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             });
         }
 
-        // During the tutorial, pin tutorial quests to the top of the Daily tab.
-        // They are hidden once the tutorial is complete or hasn't started yet.
-        TutorialStep tutorialStep = TutorialClientHandler.getCurrentStep();
-        boolean tutorialActive = tutorialStep.hasOverlay();
-        if (tutorialActive) {
-            List<Map.Entry<ResourceKey<Quest>, Quest>> tutorialQuests = byCategory.get(QuestCategory.TUTORIAL);
-            if (!tutorialQuests.isEmpty()) {
-                byCategory.get(QuestCategory.DAILY).addAll(0, tutorialQuests);
-            }
-        }
+        // First Catch rewards belong to fishing, regardless of whether help was used.
+        byCategory.get(QuestCategory.DAILY).addAll(0, byCategory.get(QuestCategory.TUTORIAL).stream()
+                .filter(entry -> !QuestClientCache.getProgress(entry.getKey().identifier()).claimed()
+                        || entry.getKey().identifier().equals(heldQuest)).toList());
 
         questKeysByCategory.clear();
         for (QuestCategory cat : QUEST_CATEGORY_TAB_INDEX.keySet()) {
@@ -513,73 +749,81 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             questKeysByCategory.put(cat, keys);
         }
 
-        Label titleLabel = new Label(translated("screen.fishtastic.quest_log.title"), 0xFFFFFFFF).init(tempContext);
-        titleLabel.scale(1.3f);
-        titleLabel.addBreatheEffect();
-        titleLabel.onMouseEnter(e -> titleLabel.setTargetScale(1.5f, true));
-        titleLabel.onMouseExit(e -> titleLabel.setTargetScale(1.3f, true));
+        // The book is deliberately a fixed logical-size shell. The rail and header stay put while
+        // only the clipped quest viewport scrolls, matching the reviewed Captain's Log mockups.
+        ManualContainer shell = UI.manualContainer().setSize(SHELL_WIDTH, SHELL_HEIGHT)
+                .backgroundColor(0xFF15151B);
+        shell.setDebugName("questBookShell");
 
-        tokenBalanceLabel = new Label(translated("screen.fishtastic.quest_log.tokens", QuestClientCache.getTokenBalance()), 0xFFFFAA00).init(tempContext);
-        HBox tokenLabel = UI.hbox().spacing(4).alignment(HBox.Alignment.CENTER);
-        tokenLabel.addChild(UI.itemRenderer(new ItemStack(FishtasticItems.PILE_OF_COINS.value())));
+        ManualContainer rail = UI.manualContainer().setSize(RAIL_WIDTH, SHELL_HEIGHT)
+                .backgroundColor(COLOR_RAIL);
+        rail.backgroundSprite(questRowBackgroundSprite(false, QuestDifficulty.BRONZE));
+        rail.addChildAt(UI.rectangle(RAIL_WIDTH - 6, SHELL_HEIGHT - 6, COLOR_RAIL), RAIL_WIDTH / 2f, SHELL_HEIGHT / 2f);
+        place(rail, new Label(translated("screen.fishtastic.quest_log.rail.title"), 0xFFEBDAD1).init(tempContext), 10, 7);
+        Label railSubtitle = new Label(translated("screen.fishtastic.quest_log.rail.subtitle"), COLOR_SELECTION).init(tempContext);
+        place(rail, railSubtitle, 10, 16);
+        place(rail, UI.rectangle(58, 1, COLOR_PANEL_EDGE), 11, 154);
+
+        String[] destinationKeys = {
+                "today", "goals", "explore", "collect", "trials", "market", "cleanup"
+        };
+        for (int i = 0; i < destinationKeys.length; i++) {
+            int ready = i < 5 ? readyCount(destinationEntries(byCategory, i)) : 0;
+            addDestinationButton(rail, i, destinationKeys[i], ready, i == activeTabIndex);
+        }
+        Label closeHint = new Label(translated("screen.fishtastic.quest_log.rail.close"), 0xFF8E7E87).init(tempContext);
+        rail.addChildAt(closeHint, RAIL_WIDTH / 2f, SHELL_HEIGHT - 14f);
+
+        ManualContainer panel = UI.manualContainer().setSize(CONTENT_WIDTH, SHELL_HEIGHT)
+                .backgroundColor(COLOR_SHELL);
+        panel.backgroundSprite(questRowBackgroundSprite(false, QuestDifficulty.BRONZE));
+        panel.addChildAt(UI.rectangle(CONTENT_WIDTH - 6, SHELL_HEIGHT - 6, COLOR_RAIL),
+                CONTENT_WIDTH / 2f, SHELL_HEIGHT / 2f);
+
+        String titleKey = "screen.fishtastic.quest_log.heading." + activeTabIndex;
+        Label titleLabel = new Label(translated(titleKey), 0xFFFFFFFF).init(tempContext);
+        place(panel, titleLabel, CONTENT_INSET, 8);
+
+        tokenBalanceLabel = new Label(translated("screen.fishtastic.quest_log.tokens", QuestClientCache.getTokenBalance()), COLOR_SELECTION).init(tempContext);
+        HBox tokenLabel = UI.hbox().spacing(2).alignment(HBox.Alignment.CENTER);
+        tokenLabel.addChild(UI.itemRenderer(new ItemStack(FishtasticItems.PILE_OF_COINS.value())).showCount(false));
         tokenLabel.addChild(tokenBalanceLabel);
-        tokenLabel.onMouseEnter(e -> tokenLabel.setTargetScale(1.1f, true));
-        tokenLabel.onMouseExit(e -> tokenLabel.setTargetScale(1.0f, true));
+        tokenLabel.tooltip(uiScreen, new Label(translated("screen.fishtastic.quest_log.tokens", QuestClientCache.getTokenBalance()), COLOR_SELECTION).init(tempContext));
         tokenIconRow = tokenLabel;
+        ManualContainer tokenBox = UI.manualContainer().setSize(87, 18).backgroundColor(0xFF3B2A29);
+        tokenLabel.forceLayout();
+        place(tokenBox, tokenLabel, 8, 1);
+        place(panel, tokenBox, CONTENT_WIDTH - 98, 6);
 
-        VBox header = UI.vbox().spacing(4).alignment(VBox.Alignment.CENTER);
-        header.addChild(titleLabel);
-        questHeader = header;
-        tutorialGuideTitle = new Label("", 0xFFFFDD44).init(tempContext);
-        tutorialGuideBody = new Label("", 0xFFDDDDDD).maxWidth(this.width * 0.7f).centered(true).init(tempContext);
-        header.addChild(tutorialGuideTitle);
-        header.addChild(tutorialGuideBody);
-        header.addChild(tokenLabel);
+        place(panel, buildFilterBar(byCategory, activeTabIndex), CONTENT_INSET, 28);
+        if (activeTabIndex < 5) {
+            QuestFilter filter = questFilters.getOrDefault(activeTabIndex, QuestFilter.ALL);
+            place(panel, buildQuestListRedesigned(destinationEntries(byCategory, activeTabIndex),
+                    categoryForDestination(activeTabIndex), activeTabIndex, filter), CONTENT_INSET, 48);
+        } else {
+            IUIElement page = activeTabIndex == 5 ? buildShopPanel(shopRegistry, currentDay) : buildCleanupGoalPanel();
+            if (page instanceof UIContainer<?> container) container.forceLayout();
+            int pageTop = activeTabIndex == 5 ? 48 : 32;
+            questViewport = new QuestViewport(QUEST_VIEWPORT_WIDTH, SHELL_HEIGHT - pageTop - 7);
+            questViewport.dragStarter = (el, y) -> uiScreen.startDrag(el, y, 0f);
+            questViewport.setContent(page);
+            questViewport.setScrollOffset(destinationScroll.getOrDefault(activeTabIndex, 0f));
+            place(panel, questViewport, CONTENT_INSET, pageTop);
+        }
 
-        ItemTabs tabs = UI.itemTabs();
-        tabs.alertIcon(TAB_ALERT_TEXTURE, TAB_ALERT_WIDTH, TAB_ALERT_HEIGHT);
-        tabs.addTab(new ItemStack(Items.COD),
-                scaleTabPanel(buildQuestList(byCategory.get(QuestCategory.DAILY), true), CONTENT_WIDTH_FRACTION));
-        tabs.addTab(new ItemStack(Items.FISHING_ROD),
-                scaleTabPanel(buildQuestList(byCategory.get(QuestCategory.MASTERY), false), CONTENT_WIDTH_FRACTION));
-        tabs.addTab(new ItemStack(Items.COMPASS),
-                scaleTabPanel(buildQuestList(byCategory.get(QuestCategory.EXPLORER), false), CONTENT_WIDTH_FRACTION));
-        tabs.addTab(new ItemStack(Items.MAP),
-                scaleTabPanel(buildQuestList(byCategory.get(QuestCategory.COLLECTOR), false), CONTENT_WIDTH_FRACTION));
-        tabs.addTab(new ItemStack(Items.NETHER_STAR),
-                scaleTabPanel(buildQuestList(byCategory.get(QuestCategory.CHALLENGE), false), CONTENT_WIDTH_FRACTION));
-        tutorialShopTab = tabs.addTab(new ItemStack(Items.EMERALD),
-                scaleTabPanel(buildShopPanel(shopRegistry, currentDay), SHOP_CONTENT_WIDTH_FRACTION));
-        tabs.addTab(new ItemStack(FishtasticItems.SEA_GLASS.value()),
-                scaleTabPanel(buildCleanupGoalPanel(), CLEANUP_CONTENT_WIDTH_FRACTION));
+        shell.addChildAt(rail, RAIL_WIDTH / 2f, SHELL_HEIGHT / 2f);
+        shell.addChildAt(panel, RAIL_WIDTH + 4f + CONTENT_WIDTH / 2f, SHELL_HEIGHT / 2f);
 
-        questTabs = tabs;
-        refreshTabAlerts();
-
-        VBox content = UI.vbox().spacing(10).padding(16).alignment(VBox.Alignment.CENTER);
-        questContent = content;
-        content.addChild(header);
-        content.addChild(tabs);
-
-        tabs.onSelectionChanged(i -> {
-            activeTabIndex = i;
-            recenterContent(content);
-        });
-        tabs.select(activeTabIndex);
-        lastTutorialStep = null;
-        recenterContent(content);
-
-        // Overlay hosting the quest-claim coin-fly animation. Nested inside `content` (rather
-        // than rendered as an independent screen-space layer) so it scrolls in lockstep with
-        // both the claimed quest row and the token balance display it flies coins between —
-        // both of which live in this same scrolling tree.
-        coinFlyOverlay = UI.manualContainer().setSize(0, 0);
+        coinFlyOverlay = UI.manualContainer().setSize(SHELL_WIDTH, SHELL_HEIGHT);
         coinFlyOverlay.setDebugName("questClaimCoinOverlay");
-        content.addChild(coinFlyOverlay);
+        shell.addChild(coinFlyOverlay);
+        questContent = null;
 
-        uiScreen.setRoot(content);
-        uiScreen.setScrollEnabled(true);
-        updateTutorialGuide();
+        shell.forceLayout();
+        uiScreen.setAutoCenterRoot(true);
+        uiScreen.setScrollEnabled(false);
+        uiScreen.setRoot(shell);
+        keyboardNav.refresh(shell);
 
         if (focusQuest != null) {
             ResourceKey<Quest> focused = focusQuest;
@@ -587,11 +831,586 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         }
     }
 
+    @Override
+    protected void extractContent(net.minecraft.client.gui.GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        graphics.fill(0, 0, width, height, 0xC010141A);
+    }
+
+    @Override
+    public void extractRenderState(net.minecraft.client.gui.GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+        keyboardNav.renderFocus(graphics);
+        if (keyboardNav.consumeNarrationRequest()) triggerImmediateNarration(false);
+    }
+
+    @Override
+    public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
+        if (uiScreen != null && keyboardNav.keyPressed(event, uiScreen, uiScreen.getRoot())) return true;
+        return super.keyPressed(event);
+    }
+
+    @Override
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+        keyboardNav.mouseUsed();
+        return super.mouseClicked(event, doubleClick);
+    }
+
+    @Override
+    protected void updateNarratedWidget(net.minecraft.client.gui.narration.NarrationElementOutput output) {
+        keyboardNav.narrate(output);
+        output.add(net.minecraft.client.gui.narration.NarratedElementType.USAGE,
+                Component.translatable("narration.fishtastic.quest_log.usage"));
+    }
+
+    /** Scrolls the quest list so a keyboard-focused element is inside the clipped viewport. */
+    private void revealInViewport(IUIElement element) {
+        if (questViewport == null) return;
+        for (IUIElement p = element.getParent(); p != null; p = p.getParent()) {
+            if (p != questViewport) continue;
+            Rectangle2D vp = questViewport.getBounds();
+            Rectangle2D b = element.getBounds();
+            float scale = Math.max(0.01f, questViewport.getGlobalScale());
+            if (b.getMinY() < vp.getMinY()) {
+                questViewport.setScrollOffset(questViewport.scrollOffset - (float) (vp.getMinY() - b.getMinY()) / scale - 4f);
+            } else if (b.getMaxY() > vp.getMaxY()) {
+                questViewport.setScrollOffset(questViewport.scrollOffset + (float) (b.getMaxY() - vp.getMaxY()) / scale + 4f);
+            }
+            return;
+        }
+    }
+
+    /** Place a measured element by its top left, keeping font and item pixels on integer coordinates. */
+    private static void place(ManualContainer parent, IUIElement child, float x, float y) {
+        if (child instanceof UIContainer<?> container) container.forceLayout();
+        parent.addChildAt(child, x + child.getSize().x / 2f, y + child.getSize().y / 2f);
+    }
+
+    private static void addPanelBorder(ManualContainer panel, int width, int height) {
+        panel.addChildAt(UI.rectangle(width, 2, COLOR_PANEL_EDGE), width / 2f, 1f);
+        panel.addChildAt(UI.rectangle(width, 2, COLOR_PANEL_EDGE), width / 2f, height - 1f);
+        panel.addChildAt(UI.rectangle(2, height, COLOR_PANEL_EDGE), 1f, height / 2f);
+        panel.addChildAt(UI.rectangle(2, height, COLOR_PANEL_EDGE), width - 1f, height / 2f);
+    }
+
+    private static QuestCategory categoryForDestination(int destination) {
+        return switch (destination) {
+            case 0 -> QuestCategory.DAILY;
+            case 1 -> QuestCategory.MASTERY;
+            case 2 -> QuestCategory.EXPLORER;
+            case 3 -> QuestCategory.COLLECTOR;
+            default -> QuestCategory.CHALLENGE;
+        };
+    }
+
+    private static String titleKeyForDestination(int destination) {
+        return switch (destination) {
+            case 0 -> "screen.fishtastic.quest_log.destination.today";
+            case 1 -> "screen.fishtastic.quest_log.destination.goals";
+            case 2 -> "screen.fishtastic.quest_log.destination.explore";
+            case 3 -> "screen.fishtastic.quest_log.destination.collect";
+            case 4 -> "screen.fishtastic.quest_log.destination.trials";
+            case 5 -> "screen.fishtastic.quest_log.destination.market";
+            default -> "screen.fishtastic.quest_log.destination.cleanup";
+        };
+    }
+
+    private static List<Map.Entry<ResourceKey<Quest>, Quest>> destinationEntries(
+            Map<QuestCategory, List<Map.Entry<ResourceKey<Quest>, Quest>>> byCategory, int destination) {
+        if (destination >= 5) return List.of();
+        return byCategory.getOrDefault(categoryForDestination(destination), List.of());
+    }
+
+    private static int readyCount(List<Map.Entry<ResourceKey<Quest>, Quest>> entries) {
+        int count = 0;
+        for (Map.Entry<ResourceKey<Quest>, Quest> entry : entries) {
+            PlayerQuestState.QuestProgress progress = QuestClientCache.getProgress(entry.getKey().identifier());
+            if (progress.completed() && !progress.claimed()) count++;
+        }
+        return count;
+    }
+
+    private void addDestinationButton(ManualContainer rail, int destination, String key, int ready, boolean active) {
+        String label = translated("screen.fishtastic.quest_log.destination." + key);
+        String text = label;
+        int width = 62;
+        ManualContainer slot = UI.manualContainer().setSize(width, 20);
+        SpriteButton button = new SpriteButton(width, 20, active ? 0xFF714452 : 0x002A202B)
+                .text(text, active ? 0xFFFFFFFF : COLOR_MUTED);
+        button.onMouseEnter(e -> button.color(active ? 0xFF7D4E5B : 0xFF3A2B37));
+        button.onMouseExit(e -> button.color(active ? 0xFF714452 : 0x002A202B));
+        button.onClick(e -> {
+            if (activeTabIndex == destination) return;
+            heldQuest = null;
+            scrollAnchor = null;
+            activeTabIndex = destination;
+            uiScreen.runDeferred(this::buildUI);
+        });
+        button.text("", 0xFFFFFFFF);
+        keyboardNav.label(button, label
+                + (ready > 0 ? ", " + translated("narration.fishtastic.quest_log.ready", ready) : "")
+                + (active ? ", " + translated("narration.fishtastic.selected") : ""));
+        slot.addChildAt(button, width / 2f, 10f);
+        String[] icons = {"*", "✓", "♦", "▥", "✦", "•", ">"};
+        place(slot, new Label(ready > 0 ? String.valueOf(ready) : icons[destination], ready > 0 ? COLOR_READY : COLOR_MUTED).init(tempContext), 9, 5);
+        place(slot, new Label(text, active ? 0xFFFFFFFF : COLOR_MUTED).init(tempContext), 20, 5);
+        if (active) slot.addChildAt(UI.rectangle(2, 20, COLOR_SELECTION), 1f, 10f);
+        rail.addChildAt(slot, RAIL_WIDTH / 2f, 43f + destination * 25.5f);
+    }
+
+    private ManualContainer buildFilterBar(Map<QuestCategory, List<Map.Entry<ResourceKey<Quest>, Quest>>> byCategory,
+            int destination) {
+        ManualContainer bar = UI.manualContainer().setSize(QUEST_VIEWPORT_WIDTH, 18);
+        if (destination >= 5) {
+            if (destination == 5) {
+                shopResetLabel = new Label(formatResetCountdown("screen.fishtastic.quest_log.shop.resets",
+                        QuestClientCache.getTicksUntilDailyReset()), COLOR_TIMER).init(tempContext);
+                place(bar, shopResetLabel, 0, 3);
+            }
+            return bar;
+        }
+
+        QuestFilter selected = questFilters.getOrDefault(destination, QuestFilter.ALL);
+        List<Map.Entry<ResourceKey<Quest>, Quest>> entries = destinationEntries(byCategory, destination);
+        int ready = readyCount(entries);
+        float x = 0f;
+        x = addFilterButton(bar, x, translated("screen.fishtastic.quest_log.filter.all"), QuestFilter.ALL, selected);
+        x = addFilterButton(bar, x, translated("screen.fishtastic.quest_log.filter.in_progress"), QuestFilter.IN_PROGRESS, selected);
+        addFilterButton(bar, x, translated("screen.fishtastic.quest_log.filter.ready", ready), QuestFilter.READY, selected);
+
+        if (destination == 0) {
+            dailyResetLabel = new Label(formatResetCountdown("screen.fishtastic.quest_log.dailies_reset",
+                    QuestClientCache.getTicksUntilDailyReset()), COLOR_TIMER).init(tempContext);
+            place(bar, dailyResetLabel, QUEST_VIEWPORT_WIDTH - dailyResetLabel.getSize().x - 28, 3);
+        } else if (destination == 5) {
+            shopResetLabel = new Label(formatResetCountdown("screen.fishtastic.quest_log.shop.resets",
+                    QuestClientCache.getTicksUntilDailyReset()), COLOR_TIMER).init(tempContext);
+            place(bar, shopResetLabel, 0, 3);
+        }
+        return bar;
+    }
+
+    private float addFilterButton(ManualContainer bar, float x, String text, QuestFilter filter, QuestFilter selected) {
+        int width = this.font.width(text) + 12;
+        ManualContainer slot = UI.manualContainer().setSize(width, 15);
+        SpriteButton button = new SpriteButton(width, 15, filter == selected ? 0xFF704450 : 0x00352A32)
+                .text(text, filter == selected ? COLOR_SELECTION : COLOR_MUTED);
+        button.onMouseEnter(e -> button.color(filter == selected ? 0xFF845462 : 0xFF4A3540));
+        button.onMouseExit(e -> button.color(filter == selected ? 0xFF704450 : 0x00352A32));
+        button.onClick(e -> {
+            heldQuest = null;
+            questFilters.put(activeTabIndex, filter);
+            uiScreen.runDeferred(this::buildUI);
+        });
+        keyboardNav.label(button, text + (filter == selected ? ", " + translated("narration.fishtastic.selected") : ""));
+        slot.addChildAt(button, width / 2f, 7.5f);
+        if (filter == selected) slot.addChildAt(UI.rectangle(width, 2, COLOR_SELECTION), width / 2f, 14f);
+        bar.addChildAt(slot, x + width / 2f, 7.5f);
+        return x + width + 3f;
+    }
+
+    private QuestViewport buildQuestListRedesigned(List<Map.Entry<ResourceKey<Quest>, Quest>> entries,
+            QuestCategory category, int destination, QuestFilter filter) {
+        List<Map.Entry<ResourceKey<Quest>, Quest>> visible = new ArrayList<>(entries);
+        visible.removeIf(entry -> !matchesFilter(entry.getValue(), entry.getKey().identifier(), filter)
+                && !entry.getKey().identifier().equals(heldQuest));
+        List<Identifier> previous = displayedOrder.getOrDefault(destination, List.of());
+        if (heldQuest != null && previous.contains(heldQuest)) {
+            visible.sort(Comparator.comparingInt(entry -> {
+                int index = previous.indexOf(entry.getKey().identifier());
+                return index < 0 ? Integer.MAX_VALUE : index;
+            }));
+        } else visible.sort(this::compareQuestEntries);
+        displayedOrder.put(destination, visible.stream().map(entry -> entry.getKey().identifier()).toList());
+
+        VBox list = UI.vbox().spacing(0).alignment(VBox.Alignment.CENTER);
+        if (visible.isEmpty()) {
+            String destinationName = translated("screen.fishtastic.quest_log.destination." +
+                    switch (destination) {
+                        case 0 -> "today";
+                        case 1 -> "goals";
+                        case 2 -> "explore";
+                        case 3 -> "collect";
+                        default -> "trials";
+                    });
+            String message = filter == QuestFilter.READY
+                    ? translated("screen.fishtastic.quest_log.empty.ready", destinationName)
+                    : translated(filter == QuestFilter.ALL ? "screen.fishtastic.quest_log.no_quests" : "screen.fishtastic.quest_log.empty.in_progress");
+            list.addChild(new Label(message, COLOR_MUTED).maxWidth(240).centered(true).init(tempContext));
+            if (filter != QuestFilter.ALL) {
+                SpriteButton showAll = new SpriteButton(70, 18, 0xFF4D3440)
+                        .text(translated("screen.fishtastic.quest_log.filter.all"), 0xFFFFFFFF);
+                showAll.onClick(e -> {
+                    questFilters.put(destination, QuestFilter.ALL);
+                    uiScreen.runDeferred(this::buildUI);
+                });
+                list.addChild(showAll);
+            }
+        } else {
+            for (Map.Entry<ResourceKey<Quest>, Quest> entry : visible) {
+                list.addChild(buildQuestRowRedesigned(entry.getKey(), entry.getValue(), destination));
+            }
+        }
+
+        list.forceLayout();
+        questViewport = new QuestViewport(QUEST_VIEWPORT_WIDTH, QUEST_VIEWPORT_HEIGHT);
+        questViewport.dragStarter = (el, y) -> uiScreen.startDrag(el, y, 0f);
+        questViewport.setContent(list);
+        QuestRowRefs anchor = scrollAnchor == null ? null : questRowRefs.get(scrollAnchor);
+        questViewport.setScrollOffset(anchor == null ? destinationScroll.getOrDefault(destination, 0f)
+                : anchor.row().getPosition().y - scrollAnchorY);
+        scrollAnchor = null;
+        return questViewport;
+    }
+
+    private boolean matchesFilter(Quest quest, Identifier id, QuestFilter filter) {
+        PlayerQuestState.QuestProgress progress = QuestClientCache.getProgress(id);
+        return switch (filter) {
+            case ALL -> true;
+            case READY -> progress.completed() && !progress.claimed();
+            case IN_PROGRESS -> !progress.claimed() && !progress.completed();
+        };
+    }
+
+    private int compareQuestEntries(Map.Entry<ResourceKey<Quest>, Quest> left,
+            Map.Entry<ResourceKey<Quest>, Quest> right) {
+        int state = Integer.compare(questStateRank(right), questStateRank(left));
+        if (state != 0) return state;
+        int progress = Float.compare(progressFraction(right), progressFraction(left));
+        if (progress != 0) return progress;
+        int difficulty = left.getValue().difficulty().compareTo(right.getValue().difficulty());
+        if (difficulty != 0) return difficulty;
+        if (left.getValue().category() == QuestCategory.TUTORIAL) return -1;
+        if (right.getValue().category() == QuestCategory.TUTORIAL) return 1;
+        int reward = Integer.compare(left.getValue().reward().questTokens(), right.getValue().reward().questTokens());
+        if (reward != 0) return reward;
+        int name = left.getValue().displayName().compareToIgnoreCase(right.getValue().displayName());
+        return name != 0 ? name : left.getKey().identifier().compareTo(right.getKey().identifier());
+    }
+
+    private int questStateRank(Map.Entry<ResourceKey<Quest>, Quest> entry) {
+        PlayerQuestState.QuestProgress progress = QuestClientCache.getProgress(entry.getKey().identifier());
+        if (progress.completed() && !progress.claimed()) return 4;
+        if (!progress.claimed() && progress.currentCount() > 0) return 3;
+        if (!progress.claimed()) return 2;
+        return 1;
+    }
+
+    private float progressFraction(Map.Entry<ResourceKey<Quest>, Quest> entry) {
+        int target = entry.getValue().objective().effectiveTargetCount(Minecraft.getInstance().level.registryAccess());
+        return target <= 0 ? 0f : Math.min(1f,
+                (float) QuestClientCache.getProgress(entry.getKey().identifier()).displayCount(target) / target);
+    }
+
+    private ManualContainer buildQuestRowRedesigned(ResourceKey<Quest> questKey, Quest quest, int destination) {
+        Identifier questId = questKey.identifier();
+        PlayerQuestState.QuestProgress progress = QuestClientCache.getProgress(questId);
+        boolean claimed = progress.claimed();
+        boolean completed = progress.completed();
+        boolean canClaim = completed && !claimed;
+
+        int targetCount = quest.objective().effectiveTargetCount(Minecraft.getInstance().level.registryAccess());
+        int currentCount = progress.displayCount(targetCount);
+        float fraction = targetCount > 0 ? Math.min(1f, (float) currentCount / targetCount) : 0f;
+        String baseDisplayName = quest.displayName().isEmpty() ? questId.getPath() : quest.displayName();
+
+        boolean hasItems = !quest.reward().items().isEmpty();
+        Label nameLabel = new Label(baseDisplayName, 0xFFFFFFFF).maxWidth(hasItems ? 126 : 172).init(tempContext);
+        Label objectiveLabel = new Label(objectiveSummary(quest, targetCount), COLOR_MUTED)
+                .maxWidth(hasItems ? 126 : 192).init(tempContext);
+        Label countLabel = new Label(translated("screen.fishtastic.quest_log.progress_count", currentCount, targetCount),
+                0xFFFFFFFF).init(tempContext);
+        ThinProgressBar bar = new ThinProgressBar(76, 5).progressImmediate(fraction)
+                .flatColor(canClaim ? COLOR_READY : claimed ? 0xFF777077 : COLOR_PROGRESS);
+        SilhouetteItemButton speciesIcon = buildQuestHeaderIcon(quest, questId);
+        int extra = Math.round(nameLabel.getSize().y + objectiveLabel.getSize().y - 18);
+        int headerHeight = QUEST_HEADER_HEIGHT + extra;
+
+        boolean expandable = hasExpandableContent(quest, targetCount);
+        boolean expanded = expandable && questId.equals(expandedQuestByDestination.get(destination));
+        VBox details = expanded ? buildExpandedQuestDetails(quest, progress) : null;
+        int detailHeight = 0;
+        if (details != null) {
+            details.forceLayout();
+            detailHeight = Math.max(82, Math.round(details.getSize().y + 12f));
+        }
+
+        ManualContainer row = UI.manualContainer().setSize(QUEST_ROW_WIDTH, headerHeight + detailHeight);
+        row.setDebugName("questRow:" + questId);
+        row.backgroundSprite(questRowBackgroundSprite(false, quest.difficulty()));
+
+        // Full-header hit target gives the accordion a generous target without stealing clicks
+        // from Claim or species/reward inspection controls.
+        SpriteButton toggleHit = new SpriteButton(QUEST_ROW_WIDTH, headerHeight, 0x00000000);
+        if (expandable) toggleHit.onClick(e -> toggleExpanded(destination, questId));
+        row.addChildAt(toggleHit, QUEST_ROW_WIDTH / 2f, headerHeight / 2f);
+
+        int stateColor = canClaim ? COLOR_READY : claimed ? 0xFF8E7E87 : COLOR_PROGRESS;
+        place(row, UI.rectangle(2, headerHeight - 8, stateColor), 4, 4);
+        place(row, speciesIcon != null ? speciesIcon : objectiveConditionIcon(quest.objective()), 10, 7);
+        place(row, nameLabel, 32, 3);
+        place(row, objectiveLabel, 32, 13 + nameLabel.getSize().y - 9);
+        place(row, bar, 32, 24 + extra);
+        place(row, countLabel, 114, 22 + extra);
+
+        addCollapsedRewardPreview(row, quest, headerHeight, !canClaim && !claimed);
+
+        SpriteButton claimButton = new SpriteButton(64, 19, QUEST_CLAIM_BUTTON_TEXTURE)
+                .texture(questClaimButtonSprite())
+                .text(translated("screen.fishtastic.quest_log.claim") +
+                        (quest.reward().questTokens() > 0 ? " " + quest.reward().questTokens() : ""), 0xFFFFFFFF);
+
+        final Identifier finalQuestId = questId;
+        claimButton.onClick(e -> {
+            if (!pendingClaims.add(finalQuestId)) return;
+            pendingClaimTimes.put(finalQuestId, System.currentTimeMillis());
+            heldQuest = finalQuestId;
+            claimButton.text(translated("screen.fishtastic.quest_log.claiming"), COLOR_MUTED);
+            Minecraft minecraft = Minecraft.getInstance();
+            if (minecraft.player != null) {
+                FishtasticTransport.sendToServer(new CompleteQuestPacket(finalQuestId));
+            }
+            triggerQuestClaimReward(row, quest);
+        });
+        claimButton.setVisible(canClaim);
+        place(row, claimButton, QUEST_ROW_WIDTH - 83, (headerHeight - 19) / 2);
+        if (canClaim && !pendingClaims.contains(questId)) {
+            claimButton.text("", 0xFFFFFFFF);
+            HBox claimContent = UI.hbox().spacing(3).alignment(HBox.Alignment.CENTER);
+            claimContent.addChild(new Label(translated("screen.fishtastic.quest_log.claim") +
+                    (quest.reward().questTokens() > 0 ? " " + quest.reward().questTokens() : ""), 0xFFFFFFFF).init(tempContext));
+            if (quest.reward().questTokens() > 0) claimContent.addChild(rewardCoinIconFor(quest.reward().questTokens()));
+            claimContent.forceLayout();
+            row.addChildAt(claimContent, QUEST_ROW_WIDTH - 51f, headerHeight / 2f);
+        }
+        if (pendingClaims.contains(questId)) claimButton.text(translated("screen.fishtastic.quest_log.claiming"), COLOR_MUTED);
+
+        if (!canClaim && claimed) {
+            row.addChildAt(new Label(translated("screen.fishtastic.quest_log.claimed"), COLOR_MUTED).init(tempContext),
+                    264f, headerHeight / 2f);
+        }
+
+        String arrowText = expanded ? "^" : ">";
+        if (expandable) {
+            SpriteButton arrow = new SpriteButton(13, 16, 0x00000000).text(arrowText, 0xFFFFFFFF);
+            arrow.onClick(e -> toggleExpanded(destination, questId));
+            row.addChildAt(arrow, QUEST_ROW_WIDTH - 10f, headerHeight / 2f);
+        }
+
+        if (details != null) {
+            place(row, details, 12, headerHeight + 6);
+        }
+
+        ManualContainer focusOutline = UI.manualContainer().setSize(QUEST_ROW_WIDTH, headerHeight);
+        focusOutline.addChildAt(UI.rectangle(QUEST_ROW_WIDTH, 1, COLOR_SELECTION), QUEST_ROW_WIDTH / 2f, 0.5f);
+        focusOutline.addChildAt(UI.rectangle(QUEST_ROW_WIDTH, 1, COLOR_SELECTION), QUEST_ROW_WIDTH / 2f, headerHeight - 0.5f);
+        focusOutline.addChildAt(UI.rectangle(1, headerHeight, COLOR_SELECTION), 0.5f, headerHeight / 2f);
+        focusOutline.addChildAt(UI.rectangle(1, headerHeight, COLOR_SELECTION), QUEST_ROW_WIDTH - 0.5f, headerHeight / 2f);
+        focusOutline.setVisible(false);
+        row.addChildAt(focusOutline, QUEST_ROW_WIDTH / 2f, headerHeight / 2f);
+        row.onMouseEnter(e -> focusOutline.setVisible(true));
+        row.onMouseExit(e -> focusOutline.setVisible(false));
+
+
+        SpriteRectangle.SpriteRectangleImpl statusPip = null;
+        questRowRefs.put(questId, new QuestRowRefs(row, nameLabel, claimButton, bar, countLabel, targetCount,
+                baseDisplayName, quest.objective(), quest.difficulty(), statusPip));
+        return row;
+    }
+
+    /**
+     * Whether expanding the row would reveal anything the header doesn't already show: a species or
+     * bait checklist, or a description the header's objective summary doesn't already spell out
+     * (the summary falls back to the description itself for any conditioned objective).
+     */
+    private boolean hasExpandableContent(Quest quest, int target) {
+        QuestObjective objective = quest.objective();
+        if (objective.distinctSpecies() && objective.targetSpeciesTag().isPresent()) return true;
+        if (objective.distinctBaitTag().isPresent()) return true;
+        String description = describeWithSpoilerGuard(quest).trim().replaceFirst("[.]$", "");
+        return !description.isEmpty() && !description.equals(objectiveSummary(quest, target));
+    }
+
+    private String objectiveSummary(Quest quest, int target) {
+        QuestObjective objective = quest.objective();
+        if (objective.distinctSpecies() && objective.targetSpeciesTag().isPresent()
+                && objective.targetSpeciesTag().get().location().getPath().startsWith("zone_")
+                && !hasEnvironmentCondition(objective) && objective.minQuality().isEmpty() && objective.catchStat().isEmpty()) {
+            return translated("screen.fishtastic.quest_log.objective.discover", target,
+                    objective.targetSpeciesTag().get().location().getPath().substring(5).replace('_', ' '));
+        }
+        if (quest.category() == QuestCategory.TUTORIAL) return translated("screen.fishtastic.quest_log.objective.any");
+        if (objective.zoneCondition().isPresent() && objective.targetSpeciesTag().isPresent()
+                && objective.targetSpeciesTag().get().location().getPath().equals("zone_" + objective.zoneCondition().get().getSerializedName())
+                && objective.timeConditions().isEmpty() && objective.weatherCondition().isEmpty()
+                && objective.biomeCondition().isEmpty() && objective.minQuality().isEmpty()
+                && objective.catchStat().isEmpty() && !objective.distinctSpecies()) {
+            return translated("screen.fishtastic.quest_log.objective.zone", target,
+                    objective.zoneCondition().get().getSerializedName());
+        }
+        // Unknown objective combinations keep all authored conditions and grow the row.
+        return describeWithSpoilerGuard(quest).trim().replaceFirst("[.]$", "");
+    }
+
+    @Nullable
+    private SilhouetteItemButton buildQuestHeaderIcon(Quest quest, Identifier questId) {
+        QuestObjective objective = quest.objective();
+        if (objective.targetSpecies().isPresent()) {
+            ResourceKey<Item> key = objective.targetSpecies().get();
+            SilhouetteItemButton icon = buildSpeciesIcon(key, 1f);
+            if (icon != null) wireEncyclopediaNavigation(icon, key);
+            return icon;
+        }
+        // Tag quests cycle through the tag's members (distinct "catch them all" ones too); treasure has no species to show.
+        if (objective.targetSpeciesTag().isPresent()
+                && !objective.targetSpeciesTag().get().equals(FishtasticItemTags.TREASURE)) {
+            return buildCyclingSpeciesIcon(questId, objective.targetSpeciesTag().get(), objective.excludeSpeciesTag(),
+                    Minecraft.getInstance().level.registryAccess(), 1f);
+        }
+        return null;
+    }
+
+    /**
+     * Icon for quests that name no species: the encyclopedia's own weather / time-of-day glyphs and
+     * zone art, falling back to the angler fish only when the objective has no such condition.
+     */
+    private UIElement<?> objectiveConditionIcon(QuestObjective objective) {
+        PageSurface surface = new PageSurface(16, 16);
+        if (objective.weatherCondition().isPresent()) {
+            switch (objective.weatherCondition().get()) {
+                case CLEAR -> surface.icon(PageIcons.SUN, 1, 1, PageIcons.SUN_RGB, -1, 2);
+                case RAIN -> surface.icon(PageIcons.RAIN, 1, 1, PageIcons.RAIN_RGB, -1, 2);
+                case SNOW -> surface.icon(PageIcons.SNOW, 1, 1, PageIcons.SNOW_RGB, -1, 2);
+                case THUNDER -> surface.icon(PageIcons.THUNDER, 1, 1, PageIcons.THUNDER_RGB, -1, 2);
+            }
+            return surface;
+        }
+        if (!objective.timeConditions().isEmpty()) {
+            switch (objective.timeConditions().get(0)) {
+                case DAWN -> surface.icon(PageIcons.DAWN, 1, 1, PageIcons.DAWN_RGB, -1, 2);
+                case DAY -> surface.icon(PageIcons.SUN, 1, 1, PageIcons.SUN_RGB, -1, 2);
+                case DUSK -> surface.icon(PageIcons.DUSK, 1, 1, PageIcons.DUSK_RGB, -1, 2);
+                case NIGHT -> surface.icon(PageIcons.NIGHT, 1, 1, PageIcons.NIGHT_RGB, -1, 2);
+            }
+            return surface;
+        }
+        if (objective.zoneCondition().isPresent()) {
+            Identifier zoneIcon = ZoneIconTextures.get(objective.zoneCondition().get());
+            if (zoneIcon != null) {
+                surface.texture(zoneIcon, 0, 0, 16, 16, ZoneIconTextures.TEXTURE_PX, ZoneIconTextures.TEXTURE_PX);
+                return surface;
+            }
+        }
+        return UI.itemRenderer(new ItemStack(FishtasticItems.ANGLER_FISH.value())).showCount(false);
+    }
+
+    private void addCollapsedRewardPreview(ManualContainer row, Quest quest, int headerHeight, boolean showTokens) {
+        List<QuestReward.RewardItem> rewards = quest.reward().items();
+        int previewCount = Math.min(3, rewards.size());
+        for (int i = 0; i < previewCount; i++) {
+            ItemStack stack = rewards.get(i).toStack();
+            UIElement<?> icon = inspectionItem(stack);
+            place(row, icon, 164 + i * 10, (headerHeight - 16) / 2);
+        }
+        if (rewards.size() > 3) {
+            Label overflow = new Label("+" + (rewards.size() - 3), 0xFFFFFFFF).init(tempContext);
+            ManualContainer badge = UI.manualContainer().setSize(overflow.getSize().x + 4, 10).backgroundColor(COLOR_SHELL);
+            place(badge, overflow, 2, 0);
+            place(row, badge, 198, (headerHeight - 16) / 2 + 3);
+        }
+        if (showTokens && quest.reward().questTokens() > 0) {
+            place(row, rewardCoinIconFor(quest.reward().questTokens()), QUEST_ROW_WIDTH - 81, (headerHeight - 16) / 2);
+            row.addChildAt(new Label(String.valueOf(quest.reward().questTokens()), COLOR_SELECTION).init(tempContext),
+                    QUEST_ROW_WIDTH - 48f, headerHeight / 2f);
+        }
+    }
+
+    private ItemButton inspectionItem(ItemStack stack) {
+        ItemButton icon = new ItemButton(stack) {
+            @Override
+            public boolean handleEvent(UIEvent event) {
+                if (event.getType() == UIEvent.Type.CLICK && !getBounds().contains(event.getMouseX(), event.getMouseY())) return false;
+                return super.handleEvent(event);
+            }
+        };
+        icon.showCount(false).clearOnMouseEnter().clearOnMouseExit();
+        String tooltip = stack.getHoverName().getString() + " x" + stack.getCount();
+        icon.tooltip(uiScreen, tooltipPanel(tooltip, 0xFFFFFFFF));
+        return icon;
+    }
+
+    private VBox buildExpandedQuestDetails(Quest quest, PlayerQuestState.QuestProgress progress) {
+        VBox details = UI.vbox().spacing(6).alignment(VBox.Alignment.LEFT);
+        String description = quest.category() == QuestCategory.TUTORIAL
+                ? translated("screen.fishtastic.quest_log.tutorial_evidence", progress.displayCount(1))
+                : describeWithSpoilerGuard(quest);
+        boolean headerRepeatsDescription = quest.category() != QuestCategory.TUTORIAL
+                && description.trim().replaceFirst("[.]$", "").equals(objectiveSummary(quest, quest.objective()
+                        .effectiveTargetCount(Minecraft.getInstance().level.registryAccess())));
+        if (!description.isEmpty() && !headerRepeatsDescription) details.addChild(new Label(description, 0xFFFFFFFF).maxWidth(286).init(tempContext));
+        if (!headerRepeatsDescription && hasEnvironmentCondition(quest.objective())) {
+            details.addChild(new Label(buildConditionTooltipText(quest.objective()), COLOR_MUTED).maxWidth(286).init(tempContext));
+        }
+
+        QuestObjective objective = quest.objective();
+        if (objective.distinctSpecies() && objective.targetSpeciesTag().isPresent()) {
+            details.addChild(copy("collection.once", COLOR_MUTED));
+            details.addChild(buildTagFishList(objective.targetSpeciesTag().get(), objective.excludeSpeciesTag(),
+                    Minecraft.getInstance().level.registryAccess(), key -> progress.caughtSpecies().contains(key.identifier())));
+        } else if (objective.distinctBaitTag().isPresent()) {
+            List<Identifier> usedBaits = progress.caughtSpecies();
+            details.addChild(buildTagFishList(objective.distinctBaitTag().get(), Optional.empty(),
+                    Minecraft.getInstance().level.registryAccess(), key -> usedBaits.contains(key.identifier())));
+        }
+
+        details.addChild(new Label(translated("screen.fishtastic.quest_log.rewards"), 0xFFFFFFFF).init(tempContext));
+        details.addChild(buildExpandedRewards(quest));
+        return details;
+    }
+
+    private ManualContainer buildExpandedRewards(Quest quest) {
+        ManualContainer rewards = UI.manualContainer().setSize(290, 22);
+        if (quest.reward().questTokens() > 0) {
+            HBox tokens = UI.hbox().spacing(3).alignment(HBox.Alignment.CENTER);
+            tokens.addChild(rewardCoinIconFor(quest.reward().questTokens()));
+            tokens.addChild(new Label(translated("screen.fishtastic.quest_log.tokens", quest.reward().questTokens()), COLOR_SELECTION).init(tempContext));
+            place(rewards, tokens, 0, 0);
+        }
+        if (!quest.reward().items().isEmpty()) {
+            VBox items = UI.vbox().spacing(-1).alignment(VBox.Alignment.LEFT);
+            for (QuestReward.RewardItem rewardItem : quest.reward().items()) {
+                ItemStack stack = rewardItem.toStack();
+                HBox item = UI.hbox().spacing(3).alignment(HBox.Alignment.CENTER);
+                item.addChild(inspectionItem(stack));
+                item.addChild(new Label(stack.getHoverName().getString() + " x" + stack.getCount(), 0xFFFFFFFF)
+                        .maxWidth(142).init(tempContext));
+                items.addChild(item);
+            }
+            items.forceLayout();
+            rewards.setSize(290, Math.max(22, items.getSize().y));
+            place(rewards, items, 123, 0);
+        }
+        return rewards;
+    }
+
+    private void toggleExpanded(int destination, Identifier questId) {
+        QuestRowRefs clicked = questRowRefs.get(questId);
+        if (clicked != null && questViewport != null) {
+            scrollAnchor = questId;
+            scrollAnchorY = clicked.row().getPosition().y - questViewport.scrollOffset;
+        }
+        heldQuest = questId;
+        Identifier current = expandedQuestByDestination.get(destination);
+        if (questId.equals(current)) expandedQuestByDestination.remove(destination);
+        else expandedQuestByDestination.put(destination, questId);
+        uiScreen.runDeferred(this::buildUI);
+    }
+
     /** Scrolls {@code questKey}'s row roughly into view and gives it a one-off "here it is" pulse. */
     private void pulseQuestRow(ResourceKey<Quest> questKey) {
         QuestRowRefs refs = questRowRefs.get(questKey.identifier());
         if (refs == null) return;
-        uiScreen.setScrollY(Math.max(0f, refs.row().getGlobalPosition().y - 120f));
+        if (questViewport != null) questViewport.setScrollOffset(Math.max(0f,
+                refs.row().getPosition().y - 36f));
         refs.row().playAnimation(new FloatKeyframeAnimation(
                 "companionBondQuestFocus",
                 List.of(new Keyframe(0f, 1f), new Keyframe(0.35f, 1.12f), new Keyframe(1.1f, 1f)),
@@ -834,15 +1653,18 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
         Item item = BuiltInRegistries.ITEM.getOptional(speciesKey.identifier()).orElse(Items.COD);
 
-        SilhouetteItemButton icon = new SilhouetteItemButton(new ItemStack(item));
+        SilhouetteItemButton icon = new SilhouetteItemButton(new ItemStack(item)) {
+            @Override
+            public boolean handleEvent(UIEvent event) {
+                if (event.getType() == UIEvent.Type.CLICK && !getBounds().contains(event.getMouseX(), event.getMouseY())) return false;
+                return super.handleEvent(event);
+            }
+        };
         icon.itemScale(scale);
         icon.setSilhouette(!discovered);
 
         String tooltipText = discovered ? itemDisplayName(item) : "???";
-        SpriteRectangle.SpriteRectangleImpl tooltip = UI.spriteRectangle(0, 0, 0xFF002244)
-                .text(tooltipText, 0xFFFFFFFF).autoSize(true).padding(3, 2).outline(true);
-        tooltip.scale(STATUS_PIP_TOOLTIP_SCALE);
-        icon.tooltip(uiScreen, tooltip);
+        icon.tooltip(uiScreen, tooltipPanel(tooltipText, discovered ? 0xFFFFFFFF : COLOR_MUTED));
 
         return icon;
     }
@@ -865,7 +1687,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         members.sort(Comparator.comparingInt((ResourceKey<Item> key) -> {
             ResourceKey<FishProfile> profileKey = ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, key.identifier());
             return profiles.getOptional(profileKey).map(FishProfile::baseWeight).orElse(0);
-        }).reversed());
+        }).reversed().thenComparing(key -> key.identifier().toString()));
         return members;
     }
 
@@ -889,14 +1711,15 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             java.util.function.Predicate<ResourceKey<Item>> discoveredFn) {
         List<ResourceKey<Item>> members = resolveSortedTagMembers(tag, excludeTag, registryAccess);
 
-        VBox wrap = UI.vbox().spacing(3).alignment(VBox.Alignment.CENTER);
+        VBox wrap = UI.vbox().spacing(4).alignment(VBox.Alignment.CENTER);
         for (int i = 0; i < members.size(); i += QUEST_TAG_LIST_ICONS_PER_ROW) {
             int rowEnd = Math.min(i + QUEST_TAG_LIST_ICONS_PER_ROW, members.size());
-            HBox iconRow = UI.hbox().spacing(3).alignment(HBox.Alignment.CENTER);
+            HBox iconRow = UI.hbox().spacing(6).alignment(HBox.Alignment.CENTER);
             for (int j = i; j < rowEnd; j++) {
                 ResourceKey<Item> speciesKey = members.get(j);
                 SilhouetteItemButton icon = buildSpeciesIcon(speciesKey, QUEST_TAG_LIST_ICON_SCALE, discoveredFn.test(speciesKey));
                 // Non-fish tag members (e.g. a bait checklist) have no encyclopedia entry to jump to.
+                if (icon == null) continue;
                 if (isFishSpecies(speciesKey)) wireEncyclopediaNavigation(icon, speciesKey);
                 iconRow.addChild(icon);
             }
@@ -917,11 +1740,9 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         List<ResourceKey<Item>> members = resolveSortedTagMembers(tag, excludeTag, registryAccess);
         if (members.isEmpty()) return null;
 
-        SilhouetteItemButton icon = new SilhouetteItemButton(ItemStack.EMPTY);
+        SilhouetteItemButton icon = new SilhouetteItemButton(ItemStack.EMPTY).requireClickInside();
         icon.itemScale(scale);
-        SpriteRectangle.SpriteRectangleImpl tooltip = UI.spriteRectangle(0, 0, 0xFF002244)
-                .text("", 0xFFFFFFFF).autoSize(true).padding(3, 2).outline(true);
-        tooltip.scale(STATUS_PIP_TOOLTIP_SCALE);
+        SpriteRectangle.SpriteRectangleImpl tooltip = tooltipPanel("", 0xFFFFFFFF);
         icon.tooltip(uiScreen, tooltip);
 
         CyclingIconState state = new CyclingIconState(icon, tooltip, members);
@@ -1029,11 +1850,9 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             statusPip = UI.spriteRectangle(STATUS_PIP_SIZE, STATUS_PIP_SIZE, STATUS_PIP_DEFAULT_TEXTURE)
                     .texture(new SpriteData(met ? STATUS_PIP_GREEN_TEXTURE : STATUS_PIP_DEFAULT_TEXTURE));
             statusPip.setVisible(!claimed);
-            SpriteRectangle.SpriteRectangleImpl pipTooltip = UI.spriteRectangle(0, 0, 0xFF002244)
-                    .text(buildConditionTooltipText(quest.objective()), 0xFFFFFFFF)
-                    .autoSize(true).padding(3, 2).outline(true);
-            pipTooltip.scale(STATUS_PIP_TOOLTIP_SCALE);
-            statusPip.tooltip(uiScreen, pipTooltip);
+            String state = translated(met ? "screen.fishtastic.quest_log.condition_met" : "screen.fishtastic.quest_log.condition_unmet");
+            statusPip.tooltip(uiScreen, tooltipPanel(buildConditionTooltipText(quest.objective()) + "\n" + state,
+                    met ? 0xFF8CE68C : COLOR_MUTED));
         }
 
         // Pip sits tight against the title (its own low-spacing group); the wider spacing(8)
@@ -1161,7 +1980,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
      * Fired optimistically on click, like the shop's purchase-fall feedback, rather than
      * waiting on the server's confirming {@link QuestSyncPacket}.
      */
-    private void triggerQuestClaimReward(VBox row, Quest quest) {
+    private void triggerQuestClaimReward(UIElement<?> row, Quest quest) {
         int reward = quest.reward().questTokens();
         if (reward <= 0 || tokenIconRow == null || tokenBalanceLabel == null) return;
 
@@ -1169,6 +1988,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         int newBalance = oldBalance + reward;
 
         float totalDuration = spawnQuestClaimCoins(row, reward);
+        claimAnimEndMs = System.currentTimeMillis() + (long) (totalDuration * 1000f) + 100L;
 
         tokenIconRow.addClickBounceEffect();
         tokenBalanceLabel.cancelAnimationChannel("token-balance-count");
@@ -1294,14 +2114,12 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
     /** Builds the reward-row icon for a quest's token payout: a loose-coins sprite for small amounts, scaling up through coin-pile item icons for larger ones. */
     private static UIElement<?> rewardCoinIconFor(int questTokens) {
-        return coinLadderIcon(questTokens, REWARD_ICON_TWO_COINS_THRESHOLD, REWARD_ICON_THREE_COINS_THRESHOLD,
-                REWARD_ICON_SMALL_PILE_THRESHOLD, REWARD_ICON_MEDIUM_PILE_THRESHOLD, REWARD_ICON_LARGE_PILE_THRESHOLD);
+        return coinLadderIcon(questTokens, 2, 3, 3, 8, 20);
     }
 
     /** Builds the shop price-tag icon for a token cost, on its own threshold ladder — see {@link #SHOP_ICON_TWO_COINS_THRESHOLD}. */
     private static UIElement<?> shopCoinIconFor(int cost) {
-        return coinLadderIcon(cost, SHOP_ICON_TWO_COINS_THRESHOLD, SHOP_ICON_THREE_COINS_THRESHOLD,
-                SHOP_ICON_SMALL_PILE_THRESHOLD, SHOP_ICON_MEDIUM_PILE_THRESHOLD, SHOP_ICON_LARGE_PILE_THRESHOLD);
+        return coinLadderIcon(cost, 2, 3, 3, 8, 20);
     }
 
     private static UIElement<?> coinLadderIcon(int amount, int twoCoinsThreshold, int threeCoinsThreshold,
@@ -1316,12 +2134,20 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             return UI.itemRenderer(new ItemStack(FishtasticItems.SMALL_PILE_OF_COINS.value()));
         }
         if (amount >= threeCoinsThreshold) {
-            return UI.spriteRectangle(8f, 11f, COIN_ICON_THREE_TEXTURE).texture(new SpriteData(COIN_ICON_THREE_TEXTURE));
+            return coinSprite(COIN_ICON_THREE_TEXTURE, 8, 11);
         }
         if (amount >= twoCoinsThreshold) {
-            return UI.spriteRectangle(12f, 8f, COIN_ICON_TWO_TEXTURE).texture(new SpriteData(COIN_ICON_TWO_TEXTURE));
+            return coinSprite(COIN_ICON_TWO_TEXTURE, 12, 8);
         }
-        return UI.spriteRectangle(8f, 7f, COIN_ICON_ONE_TEXTURE).texture(new SpriteData(COIN_ICON_ONE_TEXTURE));
+        return coinSprite(COIN_ICON_ONE_TEXTURE, 8, 7);
+    }
+
+    private static ManualContainer coinSprite(Identifier texture, int width, int height) {
+        ManualContainer slot = UI.manualContainer().setSize(16, 16);
+        place(slot, UI.spriteRectangle(width, height, texture)
+                .texture(new SpriteData(texture).uv(0, 0, width, height).textureSize(width, height)),
+                (16 - width) / 2, (16 - height) / 2);
+        return slot;
     }
 
     private HBox buildRewardRow(Quest quest) {
@@ -1347,94 +2173,137 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     // to reach the same target width, which blows the height out past the viewport.
     private static final float CLEANUP_GOAL_DESCRIPTION_MAX_WIDTH = 280f;
 
-    private VBox buildCleanupGoalPanel() {
-        VBox panel = UI.vbox().spacing(6).padding(4).alignment(VBox.Alignment.CENTER);
-
-        Label title = new Label(translated("screen.fishtastic.quest_log.cleanup.title"), 0xFFFFFFFF).init(tempContext);
-        title.scale(1.1f);
-        panel.addChild(title);
-
-        // Combined into a single label (rather than two separate paragraphs) to cut a whole
-        // block's worth of height off the panel's natural size.
-        panel.addChild(new Label(translated("screen.fishtastic.quest_log.cleanup.description"), 0xFF888888)
-                .maxWidth(CLEANUP_GOAL_DESCRIPTION_MAX_WIDTH).centered(true).init(tempContext));
-
-        int total = QuestClientCache.getCleanupGoalTotal();
-        int threshold = Math.max(1, QuestClientCache.getCleanupGoalThreshold());
-        int intoCurrentTier = total % threshold;
-        float fraction = (float) intoCurrentTier / threshold;
-
-        cleanupGoalBar = UI.progressBar();
-        cleanupGoalBar.progressImmediate(fraction);
-        cleanupGoalCountLabel = new Label(translated("screen.fishtastic.quest_log.progress_count", intoCurrentTier, threshold), 0xFFAAAAAA).init(tempContext);
-
-        HBox progressRow = UI.hbox().spacing(6).alignment(HBox.Alignment.CENTER);
-        progressRow.addChild(cleanupGoalBar);
-        progressRow.addChild(cleanupGoalCountLabel);
-        panel.addChild(progressRow);
-
-        cleanupGoalTotalLabel = new Label(translated("screen.fishtastic.quest_log.cleanup.total", total), 0xFFFFAA00).init(tempContext);
-        panel.addChild(cleanupGoalTotalLabel);
-
-        cleanupGoalContributorsRow = UI.hbox().spacing(8).alignment(HBox.Alignment.CENTER);
-        rebuildCleanupGoalContributorsRow();
-        panel.addChild(cleanupGoalContributorsRow);
-
-        return panel;
+    private ManualContainer insetPanel(int width, int height) {
+        return UI.manualContainer().setSize(width, height)
+                .backgroundSprite(questRowBackgroundSprite(false, QuestDifficulty.BRONZE));
     }
 
-    /** Rebuilds the contributor breakdown row from scratch — the set of contributors and their
-     *  shares can change entirely between syncs, so in-place updates aren't worth the bookkeeping. */
-    private void rebuildCleanupGoalContributorsRow() {
-        if (cleanupGoalContributorsRow == null) return;
-        cleanupGoalContributorsRow.clearChildren();
+    private Label copy(String key, int color, Object... args) {
+        return new Label(translated("screen.fishtastic.quest_log." + key, args), color).init(tempContext);
+    }
 
-        List<CleanupGoalProgress.Contributor> contributors = QuestClientCache.getCleanupGoalContributors();
-        int total = contributors.stream().mapToInt(CleanupGoalProgress.Contributor::amount).sum();
-        if (total <= 0) return;
-
-        for (CleanupGoalProgress.Contributor contributor : contributors) {
-            int pct = Math.round(contributor.amount() * 100f / total);
-
-            VBox column = UI.vbox().spacing(2).alignment(VBox.Alignment.CENTER);
-            column.addChild(UI.itemRenderer(PlayerHeadItems.headStack(contributor.playerUuid(), contributor.playerName())));
-            column.addChild(new Label(pct + "%", 0xFFAAAAAA).init(tempContext));
-            cleanupGoalContributorsRow.addChild(column);
+    private ManualContainer buildCleanupGoalPanel() {
+        ManualContainer page = UI.manualContainer().setSize(QUEST_PAGE_WIDTH, 193);
+        int total = QuestClientCache.getCleanupGoalTotal();
+        int threshold = QuestClientCache.getCleanupGoalThreshold();
+        if (threshold <= 0) {
+            place(page, copy("cleanup.loading", COLOR_MUTED), 8, 8);
+            return page;
         }
+        int cycle = total % threshold;
+        ManualContainer summary = insetPanel(QUEST_PAGE_WIDTH, 60);
+        place(summary, copy("cleanup.milestone", 0xFFFFFFFF, threshold), 10, 6);
+        place(summary, copy("cleanup.removed", 0xFFFFFFFF, cycle, threshold), 10, 19);
+        place(summary, copy("cleanup.left", COLOR_MUTED, threshold - cycle), 248, 19);
+        place(summary, new ThinProgressBar(296, 5).flatColor(COLOR_PROGRESS)
+                .progressImmediate((float) cycle / threshold), 10, 37);
+        place(summary, copy("cleanup.pool", COLOR_SELECTION), 10, 47);
+        place(page, summary, 0, 0);
+        place(page, copy("cleanup.eligibility", 0xFFFFFFFF), 0, 67);
+        place(page, copy("cleanup.proportional", COLOR_MUTED), 0, 79);
+
+        ManualContainer personal = insetPanel(QUEST_PAGE_WIDTH, 33);
+        List<CleanupGoalProgress.Contributor> contributors = QuestClientCache.getCleanupGoalContributors();
+        Minecraft mc = Minecraft.getInstance();
+        var own = contributors.stream().filter(c -> mc.player != null && c.playerUuid().equals(mc.player.getUUID())).findFirst();
+        // The snapshot is capped: absence from its top contributors cannot establish zero.
+        String ownText = own.map(c -> translated("screen.fishtastic.quest_log.cleanup.personal", c.amount(),
+                cycle > 0 ? Math.round(c.amount() * 100f / cycle) : 0))
+                .orElse(translated("screen.fishtastic.quest_log.cleanup.personal_unavailable"));
+        place(personal, new Label(ownText, 0xFFFFFFFF).init(tempContext), 10, 6);
+        place(personal, copy("cleanup.rollover", COLOR_MUTED, threshold), 10, 20);
+        place(page, personal, 0, 96);
+        place(page, copy("cleanup.contributors", 0xFFFFFFFF), 0, 137);
+        VBox rows = UI.vbox().spacing(3).alignment(VBox.Alignment.LEFT);
+        for (var contributor : contributors) {
+            if (own.isPresent() && contributor.playerUuid().equals(own.get().playerUuid())) continue;
+            ManualContainer row = UI.manualContainer().setSize(QUEST_PAGE_WIDTH - QUEST_SCROLL_GUTTER, 10);
+            place(row, new Label(contributor.playerName(), COLOR_MUTED).maxWidth(65).init(tempContext), 4, 0);
+            int percent = cycle > 0 ? Math.round(contributor.amount() * 100f / cycle) : 0;
+            place(row, new ThinProgressBar(151, 5).flatColor(COLOR_PROGRESS)
+                    .progressImmediate(cycle > 0 ? (float) contributor.amount() / cycle : 0), 77, 3);
+            place(row, new Label(contributor.amount() + " (" + percent + "%)", COLOR_MUTED).init(tempContext), 239, 0);
+            rows.addChild(row);
+        }
+        QuestViewport contributorViewport = new QuestViewport(QUEST_PAGE_WIDTH, 39);
+        contributorViewport.setContent(rows);
+        place(page, contributorViewport, 0, 152);
+        return page;
+    }
+
+    private void rebuildCleanupGoalContributorsRow() {
+        // The redesigned Cleanup page rebuilds from the authoritative snapshot.
     }
 
     private VBox buildShopPanel(Registry<ShopEntry> shopRegistry, long currentDay) {
-        VBox panel = UI.vbox().spacing(8).padding(4).alignment(VBox.Alignment.CENTER);
-
-        if (shopRegistry == null || shopRegistry.entrySet().isEmpty()) {
-            panel.addChild(new Label(translated("screen.fishtastic.quest_log.shop.no_entries"), 0xFF888888).init(tempContext));
-            return panel;
+        VBox page = UI.vbox().spacing(6).alignment(VBox.Alignment.LEFT);
+        List<ResourceKey<ShopEntry>> stock = shopRegistry == null ? List.of() :
+                ShopEntry.getActiveDailyShop(shopRegistry, currentDay, QuestClientCache.getShopRefreshCount(),
+                        key -> QuestClientCache.getProgress(key.identifier()).claimed()).stream()
+                        .filter(key -> shopRegistry.getOptional(key).map(entry -> !isEntrySoldOut(key, entry)).orElse(false))
+                        .sorted(Comparator.<ResourceKey<ShopEntry>, Boolean>comparing(key ->
+                                shopRegistry.getOptional(key).orElseThrow().cost() > QuestClientCache.getTokenBalance())
+                                .thenComparing(key -> key.identifier().toString())).toList();
+        if (stock.isEmpty()) page.addChild(copy("shop.empty", COLOR_MUTED).maxWidth(300));
+        for (int i = 0; i < stock.size(); i += 2) {
+            HBox row = UI.hbox().spacing(8).alignment(HBox.Alignment.TOP);
+            for (int j = i; j < Math.min(stock.size(), i + 2); j++) {
+                ResourceKey<ShopEntry> key = stock.get(j);
+                row.addChild(buildMarketCard(key, shopRegistry.getOptional(key).orElseThrow()));
+            }
+            page.addChild(row);
         }
-
-        Set<ResourceKey<ShopEntry>> activeKeys = ShopEntry.getActiveDailyShop(
-                shopRegistry, currentDay, QuestClientCache.getShopRefreshCount(),
-                questKey -> QuestClientCache.getProgress(questKey.identifier()).claimed());
-
-        List<ResourceKey<ShopEntry>> activeList = new ArrayList<>(activeKeys);
-
-        Label shopTitle = new Label(translated("screen.fishtastic.quest_log.shop.title"), 0xFFFFFFFF).init(tempContext);
-        shopTitle.scale(1.1f);
-        panel.addChild(shopTitle);
-
-        shopResetLabel = new Label(formatResetCountdown("screen.fishtastic.quest_log.shop.resets", QuestClientCache.getTicksUntilDailyReset()), 0xFF88CCFF)
-                .init(tempContext);
-        panel.addChild(shopResetLabel);
-
-        panel.addChild(buildShopRefreshRow());
-
-        HBox row = UI.hbox().spacing(8).alignment(HBox.Alignment.TOP);
-        for (ResourceKey<ShopEntry> key : activeList) {
-            ShopEntry entry = shopRegistry.getOptional(key).orElse(null);
-            if (entry != null) row.addChild(buildShopEntryCard(key, entry));
+        int price = ShopEntry.refreshCost(QuestClientCache.getShopRefreshCount());
+        ManualContainer reroll = insetPanel(QUEST_PAGE_WIDTH, 42);
+        place(reroll, copy("shop.replace", 0xFFFFFFFF), 8, 6);
+        place(reroll, copy("shop.next", COLOR_MUTED, ShopEntry.refreshCost(QuestClientCache.getShopRefreshCount() + 1)), 8, 23);
+        place(reroll, shopCoinIconFor(price), 184, 9);
+        place(reroll, new Label(String.valueOf(price), COLOR_SELECTION).init(tempContext), 204, 12);
+        boolean affordable = QuestClientCache.getTokenBalance() >= price;
+        SpriteButton button = marketButton(73, "shop.reroll", affordable);
+        if (affordable) button.onClick(e -> {
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.player != null) FishtasticTransport.sendToServer(new RefreshShopPacket());
+        });
+        place(reroll, button, 234, 10);
+        if (!affordable) {
+            reroll.setSize(QUEST_PAGE_WIDTH, 55);
+            place(reroll, copy("shop.need", COLOR_MUTED, price - QuestClientCache.getTokenBalance()), 8, 41);
         }
-        panel.addChild(row);
+        if (!affordable) reroll.tooltip(uiScreen, tooltipPanel(
+                translated("screen.fishtastic.quest_log.shop.need", price - QuestClientCache.getTokenBalance()), COLOR_MUTED));
+        page.addChild(reroll);
+        return page;
+    }
 
-        return panel;
+    private SpriteButton marketButton(int width, String key, boolean enabled) {
+        SpriteButton button = new SpriteButton(width, 16, enabled ? 0xFF777777 : 0xFF4A3540)
+                .text(translated("screen.fishtastic.quest_log." + key), enabled ? 0xFFFFFFFF : COLOR_MUTED);
+        if (enabled) button.texture(new SpriteData(grill24.fishtastic.util.Ids.withDefaultNamespace("textures/gui/sprites/widget/button.png"))
+                .uv(0, 0, 200, 20).textureSize(200, 20).renderMode(SpriteRenderMode.SLICE).slice(3, 3, 3, 3));
+        return button;
+    }
+
+    private ManualContainer buildMarketCard(ResourceKey<ShopEntry> key, ShopEntry entry) {
+        int cardWidth = (QUEST_PAGE_WIDTH - 8) / 2;
+        boolean affordable = QuestClientCache.getTokenBalance() >= entry.cost();
+        ManualContainer card = insetPanel(cardWidth, 62);
+        int y = 6;
+        for (var reward : entry.reward()) {
+            place(card, UI.itemRenderer(reward.toItemStack()).showCount(false), 8, y);
+            y += 17;
+        }
+        place(card, new Label(entry.displayName(), 0xFFFFFFFF).maxWidth(109).init(tempContext), 35, 6);
+        place(card, shopCoinIconFor(entry.cost()), 35, 25);
+        place(card, new Label(String.valueOf(entry.cost()), COLOR_SELECTION).init(tempContext), 52, 26);
+        if (!affordable) place(card, copy("shop.need", COLOR_MUTED, entry.cost() - QuestClientCache.getTokenBalance()), 8, 44);
+        SpriteButton buy = marketButton(43, "shop.buy", affordable);
+        if (affordable) buy.onClick(e -> {
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.player != null) FishtasticTransport.sendToServer(new PurchaseShopEntryPacket(key.identifier()));
+        });
+        place(card, buy, cardWidth - 50, 43);
+        return card;
     }
 
     /** Header row letting the player spend a fixed token cost to reroll today's active shop entries. */
@@ -1715,7 +2584,9 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             refs.claimButton().setVisible(canClaim);
             refs.progressBar().progressImmediate(fraction);
             refs.countLabel().text(translated("screen.fishtastic.quest_log.progress_count", currentCount, refs.targetCount()));
-            refs.row().backgroundSprite(questRowBackgroundSprite(claimed, refs.difficulty()));
+            if (refs.row() instanceof ManualContainer row) {
+                row.backgroundSprite(questRowBackgroundSprite(false, refs.difficulty()));
+            }
             refs.row().setTargetScale(claimed ? CLAIMED_QUEST_ROW_SCALE : 1.0f, true);
             updateStatusPip(refs, claimed);
         }

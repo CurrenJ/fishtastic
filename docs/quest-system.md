@@ -1,8 +1,23 @@
 # Quest System
 
-> **Status: Server-side implementation complete. Quest Log UI and quest JSON content not yet implemented.** See [feature-design-overview.md](feature-design-overview.md) for the full status breakdown.
+> **Status: Implemented, including Quest Log UI and quest content.** Player help is optional; quest progress and rewards are independent of tutorial progress.
 
 Quests are structured goals that reward fishing skill. They are the **only source** of rod upgrade scrolls, special bait, and tank cosmetic unlocks — no crafting recipes for these items exist. Rewards are visual and experiential, not mandatory for progression.
+
+### Optional player help
+
+The fishing lesson ends at the first successful catch. First Catch appears in the Daily tab
+whether the player accepts, dismisses or finishes the lesson. Claiming it does not start a shop tour.
+Declining the initial offer persists across casting, crafting and reconnecting.
+
+Pause → **Fishtastic help** provides fishing practice, Fishopedia and companion help, quest access,
+and dismissal of all hints without permissions or custom keybinds. Practice requires a copper rod
+and bait; replay grants no starter items and preserves earned rewards. Fishopedia has one species-selection
+hint. Companion onboarding ends when a fish is equipped. Closing either screen dismisses its hint;
+removal, naming, grouping, piles, zones and rewards use contextual help instead of further lessons.
+
+Saved tutorial enum ordinals are retained. Legacy post-catch fishing steps, second encyclopedia
+steps, and companion steps after equipping migrate to completion when resumed.
 
 ---
 
@@ -170,14 +185,18 @@ Tokens are spent in a dedicated Quest Shop UI (accessed from the Quest Log, or a
 
 ## UI
 
-A new GelatinUI Quest Log screen, accessed via keybind or from the leaderboard. Tabbed layout mirrors the existing leaderboard screen:
+The implemented GelatinUI Quest Log uses icon tabs for Daily, Mastery, Explorer,
+Collector, Challenge, Shop and Cleanup, with a three-column quest grid. Each quest
+shows its objective, progress and reward preview. Claim sends `CompleteQuestPacket`
+for server validation.
 
-- **Tabs:** Daily | Mastery | Explorer | Collector | Challenge
-- Each quest shows a progress bar (current / target), objective description, and reward preview
-- **Claim** button activates on completion; sends `CompleteQuestPacket` to server
-- **Profile** tab shows total tokens, unlocked cosmetics, milestone history
-
-The existing leaderboard screen gains a small badge next to player names who hold prestige cosmetic unlocks.
+A reviewed redesign is proposed separately in [Quest book redesign](quest-log-redesign/README.md)
+and its [interaction and visual specification](quest-log-redesign/design-spec.md). It uses
+labelled navigation, readable objective rows, category-local Ready filters, inline Claim,
+one expanded row with an inline species/silhouette grid for collection quests. Market exposes affordability and paid
+reroll costs; Cleanup explains automatic cycle payouts and keeps personal contribution visible.
+These are design requirements, not implemented screen behavior. The gallery includes a
+content-matched comparison with the current live capture and static edge-case fixtures.
 
 ---
 

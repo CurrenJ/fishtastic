@@ -7,6 +7,7 @@ import io.github.currenj.gelatinui.gui.animation.Easing;
 import io.github.currenj.gelatinui.gui.animation.FloatKeyframeAnimation;
 import io.github.currenj.gelatinui.gui.animation.Keyframe;
 import io.github.currenj.gelatinui.gui.components.ItemButton;
+import io.github.currenj.gelatinui.gui.UIEvent;
 import io.github.currenj.gelatinui.gui.minecraft.MinecraftRenderContext;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
@@ -38,7 +39,19 @@ import java.util.List;
  * flag at that exact moment to tag the resulting render state. This mirrors the existing
  * {@code ACTIVE_EFFECT} thread-local pattern used for the glint render path.
  */
-public class SilhouetteItemButton extends ItemButton {
+public class SilhouetteItemButton extends ItemButton implements Narrated {
+    private String narration;
+
+    public SilhouetteItemButton setNarration(String narration) {
+        this.narration = narration;
+        return this;
+    }
+
+    @Override
+    public String narration() {
+        return narration;
+    }
+
     // Reuses the status-pip art from spawn condition rows: unclaimed reward here vs. condition met there.
     private static final Identifier REWARD_PIP_TEXTURE = Fishtastic.id("textures/gui/status_indicator_pip_green.png");
     private static final int REWARD_PIP_TEXTURE_PX = 8;
@@ -74,6 +87,28 @@ public class SilhouetteItemButton extends ItemButton {
 
     public SilhouetteItemButton(ItemStack itemStack) {
         super(itemStack);
+    }
+
+    private boolean clickMustBeInside = false;
+
+    /**
+     * ItemButton claims every CLICK that reaches it, and containers forward events to children
+     * without a bounds check, so a click anywhere in the parent (a panel background, a scroll bar)
+     * would fire this button's handler. Opt in where the button shares a parent with other
+     * clickable things.
+     */
+    public SilhouetteItemButton requireClickInside() {
+        this.clickMustBeInside = true;
+        return this;
+    }
+
+    @Override
+    public boolean handleEvent(UIEvent event) {
+        if (clickMustBeInside && event.getType() == UIEvent.Type.CLICK
+                && !getBounds().contains(event.getMouseX(), event.getMouseY())) {
+            return false;
+        }
+        return super.handleEvent(event);
     }
 
     public SilhouetteItemButton setSilhouette(boolean silhouette) {
@@ -128,6 +163,23 @@ public class SilhouetteItemButton extends ItemButton {
         if (!pipOverlayOnly) {
             if (!silhouette) {
                 super.renderSelf(context);
+            } else if (context instanceof MinecraftRenderContext silhouetteContext) {
+                // The parent's renderSelf hands anything drawn above 16 screen px to gelatin's
+                // HiResItems, which bypasses the item pipeline the silhouette shader hooks, so a
+                // magnified never-caught fish (the info page's 4x portrait) would turn full colour.
+                // Magnified: black-tint the fish's own sprite (crisp at any size). Disc size: the
+                // atlas silhouette, drawn straight through graphics.item.
+                Identifier sprite = getGlobalScale() > MAGNIFIED_SCALE ? spriteFor(getItemStack()) : null;
+                if (sprite != null) {
+                    drawTintedSprite(silhouetteContext.getGraphics(), sprite);
+                } else {
+                    FishtasticGlintState.SILHOUETTE_REQUESTED.set(Boolean.TRUE);
+                    try {
+                        silhouetteContext.getGraphics().item(getItemStack(), 0, 0);
+                    } finally {
+                        FishtasticGlintState.SILHOUETTE_REQUESTED.remove();
+                    }
+                }
             } else {
                 FishtasticGlintState.SILHOUETTE_REQUESTED.set(Boolean.TRUE);
                 try {
@@ -153,6 +205,30 @@ public class SilhouetteItemButton extends ItemButton {
                     REWARD_PIP_TEXTURE, (int) REWARD_PIP_SIZE, (int) REWARD_PIP_SIZE, 0f, 0f,
                     REWARD_PIP_TEXTURE_PX, REWARD_PIP_TEXTURE_PX, REWARD_PIP_TEXTURE_PX, REWARD_PIP_TEXTURE_PX);
         }
+    }
+
+    /** Above this on-screen scale the atlas silhouette is too coarse and the sprite is tinted instead. */
+    private static final float MAGNIFIED_SCALE = 2.0f;
+    private static final int SILHOUETTE_COLOR = 0xFF08080A;
+    private static final java.util.Map<Identifier, java.util.Optional<Identifier>> SPRITES = new java.util.HashMap<>();
+
+    /** {@code textures/item/fish/<id>.png}, or null when the item has no such sprite. */
+    private static Identifier spriteFor(ItemStack stack) {
+        Identifier id = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
+        return SPRITES.computeIfAbsent(id, key -> {
+            Identifier texture = grill24.fishtastic.util.Ids.of(key.getNamespace(), "textures/item/fish/" + key.getPath() + ".png");
+            return net.minecraft.client.Minecraft.getInstance().getResourceManager().getResource(texture).isPresent()
+                    ? java.util.Optional.of(texture) : java.util.Optional.empty();
+        }).orElse(null);
+    }
+
+    private static void drawTintedSprite(GuiGraphicsExtractor graphics, Identifier texture) {
+        var gpu = net.minecraft.client.Minecraft.getInstance().getTextureManager().getTexture(texture).getTexture();
+        int texW = gpu.getWidth(0), texH = gpu.getHeight(0);
+        // An animated fish texture is a vertical strip of square frames; blit only the first one
+        // rather than squeezing the whole strip into the 16x16 slot.
+        int frameH = Math.min(texH, texW);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, texture, 0, 0, 0f, 0f, 16, 16, texW, frameH, texW, texH, SILHOUETTE_COLOR);
     }
 
     private static float badgeAlpha(long shownAt) {

@@ -23,6 +23,13 @@ public class ThinProgressBar extends UIElement<ThinProgressBar> {
     public static final float DEFAULT_WIDTH = 63f;
     public static final float DEFAULT_HEIGHT = 5f;
 
+    private Integer flatColor;
+
+    public ThinProgressBar flatColor(int color) {
+        flatColor = color;
+        return this;
+    }
+
     private float targetProgress = 0f;
     private float displayedProgress = 0f;
     private static final float ANIMATION_SPEED = 5.0f;
@@ -74,6 +81,12 @@ public class ThinProgressBar extends UIElement<ThinProgressBar> {
         int w = (int) Math.ceil(size.x);
         int h = (int) Math.ceil(size.y);
 
+        if (flatColor != null) {
+            context.fill(0, 0, w, h, 0xFF30232D);
+            int filled = Math.round(w * displayedProgress);
+            if (filled > 0) context.fill(0, 0, filled, h, flatColor);
+            return;
+        }
         context.enableBlend();
         context.drawTexture(TEXTURE_EMPTY, 0, 0, w, h, 0, 0, SPRITE_WIDTH, SPRITE_HEIGHT, SOURCE_FILE_SIZE, SOURCE_FILE_SIZE);
 

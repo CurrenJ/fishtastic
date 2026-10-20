@@ -25,6 +25,7 @@
     "ItemStackRenderStateMixin",
     "LevelRendererMixin",
     "MinecraftFrameBenchMixin",
+    "PauseScreenMixin",
     "RenderBuffersMixin",
     "RenderTypeMixin",
     "accessor.BufferSourceAccessor",

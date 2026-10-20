@@ -26,6 +26,7 @@ public class FishtasticPackets {
     public static final Identifier REQUEST_FISH_ENCYCLOPEDIA_ID = Fishtastic.id("request_fish_encyclopedia");
     public static final Identifier FISH_ENCYCLOPEDIA_SYNC_ID = Fishtastic.id("fish_encyclopedia_sync");
     public static final Identifier CLAIM_ENCYCLOPEDIA_REWARD_ID = Fishtastic.id("claim_encyclopedia_reward");
+    public static final Identifier CLAIM_ALL_ENCYCLOPEDIA_REWARDS_ID = Fishtastic.id("claim_all_encyclopedia_rewards");
     public static final Identifier COSMETIC_CAPTURE_SYNC_ID = Fishtastic.id("cosmetic_capture_sync");
     public static final Identifier ENCYCLOPEDIA_TUTORIAL_SYNC_ID = Fishtastic.id("encyclopedia_tutorial_sync");
     public static final Identifier ENCYCLOPEDIA_TUTORIAL_ADVANCE_ID = Fishtastic.id("encyclopedia_tutorial_advance");
@@ -56,6 +57,8 @@ public class FishtasticPackets {
      * Register client-to-server packets
      */
     public static void registerClientToServerPackets(IPacketRegistrar registrar) {
+        registrar.registerClientToServer(TutorialActionPacket.TYPE, TutorialActionPacket.STREAM_CODEC,
+                TutorialActionPacket::handleClientToServer);
         registrar.registerClientToServer(OpenCompanionMenuPacket.TYPE, OpenCompanionMenuPacket.STREAM_CODEC,
                 OpenCompanionMenuPacket::handleClientToServer);
         registrar.registerClientToServer(
@@ -109,6 +112,11 @@ public class FishtasticPackets {
                 ClaimEncyclopediaRewardPacket::handleClientToServer
         );
         registrar.registerClientToServer(
+                ClaimAllEncyclopediaRewardsPacket.TYPE,
+                ClaimAllEncyclopediaRewardsPacket.STREAM_CODEC,
+                ClaimAllEncyclopediaRewardsPacket::handleClientToServer
+        );
+        registrar.registerClientToServer(
                 EncyclopediaTutorialAdvancePacket.TYPE,
                 EncyclopediaTutorialAdvancePacket.STREAM_CODEC,
                 EncyclopediaTutorialAdvancePacket::handleClientToServer
@@ -159,6 +167,8 @@ public class FishtasticPackets {
      * Register server-to-client packets
      */
     public static void registerServerToClientPackets(IPacketRegistrar registrar) {
+        registrar.registerServerToClient(QuestActionResultPacket.TYPE, QuestActionResultPacket.STREAM_CODEC,
+                QuestActionResultPacket::handleServerToClient);
         registrar.registerServerToClient(
                 StartFishingMinigamePacket.TYPE,
                 StartFishingMinigamePacket.STREAM_CODEC,
