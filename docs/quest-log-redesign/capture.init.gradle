@@ -6,7 +6,7 @@ gradle.projectsEvaluated {
     def parent = rootProject.file('docs/quest-log-redesign').canonicalFile
     if (target.parentFile != parent) throw new GradleException('Unexpected capture directory')
     target.mkdirs()
-    new File(target, 'fishtastic_render_selftest').text = 'fixes\n'
+    new File(target, 'fishtastic_render_selftest').text = (gradle.startParameter.projectProperties.get('questScene') ?: 'fixes') + '\n'
     def options = new File(target, 'options.txt')
     def lines = options.exists() ? options.readLines() : []
     def captureOptions = [

@@ -7,6 +7,7 @@ import io.github.currenj.gelatinui.gui.animation.Easing;
 import io.github.currenj.gelatinui.gui.animation.FloatKeyframeAnimation;
 import io.github.currenj.gelatinui.gui.animation.Keyframe;
 import io.github.currenj.gelatinui.gui.components.ItemButton;
+import io.github.currenj.gelatinui.gui.UIEvent;
 import io.github.currenj.gelatinui.gui.minecraft.MinecraftRenderContext;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
@@ -74,6 +75,28 @@ public class SilhouetteItemButton extends ItemButton {
 
     public SilhouetteItemButton(ItemStack itemStack) {
         super(itemStack);
+    }
+
+    private boolean clickMustBeInside = false;
+
+    /**
+     * ItemButton claims every CLICK that reaches it, and containers forward events to children
+     * without a bounds check, so a click anywhere in the parent (a panel background, a scroll bar)
+     * would fire this button's handler. Opt in where the button shares a parent with other
+     * clickable things.
+     */
+    public SilhouetteItemButton requireClickInside() {
+        this.clickMustBeInside = true;
+        return this;
+    }
+
+    @Override
+    public boolean handleEvent(UIEvent event) {
+        if (clickMustBeInside && event.getType() == UIEvent.Type.CLICK
+                && !getBounds().contains(event.getMouseX(), event.getMouseY())) {
+            return false;
+        }
+        return super.handleEvent(event);
     }
 
     public SilhouetteItemButton setSilhouette(boolean silhouette) {
@@ -190,7 +213,10 @@ public class SilhouetteItemButton extends ItemButton {
     private static void drawTintedSprite(GuiGraphicsExtractor graphics, Identifier texture) {
         var gpu = net.minecraft.client.Minecraft.getInstance().getTextureManager().getTexture(texture).getTexture();
         int texW = gpu.getWidth(0), texH = gpu.getHeight(0);
-        graphics.blit(RenderPipelines.GUI_TEXTURED, texture, 0, 0, 0f, 0f, 16, 16, texW, texH, texW, texH, SILHOUETTE_COLOR);
+        // An animated fish texture is a vertical strip of square frames; blit only the first one
+        // rather than squeezing the whole strip into the 16x16 slot.
+        int frameH = Math.min(texH, texW);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, texture, 0, 0, 0f, 0f, 16, 16, texW, frameH, texW, texH, SILHOUETTE_COLOR);
     }
 
     private static float badgeAlpha(long shownAt) {

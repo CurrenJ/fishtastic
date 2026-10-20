@@ -1,7 +1,9 @@
 # Quest book redesign
 
-Status: reviewed design proposal, updated 20 October 2026. The mockups and interaction
-specification describe proposed behavior; the Minecraft screen has not been implemented.
+Status: visual redesign implemented and reviewed in-game on 20 October 2026. See the
+[implementation review and runtime captures](review/README.md) for corrections, checks and
+remaining validation limits. The design discussion below records the original proposal and
+its historical baseline.
 
 ## Start here
 

@@ -166,6 +166,8 @@ public class FishtasticPackets {
      * Register server-to-client packets
      */
     public static void registerServerToClientPackets(IPacketRegistrar registrar) {
+        registrar.registerServerToClient(QuestActionResultPacket.TYPE, QuestActionResultPacket.STREAM_CODEC,
+                QuestActionResultPacket::handleServerToClient);
         registrar.registerServerToClient(
                 StartFishingMinigamePacket.TYPE,
                 StartFishingMinigamePacket.STREAM_CODEC,
