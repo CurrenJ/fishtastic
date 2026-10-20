@@ -18,7 +18,32 @@ import java.util.List;
  * render_mockups.py), so this mirrors that API one to one. Interactive parts (buttons, hover
  * tooltips) are separate elements stacked above it.
  */
-public final class PageSurface extends UIElement<PageSurface> {
+public final class PageSurface extends UIElement<PageSurface> implements grill24.fishtastic.client.Narrated {
+    private record Spoken(int y, int x, String text) {}
+
+    /** Text drawn inside a rectangle of this surface, left to right, so a hotspot can read what it covers. */
+    public String textWithin(int rx, int ry, int rw, int rh) {
+        List<String> out = new ArrayList<>();
+        spoken.stream().sorted(java.util.Comparator.comparingInt(Spoken::y).thenComparingInt(Spoken::x)).forEach(t -> {
+            int cx = t.x() + width(t.text()) / 2;
+            int cy = t.y() + 4;
+            if (cx >= rx - 1 && cx <= rx + rw + 1 && cy >= ry - 1 && cy <= ry + rh + 1 && !out.contains(t.text())) {
+                out.add(t.text());
+            }
+        });
+        return String.join(" ", out);
+    }
+    private final List<Spoken> spoken = new ArrayList<>();
+
+    /** Everything drawn as text, top to bottom then left to right, for the narrator. */
+    @Override
+    public String narration() {
+        List<String> out = new ArrayList<>();
+        spoken.stream().sorted(java.util.Comparator.comparingInt(Spoken::y).thenComparingInt(Spoken::x))
+                .forEach(t -> { if (!out.contains(t.text())) out.add(t.text()); });
+        return String.join(". ", out);
+    }
+
     public static final Identifier PANEL = Fishtastic.id("textures/gui/generic_item_panel.png");
     public static final Identifier PANEL_GOLD = Fishtastic.id("textures/gui/generic_item_panel_gold_border.png");
     public static final Identifier PANEL_GREEN = Fishtastic.id("textures/gui/green_generic_item_panel_2.png");
@@ -97,6 +122,7 @@ public final class PageSurface extends UIElement<PageSurface> {
     /** Text with vanilla's quarter-brightness drop shadow. */
     public PageSurface text(int x, int y, String s, int rgb) {
         if (s.isEmpty()) return this;
+        spoken.add(new Spoken(y, x, s));
         int shadow = 0xFF000000 | (((rgb >> 16) & 0xFF) / 4 << 16) | (((rgb >> 8) & 0xFF) / 4 << 8) | ((rgb & 0xFF) / 4);
         int color = argb(rgb, 255);
         cmds.add(c -> {

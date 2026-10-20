@@ -4724,9 +4724,35 @@ public final class RenderSelfTest {
     private static void queueQuestBookScene() {
         queue(1, mc -> mc.player.connection.sendCommand("gelatin quest_log"));
         queue(45, mc -> screenshot(mc, "questbook", "baseline"));
+        queue(1, RenderSelfTest::questBookKeyboardChecks);
+        // Enter on the second rail stop ("Goals") must switch destination exactly like a click.
+        queue(1, mc -> {
+            var screen = (QuestLogScreen) mc.screen;
+            screen.keyboardNav().mouseUsed();
+            screen.keyPressed(key(org.lwjgl.glfw.GLFW.GLFW_KEY_TAB, 0));
+            screen.keyPressed(key(org.lwjgl.glfw.GLFW.GLFW_KEY_TAB, 0));
+            note("a11y.questbook.enterOn=" + screen.keyboardNav().focusedDescription());
+            screen.keyPressed(key(org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER, 0));
+        });
+        queue(10, mc -> {
+            try {
+                var tab = QuestLogScreen.class.getDeclaredField("activeTabIndex");
+                tab.setAccessible(true);
+                check("a11y.questbook.enterActivates", tab.getInt(mc.screen) == 1, "activeTabIndex=" + tab.getInt(mc.screen));
+            } catch (ReflectiveOperationException e) {
+                throw new IllegalStateException(e);
+            }
+            ((QuestLogScreen) mc.screen).keyboardNav().mouseUsed();
+        });
+        queue(1, mc -> questBookPage(mc, 0, "tutorial/first_catch", true));
         queue(1, mc -> questBookPage(mc, 0, "tutorial/first_catch", true));
         queue(40, mc -> screenshot(mc, "questbook", "tutorial"));
         queue(1, RenderSelfTest::questBookInteractionChecks);
+        // Clicking a reward preview opens that species in the encyclopedia; come back to the log.
+        queue(1, mc -> {
+            if (!(mc.screen instanceof QuestLogScreen)) mc.player.connection.sendCommand("gelatin quest_log");
+        });
+        queue(40, mc -> check("questbook.reopened", mc.screen instanceof QuestLogScreen, "screen=" + mc.screen));
         queue(1, mc -> questBookPage(mc, 3, "collector/river_collector", false));
         queue(40, mc -> screenshot(mc, "questbook", "collection"));
         queue(1, mc -> questBookPage(mc, 5, null, false));
@@ -4739,6 +4765,112 @@ public final class RenderSelfTest {
             mc.getWindow().setWindowed(960, 540);
             mc.setScreen(null);
         });
+    }
+
+    private static net.minecraft.client.input.KeyEvent key(int code, int mods) {
+        return new net.minecraft.client.input.KeyEvent(code, 0, mods);
+    }
+
+    /** Tabs through a screen, returning what the narrator would say at each stop. */
+    private static java.util.List<String> tabThrough(net.minecraft.client.gui.screens.Screen screen,
+            grill24.fishtastic.client.UiKeyboardNav nav, int presses) {
+        java.util.List<String> spoken = new java.util.ArrayList<>();
+        for (int i = 0; i < presses; i++) {
+            screen.keyPressed(key(org.lwjgl.glfw.GLFW.GLFW_KEY_TAB, 0));
+            spoken.add(nav.focusedDescription());
+        }
+        return spoken;
+    }
+
+    /** Runs vanilla's own narration collector over a screen, as the narrator would. */
+    private static String vanillaNarration(net.minecraft.client.gui.screens.Screen screen) {
+        try {
+            var stateField = net.minecraft.client.gui.screens.Screen.class.getDeclaredField("narrationState");
+            stateField.setAccessible(true);
+            var state = (net.minecraft.client.gui.narration.ScreenNarrationCollector) stateField.get(screen);
+            var update = net.minecraft.client.gui.screens.Screen.class.getDeclaredMethod("updateNarrationState",
+                    net.minecraft.client.gui.narration.NarrationElementOutput.class);
+            update.setAccessible(true);
+            state.update(out -> {
+                try {
+                    update.invoke(screen, out);
+                } catch (ReflectiveOperationException e) {
+                    throw new IllegalStateException(e);
+                }
+            });
+            return state.collectNarrationText(true);
+        } catch (ReflectiveOperationException e) {
+            return "ERROR " + e;
+        }
+    }
+
+    /**
+     * Drives the game's real narration path (narrator option on, screen asks to narrate) with a
+     * recording stand-in for the OS speech library, and returns what would have been spoken.
+     */
+    private static String spokenByGameNarrator(Minecraft mc, net.minecraft.client.gui.screens.Screen screen) {
+        try {
+            var gameNarrator = mc.getNarrator();
+            var field = net.minecraft.client.GameNarrator.class.getDeclaredField("narrator");
+            field.setAccessible(true);
+            Object original = field.get(gameNarrator);
+            StringBuilder spoken = new StringBuilder();
+            Object recorder = java.lang.reflect.Proxy.newProxyInstance(
+                    com.mojang.text2speech.Narrator.class.getClassLoader(),
+                    new Class<?>[] {com.mojang.text2speech.Narrator.class},
+                    (proxy, method, args) -> {
+                        switch (method.getName()) {
+                            case "say" -> {
+                                spoken.append(args[0]);
+                                return null;
+                            }
+                            case "active" -> {
+                                return true;
+                            }
+                            default -> {
+                                return method.getReturnType() == boolean.class ? Boolean.FALSE : null;
+                            }
+                        }
+                    });
+            var previousStatus = mc.options.narrator().get();
+            field.set(gameNarrator, recorder);
+            try {
+                mc.options.narrator().set(net.minecraft.client.NarratorStatus.ALL);
+                screen.triggerImmediateNarration(false);
+            } finally {
+                mc.options.narrator().set(previousStatus);
+                field.set(gameNarrator, original);
+            }
+            return spoken.toString();
+        } catch (ReflectiveOperationException e) {
+            return "ERROR " + e;
+        }
+    }
+
+    private static void questBookKeyboardChecks(Minecraft mc) {
+        QuestLogScreen screen = (QuestLogScreen) mc.screen;
+        var nav = screen.keyboardNav();
+        var spoken = tabThrough(screen, nav, 16);
+        note("a11y.questbook.stops=" + nav.stopCount() + " spoken=" + spoken);
+        check("a11y.questbook.stops", nav.stopCount() >= 8, "stops=" + nav.stopCount());
+        check("a11y.questbook.labelled", spoken.stream().noneMatch(s -> s == null || s.isBlank()),
+                "unlabelled stop in " + spoken);
+        check("a11y.questbook.selectedAnnounced", spoken.stream().anyMatch(s -> s != null && s.contains("selected")),
+                "no 'selected' in " + spoken);
+        // Shift+Tab walks backward; Enter on a destination switches the page like a click would.
+        screen.keyPressed(key(org.lwjgl.glfw.GLFW.GLFW_KEY_TAB, org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT));
+        String back = nav.focusedDescription();
+        check("a11y.questbook.shiftTab", back != null && !back.equals(spoken.get(spoken.size() - 1)), "back=" + back);
+        screen.keyPressed(key(org.lwjgl.glfw.GLFW.GLFW_KEY_TAB, 0));
+        String narrated = vanillaNarration(screen);
+        note("a11y.questbook.vanillaNarration=" + narrated);
+        check("a11y.questbook.vanillaNarration", narrated.contains(nav.focusedDescription()) && narrated.contains("Captain"),
+                "narration=" + narrated);
+        String audible = spokenByGameNarrator(mc, screen);
+        note("a11y.questbook.gameNarratorSpoke=" + audible);
+        check("a11y.questbook.gameNarratorSpeaks", audible.contains(nav.focusedDescription()),
+                "spoken=" + audible);
+        nav.mouseUsed();
     }
 
     @SuppressWarnings("unchecked")
@@ -6478,13 +6610,67 @@ public final class RenderSelfTest {
             // The disc, with the book-wide Claim all button, then a real click-equivalent selection.
             queue(60, mc -> {
                 check("encyclopedia.disc.open." + tag, mc.screen instanceof FishEncyclopediaScreen, "screen=" + mc.screen);
+                if (mc.screen instanceof FishEncyclopediaScreen s) {
+                    var nav = s.keyboardNav();
+                    var spoken = tabThrough(s, nav, 4);
+                    note("a11y.encyclopedia.disc.stops=" + nav.stopCount() + " spoken=" + spoken);
+                    String narrated = vanillaNarration(s);
+                    note("a11y.encyclopedia.vanillaNarration=" + narrated);
+                    check("a11y.encyclopedia.vanillaNarration." + tag, narrated.contains(nav.focusedDescription()),
+                            "narration=" + narrated);
+                    String audible = spokenByGameNarrator(mc, s);
+                    note("a11y.encyclopedia.gameNarratorSpoke=" + audible);
+                    check("a11y.encyclopedia.gameNarratorSpeaks." + tag, audible.contains(nav.focusedDescription()),
+                            "spoken=" + audible);
+                    check("a11y.encyclopedia.disc.stops." + tag, nav.stopCount() >= 5, "stops=" + nav.stopCount());
+                    check("a11y.encyclopedia.disc.labelled." + tag,
+                            spoken.stream().noneMatch(x -> x == null || x.isBlank() || x.contains("Unlabeled")),
+                            "spoken=" + spoken);
+                    nav.mouseUsed();
+                }
                 screenshot(mc, "encyclopedia", tag + "_disc");
+            });
+            // Enter on a focused disc fish opens its page, like a click; then put the disc back.
+            queue(1, mc -> {
+                if (mc.screen instanceof FishEncyclopediaScreen s) {
+                    s.keyPressed(key(org.lwjgl.glfw.GLFW.GLFW_KEY_TAB, 0));
+                    s.keyPressed(key(org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER, 0));
+                }
+            });
+            queue(60, mc -> {
+                var s = mc.screen instanceof FishEncyclopediaScreen e ? e : null;
+                check("a11y.encyclopedia.enterOpensPage." + tag, s != null && s.isInfoPageOpen(), "page open after Enter");
+                if (s != null) s.closeInfoPage();
+            });
+            queue(60, mc -> {
+                var s = mc.screen instanceof FishEncyclopediaScreen e ? e : null;
+                check("a11y.encyclopedia.enterRoundTrip." + tag, s != null && !s.isInfoPageOpen() && !s.isClosingInfoPage(),
+                        "disc restored");
             });
             queue(1, mc -> {
                 if (mc.screen instanceof FishEncyclopediaScreen screen) screen.selectFish(Ids.of("fishtastic", "betta"));
             });
             queue(2, mc -> screenshot(mc, "encyclopedia", tag + "_flight"));
             queue(40, mc -> {
+                if (mc.screen instanceof FishEncyclopediaScreen s) {
+                    var nav = s.keyboardNav();
+                    var spoken = tabThrough(s, nav, 6);
+                    note("a11y.encyclopedia.page.stops=" + nav.stopCount() + " spoken=" + spoken);
+                    check("a11y.encyclopedia.page.stops." + tag, nav.stopCount() >= 2, "stops=" + nav.stopCount());
+                    check("a11y.encyclopedia.page.labelled." + tag,
+                            spoken.stream().noneMatch(x -> x == null || x.isBlank() || x.contains("Unlabeled")),
+                            "spoken=" + spoken);
+                    // A tooltip hotspot must read what is printed on the page it covers, not only its hover text.
+                    var everyStop = tabThrough(s, nav, nav.stopCount());
+                    String tooltipStop = everyStop.stream().filter(x -> x != null && x.contains("Based on where and when")).findFirst().orElse(null);
+                    note("a11y.encyclopedia.page.tooltipStop=" + tooltipStop);
+                    // The compact card draws its verdict as plain text with no tooltip hotspot.
+                    check("a11y.encyclopedia.tooltipReadsVisibleText." + tag,
+                            s.isCompactPage() ? tooltipStop == null : tooltipStop != null && tooltipStop.length() > "Based on where and when you're fishing".length() + 4
+                                    && !tooltipStop.startsWith("Based on where and when"),
+                            "stop=" + tooltipStop);
+                    nav.mouseUsed();
+                }
                 var screen = mc.screen instanceof FishEncyclopediaScreen s ? s : null;
                 check("encyclopedia.flight.landed." + tag, screen != null && screen.isInfoPageOpen()
                         && Ids.of("fishtastic", "betta").equals(screen.shownFishId()), "page open after flight");

@@ -9,7 +9,11 @@ import io.github.currenj.gelatinui.gui.UIScreen;
  * cursor, so interactive spots (buttons, tooltips) are separate elements above the static
  * {@link PageSurface} and any item icons they cover. Optionally outlines itself on hover.
  */
-public final class HitArea extends UIElement<HitArea> {
+public final class HitArea extends UIElement<HitArea> implements grill24.fishtastic.client.Narrated {
+    private String narration;
+    private String label;
+    private String tooltipText;
+    private PageSurface surface;
     private final boolean outlineOnHover;
     private boolean hovered;
 
@@ -27,7 +31,37 @@ public final class HitArea extends UIElement<HitArea> {
 
     public HitArea tip(UIScreen ui, UIElement<?> tooltip) {
         tooltip(ui, tooltip);
+        String text = ScaledTooltip.textOf(tooltip);
+        if (!text.isBlank()) tooltipText = tooltipText == null ? text : tooltipText + ". " + text;
         return this;
+    }
+
+    /** Spoken name for the narrator; shown before any tooltip text. */
+    public HitArea label(String label) {
+        this.label = label;
+        return this;
+    }
+
+    /** Lets the hotspot read the page text it sits on, which is what a sighted reader sees. */
+    public HitArea bind(PageSurface surface) {
+        this.surface = surface;
+        return this;
+    }
+
+    /** Visible text first, then the hover tooltip as extra detail; never the tooltip alone when text exists. */
+    @Override
+    public String narration() {
+        java.util.List<String> parts = new java.util.ArrayList<>();
+        if (label != null) parts.add(label);
+        if (surface != null) {
+            var pos = getTargetPosition();
+            String visible = surface.textWithin(Math.round(pos.x), Math.round(pos.y), (int) size.x, (int) size.y);
+            if (!visible.isBlank() && parts.stream().noneMatch(p -> p.contains(visible) || visible.contains(p))) {
+                parts.add(visible);
+            }
+        }
+        if (tooltipText != null && parts.stream().noneMatch(p -> p.equals(tooltipText))) parts.add(tooltipText);
+        return parts.isEmpty() ? null : String.join(". ", parts);
     }
 
     @Override

@@ -39,7 +39,19 @@ import java.util.List;
  * flag at that exact moment to tag the resulting render state. This mirrors the existing
  * {@code ACTIVE_EFFECT} thread-local pattern used for the glint render path.
  */
-public class SilhouetteItemButton extends ItemButton {
+public class SilhouetteItemButton extends ItemButton implements Narrated {
+    private String narration;
+
+    public SilhouetteItemButton setNarration(String narration) {
+        this.narration = narration;
+        return this;
+    }
+
+    @Override
+    public String narration() {
+        return narration;
+    }
+
     // Reuses the status-pip art from spawn condition rows: unclaimed reward here vs. condition met there.
     private static final Identifier REWARD_PIP_TEXTURE = Fishtastic.id("textures/gui/status_indicator_pip_green.png");
     private static final int REWARD_PIP_TEXTURE_PX = 8;

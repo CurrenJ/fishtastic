@@ -47,6 +47,17 @@ public final class ScaledTooltip {
         return of(k, List.of(lines));
     }
 
+    /** The plain text of a tooltip built by {@link #of}, one line per sentence, for narration. */
+    public static String textOf(UIElement<?> wrapper) {
+        List<String> out = new ArrayList<>();
+        if (wrapper instanceof FreeformContainer c) {
+            for (var child : c.getChildren()) {
+                if (child instanceof Body b) for (Line l : b.lines) out.add(l.text());
+            }
+        }
+        return String.join(" ", out);
+    }
+
     /** Dark purple-bordered box, sized in canvas units; rendered at the canvas scale. */
     private static final class Body extends UIElement<Body> {
         private final List<Line> lines;

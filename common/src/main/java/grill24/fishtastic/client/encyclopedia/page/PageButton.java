@@ -11,7 +11,7 @@ import net.minecraft.resources.Identifier;
 import java.awt.geom.Rectangle2D;
 
 /** A vanilla-look button (the stock 200x20, 3px-slice widget sprite) with a shadowed centred label. */
-public final class PageButton extends UIElement<PageButton> {
+public final class PageButton extends UIElement<PageButton> implements grill24.fishtastic.client.Narrated {
     private static final Identifier BUTTON = Ids.withDefaultNamespace("textures/gui/sprites/widget/button.png");
     private static final Identifier BUTTON_HOT = Ids.withDefaultNamespace("textures/gui/sprites/widget/button_highlighted.png");
 
@@ -28,6 +28,11 @@ public final class PageButton extends UIElement<PageButton> {
         onMouseEnter(e -> hovered = true);
         onMouseExit(e -> hovered = false);
         onClick(e -> action.run());
+    }
+
+    @Override
+    public String narration() {
+        return label;
     }
 
     /**

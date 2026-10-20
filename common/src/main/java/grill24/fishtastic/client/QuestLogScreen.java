@@ -69,6 +69,13 @@ import java.util.concurrent.ThreadLocalRandom;
 public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
     private MinecraftRenderContext tempContext;
+    public UiKeyboardNav keyboardNav() {
+        return keyboardNav;
+    }
+
+    private final UiKeyboardNav keyboardNav = new UiKeyboardNav(this::revealInViewport)
+            .glyphNames(Map.of(">", Component.translatable("narration.fishtastic.expand").getString(),
+                    "^", Component.translatable("narration.fishtastic.collapse").getString()));
     private boolean handlerInstalled = false;
     private QuestSyncPacket.ClientHandler savedHandler;
     private boolean encyclopediaHandlerInstalled = false;
@@ -636,6 +643,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             }
         }
         keepScrollOffset = false;
+        keyboardNav.resetLabels();
         renderedDestination = activeTabIndex;
         questRowRefs.clear();
         cyclingIconRefs.clear();
@@ -809,6 +817,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         uiScreen.setAutoCenterRoot(true);
         uiScreen.setScrollEnabled(false);
         uiScreen.setRoot(shell);
+        keyboardNav.refresh(shell);
 
         if (focusQuest != null) {
             ResourceKey<Quest> focused = focusQuest;
@@ -819,6 +828,49 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     @Override
     protected void extractContent(net.minecraft.client.gui.GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         graphics.fill(0, 0, width, height, 0xC010141A);
+    }
+
+    @Override
+    public void extractRenderState(net.minecraft.client.gui.GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+        keyboardNav.renderFocus(graphics);
+        if (keyboardNav.consumeNarrationRequest()) triggerImmediateNarration(false);
+    }
+
+    @Override
+    public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
+        if (uiScreen != null && keyboardNav.keyPressed(event, uiScreen, uiScreen.getRoot())) return true;
+        return super.keyPressed(event);
+    }
+
+    @Override
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+        keyboardNav.mouseUsed();
+        return super.mouseClicked(event, doubleClick);
+    }
+
+    @Override
+    protected void updateNarratedWidget(net.minecraft.client.gui.narration.NarrationElementOutput output) {
+        keyboardNav.narrate(output);
+        output.add(net.minecraft.client.gui.narration.NarratedElementType.USAGE,
+                Component.translatable("narration.fishtastic.quest_log.usage"));
+    }
+
+    /** Scrolls the quest list so a keyboard-focused element is inside the clipped viewport. */
+    private void revealInViewport(IUIElement element) {
+        if (questViewport == null) return;
+        for (IUIElement p = element.getParent(); p != null; p = p.getParent()) {
+            if (p != questViewport) continue;
+            Rectangle2D vp = questViewport.getBounds();
+            Rectangle2D b = element.getBounds();
+            float scale = Math.max(0.01f, questViewport.getGlobalScale());
+            if (b.getMinY() < vp.getMinY()) {
+                questViewport.setScrollOffset(questViewport.scrollOffset - (float) (vp.getMinY() - b.getMinY()) / scale - 4f);
+            } else if (b.getMaxY() > vp.getMaxY()) {
+                questViewport.setScrollOffset(questViewport.scrollOffset + (float) (b.getMaxY() - vp.getMaxY()) / scale + 4f);
+            }
+            return;
+        }
     }
 
     /** Place a measured element by its top left, keeping font and item pixels on integer coordinates. */
@@ -888,6 +940,9 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             uiScreen.runDeferred(this::buildUI);
         });
         button.text("", 0xFFFFFFFF);
+        keyboardNav.label(button, label
+                + (ready > 0 ? ", " + translated("narration.fishtastic.quest_log.ready", ready) : "")
+                + (active ? ", " + translated("narration.fishtastic.selected") : ""));
         slot.addChildAt(button, width / 2f, 10f);
         String[] icons = {"*", "✓", "♦", "▥", "✦", "•", ">"};
         place(slot, new Label(ready > 0 ? String.valueOf(ready) : icons[destination], ready > 0 ? COLOR_READY : COLOR_MUTED).init(tempContext), 9, 5);
@@ -940,6 +995,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             questFilters.put(activeTabIndex, filter);
             uiScreen.runDeferred(this::buildUI);
         });
+        keyboardNav.label(button, text + (filter == selected ? ", " + translated("narration.fishtastic.selected") : ""));
         slot.addChildAt(button, width / 2f, 7.5f);
         if (filter == selected) slot.addChildAt(UI.rectangle(width, 2, COLOR_SELECTION), width / 2f, 14f);
         bar.addChildAt(slot, x + width / 2f, 7.5f);
