@@ -18,7 +18,9 @@ import net.minecraft.world.item.ItemStack;
 import java.util.Set;
 import java.util.List;
 
-public record PurchaseShopEntryPacket(ResourceLocation entryId) implements CustomPacketPayload {
+public record PurchaseShopEntryPacket(ResourceLocation entryId, long requestId) implements CustomPacketPayload {
+
+    public PurchaseShopEntryPacket(ResourceLocation entryId) { this(entryId, 0); }
 
     public static final CustomPacketPayload.Type<PurchaseShopEntryPacket> TYPE =
             new CustomPacketPayload.Type<>(FishtasticPackets.PURCHASE_SHOP_ENTRY_ID);
@@ -27,6 +29,7 @@ public record PurchaseShopEntryPacket(ResourceLocation entryId) implements Custo
             StreamCodec.composite(
                     ResourceLocation.STREAM_CODEC,
                     PurchaseShopEntryPacket::entryId,
+                    net.minecraft.network.codec.ByteBufCodecs.VAR_LONG, PurchaseShopEntryPacket::requestId,
                     PurchaseShopEntryPacket::new
             );
 
@@ -43,35 +46,39 @@ public record PurchaseShopEntryPacket(ResourceLocation entryId) implements Custo
             MinecraftServer server = ((ServerLevel) serverPlayer.level()).getServer();
             if (server == null) return;
 
+            QuestActionResultPacket.respond(serverPlayer, packet.requestId(), "purchase", packet.entryId(), () -> {
             ResourceKey<ShopEntry> entryKey = ResourceKey.create(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY, packet.entryId());
 
             Registry<ShopEntry> shopRegistry;
             try {
                 shopRegistry = server.registryAccess().registryOrThrow(FishtasticRegistries.SHOP_ENTRY_REGISTRY_KEY);
             } catch (Exception e) {
-                return;
+                return "unavailable";
             }
 
             ShopEntry entry = shopRegistry.getOptional(entryKey).orElse(null);
-            if (entry == null) return;
+            if (entry == null) return "expired";
 
             FishCatchSavedData data = FishCatchSavedData.getOrCreate(server);
             PlayerQuestState state = data.getOrCreateQuestState(serverPlayer);
 
             long currentDay = server.overworld().getGameTime() / 24000L;
+            state.resetDailyPurchasesIfNeeded(currentDay);
             // Re-derive the draw with this player's unlocks so a gated capstone entry can't be
             // bought by anyone who hasn't claimed the quest that unlocks it, whatever the client sent.
             Set<ResourceKey<ShopEntry>> activeToday = ShopEntry.getActiveDailyShop(
                     shopRegistry, currentDay, state.getShopRefreshCount(),
                     questKey -> state.getProgress(questKey).claimed());
-            if (!activeToday.contains(entryKey)) return;
+            if (!activeToday.contains(entryKey)) return "expired";
 
-            if (!state.purchase(entryKey, entry)) return;
+            if (entry.dailyMaxPurchases() > 0 && state.getPurchaseCountSnapshot().getOrDefault(packet.entryId(), 0) >= entry.dailyMaxPurchases()) return "sold_out";
+            if (!state.purchase(entryKey, entry)) return "insufficient_tokens";
 
             grantRewards(serverPlayer, entry);
             data.setDirty();
 
-            QuestSyncPacket.sendToPlayer(serverPlayer, data);
+            return "success";
+            });
         });
     }
 

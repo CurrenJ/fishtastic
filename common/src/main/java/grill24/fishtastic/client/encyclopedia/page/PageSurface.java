@@ -147,6 +147,22 @@ public final class PageSurface extends UIElement<PageSurface> {
         return icon(rows, x, y, rgb, -1);
     }
 
+    /** A pixel icon drawn {@code px} screen pixels per '#', for callers that need it larger than the info page's 7x7. */
+    public PageSurface icon(String[] rows, int x, int y, int rgb, int dim, int px) {
+        int color = argb(rgb, 255);
+        int dimColor = dim < 0 ? 0 : argb(dim, 255);
+        cmds.add(c -> {
+            for (int j = 0; j < rows.length; j++) {
+                for (int i = 0; i < rows[j].length(); i++) {
+                    char ch = rows[j].charAt(i);
+                    if (ch == '#') c.fill(x + i * px, y + j * px, x + (i + 1) * px, y + (j + 1) * px, color);
+                    else if (ch == 'o' && dim >= 0) c.fill(x + i * px, y + j * px, x + (i + 1) * px, y + (j + 1) * px, dimColor);
+                }
+            }
+        });
+        return this;
+    }
+
     @Override
     protected void onUpdate(float deltaTime) {
     }

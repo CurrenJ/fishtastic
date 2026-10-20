@@ -18,7 +18,9 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
-public record CompleteQuestPacket(ResourceLocation questId) implements CustomPacketPayload {
+public record CompleteQuestPacket(ResourceLocation questId, long requestId) implements CustomPacketPayload {
+
+    public CompleteQuestPacket(ResourceLocation questId) { this(questId, 0); }
 
     public static final CustomPacketPayload.Type<CompleteQuestPacket> TYPE =
             new CustomPacketPayload.Type<>(FishtasticPackets.COMPLETE_QUEST_ID);
@@ -27,6 +29,7 @@ public record CompleteQuestPacket(ResourceLocation questId) implements CustomPac
             StreamCodec.composite(
                     ResourceLocation.STREAM_CODEC,
                     CompleteQuestPacket::questId,
+                    net.minecraft.network.codec.ByteBufCodecs.VAR_LONG, CompleteQuestPacket::requestId,
                     CompleteQuestPacket::new
             );
 
@@ -43,26 +46,37 @@ public record CompleteQuestPacket(ResourceLocation questId) implements CustomPac
             MinecraftServer server = ((ServerLevel) serverPlayer.level()).getServer();
             if (server == null) return;
 
+            QuestActionResultPacket.respond(serverPlayer, packet.requestId(), "claim", packet.questId(), () -> {
             ResourceKey<Quest> questKey = ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, packet.questId());
 
             Registry<Quest> questRegistry;
             try {
                 questRegistry = server.registryAccess().registryOrThrow(FishtasticRegistries.QUEST_REGISTRY_KEY);
             } catch (Exception e) {
-                return;
+                return "unavailable";
             }
 
             Quest quest = questRegistry.getOptional(questKey).orElse(null);
-            if (quest == null) return;
+            if (quest == null) return "expired";
 
             FishCatchSavedData data = FishCatchSavedData.getOrCreate(server);
             PlayerQuestState state = data.getOrCreateQuestState(serverPlayer);
 
+            long day = server.overworld().getGameTime() / 24000L;
+            if (quest.category() == QuestCategory.DAILY) {
+                boolean expired = !QuestTracker.getActiveDailies(questRegistry, day).contains(questKey)
+                        || state.getProgress(questKey).lastResetGameDay() < day;
+                state.resetDailyIfNeeded(questKey, day);
+                if (expired) return "expired";
+            }
+            if (state.getProgress(questKey).claimed()) return "already_claimed";
             int targetCount = quest.objective().effectiveTargetCount(server.registryAccess());
-            if (!state.canClaim(questKey, targetCount)) return;
+            if (!state.canClaim(questKey, targetCount)) return "not_ready";
 
             for (QuestReward.RewardItem item : quest.reward().items()) {
-                serverPlayer.getInventory().add(item.toStack());
+                var stack = item.toStack();
+                serverPlayer.getInventory().add(stack);
+                if (!stack.isEmpty()) serverPlayer.drop(stack, false);
             }
             state.claim(questKey, quest.reward().questTokens());
             if (quest.category() == QuestCategory.DAILY) {
@@ -72,7 +86,8 @@ public record CompleteQuestPacket(ResourceLocation questId) implements CustomPac
             data.setDirty();
 
             TutorialManager.onQuestClaimed(serverPlayer, packet.questId());
-            QuestSyncPacket.sendToPlayer(serverPlayer, data);
+            return "success";
+            });
         });
     }
 }
