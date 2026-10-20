@@ -126,6 +126,23 @@ public class SilhouetteItemButton extends ItemButton {
         if (!pipOverlayOnly) {
             if (!silhouette) {
                 super.renderSelf(context);
+            } else if (context instanceof MinecraftRenderContext silhouetteContext) {
+                // The parent's renderSelf hands anything drawn above 16 screen px to gelatin's
+                // HiResItems, which bypasses the item pipeline the silhouette shader hooks, so a
+                // magnified never-caught fish (the info page's 4x portrait) would turn full colour.
+                // Magnified: black-tint the fish's own sprite (crisp at any size). Disc size: the
+                // atlas silhouette, drawn straight through graphics.item.
+                ResourceLocation sprite = getGlobalScale() > MAGNIFIED_SCALE ? spriteFor(getItemStack()) : null;
+                if (sprite != null) {
+                    drawTintedSprite(silhouetteContext.getGraphics(), sprite);
+                } else {
+                    FishtasticGlintState.SILHOUETTE_REQUESTED.set(Boolean.TRUE);
+                    try {
+                        silhouetteContext.getGraphics().renderItem(getItemStack(), 0, 0);
+                    } finally {
+                        FishtasticGlintState.SILHOUETTE_REQUESTED.remove();
+                    }
+                }
             } else {
                 FishtasticGlintState.SILHOUETTE_REQUESTED.set(Boolean.TRUE);
                 try {
@@ -151,6 +168,35 @@ public class SilhouetteItemButton extends ItemButton {
                     REWARD_PIP_TEXTURE, (int) REWARD_PIP_SIZE, (int) REWARD_PIP_SIZE, 0f, 0f,
                     REWARD_PIP_TEXTURE_PX, REWARD_PIP_TEXTURE_PX, REWARD_PIP_TEXTURE_PX, REWARD_PIP_TEXTURE_PX);
         }
+    }
+
+    /** Above this on-screen scale the atlas silhouette is too coarse and the sprite is tinted instead. */
+    private static final float MAGNIFIED_SCALE = 2.0f;
+    private static final java.util.Map<ResourceLocation, int[]> SPRITE_SIZES = new java.util.HashMap<>();
+    private static final java.util.Map<ResourceLocation, java.util.Optional<ResourceLocation>> SPRITES = new java.util.HashMap<>();
+
+    /** {@code textures/item/fish/<id>.png}, or null when the item has no such sprite. */
+    private static ResourceLocation spriteFor(ItemStack stack) {
+        ResourceLocation id = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
+        return SPRITES.computeIfAbsent(id, key -> {
+            ResourceLocation texture = grill24.fishtastic.util.Ids.of(key.getNamespace(), "textures/item/fish/" + key.getPath() + ".png");
+            return net.minecraft.client.Minecraft.getInstance().getResourceManager().getResource(texture).isPresent()
+                    ? java.util.Optional.of(texture) : java.util.Optional.empty();
+        }).orElse(null);
+    }
+
+    private static void drawTintedSprite(GuiGraphics graphics, ResourceLocation texture) {
+        int[] size = SPRITE_SIZES.computeIfAbsent(texture, t -> {
+            try (var in = net.minecraft.client.Minecraft.getInstance().getResourceManager().getResourceOrThrow(t).open();
+                 var image = com.mojang.blaze3d.platform.NativeImage.read(in)) {
+                return new int[]{image.getWidth(), image.getHeight()};
+            } catch (java.io.IOException e) {
+                return new int[]{16, 16};
+            }
+        });
+        graphics.setColor(0x08 / 255f, 0x08 / 255f, 0x0A / 255f, 1f);
+        graphics.blit(texture, 0, 0, 16, 16, 0f, 0f, size[0], size[1], size[0], size[1]);
+        graphics.setColor(1f, 1f, 1f, 1f);
     }
 
     private static float badgeAlpha(long shownAt) {

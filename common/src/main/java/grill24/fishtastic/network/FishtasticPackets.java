@@ -24,6 +24,7 @@ public class FishtasticPackets {
     public static final ResourceLocation REQUEST_FISH_ENCYCLOPEDIA_ID = Fishtastic.id("request_fish_encyclopedia");
     public static final ResourceLocation FISH_ENCYCLOPEDIA_SYNC_ID = Fishtastic.id("fish_encyclopedia_sync");
     public static final ResourceLocation CLAIM_ENCYCLOPEDIA_REWARD_ID = Fishtastic.id("claim_encyclopedia_reward");
+    public static final ResourceLocation CLAIM_ALL_ENCYCLOPEDIA_REWARDS_ID = Fishtastic.id("claim_all_encyclopedia_rewards");
     public static final ResourceLocation COSMETIC_CAPTURE_SYNC_ID = Fishtastic.id("cosmetic_capture_sync");
     public static final ResourceLocation ENCYCLOPEDIA_TUTORIAL_SYNC_ID = Fishtastic.id("encyclopedia_tutorial_sync");
     public static final ResourceLocation ENCYCLOPEDIA_TUTORIAL_ADVANCE_ID = Fishtastic.id("encyclopedia_tutorial_advance");
@@ -130,6 +131,12 @@ public class FishtasticPackets {
                 ClaimEncyclopediaRewardPacket.class,
                 ClaimEncyclopediaRewardPacket.STREAM_CODEC,
                 ClaimEncyclopediaRewardPacket::handleClientToServer
+        );
+        registrar.registerClientToServer(
+                ClaimAllEncyclopediaRewardsPacket.TYPE,
+                ClaimAllEncyclopediaRewardsPacket.class,
+                ClaimAllEncyclopediaRewardsPacket.STREAM_CODEC,
+                ClaimAllEncyclopediaRewardsPacket::handleClientToServer
         );
         registrar.registerClientToServer(
                 EncyclopediaTutorialAdvancePacket.TYPE,
