@@ -54,6 +54,12 @@ public class FishtasticPackets {
      */
     public static void registerClientToServerPackets(FishtasticPacketHandling.IPacketRegistrar registrar) {
         registrar.registerClientToServer(
+                TutorialActionPacket.TYPE,
+                TutorialActionPacket.class,
+                TutorialActionPacket.STREAM_CODEC,
+                TutorialActionPacket::handleClientToServer
+        );
+        registrar.registerClientToServer(
                 AmbientContextRequestPacket.TYPE,
                 AmbientContextRequestPacket.class,
                 AmbientContextRequestPacket.STREAM_CODEC,

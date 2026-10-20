@@ -4,13 +4,12 @@ import grill24.fishtastic.network.CompanionTutorialSyncPacket;
 import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.companion.CompanionStorage;
-import grill24.fishtastic.menu.CompanionMenu;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * Persistent companion lessons. Inventory operations advance the hands-on steps on the server;
- * acknowledgements only advance the optional explanations. No timers or custom keys are required.
+ * One persistent equip hint. Unlock discovery uses a brief notification; optional controls
+ * explain themselves inside the party screen.
  */
 public final class CompanionTutorialManager {
     private CompanionTutorialManager() {}
@@ -20,6 +19,7 @@ public final class CompanionTutorialManager {
         if (getStep(player) == CompanionTutorialStep.NOT_STARTED) {
             ensureBook(player);
             setStep(player, CompanionTutorialStep.INTRO);
+            player.sendSystemMessage(net.minecraft.network.chat.Component.translatable("tutorial.fishtastic.companion.discovery"));
         }
     }
 
@@ -27,13 +27,8 @@ public final class CompanionTutorialManager {
     public static void onCompanionsTabOpened(ServerPlayer player) {
         resume(player);
         CompanionTutorialStep step = getStep(player);
-        boolean equipped = !CompanionStorage.party(player).isEmpty();
-        if (step == CompanionTutorialStep.INTRO || step == CompanionTutorialStep.EQUIP && equipped) {
-            setStep(player, equipped ? CompanionTutorialStep.RETURN : CompanionTutorialStep.EQUIP);
-        } else if (step == CompanionTutorialStep.RETURN && !equipped) {
-            // Closing a menu returns its cursor stack. Resume after a manual return-and-close.
-            setStep(player, CompanionTutorialStep.REEQUIP);
-        }
+        if (step.hasOverlay()) setStep(player, CompanionStorage.party(player).isEmpty()
+                ? CompanionTutorialStep.EQUIP : CompanionTutorialStep.COMPLETE);
     }
 
     /** Refresh the discovery hint whenever the player opens the book. */
@@ -47,6 +42,12 @@ public final class CompanionTutorialManager {
     }
 
     private static void resume(ServerPlayer player) {
+        CompanionTutorialStep step = getStep(player);
+        if (step.hasOverlay() && step != CompanionTutorialStep.INTRO && step != CompanionTutorialStep.EQUIP) {
+            // Old tours already equipped a fish. Do not ask players to repeat or undo it.
+            setStep(player, CompanionTutorialStep.COMPLETE);
+            return;
+        }
         if (getStep(player) == CompanionTutorialStep.NOT_STARTED
                 && !FishCatchSavedData.getOrCreate(player.level().getServer()).getOrCreateQuestState(player)
                 .getUnlockedCompanionSnapshot().isEmpty()) {
@@ -58,46 +59,36 @@ public final class CompanionTutorialManager {
 
     public static void onEquipped(ServerPlayer player) {
         if (CompanionStorage.party(player).isEmpty()) return;
-        switch (getStep(player)) {
-            case INTRO, EQUIP -> setStep(player, CompanionTutorialStep.RETURN);
-            case REEQUIP -> setStep(player, CompanionTutorialStep.LEAD);
-            default -> { }
-        }
+        if (getStep(player).hasOverlay()) setStep(player, CompanionTutorialStep.COMPLETE);
     }
 
     public static void onReturned(ServerPlayer player) {
-        if (getStep(player) == CompanionTutorialStep.RETURN) setStep(player, CompanionTutorialStep.REEQUIP);
+        // Removal is explained by the slot tooltip, without another lesson.
     }
 
     public static void onLeadSelected(ServerPlayer player) {
-        if (getStep(player) == CompanionTutorialStep.LEAD && !CompanionStorage.get(player, 0).isEmpty()) {
-            setStep(player, CompanionTutorialStep.RENAME);
-        }
+        // Lead selection is optional.
     }
 
     public static void onRenamed(ServerPlayer player) {
-        if (getStep(player) == CompanionTutorialStep.RENAME) setStep(player, CompanionTutorialStep.GROUPS);
+        // Naming is optional.
     }
 
-    /** The packet cannot skip an equipment action or advance a stale step. */
+    /** Dismissal never mutates inventory; ordinary advances cannot replace a real equip. */
     public static void advanceStep(ServerPlayer player, CompanionTutorialStep from, boolean skip) {
-        if (!(player.containerMenu instanceof CompanionMenu menu) || !menu.getCarried().isEmpty()
-                || getStep(player) != from || !from.hasOverlay()) {
+        if (getStep(player) != from || !from.hasOverlay()) {
             CompanionTutorialSyncPacket.sendToPlayer(player, getStep(player));
             return;
         }
         if (skip) {
-            setStep(player, CompanionTutorialStep.COMPLETE);
+            dismiss(player);
             return;
         }
-        CompanionTutorialStep next = switch (from) {
-            case LEAD -> CompanionTutorialStep.RENAME;
-            case RENAME -> CompanionTutorialStep.GROUPS;
-            case GROUPS -> CompanionTutorialStep.PILES;
-            case PILES -> CompanionTutorialStep.COMPLETE;
-            default -> null;
-        };
-        if (next != null) setStep(player, next);
+        // Only a real equip completes the remaining hands-on hint.
+    }
+
+    public static void dismiss(ServerPlayer player) {
+        setStep(player, CompanionTutorialStep.COMPLETE);
     }
 
     public static CompanionTutorialStep getStep(ServerPlayer player) {
@@ -109,7 +100,8 @@ public final class CompanionTutorialManager {
         var unlocked = FishCatchSavedData.getOrCreate(player.level().getServer()).getOrCreateQuestState(player)
                 .getUnlockedCompanionSnapshot();
         if (!unlocked.isEmpty()) ensureBook(player);
-        setStep(player, unlocked.isEmpty() ? CompanionTutorialStep.NOT_STARTED : CompanionTutorialStep.INTRO);
+        setStep(player, unlocked.isEmpty() ? CompanionTutorialStep.NOT_STARTED
+                : CompanionStorage.party(player).isEmpty() ? CompanionTutorialStep.INTRO : CompanionTutorialStep.COMPLETE);
     }
 
     private static void ensureBook(ServerPlayer player) {

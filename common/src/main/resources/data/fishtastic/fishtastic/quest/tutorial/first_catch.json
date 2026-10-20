@@ -1,6 +1,7 @@
 {
   "category": "tutorial",
   "objective": {
+    "target_species_tag": "fishtastic:fish",
     "target_count": 1,
     "notification_interval": 1
   },

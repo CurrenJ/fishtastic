@@ -741,18 +741,18 @@ public class FishtasticGameTests {
     }
 
     @GameTest(template = "fishtastic_empty")
-    public void onQuestClaimedOnlyAdvancesOnMatchingTutorialQuestId(GameTestHelper helper) {
-        TutorialManagerGameTests.onQuestClaimedOnlyAdvancesOnMatchingTutorialQuestId(helper, FishtasticTestSupport.playerSupplier(helper));
+    public void questClaimsAndReplayStayIndependent(GameTestHelper helper) {
+        TutorialManagerGameTests.questClaimsAndReplayStayIndependent(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
     @GameTest(template = "fishtastic_empty")
-    public void onlyCopperCastsStartTutorialAndGrantBooksOnce(GameTestHelper helper) {
-        TutorialManagerGameTests.onlyCopperCastsStartTutorialAndGrantBooksOnce(helper, FishtasticTestSupport.playerSupplier(helper));
+    public void copperOfferDismissalPersistsAcrossRecastsAndRejoin(GameTestHelper helper) {
+        TutorialManagerGameTests.copperOfferDismissalPersistsAcrossRecastsAndRejoin(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
     @GameTest(template = "fishtastic_empty")
-    public void booksAdvanceTutorialAndEncyclopediaChoiceIsOptional(GameTestHelper helper) {
-        TutorialManagerGameTests.booksAdvanceTutorialAndEncyclopediaChoiceIsOptional(helper, FishtasticTestSupport.playerSupplier(helper));
+    public void questAccessAndLegacyTutorialMigration(GameTestHelper helper) {
+        TutorialManagerGameTests.questAccessAndLegacyTutorialMigration(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
     @GameTest(template = "fishtastic_empty")
@@ -761,18 +761,18 @@ public class FishtasticGameTests {
     }
 
     @GameTest(template = "fishtastic_empty")
-    public void realMenuWalksAllCompanionLessons(GameTestHelper helper) {
-        CompanionTutorialManagerGameTests.realMenuWalksAllCompanionLessons(helper, FishtasticTestSupport.playerSupplier(helper));
+    public void firstEquipCompletesCompanionLesson(GameTestHelper helper) {
+        CompanionTutorialManagerGameTests.firstEquipCompletesCompanionLesson(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
     @GameTest(template = "fishtastic_empty")
-    public void shortcutsAndShiftReturnsAdvanceTheSameLessons(GameTestHelper helper) {
-        CompanionTutorialManagerGameTests.shortcutsAndShiftReturnsAdvanceTheSameLessons(helper, FishtasticTestSupport.playerSupplier(helper));
+    public void shortcutEquipCompletesCompanionLesson(GameTestHelper helper) {
+        CompanionTutorialManagerGameTests.shortcutEquipCompletesCompanionLesson(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
     @GameTest(template = "fishtastic_empty")
-    public void closingWithReturnedFishResumesWithoutLosingIt(GameTestHelper helper) {
-        CompanionTutorialManagerGameTests.closingWithReturnedFishResumesWithoutLosingIt(helper, FishtasticTestSupport.playerSupplier(helper));
+    public void dismissWithCarriedFishPreservesInventory(GameTestHelper helper) {
+        CompanionTutorialManagerGameTests.dismissWithCarriedFishPreservesInventory(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
     @GameTest(template = "fishtastic_empty")

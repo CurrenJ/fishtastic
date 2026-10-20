@@ -20,6 +20,7 @@
     "LevelRendererMixin",
     "MinecraftFrameBenchMixin",
     "NoteBlockCompanionMixin",
+    "PauseScreenMixin",
     "RenderBuffersMixin",
     "accessor.BufferSourceAccessor",
     "accessor.LivingEntityRendererInvoker"

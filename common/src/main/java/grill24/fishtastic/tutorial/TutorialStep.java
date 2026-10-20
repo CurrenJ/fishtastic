@@ -35,6 +35,6 @@ public enum TutorialStep {
     }
 
     public boolean pausesMinigame() {
-        return this == MINIGAME_INTRO || this == MINIGAME_CONTROL;
+        return false;
     }
 }

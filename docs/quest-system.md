@@ -1,8 +1,23 @@
 # Quest System
 
-> **Status: Server-side implementation complete. Quest Log UI and quest JSON content not yet implemented.** See [feature-design-overview.md](feature-design-overview.md) for the full status breakdown.
+> **Status: Implemented, including Quest Log UI and quest content.** Player help is optional; quest progress and rewards are independent of tutorial progress.
 
 Quests are structured goals that reward fishing skill. They are the **only source** of rod upgrade scrolls, special bait, and tank cosmetic unlocks — no crafting recipes for these items exist. Rewards are visual and experiential, not mandatory for progression.
+
+### Optional player help
+
+The fishing lesson ends at the first successful catch. First Catch appears in the Daily tab
+whether the player accepts, dismisses or finishes the lesson. Claiming it does not start a shop tour.
+Declining the initial offer persists across casting, crafting and reconnecting.
+
+Pause → **Fishtastic help** provides fishing practice, Fishopedia and companion help, quest access,
+and dismissal of all hints without permissions or custom keybinds. Practice requires a copper rod
+and bait; replay grants no starter items and preserves earned rewards. Fishopedia has one species-selection
+hint. Companion onboarding ends when a fish is equipped. Closing either screen dismisses its hint;
+removal, naming, grouping, piles, zones and rewards use contextual help instead of further lessons.
+
+Saved tutorial enum ordinals are retained. Legacy post-catch fishing steps, second encyclopedia
+steps, and companion steps after equipping migrate to completion when resumed.
 
 ---
 
