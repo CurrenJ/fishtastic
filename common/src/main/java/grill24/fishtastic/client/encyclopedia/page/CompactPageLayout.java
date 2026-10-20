@@ -49,7 +49,10 @@ public final class CompactPageLayout {
         CompactPageLayout layout = new CompactPageLayout(params);
         layout.layout();
         host.addChild(layout.surface);
-        for (UIElement<?> hit : layout.hits) host.addChild(hit);
+        for (UIElement<?> hit : layout.hits) {
+            if (hit instanceof HitArea area) area.bind(layout.surface);
+            host.addChild(hit);
+        }
         return new Result(layout.bondButton, H);
     }
 
@@ -110,7 +113,7 @@ public final class CompactPageLayout {
         surface.rect(x, TOP + 45, w, 13, selected ? 0x000000 : 0x3C2422, selected ? 110 : 255);
         if (selected) surface.rect(x, TOP + 57, w, 1, GOLD);
         surface.text(x + 4, TOP + 47, PageSurface.truncate(label, w - 8), selected ? YELLOW : GREY);
-        HitArea hit = new HitArea(w, 14, true).click(() -> p.actions().selectTab(target));
+        HitArea hit = new HitArea(w, 14, true).label(label).click(() -> p.actions().selectTab(target));
         hit.tip(p.ui(), ScaledTooltip.of(p.k(), line(label, WHITE)));
         hits.add(place(hit, x, TOP + 44));
         return x + w;
