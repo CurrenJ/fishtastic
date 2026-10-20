@@ -142,7 +142,7 @@ public record FishPageModel(
             if (!reached) complete = false;
         }
 
-        boolean nameRevealed = unlocked(fishId, EncyclopediaRewardSection.NAME_REVEAL, catches, thresholds);
+        boolean nameRevealed = caught && unlocked(fishId, EncyclopediaRewardSection.NAME_REVEAL, catches, thresholds);
         Component displayName = nameRevealed
                 ? stack.getHoverName()
                 : Component.translatable("screen.fishtastic.encyclopedia.locked_placeholder");

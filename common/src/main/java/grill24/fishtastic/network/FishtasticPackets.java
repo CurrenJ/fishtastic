@@ -193,6 +193,12 @@ public class FishtasticPackets {
      */
     public static void registerServerToClientPackets(FishtasticPacketHandling.IPacketRegistrar registrar) {
         registrar.registerServerToClient(
+                QuestActionResultPacket.TYPE,
+                QuestActionResultPacket.class,
+                QuestActionResultPacket.STREAM_CODEC,
+                QuestActionResultPacket::handleServerToClient
+        );
+        registrar.registerServerToClient(
                 StartFishingMinigamePacket.TYPE,
                 StartFishingMinigamePacket.class,
                 StartFishingMinigamePacket.STREAM_CODEC,

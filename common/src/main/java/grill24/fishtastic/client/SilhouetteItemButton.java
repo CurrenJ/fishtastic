@@ -7,6 +7,7 @@ import io.github.currenj.gelatinui.gui.animation.Easing;
 import io.github.currenj.gelatinui.gui.animation.FloatKeyframeAnimation;
 import io.github.currenj.gelatinui.gui.animation.Keyframe;
 import io.github.currenj.gelatinui.gui.components.ItemButton;
+import io.github.currenj.gelatinui.gui.UIEvent;
 import io.github.currenj.gelatinui.gui.minecraft.MinecraftRenderContext;
 import net.minecraft.Util;
 import net.minecraft.client.gui.GuiGraphics;
@@ -72,6 +73,28 @@ public class SilhouetteItemButton extends ItemButton {
 
     public SilhouetteItemButton(ItemStack itemStack) {
         super(itemStack);
+    }
+
+    private boolean clickMustBeInside = false;
+
+    /**
+     * ItemButton claims every CLICK that reaches it, and containers forward events to children
+     * without a bounds check, so a click anywhere in the parent (a panel background, a scroll bar)
+     * would fire this button's handler. Opt in where the button shares a parent with other
+     * clickable things.
+     */
+    public SilhouetteItemButton requireClickInside() {
+        this.clickMustBeInside = true;
+        return this;
+    }
+
+    @Override
+    public boolean handleEvent(UIEvent event) {
+        if (clickMustBeInside && event.getType() == UIEvent.Type.CLICK
+                && !getBounds().contains(event.getMouseX(), event.getMouseY())) {
+            return false;
+        }
+        return super.handleEvent(event);
     }
 
     public SilhouetteItemButton setSilhouette(boolean silhouette) {
@@ -195,7 +218,8 @@ public class SilhouetteItemButton extends ItemButton {
             }
         });
         graphics.setColor(0x08 / 255f, 0x08 / 255f, 0x0A / 255f, 1f);
-        graphics.blit(texture, 0, 0, 16, 16, 0f, 0f, size[0], size[1], size[0], size[1]);
+        // An animated fish texture is a vertical strip of square frames; blit only the first one.
+        graphics.blit(texture, 0, 0, 16, 16, 0f, 0f, size[0], Math.min(size[1], size[0]), size[0], size[1]);
         graphics.setColor(1f, 1f, 1f, 1f);
     }
 
