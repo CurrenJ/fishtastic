@@ -185,14 +185,18 @@ Tokens are spent in a dedicated Quest Shop UI (accessed from the Quest Log, or a
 
 ## UI
 
-A new GelatinUI Quest Log screen, accessed via keybind or from the leaderboard. Tabbed layout mirrors the existing leaderboard screen:
+The implemented GelatinUI Quest Log uses icon tabs for Daily, Mastery, Explorer,
+Collector, Challenge, Shop and Cleanup, with a three-column quest grid. Each quest
+shows its objective, progress and reward preview. Claim sends `CompleteQuestPacket`
+for server validation.
 
-- **Tabs:** Daily | Mastery | Explorer | Collector | Challenge
-- Each quest shows a progress bar (current / target), objective description, and reward preview
-- **Claim** button activates on completion; sends `CompleteQuestPacket` to server
-- **Profile** tab shows total tokens, unlocked cosmetics, milestone history
-
-The existing leaderboard screen gains a small badge next to player names who hold prestige cosmetic unlocks.
+A reviewed redesign is proposed separately in [Quest book redesign](quest-log-redesign/README.md)
+and its [interaction and visual specification](quest-log-redesign/design-spec.md). It uses
+labelled navigation, readable objective rows, category-local Ready filters, inline Claim,
+one expanded row with an inline species/silhouette grid for collection quests. Market exposes affordability and paid
+reroll costs; Cleanup explains automatic cycle payouts and keeps personal contribution visible.
+These are design requirements, not implemented screen behavior. The gallery includes a
+content-matched comparison with the current live capture and static edge-case fixtures.
 
 ---
 

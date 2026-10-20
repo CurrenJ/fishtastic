@@ -1,0 +1,183 @@
+{
+  "source": "Minecraft 26.1.2 Fabric GUI item renderer",
+  "capture_size": [
+    64,
+    64
+  ],
+  "logical_slot": [
+    16,
+    16
+  ],
+  "entries": {
+    "9096e3b06a30fb54": {
+      "file": "9096e3b06a30fb54.png",
+      "quest": "tutorial/first_catch",
+      "reward_index": 0,
+      "item": {
+        "id": "fishtastic:worms",
+        "count": 4
+      },
+      "capture_slot": 0
+    },
+    "d102afd505989473": {
+      "file": "d102afd505989473.png",
+      "quest": "tutorial/first_catch",
+      "reward_index": 1,
+      "item": {
+        "id": "fishtastic:fish_tank",
+        "count": 8,
+        "components": {
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:oak_planks",
+            "sand": "minecraft:sand",
+            "glass": "fishtastic:borderless_glass"
+          }
+        }
+      },
+      "capture_slot": 1
+    },
+    "9ddbc47f09435811": {
+      "file": "9ddbc47f09435811.png",
+      "quest": "tutorial/first_catch",
+      "reward_index": 2,
+      "item": {
+        "id": "fishtastic:fish_tank",
+        "count": 8,
+        "components": {
+          "fishtastic:fish_tank_shape": "sturdy",
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:oak_log",
+            "sand": "minecraft:sand",
+            "glass": "fishtastic:borderless_glass"
+          }
+        }
+      },
+      "capture_slot": 2
+    },
+    "bdd2809615bbbf35": {
+      "file": "bdd2809615bbbf35.png",
+      "quest": "daily/bright_catch_gold",
+      "reward_index": 0,
+      "item": {
+        "components": {
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:ochre_froglight",
+            "glass": "fishtastic:orange_clear_stained_glass",
+            "sand": "minecraft:sand"
+          }
+        },
+        "count": 4,
+        "id": "fishtastic:fish_tank"
+      },
+      "capture_slot": 3
+    },
+    "8524997af40d3fb5": {
+      "file": "8524997af40d3fb5.png",
+      "quest": "collector/river_collector",
+      "reward_index": 0,
+      "item": {
+        "id": "fishtastic:fish_tank",
+        "count": 8,
+        "components": {
+          "fishtastic:fish_tank_shape": "film",
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:oxidized_cut_copper",
+            "sand": "minecraft:sand",
+            "glass": "fishtastic:lime_clear_stained_glass"
+          }
+        }
+      },
+      "capture_slot": 4
+    },
+    "9e9db348ba353b99": {
+      "file": "9e9db348ba353b99.png",
+      "quest": "collector/ocean_collector",
+      "reward_index": 0,
+      "item": {
+        "id": "fishtastic:fish_tank",
+        "count": 8,
+        "components": {
+          "fishtastic:fish_tank_shape": "rampart",
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:prismarine_bricks",
+            "sand": "minecraft:sand",
+            "glass": "fishtastic:cyan_clear_stained_glass"
+          }
+        }
+      },
+      "capture_slot": 5
+    },
+    "11bd6a56fbc04c32": {
+      "file": "11bd6a56fbc04c32.png",
+      "quest": "collector/cave_collector",
+      "reward_index": 0,
+      "item": {
+        "id": "fishtastic:fish_tank",
+        "count": 8,
+        "components": {
+          "fishtastic:fish_tank_shape": "honed",
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:cracked_deepslate_bricks",
+            "sand": "minecraft:granite",
+            "glass": "fishtastic:gray_clear_stained_glass"
+          }
+        }
+      },
+      "capture_slot": 6
+    },
+    "8f14a1f3c4e03898": {
+      "file": "8f14a1f3c4e03898.png",
+      "quest": "mastery/tetra_scholar",
+      "reward_index": 0,
+      "item": {
+        "id": "fishtastic:fish_tank",
+        "count": 8,
+        "components": {
+          "fishtastic:fish_tank_shape": "reinforced",
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:quartz_pillar",
+            "sand": "minecraft:sand",
+            "glass": "fishtastic:magenta_clear_stained_glass"
+          }
+        }
+      },
+      "capture_slot": 7
+    },
+    "cfc93502356965c0": {
+      "file": "cfc93502356965c0.png",
+      "quest": "mastery/angler_apprentice",
+      "reward_index": 0,
+      "item": {
+        "id": "fishtastic:fish_tank",
+        "count": 8,
+        "components": {
+          "fishtastic:fish_tank_shape": "trimmed",
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:quartz_block",
+            "sand": "minecraft:shroomlight",
+            "glass": "fishtastic:white_clear_stained_glass"
+          }
+        }
+      },
+      "capture_slot": 8
+    },
+    "08e6f15bd5d0c5de": {
+      "file": "08e6f15bd5d0c5de.png",
+      "quest": "mastery/tetra_tracker",
+      "reward_index": 0,
+      "item": {
+        "id": "fishtastic:fish_tank",
+        "count": 8,
+        "components": {
+          "fishtastic:fish_tank_shape": "shaggy",
+          "fishtastic:fish_tank_materials": {
+            "frame": "minecraft:dark_oak_planks",
+            "sand": "minecraft:sand",
+            "glass": "fishtastic:yellow_clear_stained_glass"
+          }
+        }
+      },
+      "capture_slot": 9
+    }
+  }
+}
