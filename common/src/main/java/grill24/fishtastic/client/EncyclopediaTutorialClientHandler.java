@@ -1,5 +1,6 @@
 package grill24.fishtastic.client;
 
+import grill24.fishtastic.network.FishtasticTransport;
 import grill24.fishtastic.network.EncyclopediaTutorialAdvancePacket;
 import grill24.fishtastic.network.EncyclopediaTutorialSyncPacket;
 import grill24.fishtastic.network.TutorialActionPacket;
@@ -25,7 +26,7 @@ public final class EncyclopediaTutorialClientHandler {
         var mc = Minecraft.getInstance();
         if (!hasActiveLesson() || mc.player == null) return;
         awaitingReply = true;
-        mc.player.connection.send(new ServerboundCustomPayloadPacket(new EncyclopediaTutorialAdvancePacket(currentStep)));
+        FishtasticTransport.sendToServer(new EncyclopediaTutorialAdvancePacket(currentStep));
     }
 
     /** Leaving an info page is no longer a lesson. */

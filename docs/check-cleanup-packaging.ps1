@@ -1,11 +1,17 @@
-param([string]$Repo = (Split-Path -Parent $PSScriptRoot))
+param(
+    [string]$Repo = (Split-Path -Parent $PSScriptRoot),
+    # Fabric/NeoForge stay the default so branches without a runnable Forge module keep working;
+    # Forge acceptance passes -Loaders fabric,neoforge,forge explicitly.
+    [ValidateSet('fabric', 'neoforge', 'forge')]
+    [string[]]$Loaders = @('fabric', 'neoforge')
+)
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $properties = @{}
 Get-Content -LiteralPath (Join-Path $Repo 'gradle.properties') | ForEach-Object {
     if ($_ -match '^\s*(mod_version|minecraft_version)\s*=\s*(\S+)') { $properties[$matches[1]] = $matches[2] }
 }
-foreach ($loader in @('fabric', 'neoforge')) {
+foreach ($loader in $Loaders) {
     $jar = Join-Path $Repo "$loader/build/libs/fishtastic-$loader-$($properties.mod_version)+$($properties.minecraft_version).jar"
     $archive = [IO.Compression.ZipFile]::OpenRead($jar)
     try {

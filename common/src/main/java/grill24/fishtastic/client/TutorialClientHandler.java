@@ -1,5 +1,6 @@
 package grill24.fishtastic.client;
 
+import grill24.fishtastic.network.FishtasticTransport;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.item.FishtasticFishingRodItem;
@@ -105,8 +106,7 @@ public class TutorialClientHandler {
                 if (mc.screen == null && mc.player != null && !mc.player.isDeadOrDying()) {
                     mc.setScreen(new net.minecraft.client.gui.screens.ConfirmScreen(show -> {
                         sentAdvanceThisStep = true;
-                        mc.player.connection.send(new ServerboundCustomPayloadPacket(
-                                new TutorialAdvancePacket(currentStep, show)));
+                        FishtasticTransport.sendToServer(new TutorialAdvancePacket(currentStep, show));
                         mc.setScreen(null);
                     }, Component.translatable("tutorial.fishtastic.fishing_offer.title"),
                             Component.translatable("tutorial.fishtastic.fishing_offer.body"),
@@ -366,6 +366,6 @@ public class TutorialClientHandler {
         if (mc.player == null) return;
         sentAdvanceThisStep = true;
         isExiting = true;
-        mc.player.connection.send(new ServerboundCustomPayloadPacket(new TutorialAdvancePacket(currentStep)));
+        FishtasticTransport.sendToServer(new TutorialAdvancePacket(currentStep));
     }
 }

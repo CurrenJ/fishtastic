@@ -1,5 +1,6 @@
 package grill24.fishtastic.client.ambient;
 
+import grill24.fishtastic.network.FishtasticTransport;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.network.AmbientContextRequestPacket;
 import grill24.fishtastic.network.AmbientContextResponsePacket;
@@ -258,7 +259,7 @@ public final class AmbientContextClient {
         STORE.retainPatches(keys);
         var packet = new AmbientContextRequestPacket(STORE.session(), requestGeneration, origins);
         requestBytes += encodedBytes(AmbientContextRequestPacket.STREAM_CODEC, packet, level);
-        mc.player.connection.send(new ServerboundCustomPayloadPacket(packet));
+        FishtasticTransport.sendToServer(packet);
         dispatches++;
         originsSent += origins.size();
         Fishtastic.LOGGER.debug("Ambient context request {} sent for {} origins (session={}, ctxGen={})",

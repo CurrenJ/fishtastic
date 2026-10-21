@@ -4,6 +4,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.companion.CompanionStorage;
 import grill24.fishtastic.network.BondCompanionPacket;
+import grill24.fishtastic.network.FishtasticTransport;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -61,7 +62,7 @@ public final class CompanionBondInput {
             // The first empty party slot takes it; a full party opens the menu with the fish
             // highlighted rather than silently replacing a companion (party spec §5.3).
             if (CompanionStorage.party(mc.player).firstEmpty() < 0) CompanionScreen.open(fish);
-            else mc.player.connection.send(new ServerboundCustomPayloadPacket(new BondCompanionPacket(fish)));
+            else FishtasticTransport.sendToServer(new BondCompanionPacket(fish));
             target = null;
             spent = true;
         }

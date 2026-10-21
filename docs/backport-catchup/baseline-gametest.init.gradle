@@ -1,0 +1,20 @@
+// Baseline only: fresh worlds without editing either target's existing run setup.
+// Keep universes for inspection; do not delete historical or newly created worlds.
+gradle.projectsEvaluated {
+    [':fabric', ':neoforge', ':forge'].each { path ->
+        def target = gradle.rootProject.findProject(path)
+        if (target != null) {
+            target.tasks.matching { it.name == 'runGametest' }.configureEach {
+                doFirst {
+                    def universe = new File(target.layout.buildDirectory.get().asFile,
+                            'backport-baseline-worlds/' + UUID.randomUUID().toString())
+                    if (!universe.mkdirs()) {
+                        throw new GradleException('Could not create fresh baseline universe: ' + universe)
+                    }
+                    args '--universe', universe.absolutePath
+                    logger.lifecycle('Backport baseline isolated universe: ' + universe)
+                }
+            }
+        }
+    }
+}

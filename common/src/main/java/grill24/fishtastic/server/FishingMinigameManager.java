@@ -1,5 +1,6 @@
 package grill24.fishtastic.server;
 
+import grill24.fishtastic.network.FishtasticTransport;
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticBlocks;
@@ -1154,7 +1155,7 @@ public class FishingMinigameManager {
     }
 
     private void sendToPlayer(ServerPlayer player, net.minecraft.network.protocol.common.custom.CustomPacketPayload payload) {
-        player.connection.send(new net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket(payload));
+        FishtasticTransport.sendToPlayer(player, payload);
     }
 
     public boolean isPlayerInActiveSession(UUID uuid) {

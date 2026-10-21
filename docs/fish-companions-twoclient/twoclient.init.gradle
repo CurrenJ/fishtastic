@@ -18,13 +18,26 @@ gradle.projectsEvaluated {
     if (!(role in ['server', 'a', 'b', 'solo'])) throw new GradleException('Set -PtwoRole=server, a, b or solo')
     def base = rootProject.file('docs/fish-companions-twoclient').canonicalFile
     def loader = gradle.startParameter.projectProperties.get('twoLoader') ?: 'fabric'
-    if (!(loader in ['fabric', 'neoforge'])) throw new GradleException('Set -PtwoLoader=fabric or neoforge')
-    def port = loader == 'fabric' ? 25600 : 25601
+    if (!(loader in ['fabric', 'neoforge', 'forge'])) throw new GradleException('Set -PtwoLoader=fabric, neoforge or forge')
+    def port = loader == 'fabric' ? 25600 : loader == 'neoforge' ? 25601 : 25602
     def target = rootProject.file("docs/fish-companions-twoclient/run-${loader}-${role}").canonicalFile
     if (target.parentFile != base) throw new GradleException('Unexpected run directory')
     target.mkdirs()
     def platform = rootProject.project(':' + loader)
     def names = ['FishA', 'FishB']
+    // The Forge dev launcher only mounts mods it finds in the run directory's mods/ folder.
+    if (loader == 'forge') {
+        // Resolve at execution time; Gradle 9 rejects configuration-time resolution.
+        platform.tasks.matching { it.name in ['runClient', 'runServer'] }.configureEach { runTask ->
+            runTask.doFirst {
+                def mods = new File(target, 'mods')
+                mods.mkdirs()
+                platform.configurations.gelatinuiMod.files.each { jar ->
+                    new File(mods, jar.name).bytes = jar.bytes
+                }
+            }
+        }
+    }
     if (role != 'server') {
         def name = role == 'b' ? names[1] : names[0]
         def scenes = gradle.startParameter.projectProperties.get('twoScenes') ?: (role == 'solo' ? 'companionscenes' : 'twoclient')

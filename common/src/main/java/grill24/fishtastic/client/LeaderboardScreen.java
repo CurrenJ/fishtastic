@@ -9,6 +9,7 @@ import grill24.fishtastic.network.LeaderboardEntry;
 import grill24.fishtastic.network.LeaderboardResponsePacket;
 import grill24.fishtastic.network.LeaderboardType;
 import grill24.fishtastic.network.RequestLeaderboardPacket;
+import grill24.fishtastic.network.FishtasticTransport;
 import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
 import io.github.currenj.gelatinui.GelatinUIScreen;
@@ -265,8 +266,7 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
         Optional<UUID> target = (type == LeaderboardType.PERSONAL_BEST_SIZE || type == LeaderboardType.PERSONAL_CATCH_COUNT)
                 ? Optional.of(mc.player.getUUID())
                 : Optional.empty();
-        mc.player.connection.send(new ServerboundCustomPayloadPacket(
-                new RequestLeaderboardPacket(type, false, target)));
+        FishtasticTransport.sendToServer(new RequestLeaderboardPacket(type, false, target));
     }
 
     private void onLeaderboardResponse(LeaderboardResponsePacket packet) {

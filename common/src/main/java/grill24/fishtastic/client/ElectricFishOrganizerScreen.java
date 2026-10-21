@@ -1,5 +1,6 @@
 package grill24.fishtastic.client;
 
+import grill24.fishtastic.network.FishtasticTransport;
 import grill24.fishtastic.blockentity.OrganizerSortMode;
 import grill24.fishtastic.menu.ElectricFishOrganizerMenu;
 import grill24.fishtastic.network.SetOrganizerSortPacket;
@@ -106,7 +107,7 @@ public class ElectricFishOrganizerScreen extends AbstractContainerScreen<Electri
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
-            mc.player.connection.send(new ServerboundCustomPayloadPacket(new SetOrganizerSortPacket(mode, ascending)));
+            FishtasticTransport.sendToServer(new SetOrganizerSortPacket(mode, ascending));
         }
     }
 

@@ -1,10 +1,20 @@
 # Changelog
 
-## 2.1.0
+## 2.1.2
 
-Added ambient fish, companions, and interactive fish tank cosmetic decorations
+Fixed fish tank rendering and companion party sync found in review.
 
-## Unreleased
+- Changing a tank's shape or materials now redraws it immediately instead of leaving the old
+  model on screen until the chunk reloads.
+- Non-standard tank shapes, every connection layout and the corner and edge pieces now render on
+  Forge instead of falling back to the standard tank.
+- Decorated tanks no longer reuse another tank's decoration mesh, and tinted decorations such as
+  leaves and ferns keep their colours.
+- A reconnecting player's companion party is now announced to players already on the server.
+
+## 2.1.1
+
+Fixed Gelatin UI being treated as optional: all loaders now report it as a required dependency, and CurseForge installs it as a required dependency.
 
 ### Fish companions: the party
 
@@ -16,3 +26,7 @@ Added ambient fish, companions, and interactive fish tank cosmetic decorations
   to one small bluegill, you'll see one fish after updating, not three. To get the school back,
   catch two more and put them in slots 2 and 3. The copies were never items, so they can't be
   handed back without duplicating fish.
+
+## 2.1.0
+
+Added ambient fish, companions, and interactive fish tank cosmetic decorations

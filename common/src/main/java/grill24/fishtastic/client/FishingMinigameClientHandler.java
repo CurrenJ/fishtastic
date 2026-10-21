@@ -7,6 +7,7 @@ import grill24.fishtastic.component.BaitEffect;
 import grill24.fishtastic.component.CharmEffect;
 import grill24.fishtastic.item.CopperFishingRod;
 import grill24.fishtastic.network.FinishFishingMinigamePacket;
+import grill24.fishtastic.network.FishtasticTransport;
 import grill24.fishtastic.network.StartFishingMinigamePacket;
 import grill24.fishtastic.util.FishingMinigameAnimation;
 import grill24.fishtastic.util.FishingTarget;
@@ -147,11 +148,7 @@ public class FishingMinigameClientHandler {
         List<Integer> caughtIndices = currentAnimation.getCaughtTargetIndices();
 
         // Send packet to server with results
-        minecraft.player.connection.send(
-                new net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket(
-                        new FinishFishingMinigamePacket(currentSessionId, caughtIndices)
-                )
-        );
+        FishtasticTransport.sendToServer(new FinishFishingMinigamePacket(currentSessionId, caughtIndices));
 
         // Clean up
         currentSessionId = -1;

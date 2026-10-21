@@ -1,5 +1,6 @@
 package grill24.fishtastic.network;
 
+import grill24.fishtastic.network.FishtasticTransport;
 import grill24.fishtastic.Fishtastic;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -48,6 +49,6 @@ public record ReactionBoostSyncPacket(float boost) implements CustomPacketPayloa
     }
 
     public static void sendToPlayer(ServerPlayer player, float boost) {
-        player.connection.send(new ClientboundCustomPayloadPacket(new ReactionBoostSyncPacket(boost)));
+        FishtasticTransport.sendToPlayer(player, new ReactionBoostSyncPacket(boost));
     }
 }

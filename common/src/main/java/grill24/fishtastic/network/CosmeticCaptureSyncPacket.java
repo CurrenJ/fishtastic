@@ -44,19 +44,19 @@ public record CosmeticCaptureSyncPacket(
     }
 
     public static void sendToPlayer(ServerPlayer player, CosmeticCaptureSession session) {
-        player.connection.send(new ClientboundCustomPayloadPacket(new CosmeticCaptureSyncPacket(
+        FishtasticTransport.sendToPlayer(player, new CosmeticCaptureSyncPacket(
                 true,
                 session.mode(),
                 Optional.ofNullable(session.corner1()),
                 Optional.ofNullable(session.corner2()),
                 Optional.ofNullable(session.anchor())
-        )));
+        ));
     }
 
     public static void sendClear(ServerPlayer player) {
-        player.connection.send(new ClientboundCustomPayloadPacket(new CosmeticCaptureSyncPacket(
+        FishtasticTransport.sendToPlayer(player, new CosmeticCaptureSyncPacket(
                 false, CosmeticCaptureSession.Mode.CORNER_1, Optional.empty(), Optional.empty(), Optional.empty()
-        )));
+        ));
     }
 
     @FunctionalInterface

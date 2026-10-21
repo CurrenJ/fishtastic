@@ -3,7 +3,11 @@ param(
         'ambientfloor', 'ambientwalk', 'ambientisland', 'ambientlifecycle',
         'companionbond,companionsim,companionparty,companioneel,companionscenes,companionworld,companionlod',
         'companionmoods,companionparticles,companionworldcost', 'tutorial', 'companiontutorial'),
-    [switch]$SkipSuites
+    [switch]$SkipSuites,
+    # Fabric/NeoForge stay the default so a line without a runnable Forge module is unchanged.
+    # Forge acceptance passes -Loaders fabric,neoforge,forge (or just forge).
+    [ValidateSet('fabric', 'neoforge', 'forge')]
+    [string[]]$Loaders = @('fabric', 'neoforge')
 )
 
 # Test runs and logs stay outside the tracked evidence. Both loaders run the same scene in their
@@ -19,13 +23,15 @@ if (!(Test-Path -LiteralPath $java)) { throw "Pinned Java is missing: $java" }
 $out = Join-Path $repo ('build/cleanup/validation-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
 New-Item -ItemType Directory -Path $out -Force | Out-Null
 $wrapperArgs = @('-classpath', 'gradle/wrapper/gradle-wrapper.jar', 'org.gradle.wrapper.GradleWrapperMain')
-$tasks = @(':fabric:assemble', ':neoforge:assemble')
+$assembleTasks = @($Loaders | ForEach-Object { ":${_}:assemble" })
+$gametestTasks = @($Loaders | ForEach-Object { ":${_}:runGametest" })
+$tasks = $assembleTasks
 if (!$SkipSuites) {
-    $tasks = @(':fishsim:test', ':common:test', ':tools:tank-shape-gen:test', ':fabric:runGametest', ':neoforge:runGametest') + $tasks
+    $tasks = @(':fishsim:test', ':common:test', ':tools:tank-shape-gen:test') + $gametestTasks + $assembleTasks
 }
 & $java @wrapperArgs @tasks --no-parallel --console=plain *> (Join-Path $out 'suites-package.log')
 if ($LASTEXITCODE -ne 0) { throw "Suites/build failed: $out/suites-package.log" }
-& (Join-Path $PSScriptRoot 'check-cleanup-packaging.ps1') -Repo $repo |
+& (Join-Path $PSScriptRoot 'check-cleanup-packaging.ps1') -Repo $repo -Loaders $Loaders |
     Tee-Object -FilePath (Join-Path $out 'packaging.txt')
 
 $failed = $false
@@ -35,9 +41,9 @@ foreach ($scene in $Scenes) {
     # A source edit between scenes must never make the parallel launches compile against a shared
     # output directory/jar while the other build is rewriting it. Prebuild both loaders in one
     # Gradle invocation, with no clients open. Unchanged inputs stay up to date.
-    & $java @wrapperArgs :fabric:assemble :neoforge:assemble --console=plain *> (Join-Path $out "$tag-prebuild.log")
+    & $java @wrapperArgs @assembleTasks --console=plain *> (Join-Path $out "$tag-prebuild.log")
     if ($LASTEXITCODE -ne 0) { throw "Scene prebuild failed: $out/$tag-prebuild.log" }
-    $jobs = foreach ($loader in @('fabric', 'neoforge')) {
+    $jobs = foreach ($loader in $Loaders) {
         $log = Join-Path $out "$tag-$loader.log"
         Start-Job -ScriptBlock {
             param($repo, $java, $loader, $scene, $log)

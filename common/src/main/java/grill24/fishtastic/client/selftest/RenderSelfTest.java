@@ -45,6 +45,7 @@ import grill24.fishtastic.fishtank.PlacedCosmetic;
 import grill24.fishtastic.fishtank.TankColumns;
 import grill24.fishtastic.fishtank.TankGroups;
 import grill24.fishtastic.network.CosmeticCaptureSyncPacket;
+import grill24.fishtastic.network.FishtasticTransport;
 import grill24.fishtastic.util.Ids;
 import grill24.fishtastic.util.ItemSizeHelper;
 import net.minecraft.client.CameraType;
@@ -153,7 +154,7 @@ public final class RenderSelfTest {
     /** Scenes that run only when the marker names them (they need something the default run lacks). */
     private static final List<String> OPT_IN_SCENES = List.of("matte", "matteclip", "fourwaters", "fishspin", "cathedral",
             "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench", "leaderboard", "encyclopedia", "portrait", "tutorial", "companiontutorial",
-            "companionbond", "companionsim", "companionparty", "companioneel", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld", "companionparticles", "companionworldcost", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk", "questbook");
+            "companionbond", "companionsim", "companionparty", "companioneel", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld", "companionparticles", "companionworldcost", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk", "questbook", "celebrationoverlap", "forgereview", "partyseed", "partyobserver", "partyreturn");
 
     private static Boolean armed;
     /** Keep ordinary automatic features from interfering with explicitly armed fixture scenes. */
@@ -376,6 +377,7 @@ public final class RenderSelfTest {
             case "fixes" -> queueFixesScene();
             case "questbook" -> queueQuestBookScene();
             case "hud" -> queueHudScene();
+            case "celebrationoverlap" -> queueCelebrationOverlapScene();
             case "gizmos" -> queueGizmosScene();
             case "pertank" -> queuePerTankScene();
             case "highlight" -> queueHighlightScene();
@@ -402,6 +404,8 @@ public final class RenderSelfTest {
             case "companionparty" -> queueCompanionPartyScene();
             case "companioneel" -> queueCompanionEelScene();
             case "twoclient" -> queueTwoClientScene();
+            case "forgereview" -> queueForgeReviewScene();
+            case "partyseed", "partyobserver", "partyreturn" -> queuePartyLoginRegression(scene);
             case "companionscenes" -> queueCompanionScenesScene();
             case "companionlod" -> queueCompanionLodScene();
             case "companionmoods" -> queueCompanionMoodsScene();
@@ -932,6 +936,12 @@ public final class RenderSelfTest {
         final long[] originsAtStart = {0L};
 
         queue(1, mc -> {
+            // The rod handoff below is a creative-slot packet; a previous scene may have left the
+            // player in spectator (ambientlifecycle does), which silently drops it.
+            if (!remote) worldCommand(mc, "gamemode creative @a");
+            // Scenes share one client session; start from a clean context store so the generation
+            // baselines below are not inherited from an earlier ambient scene.
+            grill24.fishtastic.client.ambient.AmbientContextClient.resetSession();
             ticksAtStart[0] = mc.level.getGameTime();
             dispatchesAtStart[0] = grill24.fishtastic.client.ambient.AmbientContextClient.dispatches();
             originsAtStart[0] = grill24.fishtastic.client.ambient.AmbientContextClient.originsSent();
@@ -1022,7 +1032,10 @@ public final class RenderSelfTest {
             mc.player.getInventory().setItem(selected, rod);
             mc.gameMode.handleCreativeModeItemAdd(rod, 36 + selected);
             mc.player.inventoryMenu.broadcastChanges();
-            note("ambientcontext handing rod to menu slot " + (36 + selected));
+            note("ambientcontext handing rod to menu slot " + (36 + selected)
+                    + " local=" + mc.player.getInventory().getSelectedItem()
+                    + " infinite=" + mc.player.hasInfiniteMaterials()
+                    + " mode=" + (mc.gameMode == null ? "null" : mc.gameMode.getPlayerMode()));
         });
         final int[] phaseBStablePolls = {0};
         final long[] phaseBLastPos = {Long.MIN_VALUE};
@@ -1351,6 +1364,9 @@ public final class RenderSelfTest {
     }
 
     private static void queueAmbientFloorScene() {
+        // Scenes share one client session; count expiries from this scene's own start rather than
+        // inheriting the long-run population scene's retirement total.
+        final long[] expiredBasis = {0L};
         // Replace the old deep-ocean fixture too: disconnected lower spans must not leave the
         // shallow bed marked unknown merely because the lower water hits the scan boundary.
         queue(1, mc -> worldCommand(mc, "fill 0 40 0 40 50 40 minecraft:sandstone"));
@@ -1363,6 +1379,7 @@ public final class RenderSelfTest {
             FishtasticClientConfig.setTestOverride(FishtasticClientConfig.AMBIENT_FISH_ENABLED_KEY, true);
             FishtasticClientConfig.setAmbientDensityTestOverride(100);
             ClientAmbientFish.productionTest(true);
+            expiredBasis[0] = ClientAmbientFish.natural().stats().retireExpired;
             camera(mc, 20.5, 63, 20.5, 90, 5);
         });
         waitFor(10, 900, mc -> ClientAmbientFish.natural().stats().active >= 60
@@ -1383,8 +1400,10 @@ public final class RenderSelfTest {
         queue(20, mc -> screenshot(mc, "ambientfloor", "eel_bed"));
         queue(800, mc -> {
             var runtime = ClientAmbientFish.natural();
-            check("ambientfloor.continuity", runtime.stats().retireExpired == 0,
-                    "expiry retirements=" + runtime.stats().retireExpired + " " + runtime.diagnostics().debugState());
+            long expiredSinceStart = runtime.stats().retireExpired - expiredBasis[0];
+            check("ambientfloor.continuity", expiredSinceStart == 0,
+                    "expiry retirements=" + expiredSinceStart + " (total " + runtime.stats().retireExpired
+                            + ") " + runtime.diagnostics().debugState());
             ClientAmbientFish.productionTest(false);
             FishtasticClientConfig.clearTestOverrides();
         });
@@ -4970,6 +4989,55 @@ public final class RenderSelfTest {
      * <em>server</em> thread (fine in single-player only), which races its {@code tick} and loses
      * the event often enough to make the screenshot unreliable. Same call, same event.
      */
+    private static void queueForgeReviewScene() {
+        BlockPos pos = origin.offset(0, 0, -4);
+        queue(1, mc -> server(mc, s -> {
+            s.overworld().setBlockAndUpdate(pos,
+                    grill24.fishtastic.FishtasticBlocks.FISH_TANK.value().defaultBlockState());
+            placeStructure(tank(s.overworld(), pos), "oak_tree", 1, 1);
+        }));
+        queue(40, mc -> runForgeReviewChecks(mc, pos, false));
+        queue(1, mc -> server(mc, s -> {
+            FishTankBlockEntity tank = tank(s.overworld(), pos);
+            tank.setShape(FishTankShape.VITRINE);
+            tank.setMaterials(materials(new String[]{"minecraft:diamond_block", "minecraft:red_sand", "minecraft:glass"}));
+        }));
+        queue(40, mc -> runForgeReviewChecks(mc, pos, true));
+        queue(1, mc -> camera(mc, pos.getX() + 0.5, pos.getY() + 1.0, pos.getZ() + 3.0, 180, 12));
+        queue(20, mc -> screenshot(mc, "forgereview", "edited_vitrine"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void runForgeReviewChecks(Minecraft mc, BlockPos pos, boolean edited) {
+        try {
+            var type = Class.forName("grill24.fishtastic.client.selftest.ForgeReviewChecks");
+            var results = (java.util.Map<String, Boolean>) type.getMethod("check", Minecraft.class, BlockPos.class, boolean.class)
+                    .invoke(null, mc, pos, edited);
+            results.forEach((key, passed) -> check("forgereview." + key, passed, "phase=" + edited));
+        } catch (ReflectiveOperationException e) {
+            check("forgereview.execution", false, e.toString() + " cause=" + e.getCause());
+        }
+    }
+
+    private static void queuePartyLoginRegression(String scene) {
+        if (scene.equals("partyseed")) {
+            queue(1, mc -> mc.player.connection.sendCommand("fishtastic companion give @s fishtastic:bluegill 20 1"));
+            queueUntil("partyseed.stored", 200, mc -> !grill24.fishtastic.companion.CompanionStorage.party(mc.player).isEmpty(),
+                    () -> "party=" + grill24.fishtastic.companion.CompanionStorage.party(Minecraft.getInstance().player));
+        } else if (scene.equals("partyreturn")) {
+            queueUntil("partyreturn.persisted", 200, mc -> !grill24.fishtastic.companion.CompanionStorage.party(mc.player).isEmpty(),
+                    () -> "party=" + grill24.fishtastic.companion.CompanionStorage.party(Minecraft.getInstance().player));
+            queue(100, mc -> note("partyreturn owner stayed online for observer"));
+        } else {
+            queue(1, mc -> check("partyobserver.owner_initially_offline",
+                    mc.level.players().stream().noneMatch(p -> p.getName().getString().equals("FishB")), "waiting for FishB"));
+            queueUntil("partyobserver.returning_party", 3600, mc -> mc.level.players().stream()
+                            .anyMatch(p -> p.getName().getString().equals("FishB")
+                                    && !grill24.fishtastic.companion.CompanionStorage.party(p).isEmpty()),
+                    () -> "online=" + Minecraft.getInstance().level.players().stream().map(p -> p.getName().getString()).toList());
+        }
+    }
+
     // ── Fish companions ─────────────────────────────────────────────────────────
 
     /**
@@ -5326,8 +5394,8 @@ public final class RenderSelfTest {
             check("bond.second", grill24.fishtastic.util.ItemSizeHelper.getSize(grill24.fishtastic.companion.CompanionStorage.get(mc.player, 1)) == 31f, "");
             screenshot(mc, "companionbond", "pair");
         });
-        queue(1, mc -> mc.player.connection.send(new net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket(
-                new grill24.fishtastic.network.RenameCompanionPacket(0, "Bubbles"))));
+        queue(1, mc -> FishtasticTransport.sendToServer(
+                new grill24.fishtastic.network.RenameCompanionPacket(0, "Bubbles")));
         queue(15, mc -> {
             check("bond.renamed", grill24.fishtastic.companion.CompanionStorage.get(mc.player, 0).getHoverName().getString().equals("Bubbles"), "");
             screenshot(mc, "companionbond", "renamed");
@@ -5600,7 +5668,11 @@ public final class RenderSelfTest {
         });
         queue(1, mc -> server(mc, s -> {
             clearParties(s);
-            run(s, "fishtastic companion give @p fishtastic:bluegill 25 1");
+            // Equip through the shared API rather than the dev-only command so the same scene runs
+            // against a production install (the command tree excludes /fishtastic companion there).
+            for (ServerPlayer player : s.getPlayerList().getPlayers()) {
+                grill24.fishtastic.companion.Companions.equip(player, 0, fish("bluegill", 25f));
+            }
             run(s, "weather clear 99999");
         }));
         queue(100, mc -> grill24.fishtastic.client.companion.ClientCompanionsDev.devOverlay(false));
@@ -5653,7 +5725,19 @@ public final class RenderSelfTest {
                 run(s, asMe(mc) + "fill ~-6 ~ ~-6 ~6 ~5 ~6 minecraft:air");
                 if (feature.equals("jukebox")) run(s, asMe(mc) + "setblock ~ ~ ~-2 minecraft:jukebox");
                 if (feature.equals("notes")) run(s, asMe(mc) + "setblock ~ ~ ~-2 minecraft:note_block[note=18]");
-                run(s, asMe(mc) + "fishtastic companion feature " + feature);
+                // Same placement the dev-only /fishtastic companion feature command performs, so the
+                // scene also runs against a production install.
+                if (!feature.equals("jukebox") && !feature.equals("notes")) {
+                    ServerPlayer player = s.getPlayerList().getPlayers().get(0);
+                    BlockPos at = player.blockPosition().relative(player.getDirection(),
+                            feature.equals("light") ? 5 : feature.equals("warm") ? 4 : 2);
+                    var state = switch (feature) {
+                        case "water" -> Blocks.WATER.defaultBlockState();
+                        case "light" -> Blocks.TORCH.defaultBlockState();
+                        default -> Blocks.CAMPFIRE.defaultBlockState();
+                    };
+                    player.level().setBlockAndUpdate(at, state);
+                }
                 if (feature.equals("water")) {
                     run(s, asMe(mc) + "setblock ~1 ~ ~-2 minecraft:stone");
                     run(s, asMe(mc) + "setblock ~-1 ~ ~-2 minecraft:stone");
@@ -5661,6 +5745,11 @@ public final class RenderSelfTest {
                     run(s, asMe(mc) + "setblock ~ ~ ~-3 minecraft:stone");
                 }
             }));
+            queue(1, mc -> {
+                if (feature.equals("jukebox") || feature.equals("notes")) {
+                    grill24.fishtastic.client.companion.CompanionFeatureDev.music(feature);
+                }
+            });
             queue(40, mc -> {
                 if (feature.equals("light")) {
                     var c = grill24.fishtastic.client.companion.ClientCompanions.local();
@@ -5754,7 +5843,9 @@ public final class RenderSelfTest {
             mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
             server(mc, s -> {
                 clearParties(s);
-                run(s, "fishtastic companion give @p fishtastic:garden_eel 40 1");
+                for (ServerPlayer player : s.getPlayerList().getPlayers()) {
+                    grill24.fishtastic.companion.Companions.equip(player, 0, fish("garden_eel", 40f));
+                }
                 run(s, "time set 18000");
             });
         });
@@ -6186,7 +6277,9 @@ public final class RenderSelfTest {
         queue(1, mc -> server(mc, s -> {
             clearParties(s);
             run(s, "item replace entity @p weapon.mainhand with minecraft:air");
-            run(s, "fishtastic companion give @p fishtastic:garden_eel 40 1");
+            for (ServerPlayer player : s.getPlayerList().getPlayers()) {
+                grill24.fishtastic.companion.Companions.equip(player, 0, fish("garden_eel", 40f));
+            }
             run(s, "fishtastic companion give @p fishtastic:garden_eel 35 2");
             run(s, "fishtastic companion give @p fishtastic:garden_eel 45 3");
         }));
@@ -6373,10 +6466,40 @@ public final class RenderSelfTest {
     }
 
 
+    /** Visual regression: discovery rays behind several notification banners. */
+    private static void queueCelebrationOverlapScene() {
+        queue(1, mc -> {
+            mc.options.hideGui = false;
+            mc.getToastManager().clear();
+            mc.setScreen(null);
+
+            server(mc, s -> run(s, "gamemode creative @a"));
+        });
+        queue(20, mc -> {
+
+            mc.setScreen(null);
+            var preview = grill24.fishtastic.util.FishingMinigameAnimation.createCelebrationPreview(
+                    grill24.fishtastic.util.CatchCelebration.Tier.DISCOVERY,
+                    new ItemStack(FishtasticItems.BLUEGILL.value()));
+            ((IGameRendererExtension) mc.gameRenderer).fishtastic$displayItemActivation(preview);
+            for (String quest : new String[]{"bluegill_novice", "bluegill_adept", "bluegill_master"}) {
+                QuestProgressNotificationManager.getInstance().enqueue(new QuestProgressEvent(
+                        Ids.of("fishtastic", "mastery/" + quest), 2, 3, 5, false, ItemStack.EMPTY));
+            }
+        });
+        queue(25, mc -> screenshot(mc, "celebrationoverlap", "rays_early"));
+        queue(15, mc -> screenshot(mc, "celebrationoverlap", "rays_late"));
+        queue(1, mc -> ((IGameRendererExtension) mc.gameRenderer).fishtastic$cancelCurrentAnimation());
+        queue(1, mc -> screenshot(mc, "celebrationoverlap", "without_rays"));
+    }
+
     private static void queueHudScene() {
         queue(1, mc -> {
             mc.options.hideGui = false;
             mc.getToastManager().clear();
+            // A fresh world offers the fishing lesson with a ConfirmScreen before the HUD checks
+            // can observe an empty screen. Take the "later" option the way a player would.
+            dismissTutorialOffer(mc);
             server(mc, s -> run(s, "gamemode creative @a"));
             QuestProgressNotificationManager.getInstance().enqueue(new QuestProgressEvent(
                     Ids.of("fishtastic", "mastery/bluegill_novice"), 2, 3, 5, false, ItemStack.EMPTY));
@@ -6388,6 +6511,7 @@ public final class RenderSelfTest {
         // nextStaggerDelay), so the first can catch it part-way across.
         queue(20, mc -> screenshot(mc, "hud", "banner_and_toast"));
         queue(20, mc -> {
+            dismissTutorialOffer(mc);
             check("hud.noScreen", mc.screen == null, "screen=" + mc.screen);
             check("hud.toastOnScreen",
                     mc.getToastManager().getToast(SystemToast.class, SystemToast.SystemToastId.NARRATOR_TOGGLE) != null,
@@ -6410,6 +6534,24 @@ public final class RenderSelfTest {
             mc.setScreen(null);
             mc.getToastManager().clear();
         });
+    }
+
+    /** Clicks "later" on the tutorial's offer screen, if that is what is currently up. */
+    private static void dismissTutorialOffer(Minecraft mc) {
+        if (!(mc.screen instanceof net.minecraft.client.gui.screens.ConfirmScreen)) return;
+        for (String key : new String[]{"tutorial.fishtastic.fishing_offer.later",
+                "tutorial.fishtastic.encyclopedia_offer.later"}) {
+            String label = Component.translatable(key).getString();
+            var button = mc.screen.children().stream()
+                    .filter(child -> child instanceof net.minecraft.client.gui.components.Button)
+                    .map(child -> (net.minecraft.client.gui.components.Button) child)
+                    .filter(candidate -> candidate.getMessage().getString().equals(label))
+                    .findFirst();
+            if (button.isPresent()) {
+                button.get().onPress(null);
+                return;
+            }
+        }
     }
 
     /** The actual companion menu and packet path, with optional custom shortcuts unbound. */
