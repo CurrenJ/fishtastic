@@ -12,8 +12,10 @@ import java.awt.geom.Rectangle2D;
 
 /** A vanilla-look button (the stock 200x20, 3px-slice widget sprite) with a shadowed centred label. */
 public final class PageButton extends UIElement<PageButton> implements grill24.fishtastic.client.Narrated {
-    private static final ResourceLocation BUTTON = Ids.withDefaultNamespace("textures/gui/sprites/widget/button.png");
-    private static final ResourceLocation BUTTON_HOT = Ids.withDefaultNamespace("textures/gui/sprites/widget/button_highlighted.png");
+    private static final ResourceLocation BUTTON = Ids.withDefaultNamespace("textures/gui/widgets.png");
+    // 1.20.1 has no gui/sprites atlas: the stock button lives in widgets.png (normal at v=66, hovered at v=86).
+    private static final int BUTTON_V = 66;
+    private static final int BUTTON_HOT_V = 86;
 
     private final String label;
     private boolean hovered;
@@ -68,7 +70,7 @@ public final class PageButton extends UIElement<PageButton> implements grill24.f
     @Override
     protected void renderSelf(IRenderContext c) {
         int w = (int) size.x, h = (int) size.y;
-        SpriteData sprite = new SpriteData(hovered ? BUTTON_HOT : BUTTON).uv(0, 0, 200, 20).textureSize(200, 20)
+        SpriteData sprite = new SpriteData(BUTTON).uv(0, hovered ? BUTTON_HOT_V : BUTTON_V, 200, 20).textureSize(256, 256)
                 .renderMode(SpriteRenderMode.SLICE).slice(3, 3, 3, 3);
         c.enableBlend();
         c.drawSprite(sprite, 0, 0, w, h);

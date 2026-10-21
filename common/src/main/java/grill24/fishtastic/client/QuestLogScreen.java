@@ -2278,8 +2278,8 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private SpriteButton marketButton(int width, String key, boolean enabled) {
         SpriteButton button = new SpriteButton(width, 16, enabled ? 0xFF777777 : 0xFF4A3540)
                 .text(translated("screen.fishtastic.quest_log." + key), enabled ? 0xFFFFFFFF : COLOR_MUTED);
-        if (enabled) button.texture(new SpriteData(grill24.fishtastic.util.Ids.withDefaultNamespace("textures/gui/sprites/widget/button.png"))
-                .uv(0, 0, 200, 20).textureSize(200, 20).renderMode(SpriteRenderMode.SLICE).slice(3, 3, 3, 3));
+        if (enabled) button.texture(new SpriteData(grill24.fishtastic.util.Ids.withDefaultNamespace("textures/gui/widgets.png"))
+                .uv(0, 66, 200, 20).textureSize(256, 256).renderMode(SpriteRenderMode.SLICE).slice(3, 3, 3, 3));
         return button;
     }
 
