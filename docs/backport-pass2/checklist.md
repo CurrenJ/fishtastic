@@ -267,3 +267,7 @@ Port-only follow-ups in the `4b0e818e` pass: `64c68bfa` / `a0216334` (the Clay P
 | B6.1 | Shared harness on Forge 47 (`@GameTestHolder`, enabled namespaces) + Fabric 0.92 | [x] | `dc4ae88f`, `08369f43` |
 | B6.2 | Green bar: 78+ / 163+1 / 21,955 / 263 × 2 / datagen clean; owner playtest; release `2.0.1+1.20.1` | [x] | `4396e8a1`, `a0958a94` (green bar + playtest done, bobber bug fixed `32c255cc`); release `2.0.1+1.20.1` rebuilt and deployed to both 1.20.1 profiles 2026-09-27 and smoketested on both loaders (see the dated note above); published 2026-09-27 (`publishCurseForge`, release type) |
 | G3 | Lockstep begins (D6) | [ ] | |
+
+### Quest log icon fallback — 2026-10-21
+
+Scoped parity fix applied: QuestLogScreen.objectiveConditionIcon returns its empty PageSurface when there is no weather/time/zone icon, rather than a default anglerfish. Species and condition icons are preserved. :common:compileJava executed successfully with Gradle JDK 21 and branch Java 17 toolchain/target. Evidence: D:/GitHub/fishtastic/build/backport-catchup/quest-icon/1201-compile-jdk21.log; durable report in source docs/backport-catchup/quest-icon.md. Uncommitted; overall ported-through markers unchanged.
