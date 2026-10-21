@@ -1,5 +1,7 @@
 package grill24.fishtastic.client;
 
+import grill24.fishtastic.network.FishtasticTransport;
+
 import grill24.fishtastic.network.RequestFishEncyclopediaPacket;
 import grill24.fishtastic.network.RequestQuestLogPacket;
 import grill24.fishtastic.network.TutorialActionPacket;
@@ -22,7 +24,7 @@ public final class TutorialHelpScreen extends Screen {
 
     public static void send(TutorialActionPacket.Action action) {
         var mc = net.minecraft.client.Minecraft.getInstance();
-        if (mc.player != null) mc.player.connection.send(new ServerboundCustomPayloadPacket(new TutorialActionPacket(action)));
+        if (mc.player != null) FishtasticTransport.sendToServer(new TutorialActionPacket(action));
     }
 
     @Override protected void init() {
@@ -38,14 +40,14 @@ public final class TutorialHelpScreen extends Screen {
                 Component.translatable("tutorial.fishtastic.finish_catch")));
         addRenderableWidget(Button.builder(Component.translatable("tutorial.fishtastic.help.encyclopedia"), b -> {
             send(TutorialActionPacket.Action.REPLAY_ENCYCLOPEDIA);
-            minecraft.player.connection.send(new ServerboundCustomPayloadPacket(new RequestFishEncyclopediaPacket(true)));
+            FishtasticTransport.sendToServer(new RequestFishEncyclopediaPacket(true));
         }).bounds(x, top + 54, 210, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("tutorial.fishtastic.help.companions"), b -> {
             send(TutorialActionPacket.Action.REPLAY_COMPANIONS);
             CompanionScreen.open(net.minecraft.world.item.ItemStack.EMPTY);
         }).bounds(x, top + 78, 210, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("tutorial.fishtastic.help.quests"), b ->
-                minecraft.player.connection.send(new ServerboundCustomPayloadPacket(new RequestQuestLogPacket())))
+                FishtasticTransport.sendToServer(new RequestQuestLogPacket()))
                 .bounds(x, top + 102, 210, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("tutorial.fishtastic.dismiss_all"), b -> {
             send(TutorialActionPacket.Action.DISMISS_ALL);
