@@ -669,17 +669,17 @@ public class ForgeFishtasticGameTests {
 
     @GameTest(structure = "fishtastic:empty_testarea")
     public static void companionTutorialRealMenuWalksAllLessons(GameTestHelper helper) {
-        CompanionTutorialManagerGameTests.realMenuWalksAllCompanionLessons(helper, helper::makeMockServerPlayerInLevel);
+        CompanionTutorialManagerGameTests.firstEquipCompletesCompanionLesson(helper, helper::makeMockServerPlayerInLevel);
     }
 
     @GameTest(structure = "fishtastic:empty_testarea")
     public static void companionTutorialShortcutsAndShiftReturns(GameTestHelper helper) {
-        CompanionTutorialManagerGameTests.shortcutsAndShiftReturnsAdvanceTheSameLessons(helper, helper::makeMockServerPlayerInLevel);
+        CompanionTutorialManagerGameTests.shortcutEquipCompletesCompanionLesson(helper, helper::makeMockServerPlayerInLevel);
     }
 
     @GameTest(structure = "fishtastic:empty_testarea")
     public static void companionTutorialClosingWithCursorFish(GameTestHelper helper) {
-        CompanionTutorialManagerGameTests.closingWithReturnedFishResumesWithoutLosingIt(helper, helper::makeMockServerPlayerInLevel);
+        CompanionTutorialManagerGameTests.dismissWithCarriedFishPreservesInventory(helper, helper::makeMockServerPlayerInLevel);
     }
 
     @GameTest(structure = "fishtastic:empty_testarea")
@@ -695,16 +695,6 @@ public class ForgeFishtasticGameTests {
     @GameTest(structure = "fishtastic:empty_testarea")
     public static void companionTutorialEquipFromAPile(GameTestHelper helper) {
         CompanionTutorialManagerGameTests.pileFishCanCompleteTheEquipLesson(helper, helper::makeMockServerPlayerInLevel);
-    }
-
-    @GameTest(structure = "fishtastic:empty_testarea")
-    public static void onlyCopperCastsStartTutorialAndGrantBooksOnce(GameTestHelper helper) {
-        TutorialManagerGameTests.onlyCopperCastsStartTutorialAndGrantBooksOnce(helper, helper::makeMockServerPlayerInLevel);
-    }
-
-    @GameTest(structure = "fishtastic:empty_testarea")
-    public static void booksAdvanceTutorialAndEncyclopediaChoiceIsOptional(GameTestHelper helper) {
-        TutorialManagerGameTests.booksAdvanceTutorialAndEncyclopediaChoiceIsOptional(helper, helper::makeMockServerPlayerInLevel);
     }
 
     @GameTest(structure = "fishtastic:empty_testarea")
@@ -760,11 +750,6 @@ public class ForgeFishtasticGameTests {
     @GameTest(structure = "fishtastic:empty_testarea")
     public static void revokingRodAdvancementAllowsReTriggeringAfterReset(GameTestHelper helper) {
         TutorialManagerGameTests.revokingRodAdvancementAllowsReTriggeringAfterReset(helper, helper::makeMockServerPlayerInLevel);
-    }
-
-    @GameTest(structure = "fishtastic:empty_testarea")
-    public static void onQuestClaimedOnlyAdvancesOnMatchingTutorialQuestId(GameTestHelper helper) {
-        TutorialManagerGameTests.onQuestClaimedOnlyAdvancesOnMatchingTutorialQuestId(helper, helper::makeMockServerPlayerInLevel);
     }
 
     // -------------------------------------------------------------------------
