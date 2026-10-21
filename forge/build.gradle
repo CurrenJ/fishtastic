@@ -1,0 +1,201 @@
+plugins {
+    id 'com.gradleup.shadow'
+}
+
+sourceSets {
+    testmod {
+        compileClasspath += main.compileClasspath
+        // The transformed common mod is supplied by the Forge mod group; the untransformed
+        // common dev jar on main.runtimeClasspath would be a second module exporting the same
+        // packages and fails the Java module layer before GameTests start.
+        runtimeClasspath += main.runtimeClasspath.filter { file ->
+            !file.absolutePath.replace('\\', '/').contains('/common/build/')
+        }
+        // Loader-neutral GameTest bodies and shared test resources.
+        java.srcDir(project(':common').file('src/testmod/java'))
+        resources.srcDir(project(':common').file('src/testmod/resources'))
+    }
+}
+
+// The transformed common artifact belongs in the main mod's class-root group. Keeping the
+// untransformed common dev jar on the runtime classpath makes Forge's module layer see two copies
+// of the same packages (and the client loads a second Level class).
+def commonForgeTask = project(':common').tasks.named('transformProductionForge')
+def commonForgeArtifact = commonForgeTask.map { it.outputs.files.singleFile }
+def forgeCommonJar = tasks.register('forgeCommonJar', Jar) {
+    dependsOn commonForgeTask
+    archiveFileName = 'fishtastic-common-forge.jar'
+    destinationDirectory = layout.buildDirectory.dir('forge-common')
+    from({ zipTree(commonForgeArtifact.get()) }) {
+        // The main mod copies common's resources and loads the common mixin config explicitly.
+        exclude 'fishtastic.mixins.json'
+        exclude 'data/**'
+        exclude 'assets/**'
+    }
+}
+
+architectury {
+    platformSetupLoomIde()
+    forge()
+}
+
+configurations {
+    common {
+        canBeResolved = true
+        canBeConsumed = false
+        // common depends on fabric-loader for @Environment annotations only; its transitive
+        // sponge-mixin must not leak onto Forge's dev classpath.
+        exclude group: 'net.fabricmc', module: 'fabric-loader'
+        exclude group: 'net.fabricmc', module: 'sponge-mixin'
+    }
+    compileClasspath.extendsFrom common
+    // Forge dev runs receive the transformed common classes via processIncludeJars; do not also
+    // put the untransformed common dev jar on the dev classpath (strict module layer duplicate).
+
+    shadowBundle {
+        canBeResolved = true
+        canBeConsumed = false
+    }
+}
+
+repositories {
+    maven {
+        name = 'MinecraftForge'
+        url = 'https://maven.minecraftforge.net/'
+    }
+}
+
+dependencies {
+    forge "net.minecraftforge:forge:${rootProject.minecraft_version}-${rootProject.forge_version}"
+
+    // F02 minimal probe: gelatinui-forge does not exist yet (G01-G03). gelatinui-common satisfies
+    // class loading only; transitive=false keeps its fabric-loader/mixinextras-fabric out.
+    modImplementation("io.github.currenj.gelatinui:gelatinui-forge:${gelatinui_version}") {
+        transitive = false
+    }
+
+    common(project(path: ':common', configuration: 'namedElements')) { transitive = false }
+    shadowBundle files(forgeCommonJar)
+
+    implementation project(':fishsim')
+    implementation 'io.github.llamalad7:mixinextras-forge:0.5.4'
+    forgeRuntimeLibrary 'io.github.llamalad7:mixinextras-forge:0.5.4'
+    shadowBundle 'io.github.llamalad7:mixinextras-forge:0.5.4'
+    shadowBundle project(':fishsim')
+
+    // Forge testmod: main classes plus the compile-only NeoForge annotation stubs required by the
+    // shared harness. The stubs must never be on the runtime classpath.
+    testmodImplementation sourceSets.main.output
+    testmodCompileOnly project(path: ':common', configuration: 'neoforgeGametestAnnotationsApi')
+}
+
+processResources {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    inputs.property 'version', project.version
+
+    from project(":common").sourceSets.main.resources
+
+    filesMatching('META-INF/mods.toml') {
+        expand([
+            'version': project.version,
+            'mod_license': rootProject.mod_license,
+            'mod_id': rootProject.mod_id,
+            'mod_name': rootProject.mod_name,
+            'mod_authors': rootProject.mod_authors,
+            'mod_description': rootProject.mod_description,
+            'mod_icon': rootProject.mod_icon,
+            'mod_minecraft_version_range': rootProject.mod_minecraft_version_range,
+            'mod_forge_version_range': "[${rootProject.forge_version},)", 'mod_gelatinui_version_range': "[${gelatinui_version},)"
+        ])
+    }
+}
+
+shadowJar {
+    dependsOn forgeCommonJar
+    // The smoke build toggles a dev-only exclusion; declare it so the artifact cannot go stale.
+    inputs.property 'includeSelftest', project.hasProperty('includeSelftest')
+    configurations = [project.configurations.shadowBundle]
+    archiveClassifier = 'dev-shadow'
+
+    exclude 'grill24/fishtastic/mcp/**'
+    exclude 'grill24/fishtastic/forge/mcp/**'
+    exclude 'grill24/fishsim/render/**'
+    exclude 'grill24/fishsim/harness/**'
+    exclude 'grill24/fishsim/viewer/**'
+    if (!project.hasProperty('includeSelftest')) {
+        exclude 'grill24/fishtastic/client/selftest/**'
+    }
+    // Dev-only GameTest fixture: keep it in the dev resource root, not in the shipped jar.
+    exclude 'data/fishtastic/structure/fishtastic_empty.nbt'
+}
+
+remapJar {
+    inputFile.set shadowJar.archiveFile
+}
+
+sourceSets.main.resources.srcDir("src/main/generated")
+
+tasks.named('sourcesJar').configure {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+tasks.matching { it.name in ['runClient', 'runServer'] }.configureEach {
+    dependsOn forgeCommonJar
+}
+
+loom {
+    accessWidenerPath = rootProject.file("common/src/main/resources/fishtastic.accesswidener")
+
+    forge {
+        mixinConfig "mixinextras.init.mixins.json", "fishtastic.mixins.json", "fishtastic-forge.mixins.json"
+        convertAccessWideners = true
+        extraAccessWideners.add "fishtastic.accesswidener"
+    }
+
+    mods {
+        main {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.testmod
+            modFiles.from(forgeCommonJar)
+            sourceSet("main", project(':fishsim'))
+        }
+    }
+
+    runs {
+        client {
+            programArgs "--width", "1600", "--height", "900"
+        }
+        server {}
+        gametest {
+            // Forge's userdev config ships a dedicated gameTestServer run: its launch target
+            // (forge_userdev_server_gametest) sets forge.enableGameTest/gameTestServer itself and
+            // runs the vanilla GameTest server. Using the normal server template would make us
+            // re-create that wiring by hand.
+            environment("gameTestServer")
+            forgeTemplate("gameTestServer")
+            source sourceSets.testmod
+            name "Game Test Server"
+            // Matches the batch name the generator gives every shared test.
+            vmArg "-Dforge.enabledGameTestNamespaces=fishtastic"
+            runDir "build/gametest"
+        }
+    }
+}
+
+// Custom runDirs are not auto-created before the run task executes.
+file("build/gametest").mkdirs()
+// Forge's StructureTemplateManager reads test fixtures from <working-dir>/gameteststructures
+// (StructureUtils.testStructuresDir), not from the mod datapack. Materialize the empty fixture
+// for every fresh universe; it stays in build output and is never packaged.
+tasks.named('runGametest') {
+    doFirst {
+        def fixtureDir = layout.buildDirectory.dir('gametest/gameteststructures').get().asFile
+        fixtureDir.mkdirs()
+        new File(fixtureDir, 'fishtastic_empty.snbt').text =
+                '{DataVersion:3955,size:[8,8,8],palette:[],blocks:[],entities:[]}'
+    }
+}
+// Forge's dev launch does not fold the testmod resource root into the fishtastic mod's pack, so
+// the shared runner mounts it into each fresh universe as a temporary data pack instead.
+ext.gametestDataPackSource = file('build/resources/testmod')
+apply from: rootProject.file('gradle/gametest-world.gradle')

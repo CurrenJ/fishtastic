@@ -6,6 +6,21 @@ tasks.named('runGametest') {
     doFirst {
         universe = new File(universeRoot, UUID.randomUUID().toString())
         universe.mkdirs()
+        // Some dev launches (Forge userdev) put the testmod's resource root on the classpath but
+        // not into the mod's resource pack, so the server cannot see data/<ns>/structure test
+        // fixtures. Projects that need it point gametestDataPackSource at that root and it is
+        // mounted into this run's fresh universe only.
+        String dataPackSource = project.findProperty('gametestDataPackSource')
+        if (dataPackSource != null) {
+            def packDir = new File(universe, 'world/datapacks/fishtastic_testmod')
+            project.copy {
+                from project.file(dataPackSource)
+                into packDir
+            }
+            new File(packDir, 'pack.mcmeta').text =
+                    '{"pack":{"pack_format":48,"description":"Fishtastic GameTest fixtures"}}'
+            logger.lifecycle("GameTest data pack: ${packDir}")
+        }
         args '--universe', universe.absolutePath
         logger.lifecycle("GameTest isolated universe: ${universe}")
     }

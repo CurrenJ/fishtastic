@@ -1,5 +1,7 @@
 package grill24.fishtastic.client;
 
+import grill24.fishtastic.network.FishtasticTransport;
+
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.FishtasticItems;
@@ -546,7 +548,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private void sendClaimAll(Optional<ResourceLocation> fishId) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
-            mc.player.connection.send(new ServerboundCustomPayloadPacket(new ClaimAllEncyclopediaRewardsPacket(fishId)));
+            FishtasticTransport.sendToServer(new ClaimAllEncyclopediaRewardsPacket(fishId));
         }
     }
 

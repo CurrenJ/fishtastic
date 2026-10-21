@@ -1,5 +1,7 @@
 package grill24.fishtastic.client;
 
+import grill24.fishtastic.network.FishtasticTransport;
+
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticItemTags;
@@ -503,7 +505,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         // opening that menu) so a species caught since the last encyclopedia visit shows correctly here.
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
-            mc.player.connection.send(new ServerboundCustomPayloadPacket(new RequestFishEncyclopediaPacket(false)));
+            FishtasticTransport.sendToServer(new RequestFishEncyclopediaPacket(false));
         }
         super.init();
     }
@@ -1166,7 +1168,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             claimButton.text(translated("screen.fishtastic.quest_log.claiming"), COLOR_MUTED);
             Minecraft minecraft = Minecraft.getInstance();
             if (minecraft.player != null) {
-                minecraft.player.connection.send(new ServerboundCustomPayloadPacket(new CompleteQuestPacket(finalQuestId)));
+                FishtasticTransport.sendToServer(new CompleteQuestPacket(finalQuestId));
             }
             triggerQuestClaimReward(row, quest);
         });
@@ -1774,7 +1776,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         FishEncyclopediaScreen.selectOnNextOpen(speciesKey.location());
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
-            mc.player.connection.send(new ServerboundCustomPayloadPacket(new RequestFishEncyclopediaPacket(true)));
+            FishtasticTransport.sendToServer(new RequestFishEncyclopediaPacket(true));
         }
     }
 
@@ -1837,7 +1839,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             claimBtn.addClickBounceEffect();
             Minecraft mc = Minecraft.getInstance();
             if (mc.player != null) {
-                mc.player.connection.send(new ServerboundCustomPayloadPacket(new CompleteQuestPacket(fId)));
+                FishtasticTransport.sendToServer(new CompleteQuestPacket(fId));
             }
             triggerQuestClaimReward(row, quest);
         });
@@ -2262,7 +2264,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         SpriteButton button = marketButton(73, "shop.reroll", affordable);
         if (affordable) button.onClick(e -> {
             Minecraft mc = Minecraft.getInstance();
-            if (mc.player != null) mc.player.connection.send(new ServerboundCustomPayloadPacket(new RefreshShopPacket()));
+            if (mc.player != null) FishtasticTransport.sendToServer(new RefreshShopPacket());
         });
         place(reroll, button, 234, 10);
         if (!affordable) {
@@ -2299,7 +2301,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         SpriteButton buy = marketButton(43, "shop.buy", affordable);
         if (affordable) buy.onClick(e -> {
             Minecraft mc = Minecraft.getInstance();
-            if (mc.player != null) mc.player.connection.send(new ServerboundCustomPayloadPacket(new PurchaseShopEntryPacket(key.location())));
+            if (mc.player != null) FishtasticTransport.sendToServer(new PurchaseShopEntryPacket(key.location()));
         });
         place(card, buy, cardWidth - 50, 43);
         return card;
@@ -2325,7 +2327,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             refreshBtn.addClickBounceEffect();
             Minecraft mc = Minecraft.getInstance();
             if (mc.player != null) {
-                mc.player.connection.send(new ServerboundCustomPayloadPacket(new RefreshShopPacket()));
+                FishtasticTransport.sendToServer(new RefreshShopPacket());
             }
         });
         refreshBtn.setVisible(canAfford);
@@ -2444,7 +2446,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             buyBtn.addClickBounceEffect();
             Minecraft mc = Minecraft.getInstance();
             if (mc.player != null) {
-                mc.player.connection.send(new ServerboundCustomPayloadPacket(new PurchaseShopEntryPacket(fKey.location())));
+                FishtasticTransport.sendToServer(new PurchaseShopEntryPacket(fKey.location()));
             }
             triggerPurchaseFall(fallingPanel, fKey, entry);
         });

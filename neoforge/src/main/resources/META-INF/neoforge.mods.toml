@@ -29,7 +29,7 @@ side = "BOTH"
 
 [[dependencies.fishtastic]]
 modId = "gelatinui"
-type = "optional"
+type = "required"
 versionRange = "${mod_gelatinui_version_range}"
 ordering = "BEFORE"
 side = "BOTH"

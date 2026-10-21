@@ -1,5 +1,7 @@
 package grill24.fishtastic.client;
 
+import grill24.fishtastic.network.FishtasticTransport;
+
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticDataComponents;
@@ -174,7 +176,7 @@ public class FishTankAssemblyScreen extends GelatinUIScreen<FishTankAssemblyMenu
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
-            mc.player.connection.send(new ServerboundCustomPayloadPacket(new SetAssemblyShapePacket(shape)));
+            FishtasticTransport.sendToServer(new SetAssemblyShapePacket(shape));
         }
     }
 

@@ -1,5 +1,7 @@
 package grill24.fishtastic.client;
 
+import grill24.fishtastic.network.FishtasticTransport;
+
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.blockentity.FishPileBlockEntity;
@@ -279,8 +281,7 @@ public class LeaderboardScreen extends GelatinUIScreen<GelatinMenu> {
         Optional<UUID> target = (type == LeaderboardType.PERSONAL_BEST_SIZE || type == LeaderboardType.PERSONAL_CATCH_COUNT)
                 ? Optional.of(mc.player.getUUID())
                 : Optional.empty();
-        mc.player.connection.send(new ServerboundCustomPayloadPacket(
-                new RequestLeaderboardPacket(type, false, target)));
+        FishtasticTransport.sendToServer(new RequestLeaderboardPacket(type, false, target));
     }
 
     private void onLeaderboardResponse(LeaderboardResponsePacket packet) {

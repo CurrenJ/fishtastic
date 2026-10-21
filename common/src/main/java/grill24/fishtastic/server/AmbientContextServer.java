@@ -1,5 +1,7 @@
 package grill24.fishtastic.server;
 
+import grill24.fishtastic.network.FishtasticTransport;
+
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.data.FishProfile;
@@ -96,7 +98,7 @@ public final class AmbientContextServer {
         if (response == null || response.entries().isEmpty()) {
             return; // throttled, or nothing answerable: silently no response, as documented
         }
-        player.connection.send(new net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket(response));
+        FishtasticTransport.sendToPlayer(player, response);
         responsesSent++;
         if (responsesSent <= 10 || responsesSent % 100 == 0) {
             StringBuilder summary = new StringBuilder(96);

@@ -1,5 +1,7 @@
 package grill24.fishtastic.client;
 
+import grill24.fishtastic.network.FishtasticTransport;
+
 import com.mojang.blaze3d.platform.InputConstants;
 import grill24.fishtastic.network.RequestFishEncyclopediaPacket;
 import grill24.fishtastic.network.RequestLeaderboardScreenPacket;
@@ -83,17 +85,17 @@ public class FishtasticKeyBinds {
         }
         if (openQuestLog != null && openQuestLog.consumeClick()) {
             if (minecraft.player != null && minecraft.screen == null) {
-                minecraft.player.connection.send(new ServerboundCustomPayloadPacket(new RequestQuestLogPacket()));
+                FishtasticTransport.sendToServer(new RequestQuestLogPacket());
             }
         }
         if (openFishEncyclopedia != null && openFishEncyclopedia.consumeClick()) {
             if (minecraft.player != null && minecraft.screen == null) {
-                minecraft.player.connection.send(new ServerboundCustomPayloadPacket(new RequestFishEncyclopediaPacket(true)));
+                FishtasticTransport.sendToServer(new RequestFishEncyclopediaPacket(true));
             }
         }
         if (openLeaderboards != null && openLeaderboards.consumeClick()) {
             if (minecraft.player != null && minecraft.screen == null) {
-                minecraft.player.connection.send(new ServerboundCustomPayloadPacket(new RequestLeaderboardScreenPacket()));
+                FishtasticTransport.sendToServer(new RequestLeaderboardScreenPacket());
             }
         }
     }

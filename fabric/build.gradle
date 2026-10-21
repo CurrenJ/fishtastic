@@ -97,7 +97,8 @@ processResources {
             'mod_icon': rootProject.mod_icon,
             'mod_fabric_minecraft_version': "~${rootProject.minecraft_version}",
             'mod_java_version': ">=${rootProject.java_version}",
-            'mod_fabricloader_version': ">=${rootProject.fabric_loader_version}"
+            'mod_fabricloader_version': ">=${rootProject.fabric_loader_version}",
+            'mod_gelatinui_version': ">=${rootProject.gelatinui_version}"
         ])
     }
 
@@ -131,6 +132,10 @@ shadowJar {
     exclude 'grill24/fishsim/render/**'
     exclude 'grill24/fishsim/harness/**'
     exclude 'grill24/fishsim/viewer/**'
+
+    // The client self-test harness is dev-only. Its only call site is guarded by
+    // DevEnvironmentCheck, so the class can be absent from the shipped jar.
+    exclude 'grill24/fishtastic/client/selftest/**'
 }
 
 remapJar {

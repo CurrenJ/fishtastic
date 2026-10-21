@@ -50,10 +50,10 @@ public record SetDayRatePacket(float rate) implements CustomPacketPayload {
     }
 
     public static void sendToPlayer(ServerPlayer player, float rate) {
-        player.connection.send(new ClientboundCustomPayloadPacket(new SetDayRatePacket(rate)));
+        FishtasticTransport.sendToPlayer(player, new SetDayRatePacket(rate));
     }
 
     public static void broadcast(MinecraftServer server, float rate) {
-        server.getPlayerList().broadcastAll(new ClientboundCustomPayloadPacket(new SetDayRatePacket(rate)));
+        FishtasticTransport.sendToAll(server, new SetDayRatePacket(rate));
     }
 }

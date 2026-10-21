@@ -50,6 +50,6 @@ public record NotificationVolumeSyncPacket(int volume) implements CustomPacketPa
     }
 
     public static void sendToPlayer(ServerPlayer player, int volume) {
-        player.connection.send(new ClientboundCustomPayloadPacket(new NotificationVolumeSyncPacket(volume)));
+        FishtasticTransport.sendToPlayer(player, new NotificationVolumeSyncPacket(volume));
     }
 }

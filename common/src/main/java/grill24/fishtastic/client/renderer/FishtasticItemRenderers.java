@@ -3,7 +3,9 @@ package grill24.fishtastic.client.renderer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.client.util.FishPileIcons;
+import grill24.fishtastic.item.FishTankCosmeticItem;
 import grill24.fishtastic.item.FishTankStructureCosmeticItem;
+import grill24.fishtastic.item.PileOfFishItem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.core.BlockPos;
@@ -45,6 +47,13 @@ public final class FishtasticItemRenderers {
             if (item instanceof FishTankStructureCosmeticItem) items.add(item);
         }
         return items;
+    }
+
+    /** Cheap class/block identity check for loader hooks that cannot iterate the item registry. */
+    public static boolean isCustomRendererItem(Item item) {
+        return item instanceof PileOfFishItem
+                || item instanceof FishTankStructureCosmeticItem
+                || item instanceof FishTankCosmeticItem cosmetic && cosmetic.getRenderBlock() == Blocks.CHEST;
     }
 
     /** Draws {@code stack}; the pose is in its model space (display transform applied, then {@code -0.5}). */

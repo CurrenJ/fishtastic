@@ -297,8 +297,11 @@ public final class FishtasticNeoForgeClient {
     public static void onClientTick(ClientTickEvent.Pre event) {
         // Update tick counter for animations
         Minecraft mc = Minecraft.getInstance();
-        // PORT-ONLY: the rendering self-test (inert unless its marker file exists; see RenderSelfTest).
-        grill24.fishtastic.client.selftest.RenderSelfTest.tick(mc, "neoforge");
+        // Dev-only: the rendering self-test, inert unless its marker file exists (see RenderSelfTest).
+        // Not in the shipped jar, hence the guard.
+        if (grill24.fishtastic.env.DevEnvironmentCheck.isDevelopmentEnvironment()) {
+            grill24.fishtastic.client.selftest.RenderSelfTest.tick(mc, "neoforge");
+        }
         ClientAmbientFish.tick();
         if (mc.level != null && !mc.isPaused()) {
             ClientTickHandler.tick(1.0f);

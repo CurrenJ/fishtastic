@@ -48,6 +48,6 @@ public record ReactionBoostSyncPacket(float boost) implements CustomPacketPayloa
     }
 
     public static void sendToPlayer(ServerPlayer player, float boost) {
-        player.connection.send(new ClientboundCustomPayloadPacket(new ReactionBoostSyncPacket(boost)));
+        FishtasticTransport.sendToPlayer(player, new ReactionBoostSyncPacket(boost));
     }
 }

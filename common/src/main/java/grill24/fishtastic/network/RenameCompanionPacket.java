@@ -1,5 +1,7 @@
 package grill24.fishtastic.network;
 
+import grill24.fishtastic.network.FishtasticTransport;
+
 import grill24.fishtastic.companion.Companions;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -38,10 +40,7 @@ public record RenameCompanionPacket(int slot, String name) implements CustomPack
             if (ctx.getPlayer() instanceof ServerPlayer player) {
                 boolean renamed = grill24.fishtastic.companion.CompanionParty.validSlot(packet.slot())
                         && Companions.rename(player, packet.slot(), packet.name());
-                player.connection.send(new net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket(
-                        new CompanionFeedbackPacket(renamed
-                                ? CompanionFeedbackPacket.Outcome.RENAMED
-                                : CompanionFeedbackPacket.Outcome.NOTHING_TO_RENAME)));
+                FishtasticTransport.sendToPlayer(player, new CompanionFeedbackPacket(renamed ? CompanionFeedbackPacket.Outcome.RENAMED : CompanionFeedbackPacket.Outcome.NOTHING_TO_RENAME));
             }
         });
     }

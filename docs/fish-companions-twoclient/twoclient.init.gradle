@@ -8,7 +8,8 @@
 //             (no server: the companionscenes self-test with the ghost owner in a fresh flat world)
 //
 // NeoForge: the same with :neoforge:runServer / :neoforge:runClient and -PtwoLoader=neoforge
-// (port 25601, run directories run-neoforge-<role>), so the two loaders never share a world.
+// Forge:    the same with :forge:runServer / :forge:runClient and -PtwoLoader=forge
+// (ports 25601/25602, run directories run-<loader>-<role>), so the loaders never share a world.
 //
 // Start the server first. Each client's marker runs the 'twoclient' self-test scene against
 // localhost:25600 (NeoForge 25601) as FishA / FishB; both are opped (ops.json, offline UUIDs) so the scene can tp,
@@ -18,8 +19,10 @@ gradle.projectsEvaluated {
     if (!(role in ['server', 'a', 'b', 'solo'])) throw new GradleException('Set -PtwoRole=server, a, b or solo')
     def base = rootProject.file('docs/fish-companions-twoclient').canonicalFile
     def loader = gradle.startParameter.projectProperties.get('twoLoader') ?: 'fabric'
-    if (!(loader in ['fabric', 'neoforge'])) throw new GradleException('Set -PtwoLoader=fabric or neoforge')
-    def port = loader == 'fabric' ? 25600 : 25601
+    if (!(loader in ['fabric', 'neoforge', 'forge'])) {
+        throw new GradleException('Set -PtwoLoader=fabric, neoforge or forge')
+    }
+    def port = loader == 'fabric' ? 25600 : (loader == 'neoforge' ? 25601 : 25602)
     def target = rootProject.file("docs/fish-companions-twoclient/run-${loader}-${role}").canonicalFile
     if (target.parentFile != base) throw new GradleException('Unexpected run directory')
     target.mkdirs()
@@ -42,7 +45,7 @@ gradle.projectsEvaluated {
         platform.loom.runs.client.runDir(platform.projectDir.toPath().relativize(target.toPath()).toString())
         platform.loom.runs.client.programArgs('--username', name)
         platform.loom.runs.client.vmArg('-Xms256m')
-        platform.loom.runs.client.vmArg('-Xmx1536m')
+        platform.loom.runs.client.vmArg('-Xmx1024m')
         platform.loom.runs.client.vmArg('-XX:ActiveProcessorCount=4')
     } else {
         new File(target, 'eula.txt').text = 'eula=true\n'
@@ -68,7 +71,7 @@ gradle.projectsEvaluated {
         ].join('\n') + '\n'
         platform.loom.runs.server.runDir(platform.projectDir.toPath().relativize(target.toPath()).toString())
         platform.loom.runs.server.vmArg('-Xms256m')
-        platform.loom.runs.server.vmArg('-Xmx1024m')
+        platform.loom.runs.server.vmArg('-Xmx768m')
         platform.loom.runs.server.vmArg('-XX:ActiveProcessorCount=4')
     }
 }

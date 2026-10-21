@@ -42,6 +42,6 @@ public record EncyclopediaTutorialSyncPacket(EncyclopediaTutorialStep step) impl
     }
 
     public static void sendToPlayer(ServerPlayer player, EncyclopediaTutorialStep step) {
-        player.connection.send(new ClientboundCustomPayloadPacket(new EncyclopediaTutorialSyncPacket(step)));
+        FishtasticTransport.sendToPlayer(player, new EncyclopediaTutorialSyncPacket(step));
     }
 }
