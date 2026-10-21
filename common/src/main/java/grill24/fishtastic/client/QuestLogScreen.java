@@ -1272,7 +1272,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
     /**
      * Icon for quests that name no species: the encyclopedia's own weather / time-of-day glyphs and
-     * zone art, falling back to the angler fish only when the objective has no such condition.
+     * zone art, leaving the icon area empty when the objective has no such condition.
      */
     private UIElement<?> objectiveConditionIcon(QuestObjective objective) {
         PageSurface surface = new PageSurface(16, 16);
@@ -1301,7 +1301,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
                 return surface;
             }
         }
-        return UI.itemRenderer(new ItemStack(FishtasticItems.ANGLER_FISH.value())).showCount(false);
+        return surface;
     }
 
     private void addCollapsedRewardPreview(ManualContainer row, Quest quest, int headerHeight, boolean showTokens) {
