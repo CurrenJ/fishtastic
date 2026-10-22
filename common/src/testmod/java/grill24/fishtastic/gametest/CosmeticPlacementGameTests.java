@@ -6,7 +6,10 @@ import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.CosmeticPlacement;
 import grill24.fishtastic.fishtank.CosmeticStructure;
+import grill24.fishtastic.fishtank.CosmeticTransforms;
+import grill24.fishtastic.fishtank.PlacedCosmetic;
 import grill24.fishtastic.fishtank.SpanStructures;
+import grill24.fishtastic.fishtank.TankColumns;
 import grill24.fishtastic.item.FishTankStructureCosmeticItem;
 import grill24.fishtastic.util.Ids;
 import net.minecraft.core.BlockPos;
@@ -16,6 +19,8 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -210,6 +215,62 @@ public final class CosmeticPlacementGameTests {
                 helper.assertTrue(seen != null && seen.anchor() == anchor, "box tank " + pos + " must resolve to the span");
             }
         }
+        helper.succeed();
+    }
+
+    /** Puts the player's eye at {@code eye} looking straight at {@code target}. */
+    private static void look(Player player, Vec3 eye, Vec3 target) {
+        Vec3 d = target.subtract(eye);
+        float yaw = (float) Math.toDegrees(Math.atan2(-d.x, d.z));
+        float pitch = (float) -Math.toDegrees(Math.atan2(d.y, Math.sqrt(d.x * d.x + d.z * d.z)));
+        player.moveTo(eye.x, eye.y - player.getEyeHeight(), eye.z, yaw, pitch);
+    }
+
+    /** The sand point at the centre of {@code cell} in {@code tank}. */
+    private static Vec3 sand(FishTankBlockEntity tank, CosmeticGridCell cell) {
+        BlockPos pos = tank.getBlockPos();
+        return new Vec3(pos.getX() + cell.localX(), pos.getY() + CosmeticGridCell.FLOOR_Y, pos.getZ() + cell.localZ());
+    }
+
+    /**
+     * A full-height kelp strand in the front cell doesn't hide the sand behind it: aiming past it
+     * targets the back cell instead of growing the strand. Aiming at the strand's own sand still
+     * targets it, and a level aim that reaches no sand falls back to the strand's hit box.
+     */
+    public static void kelpDoesNotHideCellBehindIt(GameTestHelper helper) {
+        FishTankBlockEntity tank = row(helper, 1, 1).get(0);
+        CosmeticGridCell front = new CosmeticGridCell(1, G - 1);
+        CosmeticGridCell back = new CosmeticGridCell(1, 0);
+        int full = TankColumns.maxSegments(1);
+        tank.setCosmetic(front, new PlacedCosmetic(Blocks.KELP.defaultBlockState(), full));
+        ItemStack kelp = new ItemStack(Blocks.KELP);
+        Player player = helper.makeMockPlayer();
+        BlockPos pos = tank.getBlockPos();
+        // Standing south of the tank, eye level with its lid, looking north and down through the glass.
+        Vec3 eye = new Vec3(pos.getX() + front.localX(), pos.getY() + 1.0, pos.getZ() + 1.6);
+
+        // Precondition: the ray to the back cell really does pass through the strand's hit box.
+        CosmeticTransforms.Transform t = CosmeticTransforms.get(Blocks.KELP);
+        Vec3 strand = sand(tank, front).add(t.offsetX(), t.offsetY(), t.offsetZ());
+        double half = t.scale() / 2.0;
+        AABB box = new AABB(strand.x - half, strand.y, strand.z - half, strand.x + half, strand.y + t.scale() * full, strand.z + half);
+        helper.assertTrue(box.clip(eye, sand(tank, back)).isPresent(), "test setup: the strand must stand in the line of sight");
+
+        look(player, eye, sand(tank, back));
+        CosmeticPlacement.Plan behind = CosmeticPlacement.plan(player, tank, kelp);
+        helper.assertTrue(behind.valid() && behind.cells().equals(List.of(new CosmeticPlacement.TankCell(tank, back))),
+                "aiming past the strand must target the empty back cell, got " + behind.cells());
+
+        look(player, eye, sand(tank, front));
+        CosmeticPlacement.Plan base = CosmeticPlacement.plan(player, tank, kelp);
+        helper.assertTrue(base.cells().equals(List.of(new CosmeticPlacement.TankCell(tank, front))) && !base.valid(),
+                "aiming at the full strand's base must target it and refuse to grow it, got " + base.cells());
+
+        Vec3 low = new Vec3(eye.x, strand.y + t.scale() * full / 2.0, eye.z);
+        look(player, low, low.add(0, 0, -1));
+        CosmeticPlacement.Plan level = CosmeticPlacement.plan(player, tank, kelp);
+        helper.assertTrue(level.cells().equals(List.of(new CosmeticPlacement.TankCell(tank, front))),
+                "a level aim that reaches no sand must fall back to the strand's box, got " + level.cells());
         helper.succeed();
     }
 }
