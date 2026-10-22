@@ -752,9 +752,19 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
 
         // The book is deliberately a fixed logical-size shell. The rail and header stay put while
         // only the clipped quest viewport scrolls, matching the reviewed Captain's Log mockups.
+        // Fit the complete shell to the current GUI viewport when Minecraft has been resized to a
+        // smaller window. UIScreen's auto-centering uses the root's unscaled size, so leaving it
+        // enabled would position a scaled shell from the wrong origin and could still clip it.
         ManualContainer shell = UI.manualContainer().setSize(SHELL_WIDTH, SHELL_HEIGHT)
                 .backgroundColor(0xFF15151B);
         shell.setDebugName("questBookShell");
+        float shellScale = Math.min(1f, Math.min(
+                this.width / (float) SHELL_WIDTH,
+                this.height / (float) SHELL_HEIGHT));
+        shell.setTargetScale(Math.max(0.01f, shellScale), false);
+        shell.setPosition(new Vector2f(
+                (this.width - SHELL_WIDTH * shellScale) / 2f,
+                (this.height - SHELL_HEIGHT * shellScale) / 2f));
 
         ManualContainer rail = UI.manualContainer().setSize(RAIL_WIDTH, SHELL_HEIGHT)
                 .backgroundColor(COLOR_RAIL);
@@ -821,7 +831,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         questContent = null;
 
         shell.forceLayout();
-        uiScreen.setAutoCenterRoot(true);
+        uiScreen.setAutoCenterRoot(false);
         uiScreen.setScrollEnabled(false);
         uiScreen.setRoot(shell);
         keyboardNav.refresh(shell);
