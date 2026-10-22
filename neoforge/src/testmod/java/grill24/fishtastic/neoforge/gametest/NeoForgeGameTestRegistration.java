@@ -3,6 +3,7 @@ package grill24.fishtastic.neoforge.gametest;
 import com.mojang.serialization.MapCodec;
 import grill24.fishtastic.gametest.AmbientContextGameTests;
 import grill24.fishtastic.gametest.CapstoneRewardGameTests;
+import grill24.fishtastic.gametest.CosmeticPlacementGameTests;
 import grill24.fishtastic.gametest.FishCatchBackupsGameTests;
 import grill24.fishtastic.gametest.BackupTestFixture;
 import grill24.fishtastic.gametest.CreativeTabGameTests;
@@ -403,6 +404,14 @@ public class NeoForgeGameTestRegistration {
             FishTankGameTests::stackedTanksFormOneColumn);
         register(event, env, "hanging_cosmetics_stack_and_round_trip", 200,
             FishTankGameTests::hangingCosmeticsStackAndRoundTrip);
+        register(event, env, "floor_structure_follows_aimed_cell", 200,
+            CosmeticPlacementGameTests::floorStructureFollowsAimedCell);
+        register(event, env, "span_structure_follows_aimed_cell", 200,
+            CosmeticPlacementGameTests::spanStructureFollowsAimedCell);
+        register(event, env, "cross_seam_structure_links_neighbour", 200,
+            CosmeticPlacementGameTests::crossSeamStructureLinksNeighbour);
+        register(event, env, "shifted_span_round_trips", 200,
+            CosmeticPlacementGameTests::shiftedSpanRoundTrips);
         register(event, env, "open_faces_round_trip", 200,
             FishTankGameTests::openFacesRoundTrip);
         register(event, env, "honeycomb_sealed_face_is_blocked_even_when_grouped_via_another_path", 200,

@@ -66,8 +66,17 @@ import java.util.Optional;
 import java.util.Set;
 
 public class FishTankBlockEntity extends BlockEntity implements Container, MenuProvider {
-    /** A placed multi-block structure cosmetic, anchored at one grid cell. */
-    public record PlacedStructureCosmetic(ResourceKey<CosmeticStructure> structureId, Rotation rotation) {}
+    /**
+     * A placed multi-block structure cosmetic, anchored at one grid cell. {@code shiftX}/{@code shiftZ}
+     * move a spanning structure off its box-centred layout, in blocks (see {@link SpanStructures});
+     * always zero for floor structures, which sit on their anchor cell.
+     */
+    public record PlacedStructureCosmetic(ResourceKey<CosmeticStructure> structureId, Rotation rotation,
+                                          float shiftX, float shiftZ) {
+        public PlacedStructureCosmetic(ResourceKey<CosmeticStructure> structureId, Rotation rotation) {
+            this(structureId, rotation, 0f, 0f);
+        }
+    }
 
     /**
      * This tank's place in a spanning structure anchored in another tank of its box
@@ -75,6 +84,13 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
      * here. Only trusted once {@link SpanStructures#resolve} confirms the anchor still agrees.
      */
     public record SpanLink(BlockPos toAnchor, List<CosmeticGridCell> cells) {}
+
+    /**
+     * A floor cell here covered by a floor structure anchored in a neighbouring tank of the group
+     * (one placed across a seam): the offset to that tank and the structure's anchor cell there.
+     * Only trusted while the anchor still holds a structure at that cell (see {@link #structureLinkResolves}).
+     */
+    public record StructureLink(BlockPos toAnchor, CosmeticGridCell anchor) {}
 
     /** Identifies one part within a placed structure cosmetic, for per-part particle throttling. */
     public record FurnacePartKey(CosmeticGridCell anchor, int partIndex) {}
@@ -138,6 +154,9 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
     // Link to a spanning structure anchored in another tank of this one's box, or null
     @Nullable
     private SpanLink spanLink;
+
+    // Floor cells here covered by floor structures anchored in neighbouring tanks
+    private Map<CosmeticGridCell, StructureLink> structureLinks = new HashMap<>();
 
     // Multi-block structure cosmetics, keyed by their anchor cell
     private Map<CosmeticGridCell, PlacedStructureCosmetic> structureCosmetics = new HashMap<>();
@@ -350,6 +369,15 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
         // its item): drop a link that no longer resolves, freeing the floor cells it held.
         if (!level.isClientSide() && spanLink != null && SpanStructures.resolve(level, this) == null) {
             clearSpanLink();
+        }
+        // Likewise a floor structure reaching in from a neighbour whose anchor has gone. An
+        // unloaded anchor proves nothing, so only links to loaded tanks are dropped.
+        if (!level.isClientSide() && !structureLinks.isEmpty()) {
+            for (StructureLink link : Set.copyOf(structureLinks.values())) {
+                if (level.isLoaded(pos.offset(link.toAnchor())) && !structureLinkResolves(level, link)) {
+                    clearStructureLinks(link);
+                }
+            }
         }
 
         Set<Direction> newOpenFaces = EnumSet.noneOf(Direction.class);
@@ -581,6 +609,21 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
             child.putInt("GridZ", cell.gridZ());
             child.putString("StructureId", placed.structureId().identifier().toString());
             child.store("Rotation", Rotation.CODEC, placed.rotation());
+            if (placed.shiftX() != 0f) child.putFloat("ShiftX", placed.shiftX());
+            if (placed.shiftZ() != 0f) child.putFloat("ShiftZ", placed.shiftZ());
+        }
+
+        // Links are positional, like open faces: a tank carried off in its item must not bring
+        // them to wherever it is placed next.
+        if (includeConnectivity) {
+            ValueOutput.ValueOutputList structureLinkList = output.childrenList("StructureLinks");
+            for (Map.Entry<CosmeticGridCell, StructureLink> entry : structureLinks.entrySet()) {
+                ValueOutput child = structureLinkList.addChild();
+                child.putInt("Cell", entry.getKey().packed());
+                child.putInt("DX", entry.getValue().toAnchor().getX());
+                child.putInt("DZ", entry.getValue().toAnchor().getZ());
+                child.putInt("Anchor", entry.getValue().anchor().packed());
+            }
         }
     }
 
@@ -781,10 +824,12 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
             }
 
             CosmeticGridCell anchor = new CosmeticGridCell(gridX, gridZ);
+            float shiftX = child.getFloatOr("ShiftX", 0f);
+            float shiftZ = child.getFloatOr("ShiftZ", 0f);
             List<CosmeticGridCell> footprintCells = structure.get().span().isPresent()
-                    ? SpanStructures.footprint(structure.get(), rotation).getOrDefault(BlockPos.ZERO, List.of())
-                    : rotatedFootprintCells(structure.get(), rotation, anchor);
-            structureCosmetics.put(anchor, new PlacedStructureCosmetic(key, rotation));
+                    ? SpanStructures.footprint(structure.get(), rotation, shiftX, shiftZ).getOrDefault(BlockPos.ZERO, List.of())
+                    : CosmeticStructures.footprintByTank(structure.get(), rotation, anchor).getOrDefault(BlockPos.ZERO, List.of());
+            structureCosmetics.put(anchor, new PlacedStructureCosmetic(key, rotation, shiftX, shiftZ));
             for (CosmeticGridCell footprintCell : footprintCells) {
                 structureCellIndex.put(footprintCell, anchor);
             }
@@ -803,6 +848,18 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
             for (CosmeticGridCell cell : spanLink.cells()) structureCellIndex.put(cell, cell);
         }
 
+        structureLinks.clear();
+        input.childrenListOrEmpty("StructureLinks").forEach(child -> {
+            int cell = child.getIntOr("Cell", -1);
+            int anchor = child.getIntOr("Anchor", -1);
+            int cells = CosmeticGridCell.GRID_SIZE * CosmeticGridCell.GRID_SIZE;
+            if (cell < 0 || cell >= cells || anchor < 0 || anchor >= cells) return;
+            CosmeticGridCell at = CosmeticGridCell.unpack(cell);
+            structureLinks.put(at, new StructureLink(new BlockPos(child.getIntOr("DX", 0), 0, child.getIntOr("DZ", 0)),
+                    CosmeticGridCell.unpack(anchor)));
+            structureCellIndex.put(at, at);
+        });
+
         RegistrationApiSided.getInstance().requestModelDataUpdate(this);
         // Cosmetics stored here are also meshed by other tanks (kelp above, hanging strands below,
         // a span's box): they need re-meshing too. Client only — the mesh class is client code.
@@ -812,15 +869,6 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
     }
 
     /** Rotates a structure's occupied cells and translates them to the given anchor. */
-    private static List<CosmeticGridCell> rotatedFootprintCells(CosmeticStructure structure, Rotation rotation, CosmeticGridCell anchor) {
-        List<CosmeticGridCell> cells = new java.util.ArrayList<>(structure.occupied().size());
-        for (CosmeticStructure.GridOffset offset : structure.occupied()) {
-            CosmeticStructure.GridOffset rotated = CosmeticStructures.rotateFootprintCell(rotation, offset);
-            cells.add(new CosmeticGridCell(anchor.gridX() + rotated.dx(), anchor.gridZ() + rotated.dz()));
-        }
-        return cells;
-    }
-
     @Override
     public net.minecraft.nbt.CompoundTag getUpdateTag(net.minecraft.core.HolderLookup.Provider registries) {
         return saveWithoutMetadata(registries);
@@ -1156,10 +1204,50 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
         }
     }
 
+    /** Floor cells here covered by floor structures anchored in neighbouring tanks (unvalidated). */
+    public Map<CosmeticGridCell, StructureLink> getStructureLinks() {
+        return Collections.unmodifiableMap(structureLinks);
+    }
+
+    /** Whether {@code link}'s anchor tank still holds a structure at the linked anchor cell. */
+    public boolean structureLinkResolves(Level level, StructureLink link) {
+        return level.getBlockEntity(worldPosition.offset(link.toAnchor())) instanceof FishTankBlockEntity anchor
+                && anchor.structureCosmetics.containsKey(link.anchor());
+    }
+
+    /** Records that {@code cells} here are covered by the floor structure {@code link} points at. */
+    public void setStructureLinks(StructureLink link, List<CosmeticGridCell> cells) {
+        for (CosmeticGridCell cell : cells) {
+            structureLinks.put(cell, link);
+            structureCellIndex.put(cell, cell);
+        }
+        setChanged();
+        if (level != null && !level.isClientSide()) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+        }
+    }
+
+    /** Frees every cell here covered by the floor structure {@code link} points at. */
+    public void clearStructureLinks(StructureLink link) {
+        boolean changed = false;
+        for (var it = structureLinks.entrySet().iterator(); it.hasNext(); ) {
+            Map.Entry<CosmeticGridCell, StructureLink> entry = it.next();
+            if (!entry.getValue().equals(link)) continue;
+            it.remove();
+            structureCellIndex.remove(entry.getKey(), entry.getKey());
+            changed = true;
+        }
+        if (!changed) return;
+        setChanged();
+        if (level != null && !level.isClientSide()) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+        }
+    }
+
     /**
      * Every cell occupied by a placed structure (including anchors), mapped to that structure's
-     * anchor cell — or, for cells a spanning structure anchored in another tank covers here, to
-     * the cell itself.
+     * anchor cell — or, for cells a structure anchored in another tank covers here (a span, or a
+     * floor structure placed across a seam), to the cell itself.
      */
     public Map<CosmeticGridCell, CosmeticGridCell> getStructureCellIndex() {
         return Collections.unmodifiableMap(structureCellIndex);
@@ -1192,7 +1280,7 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
         if (structureCosmetics.remove(anchor) == null) {
             return;
         }
-        structureCellIndex.values().removeIf(a -> a.equals(anchor));
+        structureCellIndex.entrySet().removeIf(entry -> entry.getValue().equals(anchor) && !structureLinks.containsKey(entry.getKey()));
         setChanged();
         if (level != null && !level.isClientSide()) {
             level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
@@ -1240,6 +1328,7 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
         }
         if (level != null && !level.isClientSide()) {
             SpanStructures.clearLinks(level, this, placed);
+            CosmeticStructures.clearNeighbourLinks(level, this, anchor);
         }
         removeStructureCosmetic(anchor);
         FishTankStructureCosmeticItem returnItem = FishTankStructureCosmeticItem.forStructure(placed.structureId());

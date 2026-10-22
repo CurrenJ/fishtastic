@@ -610,6 +610,26 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void floorStructureFollowsAimedCell(GameTestHelper helper) {
+        CosmeticPlacementGameTests.floorStructureFollowsAimedCell(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void spanStructureFollowsAimedCell(GameTestHelper helper) {
+        CosmeticPlacementGameTests.spanStructureFollowsAimedCell(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void crossSeamStructureLinksNeighbour(GameTestHelper helper) {
+        CosmeticPlacementGameTests.crossSeamStructureLinksNeighbour(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void shiftedSpanRoundTrips(GameTestHelper helper) {
+        CosmeticPlacementGameTests.shiftedSpanRoundTrips(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void openFacesRoundTrip(GameTestHelper helper) {
         FishTankGameTests.openFacesRoundTrip(helper);
     }

@@ -73,7 +73,7 @@ public final class TankObstacles {
             Rotation rotation = entry.getValue().rotation();
             float anchorX, anchorZ;
             if (structure.get().span().isPresent()) {
-                float[] origin = SpanStructures.buildOrigin(structure.get(), rotation);
+                float[] origin = SpanStructures.buildOrigin(structure.get(), entry.getValue());
                 anchorX = origin[0];
                 anchorZ = origin[1];
             } else {

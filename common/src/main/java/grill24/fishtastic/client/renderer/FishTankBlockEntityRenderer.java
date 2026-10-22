@@ -642,7 +642,7 @@ public class FishTankBlockEntityRenderer
         if (share == null || share.anchor() != ref.anchor() || !share.placed().equals(ref.placed())
                 || share.structure() != ref.structure() || !share.offset().equals(ref.offsetInBox())) {
             share = new SpanShare(ref.anchor(), ref.placed(), ref.structure(), ref.offsetInBox(),
-                    SpanStructures.partsIn(ref.structure(), ref.placed().rotation(), ref.offsetInBox()).stream()
+                    SpanStructures.partsIn(ref.structure(), ref.placed(), ref.offsetInBox()).stream()
                             // Everything else in the span is in the chunk mesh (TankCosmeticMesh).
                             .filter(part -> TankCosmeticMesh.rendersDynamically(part.state()))
                             .toList());
