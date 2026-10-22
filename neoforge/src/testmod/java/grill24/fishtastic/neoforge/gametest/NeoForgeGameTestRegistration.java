@@ -412,6 +412,8 @@ public class NeoForgeGameTestRegistration {
             CosmeticPlacementGameTests::crossSeamStructureLinksNeighbour);
         register(event, env, "shifted_span_round_trips", 200,
             CosmeticPlacementGameTests::shiftedSpanRoundTrips);
+        register(event, env, "kelp_does_not_hide_cell_behind_it", 200,
+            CosmeticPlacementGameTests::kelpDoesNotHideCellBehindIt);
         register(event, env, "open_faces_round_trip", 200,
             FishTankGameTests::openFacesRoundTrip);
         register(event, env, "honeycomb_sealed_face_is_blocked_even_when_grouped_via_another_path", 200,

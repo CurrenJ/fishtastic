@@ -630,6 +630,11 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void kelpDoesNotHideCellBehindIt(GameTestHelper helper) {
+        CosmeticPlacementGameTests.kelpDoesNotHideCellBehindIt(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void openFacesRoundTrip(GameTestHelper helper) {
         FishTankGameTests.openFacesRoundTrip(helper);
     }

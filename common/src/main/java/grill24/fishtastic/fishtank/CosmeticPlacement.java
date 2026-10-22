@@ -45,8 +45,13 @@ import java.util.Optional;
  *
  * <p>Targeting ray-casts the player's look across the clicked tank's whole connected group, not
  * just the tank that was clicked: aiming through one tank's glass at the sand (or a cosmetic, or
- * the lid) of a tank behind or below it targets that tank. The nearest hit along the ray wins, so
- * a cosmetic standing in front of a floor still takes priority over the floor behind it.
+ * the lid) of a tank behind or below it targets that tank.
+ *
+ * <p>A floor placement aims at the sand first: the cell is the one under the point where the ray
+ * meets a floor, whatever stands in front of it, so a kelp strand never hides the cell behind it
+ * (and a click meant for that cell never grows the strand instead). Cosmetic and structure hit
+ * boxes only count when the ray reaches no sand within reach, e.g. aimed level through the glass;
+ * then the nearest hit wins. Hanging placement keeps nearest-hit-wins.
  *
  * <p>A <i>forced</i> plan ({@link #tryForcePlace}, the shift-click placement) is the same rule set
  * with the occupancy refusals turned into removals: any decoration the placement overlaps —
@@ -689,15 +694,23 @@ public final class CosmeticPlacement {
     }
 
     /**
-     * The floor cell the player is aiming at anywhere in the clicked tank's group: an existing
-     * cosmetic or structure (a kelp strand's box spans its full height, up through any storeys),
-     * else the sand of a tank that has some — a tank whose floor is open onto the one below has
-     * none, so the ray carries on down to the real sand.
+     * The floor cell the player is aiming at anywhere in the clicked tank's group: the cell under
+     * the nearest sand the ray meets — a tank whose floor is open onto the one below has none, so
+     * the ray carries on down to the real sand — occupied or not, so nothing standing in front
+     * hides it. Only when no sand is in reach does an existing cosmetic or structure count (a kelp
+     * strand's box spans its full height, up through any storeys).
      */
     @Nullable
     private static Target findFloorTarget(Player player, FishTankBlockEntity clicked) {
+        List<FishTankBlockEntity> group = groupOf(clicked);
+        RayHits sand = new RayHits(player);
+        for (FishTankBlockEntity tank : group) {
+            if (!tank.isFaceOpen(Direction.DOWN)) sand.plane(tank, CosmeticGridCell.FLOOR_Y);
+        }
+        if (sand.best != null) return sand.best;
+
         RayHits hits = new RayHits(player);
-        for (FishTankBlockEntity tank : groupOf(clicked)) {
+        for (FishTankBlockEntity tank : group) {
             BlockPos pos = tank.getBlockPos();
             for (Map.Entry<CosmeticGridCell, PlacedCosmetic> entry : tank.getCosmetics().entrySet()) {
                 CosmeticGridCell cell = entry.getKey();
@@ -718,7 +731,6 @@ public final class CosmeticPlacement {
                 double half = CosmeticGridCell.CELL_WIDTH / 2.0;
                 hits.box(tank, cell, new AABB(wx - half, wy, wz - half, wx + half, wy + STRUCTURE_HIT_HEIGHT, wz + half));
             }
-            if (!tank.isFaceOpen(Direction.DOWN)) hits.plane(tank, CosmeticGridCell.FLOOR_Y);
         }
         return hits.best;
     }
