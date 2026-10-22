@@ -637,6 +637,26 @@ public class FishtasticGameTests {
     }
 
     @GameTest(template = "fishtastic_empty")
+    public void floorStructureFollowsAimedCell(GameTestHelper helper) {
+        CosmeticPlacementGameTests.floorStructureFollowsAimedCell(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void spanStructureFollowsAimedCell(GameTestHelper helper) {
+        CosmeticPlacementGameTests.spanStructureFollowsAimedCell(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void crossSeamStructureLinksNeighbour(GameTestHelper helper) {
+        CosmeticPlacementGameTests.crossSeamStructureLinksNeighbour(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void shiftedSpanRoundTrips(GameTestHelper helper) {
+        CosmeticPlacementGameTests.shiftedSpanRoundTrips(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
     public void openFacesRoundTrip(GameTestHelper helper) {
         FishTankGameTests.openFacesRoundTrip(helper);
     }

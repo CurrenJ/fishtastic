@@ -44,6 +44,13 @@ import java.util.Set;
  * <h2>Rendering</h2>
  * Like kelp strands, every tank in the box draws only the parts whose centre lies inside it, so
  * the set piece stays on screen whichever of its tanks is in view.
+ *
+ * <h2>Shifted placement</h2>
+ * A span isn't tied to its authored box: it can be placed with its layout shifted by any whole
+ * number of floor cells ({@link FishTankBlockEntity.PlacedStructureCosmetic#shiftX shiftX}/{@code
+ * shiftZ}, in blocks from the authored, box-centred layout), and its box is then whichever tanks
+ * its parts reach into — wall to wall, so nothing pokes through the glass. A structure narrower
+ * than its authored box may need fewer tanks; one nudged a cell sideways may need one more.
  */
 public final class SpanStructures {
 
@@ -76,8 +83,11 @@ public final class SpanStructures {
      */
     public record Placed(BlockState state, float x, float y, float z, int cullMask) {}
 
-    /** A layout plus each part's authored height in the build grid (for the footprint). */
-    private record Layout(List<Placed> parts, float[] buildY) {}
+    /**
+     * A layout plus each part's authored height in the build grid (for the footprint), and the
+     * horizontal extent of its parts in blocks from the box's min corner.
+     */
+    private record Layout(List<Placed> parts, float[] buildY, double minX, double maxX, double minZ, double maxZ) {}
 
     private static final Map<CosmeticStructure, Map<Rotation, Layout>> LAYOUTS =
             Collections.synchronizedMap(new IdentityHashMap<>());
@@ -101,6 +111,7 @@ public final class SpanStructures {
         double halfBuildZ = interiorZ(span) / s / 2.0;
         List<Placed> parts = new ArrayList<>(structure.parts().size());
         float[] buildY = new float[structure.parts().size()];
+        double minX = Double.MAX_VALUE, maxX = -Double.MAX_VALUE, minZ = Double.MAX_VALUE, maxZ = -Double.MAX_VALUE;
         java.util.Set<BlockPos> solid = new java.util.HashSet<>();
         for (CosmeticStructure.StructurePart part : structure.parts()) {
             if (part.state().isSolidRender(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, BlockPos.ZERO)) solid.add(gridPos(part));
@@ -119,8 +130,16 @@ public final class SpanStructures {
             }
             parts.add(new Placed(part.state().rotate(rotation), x, y, z, cullMask));
             buildY[i] = part.offsetY();
+            minX = Math.min(minX, x);
+            maxX = Math.max(maxX, x + s);
+            minZ = Math.min(minZ, z);
+            maxZ = Math.max(maxZ, z + s);
         }
-        return new Layout(List.copyOf(parts), buildY);
+        if (parts.isEmpty()) {
+            minX = maxX = turned.x() / 2.0;
+            minZ = maxZ = turned.z() / 2.0;
+        }
+        return new Layout(List.copyOf(parts), buildY, minX, maxX, minZ, maxZ);
     }
 
     /**
@@ -132,6 +151,12 @@ public final class SpanStructures {
      */
     public static float[] buildOrigin(CosmeticStructure structure, Rotation rotation) {
         return buildOrigin(structure.span().orElseThrow(), structure.scale(), rotation);
+    }
+
+    /** {@link #buildOrigin(CosmeticStructure, Rotation)} for a span as placed, shift included. */
+    public static float[] buildOrigin(CosmeticStructure structure, FishTankBlockEntity.PlacedStructureCosmetic placed) {
+        float[] origin = buildOrigin(structure, placed.rotation());
+        return new float[]{origin[0] + placed.shiftX(), origin[1] + placed.shiftZ()};
     }
 
     /** {@link #buildOrigin(CosmeticStructure, Rotation)} from the span's box and scale alone. */
@@ -152,14 +177,20 @@ public final class SpanStructures {
      * else every cell its lowest parts stand on.
      */
     public static Map<BlockPos, List<CosmeticGridCell>> footprint(CosmeticStructure structure, Rotation rotation) {
-        if (!structure.occupiedCells().isEmpty()) return authoredFootprint(structure, rotation);
+        return footprint(structure, rotation, 0f, 0f);
+    }
+
+    /** {@link #footprint(CosmeticStructure, Rotation)} with the layout shifted by {@code (shiftX, shiftZ)} blocks. */
+    public static Map<BlockPos, List<CosmeticGridCell>> footprint(CosmeticStructure structure, Rotation rotation,
+                                                                  float shiftX, float shiftZ) {
+        if (!structure.occupiedCells().isEmpty()) return authoredFootprint(structure, rotation, shiftX, shiftZ);
         Layout layout = layoutWithHeights(structure, rotation);
         float s = structure.scale();
         Map<BlockPos, java.util.LinkedHashSet<CosmeticGridCell>> cells = new LinkedHashMap<>();
         for (int i = 0; i < layout.parts().size(); i++) {
             if (layout.buildY()[i] >= FOOTPRINT_MAX_PY) continue;
             Placed p = layout.parts().get(i);
-            double cx = p.x() + s / 2.0, cz = p.z() + s / 2.0;
+            double cx = p.x() + s / 2.0 + shiftX, cz = p.z() + s / 2.0 + shiftZ;
             int bx = (int) Math.floor(cx), bz = (int) Math.floor(cz);
             cells.computeIfAbsent(new BlockPos(bx, 0, bz), k -> new java.util.LinkedHashSet<>())
                     .add(cellAt(cx - bx, cz - bz));
@@ -173,7 +204,8 @@ public final class SpanStructures {
      * {@code occupied_cells} turned with the box: each authored cell's centre is rotated about the
      * box's centre, as {@link #computeLayout} turns a part's, and lands in the rotated cell.
      */
-    private static Map<BlockPos, List<CosmeticGridCell>> authoredFootprint(CosmeticStructure structure, Rotation rotation) {
+    private static Map<BlockPos, List<CosmeticGridCell>> authoredFootprint(CosmeticStructure structure, Rotation rotation,
+                                                                         float shiftX, float shiftZ) {
         CosmeticStructure.Span span = structure.span().orElseThrow();
         CosmeticStructure.Span turned = rotated(span, rotation);
         Map<BlockPos, java.util.LinkedHashSet<CosmeticGridCell>> cells = new LinkedHashMap<>();
@@ -181,7 +213,7 @@ public final class SpanStructures {
             double ax = cellCentre(cell.dx()) - span.x() / 2.0;
             double az = cellCentre(cell.dz()) - span.z() / 2.0;
             float[] r = CosmeticStructures.rotateOffset(rotation, (float) ax, (float) az);
-            double cx = turned.x() / 2.0 + r[0], cz = turned.z() / 2.0 + r[1];
+            double cx = turned.x() / 2.0 + r[0] + shiftX, cz = turned.z() / 2.0 + r[1] + shiftZ;
             int bx = (int) Math.floor(cx), bz = (int) Math.floor(cz);
             cells.computeIfAbsent(new BlockPos(bx, 0, bz), k -> new java.util.LinkedHashSet<>())
                     .add(cellAt(cx - bx, cz - bz));
@@ -200,10 +232,19 @@ public final class SpanStructures {
 
     /** The parts whose centre lies in the block at {@code offset} from the box's min corner, positioned relative to that block. */
     public static List<Placed> partsIn(CosmeticStructure structure, Rotation rotation, BlockPos offset) {
+        return partsIn(structure, rotation, 0f, 0f, offset);
+    }
+
+    /** {@link #partsIn(CosmeticStructure, Rotation, BlockPos)} for a span as placed, shift included. */
+    public static List<Placed> partsIn(CosmeticStructure structure, FishTankBlockEntity.PlacedStructureCosmetic placed, BlockPos offset) {
+        return partsIn(structure, placed.rotation(), placed.shiftX(), placed.shiftZ(), offset);
+    }
+
+    private static List<Placed> partsIn(CosmeticStructure structure, Rotation rotation, float shiftX, float shiftZ, BlockPos offset) {
         float half = structure.scale() / 2f;
         List<Placed> out = new ArrayList<>();
         for (Placed p : layout(structure, rotation)) {
-            float lx = p.x() - offset.getX(), ly = p.y() - offset.getY(), lz = p.z() - offset.getZ();
+            float lx = p.x() + shiftX - offset.getX(), ly = p.y() - offset.getY(), lz = p.z() + shiftZ - offset.getZ();
             float cx = lx + half, cy = ly + half, cz = lz + half;
             if (cx < 0 || cx >= 1 || cy < 0 || cy >= 1 || cz < 0 || cz >= 1) continue;
             out.add(new Placed(p.state(), lx, ly, lz, p.cullMask()));
@@ -248,7 +289,7 @@ public final class SpanStructures {
     public record Ref(FishTankBlockEntity anchor, FishTankBlockEntity.PlacedStructureCosmetic placed,
                       CosmeticStructure structure, BlockPos offsetInBox) {
         public CosmeticStructure.Span box() {
-            return rotated(structure.span().orElseThrow(), placed.rotation());
+            return SpanStructures.box(structure, placed);
         }
     }
 
@@ -293,7 +334,7 @@ public final class SpanStructures {
     public static void clearLinks(Level level, FishTankBlockEntity anchor, FishTankBlockEntity.PlacedStructureCosmetic placed) {
         CosmeticStructure structure = lookup(level, placed);
         if (structure == null || structure.span().isEmpty()) return;
-        CosmeticStructure.Span box = rotated(structure.span().get(), placed.rotation());
+        CosmeticStructure.Span box = box(structure, placed);
         BlockPos min = anchor.getBlockPos();
         for (BlockPos pos : BlockPos.betweenClosed(min, min.offset(box.x() - 1, box.y() - 1, box.z() - 1))) {
             if (pos.equals(min)) continue;
@@ -306,8 +347,36 @@ public final class SpanStructures {
 
     // ── Placement ───────────────────────────────────────────────────────────────
 
-    /** Where a span would go: the box's min corner, or why it can't. */
-    public record Fit(BlockPos min, CosmeticStructure.Span box, @Nullable String problem) {
+    /** Keeps edge-exact extents (a part flush with a wall) from rounding into the next tank. */
+    private static final double EPS = 1e-4;
+
+    /**
+     * The box of tanks a span placed with {@code (shiftX, shiftZ)} fills, counted from its anchor:
+     * every tank its parts reach into, wall to wall. Its height is always the authored one.
+     */
+    public static CosmeticStructure.Span box(CosmeticStructure structure, Rotation rotation, float shiftX, float shiftZ) {
+        Layout layout = layoutWithHeights(structure, rotation);
+        CosmeticStructure.Span turned = rotated(structure.span().orElseThrow(), rotation);
+        int x = Math.max(1, (int) Math.floor(layout.maxX() + shiftX + WALL - EPS) + 1);
+        int z = Math.max(1, (int) Math.floor(layout.maxZ() + shiftZ + WALL - EPS) + 1);
+        return new CosmeticStructure.Span(x, turned.y(), z);
+    }
+
+    /** {@link #box(CosmeticStructure, Rotation, float, float)} for a span as placed. */
+    public static CosmeticStructure.Span box(CosmeticStructure structure, FishTankBlockEntity.PlacedStructureCosmetic placed) {
+        return box(structure, placed.rotation(), placed.shiftX(), placed.shiftZ());
+    }
+
+    /**
+     * Where a span would go: the box's min corner (its anchor tank), the box, the layout's shift
+     * within it, and why it can't go there, if it can't.
+     */
+    public record Fit(BlockPos min, CosmeticStructure.Span box, float shiftX, float shiftZ, @Nullable String problem) {
+        /** An unshifted fit — the span in its authored box. */
+        public Fit(BlockPos min, CosmeticStructure.Span box, @Nullable String problem) {
+            this(min, box, 0f, 0f, problem);
+        }
+
         public AABB bounds() {
             return new AABB(min.getX(), min.getY(), min.getZ(),
                     min.getX() + box.x(), min.getY() + box.y(), min.getZ() + box.z());
@@ -315,10 +384,49 @@ public final class SpanStructures {
     }
 
     /**
-     * Chooses the box for a span placed from the floor tank {@code target}: every box of the right
-     * size whose bottom layer contains {@code target} is tried, and the one centred nearest the
-     * aimed point that fits wins. When none fits, the nearest box comes back with its problem, so
-     * the preview can outline it in red and the click can say why.
+     * The span's snap point along one axis, in blocks from its box's min corner: the floor-cell
+     * centre nearest the middle of its parts. Placement puts this point on the aimed cell, so the
+     * structure sits centred on the cursor to within a cell, and aiming at the cell the snap point
+     * already occupies gives back the authored, box-centred layout.
+     */
+    private static double snapPoint(double min, double max, int boxEdge) {
+        double middle = (min + max) / 2.0;
+        double best = cellCentre(0);
+        for (int i = 1; i < boxEdge * CosmeticGridCell.GRID_SIZE; i++) {
+            if (Math.abs(cellCentre(i) - middle) < Math.abs(best - middle) - EPS) best = cellCentre(i);
+        }
+        return best;
+    }
+
+    /** One axis of a candidate placement: the anchor's coordinate, the shift off it, and the box edge. */
+    private record Axis(int anchor, float shift, int edge, double aimDistance) {}
+
+    /**
+     * The candidate placements along one axis that keep {@code target} inside the box: the snap
+     * point put on each floor cell within reach, from {@code target - reach} to {@code target + reach}.
+     */
+    private static List<Axis> axisCandidates(int target, double aim, double snap, double min, double max, int reach) {
+        List<Axis> out = new ArrayList<>();
+        for (int tank = target - reach; tank <= target + reach; tank++) {
+            for (int cell = 0; cell < CosmeticGridCell.GRID_SIZE; cell++) {
+                double landing = tank + cellCentre(cell);
+                double origin = landing - snap;
+                int anchor = (int) Math.floor(origin + min - WALL + EPS);
+                float shift = (float) (origin - anchor);
+                int edge = (int) Math.floor(max + shift + WALL - EPS) + 1;
+                if (target < anchor || target >= anchor + edge || edge > MAX_SPAN) continue;
+                out.add(new Axis(anchor, shift, edge, Math.abs(landing - aim)));
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Chooses where a span placed from the floor tank {@code target} goes: the structure's snap
+     * point (see {@link #snapPoint}) is put on every floor cell within reach whose box still holds
+     * {@code target}, and the placement nearest the aimed point that fits wins. When none fits,
+     * the nearest one comes back with its problem, so the preview can outline it in red and the
+     * click can say why.
      */
     public static Fit fit(Level level, Set<BlockPos> group, FishTankBlockEntity target, double aimX, double aimZ,
                           CosmeticStructure structure, Rotation rotation) {
@@ -335,21 +443,31 @@ public final class SpanStructures {
      */
     public static Fit fit(Level level, Set<BlockPos> group, FishTankBlockEntity target, double aimX, double aimZ,
                           CosmeticStructure structure, Rotation rotation, boolean ignoreCosmeticConflicts) {
-        CosmeticStructure.Span box = rotated(structure.span().orElseThrow(), rotation);
-        Map<BlockPos, List<CosmeticGridCell>> footprint = footprint(structure, rotation);
-        Fit bestOk = null, bestAny = null;
-        double bestOkDist = Double.MAX_VALUE, bestAnyDist = Double.MAX_VALUE;
-        for (int ox = 0; ox < box.x(); ox++) {
-            for (int oz = 0; oz < box.z(); oz++) {
-                BlockPos min = target.getBlockPos().offset(-ox, 0, -oz);
-                double dx = min.getX() + box.x() / 2.0 - aimX, dz = min.getZ() + box.z() / 2.0 - aimZ;
-                double dist = dx * dx + dz * dz;
-                Fit candidate = new Fit(min, box, problemWith(level, group, min, box, footprint, ignoreCosmeticConflicts));
-                if (candidate.problem() == null && dist < bestOkDist) { bestOk = candidate; bestOkDist = dist; }
-                if (dist < bestAnyDist) { bestAny = candidate; bestAnyDist = dist; }
-            }
+        Layout layout = layoutWithHeights(structure, rotation);
+        CosmeticStructure.Span turned = rotated(structure.span().orElseThrow(), rotation);
+        BlockPos tp = target.getBlockPos();
+        List<Axis> xs = axisCandidates(tp.getX(), aimX,
+                snapPoint(layout.minX(), layout.maxX(), turned.x()), layout.minX(), layout.maxX(), turned.x());
+        List<Axis> zs = axisCandidates(tp.getZ(), aimZ,
+                snapPoint(layout.minZ(), layout.maxZ(), turned.z()), layout.minZ(), layout.maxZ(), turned.z());
+        record Candidate(Axis x, Axis z, double dist) {}
+        List<Candidate> candidates = new ArrayList<>(xs.size() * zs.size());
+        for (Axis x : xs) {
+            for (Axis z : zs) candidates.add(new Candidate(x, z, x.aimDistance() * x.aimDistance() + z.aimDistance() * z.aimDistance()));
         }
-        return bestOk != null ? bestOk : bestAny;
+        candidates.sort(java.util.Comparator.comparingDouble(Candidate::dist));
+        Fit nearest = null;
+        for (Candidate c : candidates) {
+            BlockPos min = new BlockPos(c.x().anchor(), tp.getY(), c.z().anchor());
+            CosmeticStructure.Span box = new CosmeticStructure.Span(c.x().edge(), turned.y(), c.z().edge());
+            Map<BlockPos, List<CosmeticGridCell>> footprint = footprint(structure, rotation, c.x().shift(), c.z().shift());
+            Fit candidate = new Fit(min, box, c.x().shift(), c.z().shift(),
+                    problemWith(level, group, min, box, footprint, ignoreCosmeticConflicts));
+            if (candidate.problem() == null) return candidate;
+            if (nearest == null) nearest = candidate;
+        }
+        return nearest != null ? nearest
+                : new Fit(tp, turned, "This needs a tank " + turned.x() + " long, " + turned.z() + " deep and " + turned.y() + " tall");
     }
 
     @Nullable
@@ -367,7 +485,8 @@ public final class SpanStructures {
                     if (y + 1 < box.y() && !tank.isFaceOpen(Direction.UP)) return needs;
                     if (y == 0 && tank.isFaceOpen(Direction.DOWN)) return needs;
                     if (ignoreCosmeticConflicts) continue;
-                    if (!tank.getStructureCosmetics().isEmpty() || resolve(level, tank) != null) {
+                    if (!tank.getStructureCosmetics().isEmpty() || !tank.getStructureLinks().isEmpty()
+                            || resolve(level, tank) != null) {
                         return "Another structure is in the way" + CosmeticPlacement.FORCE_HINT;
                     }
                     if (y == 0) {
@@ -383,9 +502,13 @@ public final class SpanStructures {
         return null;
     }
 
-    /** Writes the span into its box: the structure on the anchor, a link (with its floor cells) on every other tank. */
+    /**
+     * Writes the span into its box: the structure on the anchor, a link (with its floor cells) on
+     * every other tank. {@code placed} carries the rotation; the shift is taken from {@code fit}.
+     */
     public static void place(Level level, Fit fit, FishTankBlockEntity.PlacedStructureCosmetic placed, CosmeticStructure structure) {
-        Map<BlockPos, List<CosmeticGridCell>> footprint = footprint(structure, placed.rotation());
+        placed = new FishTankBlockEntity.PlacedStructureCosmetic(placed.structureId(), placed.rotation(), fit.shiftX(), fit.shiftZ());
+        Map<BlockPos, List<CosmeticGridCell>> footprint = footprint(structure, placed.rotation(), fit.shiftX(), fit.shiftZ());
         CosmeticStructure.Span box = fit.box();
         for (int x = 0; x < box.x(); x++) {
             for (int y = 0; y < box.y(); y++) {

@@ -196,6 +196,11 @@ public final class CosmeticPlacement {
      */
     @Nullable
     private static StructureConflict structureConflictAt(Level level, FishTankBlockEntity tank, CosmeticGridCell cell) {
+        FishTankBlockEntity.StructureLink link = tank.getStructureLinks().get(cell);
+        if (link != null) {
+            return tank.structureLinkResolves(level, link)
+                    ? new StructureConflict(tank.getBlockPos().offset(link.toAnchor()), link.anchor()) : null;
+        }
         CosmeticGridCell anchor = tank.getStructureAnchor(cell);
         if (anchor == null) {
             return null;
@@ -218,21 +223,35 @@ public final class CosmeticPlacement {
         }
         Optional<CosmeticStructure> structure = lookupStructure(level, placed.structureId());
         if (structure.isPresent() && structure.get().span().isPresent()) {
-            return spanCells(level, owner.getBlockPos(), structure.get(), placed.rotation());
+            return spanCells(level, owner.getBlockPos(), structure.get(), placed);
         }
         List<TankCell> cells = new ArrayList<>();
         for (Map.Entry<CosmeticGridCell, CosmeticGridCell> entry : owner.getStructureCellIndex().entrySet()) {
-            if (entry.getValue().equals(conflict.anchor())) {
+            if (entry.getValue().equals(conflict.anchor()) && !owner.getStructureLinks().containsKey(entry.getKey())) {
                 cells.add(new TankCell(owner, entry.getKey()));
+            }
+        }
+        // The cells it covers in the neighbours it reaches into across a seam.
+        int reach = CosmeticStructures.MAX_FLOOR_REACH;
+        for (int dx = -reach; dx <= reach; dx++) {
+            for (int dz = -reach; dz <= reach; dz++) {
+                if ((dx == 0 && dz == 0)
+                        || !(level.getBlockEntity(owner.getBlockPos().offset(dx, 0, dz)) instanceof FishTankBlockEntity neighbour)) continue;
+                FishTankBlockEntity.StructureLink back = new FishTankBlockEntity.StructureLink(new BlockPos(-dx, 0, -dz), conflict.anchor());
+                for (Map.Entry<CosmeticGridCell, FishTankBlockEntity.StructureLink> entry : neighbour.getStructureLinks().entrySet()) {
+                    if (entry.getValue().equals(back)) cells.add(new TankCell(neighbour, entry.getKey()));
+                }
             }
         }
         return cells;
     }
 
     /** The floor cells a span covers, per tank of its box, anchored at {@code min}. */
-    private static List<TankCell> spanCells(Level level, BlockPos min, CosmeticStructure structure, Rotation rotation) {
+    private static List<TankCell> spanCells(Level level, BlockPos min, CosmeticStructure structure,
+                                            FishTankBlockEntity.PlacedStructureCosmetic placed) {
         List<TankCell> cells = new ArrayList<>();
-        for (Map.Entry<BlockPos, List<CosmeticGridCell>> entry : SpanStructures.footprint(structure, rotation).entrySet()) {
+        for (Map.Entry<BlockPos, List<CosmeticGridCell>> entry
+                : SpanStructures.footprint(structure, placed.rotation(), placed.shiftX(), placed.shiftZ()).entrySet()) {
             if (level.getBlockEntity(min.offset(entry.getKey())) instanceof FishTankBlockEntity tank) {
                 for (CosmeticGridCell cell : entry.getValue()) {
                     cells.add(new TankCell(tank, cell));
@@ -427,10 +446,13 @@ public final class CosmeticPlacement {
     /**
      * A multi-cell structure: its footprint is rotated by the placing player's 4-way facing before
      * any validation runs, so the shape checked (and previewed) is always the shape that gets
-     * rendered; every footprint cell must be in bounds, and every occupied cell
-     * ({@link CosmeticStructure#occupied}) free of both single-cell and structure cosmetics —
-     * unless forced, which clears what the occupied cells overlap and stands the structure anyway.
-     * The rest of the footprint may overlap neighbours: parts reaching there are slight enough.
+     * rendered. It anchors on the aimed cell, and its footprint may run off that tank's grid onto
+     * neighbours (see {@link CosmeticStructures}) as long as every tank it reaches is in the group,
+     * has a floor, and is joined to the rest by open faces. Every occupied cell
+     * ({@link CosmeticStructure#occupied}) must be free of both single-cell and structure
+     * cosmetics — unless forced, which clears what the occupied cells overlap and stands the
+     * structure anyway. The rest of the footprint may overlap neighbours: parts reaching there are
+     * slight enough.
      */
     private static Plan planStructure(Player player, FishTankBlockEntity clicked, ResourceKey<CosmeticStructure> structureId, boolean force) {
         Level level = clicked.getLevel();
@@ -444,61 +466,93 @@ public final class CosmeticPlacement {
         Target target = findFloorTarget(player, clicked);
         if (target == null) return Plan.none(false);
         FishTankBlockEntity tank = target.tank();
+        BlockPos anchorPos = tank.getBlockPos();
         CosmeticGridCell anchor = target.cell();
         Rotation rotation = rotationFromPlayerFacing(player);
 
-        List<CosmeticGridCell> footprint = new ArrayList<>(structure.get().occupied().size());
-        List<TankCell> shown = new ArrayList<>();
-        List<StructureConflict> conflicts = new ArrayList<>();
-        List<TankCell> floorCells = new ArrayList<>();
         String failMessage = null;
+        int minX = 0, maxX = 0, minZ = 0, maxZ = 0;
         for (CosmeticStructure.GridOffset offset : structure.get().footprintCells()) {
-            CosmeticStructure.GridOffset rotated = CosmeticStructures.rotateFootprintCell(rotation, offset);
-            if (!CosmeticGridCell.isValid(anchor.gridX() + rotated.dx(), anchor.gridZ() + rotated.dz())) {
-                failMessage = "Not enough room to place that here";
-            }
+            BlockPos t = CosmeticStructures.tankOf(anchor, CosmeticStructures.rotateFootprintCell(rotation, offset));
+            minX = Math.min(minX, t.getX());
+            maxX = Math.max(maxX, t.getX());
+            minZ = Math.min(minZ, t.getZ());
+            maxZ = Math.max(maxZ, t.getZ());
+        }
+        int reach = CosmeticStructures.MAX_FLOOR_REACH;
+        if (minX < -reach || maxX > reach || minZ < -reach || maxZ > reach
+                || !floorJoined(level, groupPositions(clicked), anchorPos, minX, maxX, minZ, maxZ)) {
+            failMessage = "Not enough room to place that here";
         }
         // Structures are stored by anchor cell, so a second one anchored there would replace the
         // first, even where the first doesn't occupy its own anchor (a span's anchor tank, a
         // bypass_anchor_cell_requirement structure).
+        List<StructureConflict> conflicts = new ArrayList<>();
         if (failMessage == null && tank.getStructureCosmetics().containsKey(anchor)) {
             if (!force) failMessage = "That space is already occupied" + FORCE_HINT;
-            else conflicts.add(new StructureConflict(tank.getBlockPos(), anchor));
+            else conflicts.add(new StructureConflict(anchorPos, anchor));
         }
-        for (CosmeticStructure.GridOffset offset : structure.get().occupied()) {
-            CosmeticStructure.GridOffset rotated = CosmeticStructures.rotateFootprintCell(rotation, offset);
-            int gx = anchor.gridX() + rotated.dx();
-            int gz = anchor.gridZ() + rotated.dz();
-            if (!CosmeticGridCell.isValid(gx, gz)) continue;
-            CosmeticGridCell cell = new CosmeticGridCell(gx, gz);
-            if (failMessage == null) {
-                boolean floorOccupied = tank.getCosmetics().containsKey(cell);
-                StructureConflict conflict = structureConflictAt(level, tank, cell);
+        Map<BlockPos, List<CosmeticGridCell>> footprint = CosmeticStructures.footprintByTank(structure.get(), rotation, anchor);
+        List<TankCell> shown = new ArrayList<>();
+        List<TankCell> floorCells = new ArrayList<>();
+        for (Map.Entry<BlockPos, List<CosmeticGridCell>> entry : footprint.entrySet()) {
+            if (!(level.getBlockEntity(anchorPos.offset(entry.getKey())) instanceof FishTankBlockEntity at)) {
+                if (failMessage == null) failMessage = "Not enough room to place that here";
+                continue;
+            }
+            for (CosmeticGridCell cell : entry.getValue()) {
+                shown.add(new TankCell(at, cell));
+                if (failMessage != null) continue;
+                boolean floorOccupied = at.getCosmetics().containsKey(cell);
+                StructureConflict conflict = structureConflictAt(level, at, cell);
                 if (floorOccupied || conflict != null) {
                     if (!force) {
                         failMessage = "That space is already occupied" + FORCE_HINT;
                     } else {
-                        if (floorOccupied) floorCells.add(new TankCell(tank, cell));
+                        if (floorOccupied) floorCells.add(new TankCell(at, cell));
                         if (conflict != null) conflicts.add(conflict);
                     }
                 }
             }
-            footprint.add(cell);
-            shown.add(new TankCell(tank, cell));
         }
         if (failMessage != null) return new Plan(shown, false, null, null, failMessage, List.of());
         FishTankBlockEntity.PlacedStructureCosmetic placed = new FishTankBlockEntity.PlacedStructureCosmetic(structureId, rotation);
+        Runnable place = () -> {
+            tank.setStructureCosmetic(anchor, placed, footprint.getOrDefault(BlockPos.ZERO, List.of()));
+            footprint.forEach((offset, cells) -> {
+                if (!offset.equals(BlockPos.ZERO)
+                        && level.getBlockEntity(anchorPos.offset(offset)) instanceof FishTankBlockEntity neighbour) {
+                    neighbour.setStructureLinks(new FishTankBlockEntity.StructureLink(BlockPos.ZERO.subtract(offset), anchor), cells);
+                }
+            });
+        };
         List<StructureConflict> unique = distinct(conflicts);
         if (unique.isEmpty() && floorCells.isEmpty()) {
-            return new Plan(shown, false, null,
-                    () -> tank.setStructureCosmetic(anchor, placed, footprint), null, List.of());
+            return new Plan(shown, false, null, place, null, List.of());
         }
         List<TankCell> cleared = new ArrayList<>();
         for (StructureConflict conflict : unique) cleared.addAll(structureCells(level, conflict));
         cleared.addAll(floorCells);
-        Runnable apply = forcedApply(level, player, unique, floorCells,
-                () -> tank.setStructureCosmetic(anchor, placed, footprint));
+        Runnable apply = forcedApply(level, player, unique, floorCells, place);
         return new Plan(shown, false, null, apply, null, List.copyOf(cleared));
+    }
+
+    /**
+     * Whether the tanks from {@code anchor + (minX, minZ)} to {@code anchor + (maxX, maxZ)} are all
+     * in the group, each with a floor, and joined by open faces — no glass for a structure to
+     * straddle.
+     */
+    private static boolean floorJoined(Level level, Set<BlockPos> group, BlockPos anchor, int minX, int maxX, int minZ, int maxZ) {
+        for (int x = minX; x <= maxX; x++) {
+            for (int z = minZ; z <= maxZ; z++) {
+                BlockPos pos = anchor.offset(x, 0, z);
+                if (!group.contains(pos) || !(level.getBlockEntity(pos) instanceof FishTankBlockEntity tank)) return false;
+                if (tank.isFaceOpen(Direction.DOWN)) return false;
+                if (x < maxX && !tank.isFaceOpen(Direction.EAST)) return false;
+                if (z < maxZ && !tank.isFaceOpen(Direction.SOUTH)) return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -513,20 +567,21 @@ public final class CosmeticPlacement {
         Target target = findFloorTarget(player, clicked);
         if (target == null) return Plan.none(false);
         Rotation rotation = rotationFromPlayerFacing(player);
-        Set<BlockPos> group = new HashSet<>();
-        for (FishTankBlockEntity tank : groupOf(clicked)) group.add(tank.getBlockPos());
+        Set<BlockPos> group = groupPositions(clicked);
 
         BlockPos tp = target.tank().getBlockPos();
         SpanStructures.Fit fit = SpanStructures.fit(level, group, target.tank(),
                 tp.getX() + target.cell().localX(), tp.getZ() + target.cell().localZ(), structure, rotation, force);
+        FishTankBlockEntity.PlacedStructureCosmetic placed =
+                new FishTankBlockEntity.PlacedStructureCosmetic(structureId, rotation, fit.shiftX(), fit.shiftZ());
 
-        List<TankCell> shown = spanCells(level, fit.min(), structure, rotation);
+        List<TankCell> shown = spanCells(level, fit.min(), structure, placed);
         if (fit.problem() != null) return new Plan(shown, false, fit.bounds(), null, fit.problem(), List.of());
 
         List<StructureConflict> conflicts = new ArrayList<>();
         List<TankCell> floorCells = new ArrayList<>();
         if (force) {
-            Map<BlockPos, List<CosmeticGridCell>> footprint = SpanStructures.footprint(structure, rotation);
+            Map<BlockPos, List<CosmeticGridCell>> footprint = SpanStructures.footprint(structure, rotation, fit.shiftX(), fit.shiftZ());
             CosmeticStructure.Span box = fit.box();
             for (int x = 0; x < box.x(); x++) {
                 for (int y = 0; y < box.y(); y++) {
@@ -538,6 +593,11 @@ public final class CosmeticPlacement {
                         }
                         SpanStructures.Ref ref = SpanStructures.resolve(level, tank);
                         if (ref != null) conflicts.add(new StructureConflict(ref.anchor().getBlockPos(), SPAN_ANCHOR_CELL));
+                        for (FishTankBlockEntity.StructureLink link : tank.getStructureLinks().values()) {
+                            if (tank.structureLinkResolves(level, link)) {
+                                conflicts.add(new StructureConflict(tank.getBlockPos().offset(link.toAnchor()), link.anchor()));
+                            }
+                        }
                         if (y == 0) {
                             for (CosmeticGridCell cell : footprint.getOrDefault(offset, List.of())) {
                                 if (tank.getCosmetics().containsKey(cell)) floorCells.add(new TankCell(tank, cell));
@@ -547,7 +607,6 @@ public final class CosmeticPlacement {
                 }
             }
         }
-        FishTankBlockEntity.PlacedStructureCosmetic placed = new FishTankBlockEntity.PlacedStructureCosmetic(structureId, rotation);
         List<StructureConflict> unique = distinct(conflicts);
         if (unique.isEmpty() && floorCells.isEmpty()) {
             return new Plan(shown, false, fit.bounds(),
@@ -620,6 +679,12 @@ public final class CosmeticPlacement {
                 best = new Target(tank, cell);
             }
         }
+    }
+
+    private static Set<BlockPos> groupPositions(FishTankBlockEntity clicked) {
+        Set<BlockPos> group = new HashSet<>();
+        for (FishTankBlockEntity tank : groupOf(clicked)) group.add(tank.getBlockPos());
+        return group;
     }
 
     private static List<FishTankBlockEntity> groupOf(FishTankBlockEntity clicked) {

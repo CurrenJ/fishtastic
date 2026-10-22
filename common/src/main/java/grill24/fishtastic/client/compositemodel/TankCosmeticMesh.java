@@ -208,30 +208,64 @@ public final class TankCosmeticMesh {
     /** How many storeys a column strand is looked for across — far more than any strand can reach. */
     private static final int MAX_COLUMN_WALK = 16;
 
-    /** Single-tank structures anchored here (spanning ones go through {@link #addSpanShare}). */
+    /**
+     * Floor structures (spanning ones go through {@link #addSpanShare}): those anchored here, and
+     * the share of any anchored in a neighbour that reaches in across a seam. Like a span, a
+     * structure crossing a seam is meshed tank by tank — each part by the tank its centre lies in,
+     * when that tank holds a link to the structure — so it stays on screen whichever side is in view.
+     */
     private static void addStructures(FishTankBlockEntity tank, Level level, List<Piece> out) {
-        if (tank.getStructureCosmetics().isEmpty()) return;
+        if (tank.getStructureCosmetics().isEmpty() && tank.getStructureLinks().isEmpty()) return;
         var registry = level.registryAccess().registryOrThrow(FishtasticRegistries.COSMETIC_STRUCTURE_REGISTRY_KEY);
+        BlockPos pos = tank.getBlockPos();
         for (Map.Entry<CosmeticGridCell, FishTankBlockEntity.PlacedStructureCosmetic> entry : tank.getStructureCosmetics().entrySet()) {
             CosmeticStructure structure = registry.getOptional(entry.getValue().structureId()).orElse(null);
             if (structure == null || structure.span().isPresent()) continue;
             CosmeticGridCell anchor = entry.getKey();
-            Rotation rotation = entry.getValue().rotation();
-            float scale = structure.scale();
-            CosmeticStructure.LiveParts live = structure.liveParts();
-            for (int index = 0; index < structure.parts().size(); index++) {
-                CosmeticStructure.StructurePart part = structure.parts().get(index);
-                BlockState partState = part.state().rotate(rotation);
-                // A part a reaction moves or lights is drawn every frame by the tank's renderer.
-                if (rendersDynamically(partState) || live.animated(index)) continue;
-                float[] r = CosmeticStructures.rotateOffset(rotation, part.offsetX(), part.offsetZ());
-                Matrix4f pose = new Matrix4f()
-                        .translate((float) (anchor.localX() + r[0] * CosmeticGridCell.CELL_WIDTH),
-                                CosmeticGridCell.FLOOR_Y + part.offsetY() * scale,
-                                (float) (anchor.localZ() + r[1] * CosmeticGridCell.CELL_WIDTH))
-                        .scale(scale).translate(-0.5f, 0f, -0.5f);
-                out.add(new Piece(partState, pose, 0));
-            }
+            addStructureParts(structure, entry.getValue().rotation(), anchor.localX(), anchor.localZ(), out, (x, z) -> {
+                int tx = (int) Math.floor(x), tz = (int) Math.floor(z);
+                if (tx == 0 && tz == 0) return true;
+                // Left to the neighbour only when it knows to draw it; otherwise drawn from here.
+                return !(level.getBlockEntity(pos.offset(tx, 0, tz)) instanceof FishTankBlockEntity neighbour)
+                        || !neighbour.getStructureLinks().containsValue(
+                                new FishTankBlockEntity.StructureLink(new BlockPos(-tx, 0, -tz), anchor));
+            });
+        }
+        for (FishTankBlockEntity.StructureLink link : java.util.Set.copyOf(tank.getStructureLinks().values())) {
+            if (!(level.getBlockEntity(pos.offset(link.toAnchor())) instanceof FishTankBlockEntity owner)) continue;
+            FishTankBlockEntity.PlacedStructureCosmetic placed = owner.getStructureCosmetics().get(link.anchor());
+            if (placed == null) continue;
+            CosmeticStructure structure = registry.getOptional(placed.structureId()).orElse(null);
+            if (structure == null || structure.span().isPresent()) continue;
+            addStructureParts(structure, placed.rotation(),
+                    link.anchor().localX() + link.toAnchor().getX(), link.anchor().localZ() + link.toAnchor().getZ(), out,
+                    (x, z) -> x >= 0 && x < 1 && z >= 0 && z < 1);
+        }
+    }
+
+    /** Decides, from a part's centre in this tank's block frame, whether this tank meshes it. */
+    private interface PartFilter {
+        boolean keep(double x, double z);
+    }
+
+    /** A floor structure's static parts, laid from its anchor cell centre {@code (anchorX, anchorZ)} in this tank's frame. */
+    private static void addStructureParts(CosmeticStructure structure, Rotation rotation, double anchorX, double anchorZ,
+                                          List<Piece> out, PartFilter filter) {
+        float scale = structure.scale();
+        CosmeticStructure.LiveParts live = structure.liveParts();
+        for (int index = 0; index < structure.parts().size(); index++) {
+            CosmeticStructure.StructurePart part = structure.parts().get(index);
+            BlockState partState = part.state().rotate(rotation);
+            // A part a reaction moves or lights is drawn every frame by the tank's renderer.
+            if (rendersDynamically(partState) || live.animated(index)) continue;
+            float[] r = CosmeticStructures.rotateOffset(rotation, part.offsetX(), part.offsetZ());
+            double x = anchorX + r[0] * CosmeticGridCell.CELL_WIDTH;
+            double z = anchorZ + r[1] * CosmeticGridCell.CELL_WIDTH;
+            if (!filter.keep(x, z)) continue;
+            Matrix4f pose = new Matrix4f()
+                    .translate((float) x, CosmeticGridCell.FLOOR_Y + part.offsetY() * scale, (float) z)
+                    .scale(scale).translate(-0.5f, 0f, -0.5f);
+            out.add(new Piece(partState, pose, 0));
         }
     }
 
@@ -241,7 +275,7 @@ public final class TankCosmeticMesh {
         SpanStructures.Ref ref = SpanStructures.resolve(level, tank);
         if (ref == null) return;
         float s = ref.structure().scale();
-        for (SpanStructures.Placed part : SpanStructures.partsIn(ref.structure(), ref.placed().rotation(), ref.offsetInBox())) {
+        for (SpanStructures.Placed part : SpanStructures.partsIn(ref.structure(), ref.placed(), ref.offsetInBox())) {
             if (rendersDynamically(part.state())) continue;
             out.add(new Piece(part.state(), new Matrix4f().translate(part.x(), part.y(), part.z()).scale(s), part.cullMask()));
         }
@@ -373,6 +407,17 @@ public final class TankCosmeticMesh {
             if (!(level.getBlockEntity(pos.below(down)) instanceof FishTankBlockEntity below)) break;
             remesh(below);
             if (!below.isFaceOpen(Direction.DOWN)) break;
+        }
+        // A floor structure across a seam is meshed by both sides: its anchor and the neighbours it links.
+        for (int dx = -CosmeticStructures.MAX_FLOOR_REACH; dx <= CosmeticStructures.MAX_FLOOR_REACH; dx++) {
+            for (int dz = -CosmeticStructures.MAX_FLOOR_REACH; dz <= CosmeticStructures.MAX_FLOOR_REACH; dz++) {
+                if ((dx == 0 && dz == 0)
+                        || !(level.getBlockEntity(pos.offset(dx, 0, dz)) instanceof FishTankBlockEntity neighbour)) continue;
+                BlockPos toNeighbour = new BlockPos(dx, 0, dz), toHere = new BlockPos(-dx, 0, -dz);
+                boolean linked = tank.getStructureLinks().values().stream().anyMatch(l -> l.toAnchor().equals(toNeighbour))
+                        || neighbour.getStructureLinks().values().stream().anyMatch(l -> l.toAnchor().equals(toHere));
+                if (linked) remesh(neighbour);
+            }
         }
         SpanStructures.Ref ref = SpanStructures.anchoredIn(level, tank);
         if (ref != null) {
