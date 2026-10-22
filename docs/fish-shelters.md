@@ -1,12 +1,13 @@
 # Shelters — Fish That Use the Cosmetics
 
-**Written:** 2026-10-02 · **Status:** draft spec, nothing built · **Idea:** #22 in
-[`cosmetic-ideas.md`](cosmetic-ideas.md) ("hiding caves and holes").
+**Status:** shelter, obstacle, and reaction systems are implemented. This document is the current
+behavior contract and records remaining ideas. The original build-order tables and detailed probe
+logs are historical. See [cosmetic-ideas.md](cosmetic-ideas.md) for uncommitted concepts.
 
 **Scope:** `:fishsim` engine + `TankFlockAdapter` / `TankGroupFlock` + `CosmeticStructure`
 data + the cosmetic capture command. Companion to
-[`fish-sim-engine-plan.md`](fish-sim-engine-plan.md), [`fish-swarm-realism.md`](fish-swarm-realism.md)
-and [`fish-sim-locomotion.md`](fish-sim-locomotion.md). Their invariants are binding here. In
+[`fish-sim-engine-plan.md`](fish-sim-engine-plan.md) and
+[`fish-sim-locomotion.md`](fish-sim-locomotion.md). Their invariants are binding here. In
 particular the binary single-tank model (`Tunables.DEFAULT`, `FlockEngine.stepFish`) is
 bitwise-locked by `GoldenTrajectoryTest` / `ParityTest`, and **nothing here may perturb it**.
 
@@ -459,7 +460,7 @@ walk up, the bichir in its cave, and the edge-on entry (§5.6).
    authoring call, not an engine one.
 3. ~~**Should a startled fish that finds no room do something visible anyway?**~~ **Decided
    (2026-10-02): yes, it flinches** (§5.3.2). A general startle, for every species and not only
-   skittish ones near a shelter, is still Tier 3 in [`fish-swarm-realism.md`](fish-swarm-realism.md).
+   skittish ones near a shelter, is a future idea in the [swarm model](fish-swarm-realism.md).
 4. **Day/night.** The black ghost knifefish hides by day and roams at night. The engine has no
    light signal, and adding one is out of scope here. Worth noting for after.
 5. **Quests.** A `tank_snapshot` objective such as "a fish living in a den" would reward building
@@ -519,14 +520,13 @@ Two rules carry over from §5.4 and get stricter as the tier goes up:
 The tier is a property of the verb by default. A structure can override it (`"rarity": "rare"`)
 for a common verb that its look makes special, e.g. a gate through a lighthouse's lit doorway.
 
-The rates are first numbers for the in-game look, not derived ones. As the swarm work learned
-([`fish-swarm-realism.md`](fish-swarm-realism.md), "Lesson for the rest of this roadmap"), a
-metric is diagnostic, not an objective. The acceptance is by eye: does a rare moment *feel* rare
-after five minutes in front of the tank?
+The rates are first numbers for the in-game look, not derived ones. Metrics are diagnostic, not
+objectives. The acceptance is by eye: does a rare moment *feel* rare after five minutes in front of
+the tank?
 
 ### 12.3 Obstacles: swimmers stop passing through cosmetics
 
-*Cold-start context for building this: [`fish-shelters-obstacles-handoff.md`](fish-shelters-obstacles-handoff.md).*
+Current obstacle behavior is specified here.
 
 This is a prerequisite, not an extra. Today, swimmers pass through every cosmetic except shelter
 hulls (§1.1). For hiding, that was tolerable: the log is solid and the rest is background. For
@@ -582,8 +582,9 @@ and a fish that uses one. Obstacles would promote nearly every decorated lone ta
 
 #### 12.3.1 Built (2026-10-02), and where it departs from the above
 
-Uncommitted, awaiting the owner's look. Measured baseline before it, over every shipped cosmetic
-(12 visitors, 2 seeds × 6000 ticks, lone tank and the middle of a 3×1×1): **5.4%** of swimming
+Implemented; the owner visual check for obstacle behavior remains open. The last recorded baseline
+covered every shipped cosmetic (12 visitors, 2 seeds × 6000 ticks, lone tank and the middle of a
+3×1×1): **5.4%** of swimming
 fish-ticks inside a solid part, worst the Drowned Pagoda at 28% and the Castle Ruin in a lone tank
 at 23%. After: **0** inside a derived box, and inside the exact block shapes too.
 

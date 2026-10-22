@@ -90,6 +90,18 @@ tag (coral fans, sea pickle, kelp, seagrass, dead bush) and sit on a 3×3 floor 
 25. **A bubble curtain**: a line of bubbles along the back wall that the schools treat as a boundary
     and swim along. It would show off the schooling behaviour.
 
+### Reactions that need new engine support
+
+Some of the approved brainstorm concepts need new reaction primitives before they can be built:
+
+- An **armillary sphere** needs accumulated per-structure rotation and pass events from an open gate.
+- A **black smoker** needs a clock-driven reaction that can run without a nearby fish.
+- A **diver's helmet** bubble valve needs an on-exit trigger.
+- A **cleaning station** needs the fish perch behavior in [fish-shelters.md](fish-shelters.md).
+
+These are ideas, not scheduled work. The completed medium-cosmetic build log and its detailed probe
+results were removed; the feature's current contracts remain in [fish-shelters.md](fish-shelters.md).
+
 ---
 
 ## Suggested order
