@@ -653,6 +653,11 @@ public class FishtasticGameTests {
     }
 
     @GameTest(template = "fishtastic_empty")
+    public void kelpDoesNotHideCellBehindIt(GameTestHelper helper) {
+        CosmeticPlacementGameTests.kelpDoesNotHideCellBehindIt(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
     public void openFacesRoundTrip(GameTestHelper helper) {
         FishTankGameTests.openFacesRoundTrip(helper);
     }
