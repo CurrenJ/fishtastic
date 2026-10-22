@@ -4780,6 +4780,11 @@ public final class RenderSelfTest {
         queue(20, mc -> screenshot(mc, "questbook", "cleanup"));
         queue(1, mc -> mc.getWindow().setWindowed(852, 480));
         queue(20, mc -> screenshot(mc, "questbook", "cleanup_426x240"));
+        queue(1, mc -> mc.getWindow().setWindowed(640, 360));
+        queue(20, mc -> {
+            questBookResizeChecks(mc);
+            screenshot(mc, "questbook", "cleanup_320x180");
+        });
         queue(1, mc -> {
             mc.getWindow().setWindowed(960, 540);
             mc.setScreen(null);
@@ -4920,6 +4925,29 @@ public final class RenderSelfTest {
             check("questbook.disclosureCollapses", !expanded.containsKey(0), "expanded=" + expanded);
         } catch (ReflectiveOperationException e) {
             throw new IllegalStateException("Quest book interaction check failed", e);
+        }
+    }
+
+    private static void questBookResizeChecks(Minecraft mc) {
+        try {
+            if (!(mc.screen instanceof QuestLogScreen screen)) {
+                throw new IllegalStateException("Quest book not open after resize");
+            }
+            var uiField = io.github.currenj.gelatinui.GelatinUIScreen.class.getDeclaredField("uiScreen");
+            uiField.setAccessible(true);
+            var ui = (io.github.currenj.gelatinui.gui.UIScreen) uiField.get(screen);
+            var root = ui.getRoot();
+            var bounds = root.getBounds();
+            var viewport = ui.getViewport();
+            double tolerance = 0.5;
+            check("questbook.smallWindowFits",
+                    bounds.getMinX() >= viewport.getMinX() - tolerance
+                            && bounds.getMinY() >= viewport.getMinY() - tolerance
+                            && bounds.getMaxX() <= viewport.getMaxX() + tolerance
+                            && bounds.getMaxY() <= viewport.getMaxY() + tolerance,
+                    "bounds=" + bounds + " viewport=" + viewport);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("Quest book resize check failed", e);
         }
     }
 
