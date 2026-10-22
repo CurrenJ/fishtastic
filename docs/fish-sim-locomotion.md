@@ -1,20 +1,13 @@
 # Simulating Every Fish — Locomotion Classes for the Flock Engine
 
-**Written:** 2026-09-10 · **Scope:** `:fishsim` engine + `TankFlockAdapter` +
-`FishAnimationConfig`. Companion to [`fish-sim-engine-plan.md`](fish-sim-engine-plan.md) (module
-layout, verification model) and [`fish-swarm-realism.md`](fish-swarm-realism.md) (planar model
-behaviour); [`fish-sim-locomotion-handoff.md`](fish-sim-locomotion-handoff.md) is the cold-start
-context for picking the work back up. Both documents' invariants remain binding — in particular the binary 2.5D single-tank
-model (`Tunables.DEFAULT`, `FlockEngine.stepFish`) is bitwise-locked by `GoldenTrajectoryTest` /
-`ParityTest` and **nothing here may perturb it**.
+**Status:** the locomotion-class implementation is complete. This document keeps the behavior
+contract for `:fishsim`, `TankFlockAdapter`, and `FishAnimationConfig`. The engine architecture is
+in [`fish-sim-engine-plan.md`](fish-sim-engine-plan.md). The binary 2.5D single-tank model
+(`Tunables.DEFAULT`, `FlockEngine.stepFish`) is bitwise-locked by `GoldenTrajectoryTest` and
+`ParityTest`; changes must preserve that behavior unless a deliberate tank change is approved.
 
-This started as a research + spec document: what was broken, why the abstraction could not express
-the fix, what the replacement was, and in what order to build it. **All of it is now built** —
-Phases 0 through 4 and the cross-cutting squash-and-stretch, landed 2026-09-10, each with its
-result logged in §5. The spec sections above that log describe the design as shipped; where the
-implementation departed from the spec, the phase log says so and why. What is left is in §7 of the
-handoff: the in-game look at Phase 4 and §3.6's amplitudes, the mixed-class harness scenario, and
-obstructing the *water* with cosmetics rather than only the floor.
+The design and locomotion classes below describe the shipped behavior. Old phase-by-phase build
+logs and probe output have been removed.
 
 ---
 
@@ -291,9 +284,8 @@ hold. Suggested shape: `shapeDrive[i]` + `prevShapeDrive[i]` + `renderShape[i]`,
 `burstDrive` in both `stepDrift` and `stepBenthic`, with its own `*_SHAPE_ATTACK_RATE` /
 `*_SHAPE_DECAY_RATE` constants alongside the existing per-model ones.
 
-This is the burst-"hop" lesson pointed the other way (see `fish-swarm-realism.md` §4): the envelope
-that makes the movement read right is not automatically the one that makes the silhouette read
-right.
+Motion and rendered silhouette need separate review: an envelope that makes the movement read
+right is not automatically the one that makes the shape read right.
 
 **c. Apply the scale in the creature's own frame — after the roll.** `applyUprightFloat` and
 `applyUprightSit` end with a −45° `Axis.ZP` roll for diagonal textures. A scale applied *before*
@@ -353,24 +345,19 @@ same path.
 
 ---
 
-## 4. Open questions for you
+## 4. Current state and tuning boundaries
 
-1. ~~**Cosmetic structures are not in the occupancy grid.**~~ **Answered: fold them in.** Done in
-   Phase 1, at floor level — cosmetics block floor cells and crawlers walk around them. The
-   remaining half is the water: swimmers still pass through cosmetics, because obstructing the
-   volume needs a sub-block `DistanceField`, which is a much larger change. Open.
-2. ~~**Should drifters traverse a group?**~~ **Answered: yes, drifters move.** "Jellies stay
-   put" was never a design position — it is a description of the pre-simulation renderer, which
-   had no way to move anything. The engine model shipped in Phase 2; letting drifters into the
-   *group* engine landed in Phase 2b.
-3. **How far do we go on per-species tuning?** The class defaults will carry all 13 species. A
-   `locomotion` block on `fish_profile` lets any species deviate, but every knob is a knob to
-   balance. Recommendation: ship the classes with no per-species overrides at all, and add the
-   block only when a specific fish demonstrably needs it.
+All six locomotion classes and their shared pose path are implemented. Fish profiles use the class
+mapping from their animation mode; there is no per-species locomotion override. Add one only when a
+specific species demonstrably needs behavior its animation mode cannot express.
 
----
+The water-obstacle work is described in [fish-shelters.md](fish-shelters.md). Preserve the locked
+single-tank model when changing the planar group model. Metrics help explain behavior; they do not
+replace visual review.
 
-## 5. Suggested order
+The remaining simulation performance question is the render cost at the 512-fish group cap; see
+[fish-tank-group-scaling.md](fish-tank-group-scaling.md). Any behavioral change should be checked in
+representative views and against the existing locomotion and tank regression tests.## 5. Suggested order
 
 | Phase | Content | Risk | Payoff |
 |---|---|---|---|
@@ -551,7 +538,7 @@ The half deferred above: drifters now join the anchor's engine and drift across 
 aquarium rather than inside their own block.
 
 * **The split rule became an object, `TankFlockAdapter.GroupSplit`.** The risk here was never the
-  motion model — it was the two mirrored loops that have to agree on every slot (handoff §2.6),
+  motion model — it was the two mirrored loops that have to agree on every slot,
   which were two hand-written copies of the same `if` and one edit away from drawing a fish twice.
   They now share one instance-per-tank rule carrying the quota counters, so agreement is
   structural. `stayingHomeAs` is the same story for the other half of the decision: what class a
@@ -829,7 +816,7 @@ The last class. Garden eels keep a burrow and duck into it when something big sw
 * **A plain scan, not a grid query**, following the crawl's and the drift's separation passes. The
   classes that scan are the ones with few members, and it keeps the anchored radius out of
   `interactionRadius`, whose contract — a fish the grid skips contributes exactly zero — would
-  otherwise have had to grow to cover it (handoff §2.11).
+  otherwise have had to grow to cover it.
 * **`ANCHORED` is placed on the floor, gate or no gate** (`floorPlaced`, now shared with `BENTHIC`),
   because the renderer stopped pinning `Planted`'s Y in this phase. The gate measures the floor a
   burrow needs (1 × length²), which is §2.4's "a free floor footprint exists" made into a number.
@@ -998,45 +985,3 @@ Each phase ships independently and leaves the other species on their current beh
 is no half-migrated state at any point.
 
 ---
-
-## 6. Verification
-
-The engine's existing verification model applies unchanged, and is the reason this is safe to
-attempt at all.
-
-**Parity.** `GoldenTrajectoryTest`, `ParityTest`, `VoxelGoldenTrajectoryTest` and
-`SpatialIndexEquivalenceTest` must pass with no expected-value edits at every phase. If a golden
-moves, `FREE_SWIM` is not reaching identical code.
-
-**New invariants**, one set per class, in the style of `InvariantTest`:
-
-* Benthic: `|y − floorHeight(l,d)| < ε` every tick; never enters a NaN-floor column; pairwise 2D
-  distance ≥ the sum of footprint radii; speed ≤ the class cap.
-* Drift: stays inside its vertical band; vertical speed ≤ the pulse cap; horizontal displacement
-  per second below the free-swim floor — a drifter that "swims" is a tuning failure the test
-  should catch.
-* Anchored: footprint XZ bit-identical across the whole run; retract state ∈ [0,1].
-* All classes: `backstopEngagements() == 0`, and carry-over across `rebuildPreserving` preserves
-  position, phase and class state (extend `RebuildCarryTest`).
-
-**Headless first.** New `Scenarios` entries — a mixed 3×3 with a shoal, two crabs, a jelly and a
-ray — exported through `HeadlessRunner` to GIF and inspected in `SimViewer`. Nothing here needs the
-game running to be evaluated.
-
-**On metrics.** Floor-coverage dispersion for crawlers and vertical-distribution histograms for
-drifters are worth having as *diagnostics*. They are not targets. The pooled-speed-CV episode
-(maximizing a variance metric shipped a visible "hop") and the inert `nnFront` metric are the two
-standing reminders that a number moving the right way is not the same as the tank looking right —
-the GIF is the acceptance test; the metric only explains it.
-
-**Standing caveat — discharged 2026-09-10.** Tier 2 swarm realism, the 512-fish group cap and
-every phase of this document have now had their in-game acceptance pass, in one session as
-intended. Only `GLIDE` needed changes, and both were of a kind headless verification cannot reach:
-a raw per-tick signal that needed interpolating and rate-limiting before it was drawn, and a speed
-that was wrong only in combination with a turn rate. Neither was a metric moving the wrong way —
-in the second case the metric that would have shown it (net displacement) was on screen and was
-read past. The lesson is unchanged and now has a third instance: the picture is the acceptance
-test, and a metric has to be able to *see* the failure before its silence means anything.
-
-The one thing still open is cost rather than behaviour: the 512 cap's render measurement
-(fish-tank-group-scaling.md §3.6).

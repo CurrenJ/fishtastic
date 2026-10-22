@@ -1,4 +1,0 @@
-# Isolated capture run directories (worlds, logs, class-load dumps) — never committed.
-/run-fabric-solo/
-/run-fabric-client/
-/run-fabric-server/

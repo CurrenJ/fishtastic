@@ -73,9 +73,7 @@ three axes where `FlockDomain.Box` honours it.
 
 ## 2. Method
 
-All numbers are single-threaded wall-clock on the development machine, via throwaway JUnit probes
-run under `-PsimStdout` (the workflow in the Tier 2 handoff's §5). Probes were deleted afterward;
-§7 says how to rebuild them.
+All numbers are single-threaded wall-clock on the development machine, measured with temporary JUnit probes. Those probes were removed afterward.
 
 **Absolute milliseconds are machine-specific; the scaling exponents and ratios are not.** Treat the
 former as order-of-magnitude and the latter as the finding.
@@ -336,34 +334,9 @@ sets the cap and Stages 2–3 buy nothing visible.
 
 ---
 
-## 7. Reproducing this
+## 7. Evidence limits
 
-The probes were throwaway, per the Tier 2 handoff's §5 workflow, and are deleted. To rebuild them,
-each is a JUnit class in `fishsim/src/test/java/grill24/fishsim/` run with:
-
-```bash
-./gradlew :fishsim:test --tests '*YourProbe*' -PsimStdout --rerun-tasks
-```
-
-The measurements were:
-
-- **step vs n** — `new VoxelDomain(cube(6))`, rebuild with n specs, 200 warm-up steps, then time 300
-  steps. Time `step()` and `interpolate()` in *separate* accumulators (see §3.5).
-- **pair density** — settle 600 ticks, then every 40 ticks count ordered pairs under 0.60 and 0.90.
-- **flood fill** — replicate `TankGroups.of` with plain records: BFS in `Direction` ordinal order
-  `{0,-1,0},{0,1,0},{0,0,-1},{0,0,1},{-1,0,0},{1,0,0}`, sort by Y→Z→X.
-- **field build** — time `new VoxelDomain(g)` for solid cubes 2–12 and for line/slab/hollow shapes.
-- **grid prototype** — counting-sort cell list at cell 0.9, 3×3×3 scan, compared against the brute
-  force on identical settled positions; assert both find the same pair count.
-
-If any of this is redone often, promote it to a `harness/` class with a Gradle task alongside
-`runHeadless` / `runWallTurnAnalysis` rather than re-deriving it.
-
-**A caution.** A cell-size sweep over `{0.9, 0.6, 0.45, 0.3}` × five configs up to 8000 fish was
-started and abandoned: at cell 0.3 the scan is 7³ = 343 cells per fish, and the run did not finish in
-minutes. Bound the parameter space before launching sweeps at these sizes.
-
----
+The temporary probes used for these measurements were removed. The figures above describe their recorded source snapshot and are not a repeatable benchmark of current code. Measure in-game rendering before changing the population cap.
 
 ## 8. Open questions
 

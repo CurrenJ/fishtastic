@@ -1,101 +1,54 @@
-# Docs index
+# Documentation index
 
-Where the current truth lives, and what is history. Updated 2026-10-17 after the backport readiness
-review ([audit §9.5](audit-2026-10-15-companions-and-fish-in-world.md#95-backport-readiness-follow-up-2026-10-17)).
-All six original cleanup steps are implemented, validated and committed; the new backport catch-up
-started stage 1 on 2026-10-17. Both existing ports are recorded through source commit `4b0e818e`.
-Resume from [the backport progress log](backport-catchup-progress.md), which records current state,
-pending operations, evidence and next actions across sessions.
-Six A/B switches are retained with their current defaults, pending owner visual review;
-dirty legacy worktrees are retained.
-When a doc and the code disagree,
-the code wins; fix the doc.
+Use the feature contract or design spec for intended behavior and the code for current behavior.
+Completed implementation trails and raw capture sets have been removed; Git history remains the
+record of past changes.
 
-## Fish companions
+## Current systems
 
-**Current**
-- [fish-companions-sim-plan.md](fish-companions-sim-plan.md): the architecture (headless `:fishsim`
-  agent sim plus a thin adapter) and the phase record.
-- [fish-companions-party.md](fish-companions-party.md): the three-slot party, grouping, hand visits,
-  the overlay, and cross-player scenes (§28).
-- [fish-companions-world.md](fish-companions-world.md): the world around the owner (features, moods,
-  habitats), W0 to W9.
-- [fish-companions-drift.md](fish-companions-drift.md): drifters (bell, jet, bob).
-- [fish-companions-benthic-follow.md](fish-companions-benthic-follow.md): benthics on the ground.
-- [fish-companions-habitats.md](fish-companions-habitats.md): the approved per-species habitat table.
-- Measurement and verification: [world-sim](fish-companions-world-sim.md),
-  [world-cost](fish-companions-world-cost.md), [world-validation](fish-companions-world-validation.md),
-  and the two-client harness in [fish-companions-twoclient/](fish-companions-twoclient/).
+- **Companions:** [simulation architecture](fish-companions-sim-plan.md), [party behavior](fish-companions-party.md),
+  [world reactions](fish-companions-world.md), [drifters](fish-companions-drift.md),
+  [benthic follow](fish-companions-benthic-follow.md), and [habitats](fish-companions-habitats.md).
+- **Ambient fish:** [implemented feature contract and remaining owner review](fish-in-world.md).
+- **Fishopedia:** [implemented info-page summary](encyclopedia-redesign/README.md).
+- **Quest book:** [implemented redesign summary](quest-log-redesign/README.md),
+  [interaction contract](quest-log-redesign/design-spec.md), and
+  [runtime review and known limits](quest-log-redesign/review/README.md).
+- **Tanks and simulation:** [tanks](fish-tanks.md), [rendering](fish-tank-rendering.md),
+  [group scaling](fish-tank-group-scaling.md), [interaction](fish-tank-interaction-redesign.md),
+  [bubbles](fish-tank-bubbles.md), [simulation engine](fish-sim-engine-plan.md),
+  [locomotion](fish-sim-locomotion.md), and [swarm behavior](fish-swarm-realism.md).
+- **Shelters and cosmetics:** [shelters](fish-shelters.md), [render cost](cosmetic-render-cost.md),
+  and [future cosmetic ideas](cosmetic-ideas.md).
 
-**History** (decisions and work that are done or superseded)
-- [fish-companions.md](fish-companions.md): the v1 spec. Its motion, trio and display-mode sections
-  describe deleted code. The deferred fishing reactions (§5) are still the reference if they return.
-- Checklists: [fish-companion-ideas.md](fish-companion-ideas.md), [fish-companion-review.md](fish-companion-review.md).
-- Handoffs: [handoff](fish-companions-handoff.md), [phase 3](fish-companions-phase3-handoff.md),
-  [squid](fish-companions-squid-handoff.md), [benthic](fish-companions-benthic-handoff.md),
-  [wobble bug](fish-companion-wobble-bug-handoff.md), [GUI redesign](companions-gui-redesign-handoff.md).
-- Party as-built notes: [1a](fish-companions-party-1a-asbuilt.md), [1b](fish-companions-party-1b-asbuilt.md),
-  [1c](fish-companions-party-1c-asbuilt.md), [2a](fish-companions-party-2a-asbuilt.md), and the
-  [Phase 2 evidence review](fish-companions-party-phase2-review.md).
+## Other feature references
 
-## Fish in world (ambient fish)
+- [Quest system](quest-system.md), [rod and bait upgrades](rod-and-bait-upgrades.md),
+  [fish lore checklist](fish-lore-checklist.md), [item-effect rendering](item-effect-rendering.md),
+  [feature design overview](feature-design-overview.md), and [pose stack guide](POSESTACK_GUIDE.md).
+- [Tank-shape references](tank-shapes/).
+- [Fish Profile Studio](../tools/fish-profile-studio.html) is retained; its update is deferred.
 
-**Current**
-- [fish-in-world.md](fish-in-world.md): the feature contract (what a player may infer from what they see).
-- [fish-in-world-implementation-plan.md](fish-in-world-implementation-plan.md): the phase table and gates.
-- [fish-in-world-handoff.md](fish-in-world-handoff.md): the as-built summary and where to start.
+## Porting and support
 
-**History**
-- Per-phase gate records: [0](fish-in-world-phase0.md), [1](fish-in-world-phase1.md), [2](fish-in-world-phase2.md),
-  [3](fish-in-world-phase3.md), [4](fish-in-world-phase4.md), [5](fish-in-world-phase5.md),
-  [6](fish-in-world-phase6.md), [7](fish-in-world-phase7.md). Their raw evidence (logs, screenshots, capture
-  scripts) sits in the matching `fish-in-world-phase*/` directories.
-- Playtest notes: [island playtest](fish-in-world-island-playtest.md), [early retirement](fish-in-world-early-retirement.md).
-
-## Fish tanks and the tank simulation
-
-- [fish-tanks.md](fish-tanks.md) (tank shapes are generated; see also [tank-shapes/](tank-shapes/)),
-  [fish-tank-rendering.md](fish-tank-rendering.md), [fish-tank-group-scaling.md](fish-tank-group-scaling.md),
-  [fish-tank-interaction-redesign.md](fish-tank-interaction-redesign.md), [fish-tank-bubbles.md](fish-tank-bubbles.md).
-- Simulation engine: [fish-sim-engine-plan.md](fish-sim-engine-plan.md), [fish-sim-locomotion.md](fish-sim-locomotion.md),
-  [fish-swarm-realism.md](fish-swarm-realism.md). Their handoffs ([engine](fish-sim-engine-handoff.md),
-  [locomotion](fish-sim-locomotion-handoff.md), [swarm tier 2](fish-swarm-tier2-handoff.md),
-  [simulation](fish-simulation-handoff.md)) are history.
-- Shelters and cosmetics: [fish-shelters.md](fish-shelters.md) ([obstacles handoff](fish-shelters-obstacles-handoff.md)),
-  [cosmetic-render-cost.md](cosmetic-render-cost.md), [cosmetic-ideas.md](cosmetic-ideas.md),
-  [medium-cosmetics-handoff.md](medium-cosmetics-handoff.md).
-
-## Other features
-
-- [quest-system.md](quest-system.md), [rod-and-bait-upgrades.md](rod-and-bait-upgrades.md),
-  [encyclopedia-tier-review.md](encyclopedia-tier-review.md), [fish-lore-checklist.md](fish-lore-checklist.md),
-  [item-effect-rendering.md](item-effect-rendering.md), [feature-design-overview.md](feature-design-overview.md),
-  [POSESTACK_GUIDE.md](POSESTACK_GUIDE.md).
-
-## Reviews and audits
-
-- [forge-support-implementation-plan.md](forge-support-implementation-plan.md): the source-reviewed plan,
-  dependencies and acceptance gates for Forge on 26.1.2 and 1.21.1, including Gelatin UI.
-- [backport-catchup-progress.md](backport-catchup-progress.md): the live cross-session progress log.
-- [backport-catchup-plan.md](backport-catchup-plan.md): the feature-based catch-up outline,
-  source snapshot, stage order and parity gates for the existing 1.21.1 and 1.20.1 ports.
-- [audit-2026-10-15-companions-and-fish-in-world.md](audit-2026-10-15-companions-and-fish-in-world.md): the
-  pre-backport audit and the cleanup it led to (§9).
-- [reviews/](reviews/).
+- [Forge support plan](forge-support-implementation-plan.md) and [current status](forge-support-progress.md).
+- [Backport catch-up plan](backport-catchup-plan.md), [current progress](backport-catchup-progress.md),
+  [feature ledger](backport-catchup/features.md), and
+  [source commit ledger](backport-catchup/source-commit-ledger.json).
+- For backport work, also follow the repository guidance in `AGENTS.md` and the canonical modding
+  guide's topics 19 and 20.
 
 ## GameTests
 
 Run `./gradlew :fabric:runGametest` or `./gradlew :neoforge:runGametest`. Each invocation
 selects a new UUID universe under that loader's `build/gametest-worlds/`; successful runs remove
-their universe, while failed runs retain it at the path printed in the log. Historical worlds
-under `build/gametest/` are left alone. JUnit results are written to `<loader>/build/junit.xml`.
-When invoking both loaders together, use `--no-parallel` to avoid Architectury's shared agent-jar race.
+their universe, while failed runs retain it at the path printed in the log. JUnit results are
+written to `<loader>/build/junit.xml`. When invoking both loaders together, use `--no-parallel`
+to avoid Architectury's shared agent-jar race.
 
-Backup GameTests run synchronously inside `BackupTestFixture`, with fresh saved data and an isolated
-backup directory. The original object and files are restored even on failure. Other gameplay tests
-create shared quest/tutorial records during a run; the disposable universe prevents those records
-from accumulating across invocations. Do not schedule delayed assertions inside the backup fixture.
-Compost yield checks load a nearly complete block entity and finish through the real ticker;
-the base and aerated timing checks still cover the entire 6,000- and 4,800-tick cycles.
-
-Backports follow the porting playbook in the modding guide (`D:\GitHub\modding-guide`, topics 19 and 20).
+Backup GameTests run synchronously inside `BackupTestFixture`, with fresh saved data and an
+isolated backup directory. The original object and files are restored even on failure. Other
+gameplay tests create shared quest/tutorial records during a run; the disposable universe prevents
+those records from accumulating across invocations. Do not schedule delayed assertions inside the
+backup fixture. Compost yield checks load a nearly complete block entity and finish through the
+real ticker; the base and aerated timing checks still cover the entire 6,000- and 4,800-tick cycles.

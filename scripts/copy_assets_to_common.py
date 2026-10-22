@@ -1,11 +1,10 @@
 import shutil
 import os
 
-# Merge fabric's datagen output into the common module's resources.
-# Unlike copy_assets.py (fabric -> neoforge, which is a clean wipe-and-copy
-# of a directory that holds *only* generated content), common/src/main/resources
-# also holds hand-authored files (textures, lang, sounds, mixins.json, ...)
-# interleaved with generated subtrees, so we merge/overwrite instead of wiping.
+# Merge Fabric's datagen output into the common module's resources.
+# common/src/main/resources also holds hand-authored files (textures, lang,
+# sounds, mixins.json, ...) interleaved with generated subtrees, so merge and
+# overwrite generated files instead of wiping the destination.
 src_dir = "fabric/src/main/generated"
 dst_dir = "common/src/main/resources"
 

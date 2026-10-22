@@ -1,12 +1,14 @@
 # Feature Design Overview
 
-> **Status: In progress.** Core data model, server-side tracking, worm bin, and targeted fishing are implemented. Quest Log UI and quest JSON content remain.
+> **Status: Design context, not an implementation tracker.** The quest data, tracking and Quest Log UI described here have since been implemented. Use the relevant system documentation and source for current behavior; the original feature checklist has been removed below.
 
-Three planned feature pillars for Fishtastic's next development phase. Each system reinforces the mod's core identity: **fishing is the experience, not a means to an end.** Every reward either changes how the minigame feels or makes the tank display more impressive.
+Three feature pillars frame Fishtastic's progression: quests, upgrades and tank customization. Each reinforces the mod's core identity: **fishing is the experience, not a means to an end.** Every reward should change how the minigame feels or make the tank display more impressive.
 
 ---
 
-## The Loop
+## Intended loop
+
+This is the design target, not a status report of currently shipped progression.
 
 ```
 Fish well
@@ -44,19 +46,6 @@ Nothing in this loop routes the player away from fishing. No crafting chains tha
 
 ---
 
-## Implementation Status
-
-### Done
-- **Quest data model** — `Quest`, `QuestObjective`, `QuestReward`, `QuestCategory` records with codecs; datapack registry (`FishtasticRegistries.QUEST_REGISTRY_KEY`) wired on both NeoForge and Fabric
-- **Server storage** — `PlayerQuestState` (progress map + token balance) embedded in `FishCatchSavedData`; daily reset in `ServerTickHandler`
-- **Quest tracking** — `QuestTracker.onCatch()` checks species, tag, quality, biome, time, weather; called after each rewarded catch in `FishingMinigameManager`
-- **Network layer** — `CompleteQuestPacket` (client→server claim), `QuestSyncPacket` (server→client state sync); `QuestClientCache` on client; login sync on both platforms
-- **Quest Token item** — `QUEST_TOKEN` registered in `FishtasticItems`
-- **Marine Compost** — `MarineCompostBlock` + `MarineCompostBlockEntity` fully implemented (crafted from 1 dirt + 1 fish via `MarineCompostRecipe`, single-use: place → DRY/WET aerate cycle → READY → break to harvest worms); blockstate JSON, block models, item model all in place
-- **Targeted fishing** — `BaitEffect.FishGroupAffinity` field added; `FRESHWATER_BAIT`, `OCEAN_BAIT`, `PREDATOR_BAIT` registered with 2.5× group multiplier; fish group tags (`freshwater_fish`, `ocean_fish`, `deep_sea_fish`, `predator_fish`) populated
-
-### Remaining
-1. **Quest Log UI** (`QuestLogScreen`) — GelatinUI screen with DAILY/MASTERY/EXPLORER/COLLECTOR/CHALLENGE/PROFILE tabs, progress bars, Claim button; keybind (default K); register in `GelatinScreens`
-2. **Quest JSON content** — actual datapack JSON under `data/fishtastic/fishtastic/quest/`; see [quest-system.md](quest-system.md) for the full content spec
-3. **Textures** — new items (freshwater_bait, ocean_bait, predator_bait, quest_token) and worm_bin block currently use worms/dirt placeholder textures
-4. **Crafting recipes** — bait crafting recipes (e.g. worms + lily pad → freshwater bait)
+The original implementation checklist is omitted because it is stale and was not maintained as a
+status source. The loop and principles above remain the design context for [quests](quest-system.md),
+[rod and bait upgrades](rod-and-bait-upgrades.md), and [fish tanks](fish-tanks.md).

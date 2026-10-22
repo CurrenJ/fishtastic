@@ -15,8 +15,7 @@ acceptance marker is advanced by this cleanup.
   branch. Snapshot parent: `03fd54b75b24a57c36979d8dd6e44c06f369e990`.
 - `codex/companion-squid-jet-candidate`: the separate squid candidate, retained at
   `C:/Users/curre/.codex/worktrees/companion-squid/fishtastic`. Snapshot parent:
-  `8c99327cb051875dbf84d761f98ea4abc38ff252`. Its own handoff explicitly leaves
-  owner acceptance pending. This cleanup does not merge or approve it.
+  `8c99327cb051875dbf84d761f98ea4abc38ff252`. The candidate remains pending owner acceptance. This cleanup does not merge or approve it.
 
 The two feature branches and the recovery branches below are signed, single-parent
 **recovery snapshots**, including untracked source files. They deliberately capture
@@ -74,8 +73,7 @@ as if they were additional changes.
 ## Release and hygiene changes
 
 Record the previously released required-Gelatin metadata and CurseForge dependency
-settings on each Fishtastic version branch. Preserve the existing backport handoffs,
-research, ideas and progress documents without changing their historical claims.
+settings on each Fishtastic version branch. Preserve the current backport progress and ledgers, research, ideas and technical references without changing historical claims.
 Untrack generated port `common/logs/latest.log` files while keeping them on disk;
 ignore generated logs, local agent tooling and scratch files. Apply matching local
 tooling ignore rules to the three Gelatin UI checkouts. Preserve all local configs.

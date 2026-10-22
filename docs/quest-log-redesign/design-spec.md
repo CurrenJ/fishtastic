@@ -1,7 +1,8 @@
 # Quest book redesign — interaction and visual specification
 
-Status: proposed, reviewed 20 October 2026. This specification supersedes the earlier
-card and compact-row descriptions. It does not claim that the behavior is implemented.
+Status: implemented and reviewed in game on 20 October 2026. This is the interaction and visual
+contract; see [the implementation review](review/README.md) for validation limits. Current code is
+authoritative if it differs.
 
 ## Scope and player jobs
 
