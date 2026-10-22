@@ -1,6 +1,6 @@
 # Backport parity progress
 
-Last checkpoint: 2026-10-19, checkpoint 128. All six 2.1.1 release submissions complete; 2.1.1 deployed to all ten dev profiles
+Last checkpoint: 2026-10-22, checkpoint 131. Both port parity markers now include the scoped post-`bc73a5fc` fixes through source commit `fa103289`.
 
 ## Resume here
 
@@ -14,7 +14,7 @@ Release 2.1.1: Owner requested patch release 2.1.1 on all six builds and explici
 
 Release 2.1.0: all six verified jars submitted successfully as CurseForge Release files with the requested one-line changelog; all three signed release commits and required hooks passed. Source 0b84e7e3, 1.21.1 e06344aa, 1.20.1 e7ff95df. No pushes. Owner approved all-version playtests. Durable evidence: `docs/backport-catchup/release-2.1.0.md`; raw logs: `build/release-2.1.0/`. Public file IDs/moderation/visibility remain unverified because read checks were unavailable; do not rerun publishing to obtain them.
 
-1. Read the LAST 5 checkpoints first. The original pinned catch-up is COMPLETE on both targets (checkpoint 106); parity markers are `48fffdfb`, committed as `99adc3f3` on 1.21.1 and `d00b52d7` on 1.20.1.
+1. Read the LAST 5 checkpoints first. The original pinned catch-up is COMPLETE on both targets (checkpoint 106); the branch-local parity markers now reach `fa103289`, committed as `9230042e` on 1.21.1 and `68e2c77b` on 1.20.1. The full source feature-accounting snapshot remains `48fffdfb`.
 2. Feedback/retry fixes are validated, deployed and COMMITTED (119): source 6990a687, 1.21.1 3db353c4, 1.20.1 a7cb1be3. All SSH signatures verified; no pushes. Staging areas empty. Preserve unrelated source README/ideas edits, untracked catch-up docs and target runtime/scratch/harness files.
 3. Retry validation passed on all six loaders: source Fabric GameTests 378/378, source NeoForge 372/372, both ports 372/372 per loader. Source Fabric and Forge 1.20.1 tutorial client retry scenes each passed 9/9 checks. All six fresh loader builds pass. Evidence: `build/tutorial-retry/` and `build/curseforge-sync/`. Earlier full feedback/visual gate results remain in checkpoints 110-111.
 4. All 8 allow-listed CurseForge dev profiles now run `2.0.3-dev.20261018164715`. Installed copies match build artifacts by SHA-256; metadata/CRC/tutorial class checks pass and no duplicate Fishtastic jars remain. Replaced jars backed up. Next: owner resumes playtesting; Skip for later is retried by the next copper-rod cast, no admin reset needed. Release properties and pinned parity markers remain unchanged; current heads are listed in item 2.
@@ -29,7 +29,7 @@ This file is the durable cross-session handoff. Keep checkpoint entries append-o
 - Source: `D:/GitHub/fishtastic`, branch `26.1.2`, pinned snapshot `48fffdfbda1687cd42d59cb9fea0540e77aec982`.
 - 1.21.1 first: `D:/GitHub/fishtastic-worktrees/mc-1.21.1`, branch `port/1.21.1`, initial HEAD `d45498c1a28a99366e3b715e5ac3509d8e99b8ef`.
 - 1.20.1 second: `D:/GitHub/fishtastic-worktrees/mc-1.20.1`, branch `port/1.20.1`, initial HEAD `1588b31425fe6a55c8a7a90b317a593cff7db53a`.
-- Both overall parity markers remain `4b0e818e` until the full backlog is accounted for and validated.
+- The full source feature-accounting snapshot remains `48fffdfb`; the branch-local parity markers have since advanced to `fa103289` for the scoped post-snapshot fixes recorded in checkpoint 131.
 - Preserve existing rendering/API adaptations, dirty legacy worktrees and handoff files.
 - Retain all six A/B switches at true; owner visual decisions remain pending.
 - Publication and deployment are outside this catch-up.
@@ -987,3 +987,9 @@ QUEST-ICON-COMMIT-RETRY complete: source signed commit succeeded; required hook 
 Pending BACKPORT-QUEST-RESIZE: apply source commit `fa103289` (`Fix quest log overflow in small windows`) to `port/1.21.1` at `D:/GitHub/fishtastic-worktrees/port-1.21.1` and `port/1.20.1` at `D:/GitHub/fishtastic-worktrees/mc-1.20.1`, preserving the existing quest-icon commits and unrelated worktree state. Verify each target with `:common:compileJava`, then run the target quest-focused tests/loader compile gate as practical. Evidence paths: `build/backport-catchup/quest-log-resize/{1211,1201}-compile.log` and durable result `docs/backport-catchup/quest-log-resize.md`. Do not advance overall parity markers or alter release/version metadata. If interrupted, inspect both target statuses and commit heads before resuming; treat any incomplete operation as unverified.
 
 BACKPORT-QUEST-RESIZE complete: clean cherry-picks created `port/1.21.1` commit `3104a8a6888779f2c8e3478c73d20aedac6a0350` and `port/1.20.1` commit `0f780628dcee6d109f7336cb8fc557ee9bb719cc`. Both `:common:compileJava` runs passed; both quest-focused common-test plus Fabric/NeoForge-or-Forge compile gates passed. Worktrees are clean. Evidence: `build/backport-catchup/quest-log-resize/{1211,1201}-{compile,gate}.log`; report: `docs/backport-catchup/quest-log-resize.md`. Parity markers and version/release metadata unchanged; no pushes. Next action: none for this scoped backport.
+
+### 131 — Port parity markers advanced through quest-log resize (2026-10-22)
+
+Both branch-local parity ledgers now advance from `bc73a5fc` to source commit `fa103289`. The applicable post-marker source changes are accounted for on both ports: `a00a1464` (Gelatin/version bump), `b3bab723` (empty quest-icon fallback), and `fa103289` (small-window quest-log resize). The corresponding target commits are 1.21.1 `54c34836`, `aa60aaa9`, `3104a8a6` and 1.20.1 `b05a3352`, `3bd39c53`, `0f780628`.
+
+Source commit `453352a1` is a 26.1.2 Forge-only test-wrapper rename and is not applicable to either port; source commit `276f3498` is docs-only and is excluded from the marker. The marker updates were committed as signed commits `9230042e` (1.21.1) and `68e2c77b` (1.20.1). Their hooks passed unit tests and Fabric GameTests 372/372; the 1.21.1 NeoForge and 1.20.1 Forge game-test stages were skipped by the repository hook because that loader stage can hang. Quest-focused compile/gate evidence remains under `build/backport-catchup/quest-log-resize/`. No source ledger snapshot or release/version metadata changed; no pushes.
