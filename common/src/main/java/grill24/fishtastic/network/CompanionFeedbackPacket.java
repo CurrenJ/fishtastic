@@ -5,7 +5,7 @@ import grill24.fishtastic.network.codec.BufCodec;
 import grill24.fishtastic.network.codec.BufCodecs;
 
 /**
- * Server → client result of a companion request (docs/fish-companions.md §8.2). The Companions tab
+ * Server → client result of a companion request (docs/fish-companions.md). The Companions tab
  * needs to tell "your bond request went through but the fish was gone" apart from silence — the
  * attachment sync alone can't say why nothing changed. Carries no data beyond the outcome; the UI
  * turns it into a line of text.

@@ -14,7 +14,7 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * Something a structure does when a fish sets it off (docs/fish-shelters.md §12.13): a clam that
+ * Something a structure does when a fish sets it off (docs/fish-shelters.md): a clam that
  * opens when a fish noses its lip, a portcullis that rises to let one through. Client-only and
  * purely visual: nothing is stored or synced, and two players may see different moments.
  * <p>

@@ -4,7 +4,7 @@ import grill24.fishsim.core.Locomotion;
 
 /**
  * What every companion body shares, whatever moves it: where it is, how it's moving, its pose for
- * the animator, and how it met the blocks (docs/fish-companions-sim-plan.md §3.4). The mind and the
+ * the animator, and how it met the blocks (docs/fish-companions.md). The mind and the
  * agent talk to this; {@link Body} (swimmers) and {@link DriftBody} (drifters) decide the physics.
  */
 abstract class Motor {

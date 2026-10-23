@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * The quest half of the companion bond unlock rule (docs/fish-companions.md §8.3): a quest only
+ * The quest half of the companion bond unlock rule (docs/fish-companions.md): a quest only
  * unlocks its species once it is done, and the scan reports each species once, skipping any that
  * are already unlocked. Runs in the testmod (not a bare unit test) because {@code Quest}'s codec
  * is registry-backed.

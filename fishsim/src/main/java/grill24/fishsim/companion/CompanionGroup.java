@@ -3,8 +3,8 @@ package grill24.fishsim.companion;
 import grill24.fishsim.core.Locomotion;
 
 /**
- * A school of two or three same-species free swimmers (docs/fish-companions-party.md §3; first
- * built as the automatic trio of spec §2, docs/fish-companions-sim-plan.md §3.1): a leader
+ * A school of two or three same-species free swimmers (docs/fish-companions.md; first
+ * built as the automatic trio of spec §2, docs/fish-companions.md): a leader
  * with the full {@link CompanionAgent} mind, and two followers that keep loosely to it by local
  * rules — a station behind and beside the leader in its own frame, separation from the others,
  * and room for the owner. The followers swim the same heading-first {@link Body} as any free
@@ -55,7 +55,7 @@ public final class CompanionGroup {
     }
 
     /**
-     * A school of two or three members of one species (docs/fish-companions-party.md §3). {@code
+     * A school of two or three members of one species (docs/fish-companions.md). {@code
      * lengths[0]} is the leader's body length (the member in the lowest party slot); the rest are the
      * followers', in slot order, and each may differ (D8). {@code seed} is the leader's: the
      * followers' randomness comes from it and their index, exactly as the trio's always did, so

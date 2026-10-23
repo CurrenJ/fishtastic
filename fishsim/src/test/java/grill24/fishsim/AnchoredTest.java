@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The burrow's own invariants (docs/fish-sim-locomotion.md §3.4) — the set that replaces
+ * The burrow's own invariants (docs/fish-sim-locomotion.md) — the set that replaces
  * {@code ANCHORED}'s "never moves" row in {@link LocomotionTest}, and the last class to get one.
  *
  * <p>The load-bearing one is {@link #anEelsFootprintNeverMoves}: the whole class is defined by the

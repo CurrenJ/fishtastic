@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * How the game groups a party (docs/fish-companions-party.md §3): {@link CompanionGroups} maps each
+ * How the game groups a party (docs/fish-companions.md): {@link CompanionGroups} maps each
  * slot to a sim member and reports what {@code :fishsim}'s {@code PartyGrouping} decided, against the
  * real fish profiles. The leader choice belongs to PartyGrouping, so these tests only require that
  * the leader is one of the group's own slots.

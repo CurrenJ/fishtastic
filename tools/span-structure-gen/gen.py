@@ -17,7 +17,7 @@ import random
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "shelter-structure-gen"))
-import footprint_audit  # noqa: E402  (occupied_cells, docs/fish-shelters.md §12.10)
+import footprint_audit  # noqa: E402  (occupied_cells, docs/fish-shelters.md)
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 OUT_DIR = os.path.join(ROOT, "common/src/main/resources/data/fishtastic/fishtastic/cosmetic_structure")
@@ -34,11 +34,11 @@ class Build:
     def __init__(self, nx, ny, nz):
         self.nx, self.ny, self.nz = nx, ny, nz
         self.v = {}
-        # A hollow fish can swim into (docs/fish-shelters.md §3.1): its build-grid cells, and how
+        # A hollow fish can swim into (docs/fish-shelters.md): its build-grid cells, and how
         # many fish it holds. The mouths are derived in game from these and the parts.
         self.shelter_cells = None
         self.shelter_capacity = None
-        # Any further shelters in the same structure (docs/fish-shelters.md §12.9), each a dict
+        # Any further shelters in the same structure (docs/fish-shelters.md), each a dict
         # with "interior" cells and optionally "kind" and "capacity".
         self.more_shelters = []
 
@@ -295,7 +295,7 @@ def whale_fall():
 
     # The skull's hollow is a shelter, entered and left by the eye sockets: the sockets face each
     # other across it, so a fish small enough for them swims in one eye and out the other
-    # (docs/fish-shelters.md §12.4). Only the skull's widest part, x = 5..7, two cells high: there
+    # (docs/fish-shelters.md). Only the skull's widest part, x = 5..7, two cells high: there
     # the hollow is a clean box, which is what the engine confines a fish to. The whole hollow
     # narrows and lowers toward the snout, so its bounding box would run through the bone and out
     # beside the rostrum.
@@ -308,7 +308,7 @@ def whale_fall():
     b.shelter_capacity = 3
     # Under the ribcage, a second shelter: the open space beneath the spine, where the near flank
     # has fallen away. On show from every side, and roomy enough for the biggest fish in the tank
-    # to linger under the arch of bone (docs/fish-shelters.md §12.9). The largest box clear of
+    # to linger under the arch of bone (docs/fish-shelters.md). The largest box clear of
     # bone there.
     under_ribs = [(x, y, z) for x in range(12, 19) for y in range(1, 6) for z in range(3, 10)]
     assert not any(c in b.v for c in under_ribs), "bone under the ribcage"

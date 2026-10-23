@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * The specification for {@link FlockEngine}'s uniform-grid spatial index
- * (docs/fish-tank-group-scaling.md §5.2): it must be a <em>pure</em> optimisation.
+ * (docs/fish-tank-group-scaling.md): it must be a <em>pure</em> optimisation.
  *
  * <p>{@link VoxelGoldenTrajectoryTest} already guards against drift, but its scenario is 12 fish
  * in a small L — at that size essentially every fish is a candidate, so the fixture passing does

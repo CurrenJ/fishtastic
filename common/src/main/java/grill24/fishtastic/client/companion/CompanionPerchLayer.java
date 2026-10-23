@@ -13,7 +13,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 
 /**
- * Draws a perched companion fish on its owner's body (docs/fish-companions.md §3, §11): a benthic
+ * Draws a perched companion fish on its owner's body (docs/fish-companions.md, §11): a benthic
  * fish on a shoulder or the head, an anchored one rising from the head (party spec D5). The same shape as
  * vanilla's {@code ParrotOnShoulderLayer} — a player render layer, not the world hook — because a
  * world-hook fish would keep its place in the world while the body it sits on turns and walks.

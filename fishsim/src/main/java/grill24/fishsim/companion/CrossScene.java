@@ -1,7 +1,7 @@
 package grill24.fishsim.companion;
 
 /**
- * A cross-player scene as one party plays it (docs/fish-companions-party.md §28.2): G1's ring or
+ * A cross-player scene as one party plays it (docs/fish-companions.md): G1's ring or
  * G2's figure-eight, between this party's unit and another player's. The server names the pair and
  * the start tick; whoever runs the party (the game's client, or {@code TwoOwnerRun} headless) builds
  * one of these per side and feeds it every tick with {@link #update}: the ticks since the shared

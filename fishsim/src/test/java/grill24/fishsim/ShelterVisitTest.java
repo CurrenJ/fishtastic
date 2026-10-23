@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The visit state machine's guarantees (docs/fish-shelters.md §10), over the voxel domains with a
+ * The visit state machine's guarantees (docs/fish-shelters.md), over the voxel domains with a
  * Hollow Log in each, two casts and two seeds — plus the transients a running tank throws at it:
  * a shelter placed on a fish, a shelter taken away from fish inside it, and a rebuild mid-visit.
  *

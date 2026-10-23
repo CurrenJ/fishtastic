@@ -7,7 +7,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * Sent CLIENT → SERVER when the companion screen's pile strip is clicked (docs/fish-companions-party.md
+ * Sent CLIENT → SERVER when the companion screen's pile strip is clicked (docs/fish-companions.md
  * §5.5). {@code fish} only describes the fish the strip showed; the server finds an identical one in
  * a Pile of Fish ({@link CompanionMenu#takeFromPile}) and puts it on the open menu's cursor. A stale
  * description answers {@link CompanionFeedbackPacket.Outcome#NOT_CARRIED}.

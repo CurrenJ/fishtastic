@@ -46,7 +46,7 @@ public interface FlockDomain {
     FloorField floor();
 
     /**
-     * The shelters in this domain, in its own frame (docs/fish-shelters.md §3). Empty unless the
+     * The shelters in this domain, in its own frame (docs/fish-shelters.md). Empty unless the
      * host supplied some: a lone tank's {@link Box} never has any, because the bitwise-locked
      * binary model cannot use them — a lone tank that needs its shelters is promoted to a
      * one-block {@link VoxelDomain} instead.
@@ -57,7 +57,7 @@ public interface FlockDomain {
 
     /**
      * The solid parts of the cosmetics in this domain, in its own frame, as boxes a swimmer steers
-     * round (docs/fish-shelters.md §12.3). A shelter's hull is not among them — it is the shelter's
+     * round (docs/fish-shelters.md). A shelter's hull is not among them — it is the shelter's
      * own, so that a fish using the shelter can ignore it. Empty unless the host supplied some, and
      * never for a lone tank's {@link Box}, for the same reason as {@link #shelters()}.
      */

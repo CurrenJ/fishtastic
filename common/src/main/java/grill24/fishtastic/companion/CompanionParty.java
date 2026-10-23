@@ -13,7 +13,7 @@ import java.util.List;
 
 /**
  * A player's companion party: three slots, each holding one bonded fish or {@link ItemStack#EMPTY}
- * (docs/fish-companions-party.md §5.1). Slot 0 is the lead. Immutable: {@link #with} returns a new
+ * (docs/fish-companions.md). Slot 0 is the lead. Immutable: {@link #with} returns a new
  * party, and the stacks are private copies — never mutate a stack read from here.
  */
 public record CompanionParty(List<ItemStack> slots) {

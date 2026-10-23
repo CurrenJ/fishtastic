@@ -20,7 +20,7 @@ import java.util.UUID;
 import java.util.function.BiConsumer;
 
 /**
- * Schedules pet-to-pet scenes (docs/fish-companions.md §10): the server — never the clients —
+ * Schedules pet-to-pet scenes (docs/fish-companions.md): the server — never the clients —
  * decides when two companions near each other put on a show, and sends exactly one
  * {@link CompanionScenePacket} per scene to the players near them.
  *
@@ -42,7 +42,7 @@ import java.util.function.BiConsumer;
  *       roughly the cooldown's pace.</li>
  * </ul>
  *
- * <p>A companion is (owner, party slot) (docs/fish-companions-party.md §5.2, §7). A group of one
+ * <p>A companion is (owner, party slot) (docs/fish-companions.md, §7). A group of one
  * species takes part as one member, through its leader's slot. Scenes only pair companions of
  * different owners for now; scenes inside one party arrive with the social drive (sim Phase 4).
  * At most one scene per pair of owners runs at a time.

@@ -17,7 +17,7 @@ java {
 
 tasks.withType(JavaCompile).configureEach {
     it.options.encoding = 'UTF-8'
-    // Backport seam S3 (docs/backport-plan.md §8): one shared source for MC 26.1.2, 1.21.1 and
+    // Backport seam S3 (port branches: docs/backport-plan.md §8): one shared source for MC 26.1.2, 1.21.1 and
     // 1.20.1 (Java 17). The toolchain stays on 25; --release pins the language level and API.
     it.options.release = 17
 }
@@ -58,7 +58,7 @@ tasks.register('runViewer', JavaExec) {
 tasks.register('runCompanionHeadless', JavaExec) {
     group = 'fishsim'
     description = 'Companion sim export: first-person + top-view GIF, contact sheet and metrics per owner script ' +
-            '(docs/fish-companions-sim-plan.md §4.3). Options via -PsimArgs="--script walk --seed 1 --ticks 1200"'
+            '(docs/fish-companions.md). Options via -PsimArgs="--script walk --seed 1 --ticks 1200"'
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'grill24.fishsim.harness.companion.CompanionHeadless'
     systemProperty 'java.awt.headless', 'true'
@@ -91,7 +91,7 @@ tasks.withType(Test).configureEach {
     testLogging {
         events "failed"
         exceptionFormat = "full"
-        // Diagnostic probes (docs/fish-swarm-tier2-handoff.md §5 "ablation probes beat
+        // Diagnostic probes (docs/fish-swarm-realism.md "ablation probes beat
         // reasoning") print tables to stdout, which Gradle swallows by default.
         // Run them with -PsimStdout to see it.
         showStandardStreams = project.hasProperty('simStdout')
@@ -99,7 +99,7 @@ tasks.withType(Test).configureEach {
     // Measurement probes are @EnabledIfSystemProperty("simStdout") so they stay out of the normal
     // suite — they time things, which is slow and machine-dependent, not correctness.
     systemProperty 'simStdout', project.hasProperty('simStdout').toString()
-    ['trace', 'sweep', 'sweepClass', 'tweakA', 'tweakB', 'sweepLength', 'tracePos', 'fpAll', 'sweepTemperament', 'sweepTicks', 'sweepSeeds', 'driftStyle', 'sweepPerSeed', 'traceEvery', 'tweakList', 'idleRef', 'abList', 'abTravel'].each { if (project.hasProperty(it)) systemProperty it, project.property(it) }
+    ['trace', 'traceMode', 'sweep', 'sweepClass', 'tweakA', 'tweakB', 'sweepLength', 'tracePos', 'fpAll', 'sweepTemperament', 'sweepTicks', 'sweepSeeds', 'driftStyle', 'sweepPerSeed', 'traceEvery', 'tweakList', 'idleRef', 'abList', 'abTravel'].each { if (project.hasProperty(it)) systemProperty it, project.property(it) }
     afterSuite { desc, result ->
         if (!desc.parent) {
             println "\nTest result: ${result.resultType} — ${result.testCount} tests, " +

@@ -10,7 +10,7 @@ package grill24.fishsim.companion;
  */
 public final class CompanionTunables {
 
-    // ── Body (docs/fish-companions-sim-plan.md §3.4) ───────────────────────────────────────────
+    // ── Body (docs/fish-companions.md) ───────────────────────────────────────────
 
     /** Unhurried swimming speed: loitering, moving between spots. */
     public float cruiseSpeed = 1.1f;
@@ -123,7 +123,7 @@ public final class CompanionTunables {
     /**
      * How fast a drifter's drawn facing may turn, degrees per tick. The bell is round, so its lean can
      * swap sides in a tick when it swings through upright; the art isn't, so the facing follows the
-     * lean at this capped rate instead of flipping 180° (docs/fish-companions-drift.md §13.9).
+     * lean at this capped rate instead of flipping 180° (docs/fish-companions-drift.md).
      */
     public float driftFaceRateDegPerTick = 4f;
     /** Ride height above the owner's chest, blocks: shoulder to head height. */
@@ -151,7 +151,7 @@ public final class CompanionTunables {
     /** Relative pace of a squid's attention pass, blocks/s; 0 restores the bell's pass pace. */
     public float jetViewPassSpeed = 2.5f;
 
-    // Phase 3 of the drifter rework (docs/fish-companions-drift.md §6, §15): the man o' war's bob.
+    // Phase 3 of the drifter rework (docs/fish-companions-drift.md, §15): the man o' war's bob.
     /** Phase 3: false restores the bell body for the bob style, bitwise. */
     public boolean driftBob = true;
     /** One bob (rise and fall) idling, and flat out, seconds. */
@@ -188,7 +188,7 @@ public final class CompanionTunables {
     /** The escort station turns at the sail's rate instead of a bell's 6°/tick. */
     public boolean bobMindTurn = true;
 
-    // The bob's calm idle (docs/fish-companions-drift.md §16), from the owner after Phase 3: "not chill
+    // The bob's calm idle (docs/fish-companions-drift.md), from the owner after Phase 3: "not chill
     // enough - it moves kind of frenetically". By a still owner the sail swung round ~10 times a minute
     // (176° each) chasing station-keeping corrections under 0.3 b/s. They act as it settles (the
     // bell's calm, §13.7), so travel is unchanged.
@@ -212,7 +212,7 @@ public final class CompanionTunables {
     /** Drawn only: at full calm the art turns no faster than this, degrees per tick; travelling it is the sail. */
     public float bobCalmFaceDegPerTick = 1.5f;
 
-    // Phase 1 of the drifter rework (docs/fish-companions-drift.md §3, §4, §13).
+    // Phase 1 of the drifter rework (docs/fish-companions-drift.md, §4, §13).
     /** How much of the velocity gap one cycle closes: each stroke is sized to arrive. */
     public float driftArriveGain = 0.9f;
     /** The web-flare brake: extra drag, 1/s, extra sink, blocks/s², and the excess speed that flares it fully, blocks/s. */
@@ -220,7 +220,7 @@ public final class CompanionTunables {
     public float driftFlareSink = 0.8f;
     public float driftFlareFull = 2.0f;
 
-    // The calm idle (docs/fish-companions-drift.md §13.7), from the owner's look at Phase 1: "too
+    // The calm idle (docs/fish-companions-drift.md), from the owner's look at Phase 1: "too
     // hyperactive when the player is idling". They act only on a drifter, and only while it idles by
     // a still owner (LOITER, SETTLE) — or, for the lean, while it is asked to go slowly. A calm drifter's
     // idle ask doesn't rise and fall with its own pulse.
@@ -246,7 +246,7 @@ public final class CompanionTunables {
     public float driftIdlePulseSeconds = 4.5f;
     public float driftIdleCalmSeconds = 2f;
 
-    // Owner feedback (docs/fish-companions-drift.md §13.11): "the flapjack can end up rotating a full
+    // Owner feedback (docs/fish-companions-drift.md): "the flapjack can end up rotating a full
     // 90° ... tilt somewhat over in the horizontal direction to propel but not that far".
     /**
      * The lean of any bell asked to go slowly, calm or not: at most this, degrees, at no asked speed,
@@ -263,7 +263,7 @@ public final class CompanionTunables {
      */
     public float driftBrakeTiltMarginDeg = 10f;
 
-    // Owner feedback after Phase 1 (docs/fish-companions-drift.md §13.8): "it ends up inside me often
+    // Owner feedback after Phase 1 (docs/fish-companions-drift.md): "it ends up inside me often
     // when I walk or sprint ahead and stop, the drifter's momentum carries it through into my body".
     /**
      * A drifter catching up heads abreast of its owner, this far to its own side, blocks, instead of a

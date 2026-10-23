@@ -7,7 +7,7 @@ import grill24.fishsim.core.Locomotion;
  * Lines carry each predecessor's actual trail; crowds separate and gather without alignment.
  * Each member retains the solo ground/perch/water motor and its own fade fallback.
  *
- * <p>Members are same-species fish from the owner's party (docs/fish-companions-party.md §3), each
+ * <p>Members are same-species fish from the owner's party (docs/fish-companions.md), each
  * with its own body length; spacing between two members uses the mean of their lengths. The old
  * constructor taking a {@code count} builds that many identical members, bitwise as before.
  */
@@ -34,7 +34,7 @@ public final class BenthicGroup {
     }
 
     /**
-     * A formation of one to three same-species members (docs/fish-companions-party.md §3): {@code
+     * A formation of one to three same-species members (docs/fish-companions.md): {@code
      * lengths[0]} is the leader's body length (the member in the lowest party slot), the rest the
      * followers' in slot order. {@code seed} is the leader's; each follower's agent is seeded from it
      * and its index, as the profile-count group always was.

@@ -25,7 +25,7 @@ import java.util.Deque;
 import java.util.List;
 
 /**
- * Draws a companion run two ways (docs/fish-companions-sim-plan.md §4.3): what the owner would see
+ * Draws a companion run two ways (docs/fish-companions.md): what the owner would see
  * through their own camera, and a top-down map. The headless export and the viewer share this
  * class, so they can never disagree.
  *
@@ -388,7 +388,7 @@ public final class CompanionRenderer {
         g.dispose();
     }
 
-    /** Whole agents (a party's other units, docs/fish-companions-party.md §6), each with the solo renderer. */
+    /** Whole agents (a party's other units, docs/fish-companions.md), each with the solo renderer. */
     public static void drawAgents(BufferedImage img, OwnerState owner, LocalVoxels voxels, List<CompanionAgent> agents) {
         Graphics2D g = img.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -467,7 +467,7 @@ public final class CompanionRenderer {
 
     /**
      * A jellyfish: a bell along its axis that narrows and lengthens as it squeezes, spreads wide and
-     * flat as it flares its web to brake (docs/fish-companions-drift.md §4), and tentacles trailing
+     * flat as it flares its web to brake (docs/fish-companions-drift.md), and tentacles trailing
      * the other way, splayed by the flare.
      */
     private static void drawJelly(Graphics2D g, Cam cam, CompanionAgent a) {
@@ -519,7 +519,7 @@ public final class CompanionRenderer {
     }
 
     /**
-     * A man o' war (docs/fish-companions-drift.md §6): a float along its sail, leaning forward into a
+     * A man o' war (docs/fish-companions-drift.md): a float along its sail, leaning forward into a
      * shove and rocking into turns, its crest wobbling on each downstroke, and tentacles hanging
      * straight down and trailing behind its travel.
      */

@@ -3,7 +3,7 @@ package grill24.fishsim.companion;
 import java.util.List;
 
 /**
- * Everything a companion can perceive on one tick (docs/fish-companions-sim-plan.md §3.2): built
+ * Everything a companion can perceive on one tick (docs/fish-companions.md): built
  * once per 20 Hz tick and handed to every agent. In game the adapter fills it from Minecraft;
  * headless, a scripted owner, a voxel scene and scripted points of interest do. The agent can't
  * tell the difference.

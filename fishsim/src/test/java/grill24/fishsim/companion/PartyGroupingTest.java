@@ -10,7 +10,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/** {@link PartyGrouping}: which party members group up (docs/fish-companions-party.md §3, D7, D8). */
+/** {@link PartyGrouping}: which party members group up (docs/fish-companions.md, D7, D8). */
 class PartyGroupingTest {
 
     private static PartyGrouping.Member m(String species, Locomotion l, int slot) {

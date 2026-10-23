@@ -1,7 +1,7 @@
 package grill24.fishsim.companion;
 
 /**
- * What the companion wants, and so where it is going (docs/fish-companions-sim-plan.md §3.3).
+ * What the companion wants, and so where it is going (docs/fish-companions.md).
  *
  * <p>Drives are scalar urges that rise and fall with what the fish perceives. Each tick the mind
  * scores the goals the drives propose and keeps its current goal unless a challenger beats it by
@@ -695,7 +695,7 @@ final class Mind {
         return heading.scale(0.25 * body.g.cruiseSpeed() * idleSurge() * idlePace() * (1 - stillness())).add(to.scale(0.6));
     }
 
-    // A drifter's calm idle (docs/fish-companions-drift.md §13.7). For every other body these are the
+    // A drifter's calm idle (docs/fish-companions-drift.md). For every other body these are the
     // identity, so a swimmer's idle is untouched to the bit.
 
     private boolean drifter() {
@@ -969,7 +969,7 @@ final class Mind {
         return aroundOwner(o, v, dest).sub(body.pos).normalize().scale(speed);
     }
 
-    // ── A drifter's catch-up comes alongside (docs/fish-companions-drift.md §13.8) ───────────────
+    // ── A drifter's catch-up comes alongside (docs/fish-companions-drift.md) ───────────────
 
     /**
      * Where a drifter catching up heads instead of a block behind its owner: abreast of them, on its

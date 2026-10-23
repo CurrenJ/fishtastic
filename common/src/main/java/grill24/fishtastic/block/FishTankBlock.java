@@ -198,7 +198,7 @@ public class FishTankBlock extends Block implements EntityBlock {
     /**
      * Empty-hand click opens the browser GUI (lists every fish/cosmetic across the whole
      * connected tank group and lets the player remove any of them) instead of blindly popping the
-     * last-placed fish — see docs/fish-tank-interaction-redesign.md.
+     * last-placed fish — see docs/fish-tanks.md.
      */
     private InteractionResult useWithoutItemBody(BlockState blockState, Level level, BlockPos blockPos, Player player, BlockHitResult blockHitResult) {
         BlockEntity be = level.getBlockEntity(blockPos);
@@ -388,7 +388,7 @@ public class FishTankBlock extends Block implements EntityBlock {
      * Adds {@code toAdd} to {@code clicked} if it has room; otherwise tries the rest of the
      * clicked tank's connected group in group order, so a full segment doesn't block insertion
      * into a tank the player can plainly see swims as one continuous space — see
-     * docs/fish-tank-interaction-redesign.md §4.1. Returns the tank the item actually landed in,
+     * docs/fish-tanks.md Returns the tank the item actually landed in,
      * or null if every member's budget is spent. Storage stays strictly per-segment; this only
      * spreads a rejected insert across the group instead of failing outright.
      */

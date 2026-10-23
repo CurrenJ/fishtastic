@@ -21,7 +21,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
- * The pet-to-pet scene scheduler (docs/fish-companions.md §10): the server-side rules — who plays
+ * The pet-to-pet scene scheduler (docs/fish-companions.md): the server-side rules — who plays
  * which scene, who is told, and everything that stops a scene from starting. The client-side
  * playback is the self-test scene's job; this file is only about the decisions.
  *

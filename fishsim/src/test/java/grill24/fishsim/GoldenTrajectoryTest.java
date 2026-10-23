@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
- * The long-term drift guard (docs/fish-sim-engine-handoff.md Task 3): a committed fixture of the
+ * The long-term drift guard (docs/fish-sim-engine-plan.md Task 3): a committed fixture of the
  * exact trajectory bits the extracted engine produced while it was still bitwise-locked to the
  * legacy code by {@link ParityTest}. {@link LegacyStepReference} gets deleted after the adapter
  * rewire ships; this fixture stays forever — any later refactor that silently changes behavior

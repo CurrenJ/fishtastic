@@ -24,7 +24,7 @@ import java.util.stream.Stream;
 
 /**
  * Every cosmetic structure the mod ships, decoded through the real codec, for tests that must
- * hold over the shipped set rather than synthetic shapes (docs/fish-shelters.md §12.3: "the
+ * hold over the shipped set rather than synthetic shapes (docs/fish-shelters.md: "the
  * shipped set is where the thin posts, overhangs and spans are").
  *
  * <p>A plain unit test can bootstrap vanilla but not the mod, so two stand-ins: the mod's own

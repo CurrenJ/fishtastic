@@ -6,7 +6,7 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import java.util.List;
 
 /**
- * Diagnostic for benthic formations (docs/fish-companions-benthic-follow.md §4, §20): line order,
+ * Diagnostic for benthic formations (docs/fish-companions.md, §20): line order,
  * overlap, line wave and spacing, crowd spread, underfoot ticks, per script and seed. Run with
  * -PsimStdout; {@code -PsweepSeeds=3}, {@code -Psweep=script,script} to choose scripts.
  */

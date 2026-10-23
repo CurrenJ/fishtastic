@@ -23,7 +23,7 @@ import java.util.function.Supplier;
 
 /**
  * Regression coverage for {@link RemoveTankEntryPacket#giveOrDrop}, the delivery path used when a
- * player removes an entry from the fish tank browser GUI (see docs/fish-tank-interaction-redesign.md).
+ * player removes an entry from the fish tank browser GUI (see docs/fish-tanks.md).
  * Mirrors {@code ShopEntryGameTests}'s full-inventory fixture (relocate out of the mock player's
  * shared (0,0,0) spot, force survival mode so the creative-mode "silently zero the stack" shortcut
  * in {@code Inventory.add} doesn't mask a real leak, fill every main slot, measure dropped-item

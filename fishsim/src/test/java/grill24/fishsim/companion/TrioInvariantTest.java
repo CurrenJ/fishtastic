@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The trio's floor (docs/fish-companions-sim-plan.md §9.5): every owner script × three seeds × two
+ * The trio's floor (docs/fish-companions.md): every owner script × three seeds × two
  * minutes. The leader is a free swimmer and {@link CompanionInvariantTest} already covers that
  * body; these check what only a school can get wrong — followers in blocks, swimming backwards,
  * passing through each other, or being left behind.

@@ -100,7 +100,7 @@ public final class LatticeFrameGeometryGenerator {
 
     /**
      * A standalone edge-diagonal frame-beam fragment for {@code edge} — see the edge-diagonal frame
-     * beam fix design doc and {@code docs/tank-shapes/edge-diagonal-fix-remaining-shapes.md}'s
+     * beam fix design doc and {@code docs/fish-tanks.md}'s
      * lattice writeup. Unlike {@link TaperedFrameGeometryGenerator#generateEdgeFragment}, which
      * derives its box width from {@link CornerTaperProfile#baseWidth()} (the width a tapered
      * corner post narrows <em>to</em> once its cap opens), lattice's cap rows never narrow at all —

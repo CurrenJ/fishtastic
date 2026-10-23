@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * Diagnostic: cross-player scenes (docs/fish-companions-party.md §28, step 3a-2) on every pair and
+ * Diagnostic: cross-player scenes (docs/fish-companions.md, step 3a-2) on every pair and
  * two-owner script, scheduled as the server does, 8 seeds × 2 min. Run with -PsimStdout; -PtweakA
  * applies a tunable change (SeedSweepProbe syntax) for A/B.
  */

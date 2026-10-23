@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Diagnostic: headless frames of cross-player scenes (docs/fish-companions-party.md §28) with the
+ * Diagnostic: headless frames of cross-player scenes (docs/fish-companions.md) with the
  * viewer's own renderer: owner A's first-person view, beside a map with both scene fish's tracks
  * so far (A's leader as the followed fish, B's as marks). Written to build/scene-render/. Run with
  * -PsimStdout.

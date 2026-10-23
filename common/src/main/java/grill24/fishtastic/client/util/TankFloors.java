@@ -10,7 +10,7 @@ import net.minecraft.world.level.Level;
 
 /**
  * Turns a tank's sand and the cosmetics standing on it into the {@link FloorField} the simulation
- * walks its benthic creatures across (docs/fish-sim-locomotion.md §2.3, §4.1).
+ * walks its benthic creatures across (docs/fish-sim-locomotion.md, §4.1).
  *
  * <p>The two grids line up by construction, which is the whole reason this is cheap: a tank places
  * cosmetics on a 3×3 floor grid ({@link CosmeticGridCell}), and {@code FloorField} resolves the

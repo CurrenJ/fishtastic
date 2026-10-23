@@ -5,7 +5,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 /**
- * The urges that come from what is around the owner (docs/fish-companions-sim-plan.md §3.3, §10):
+ * The urges that come from what is around the owner (docs/fish-companions.md, §10):
  * updated every tick for every class, whatever its body is doing. The swimmer's {@link Mind} turns
  * them into goals; a percher's body into slots and poses.
  *

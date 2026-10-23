@@ -85,7 +85,7 @@ public record FishProfile(
     ).apply(i, FishProfile::new));
 
     /**
-     * How a benthic companion gets about on land (docs/fish-companions-benthic-follow.md §4): the
+     * How a benthic companion gets about on land (docs/fish-companions.md): the
      * scuttle-and-pause crawl, or a flatfish's smooth ripple-glide. Ignored for other classes.
      */
     public enum CompanionGait implements StringRepresentable {
@@ -95,7 +95,7 @@ public record FishProfile(
     }
 
     /**
-     * How a drifter companion propels itself (docs/fish-companions-drift.md §2): a pulsed bell, a
+     * How a drifter companion propels itself (docs/fish-companions-drift.md): a pulsed bell, a
      * squid's fins and mantle jets, or a man o' war's bobbing float. Ignored for other classes.
      */
     public enum CompanionDrift implements StringRepresentable {
@@ -106,7 +106,7 @@ public record FishProfile(
 
     /**
      * How a ground benthic's group walks: in a line or as a crowd. Groups come from the party now
-     * (docs/fish-companions-party.md §3): two or three of the species bonded together form one.
+     * (docs/fish-companions.md): two or three of the species bonded together form one.
      */
     public record CompanionGroupConfig(Formation formation) {
         public static final Codec<CompanionGroupConfig> CODEC = RecordCodecBuilder.create(i -> i.group(

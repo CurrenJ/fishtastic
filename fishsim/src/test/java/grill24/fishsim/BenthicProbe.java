@@ -16,7 +16,7 @@ import java.io.File;
 
 /**
  * Renders the floor walk from above with each crawler's path drawn over it, so the behaviour can
- * be looked at rather than only asserted (docs/fish-sim-locomotion.md §6, "headless first").
+ * be looked at rather than only asserted (docs/fish-sim-locomotion.md, "headless first").
  * Deliberately a {@code main} and not a test: it produces a picture, and a picture has no pass
  * condition — {@link BenthicTest} holds the properties that do.
  *

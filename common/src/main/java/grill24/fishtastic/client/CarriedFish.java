@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The fish of one species a player is carrying right now (docs/fish-companions.md §8.2): loose
+ * The fish of one species a player is carrying right now (docs/fish-companions.md): loose
  * stacks plus the contents of any Pile of Fish. This is the picker's list, so it must mirror the
  * server's own search ({@code Companions.takeOneMatching}) — same inventory span, same
  * loose-then-piles order, same "identical in <em>every</em> component (count aside)" rule — or the

@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The shelters built for medium and large fish (docs/fish-shelters.md §12.9) take the fish they
+ * The shelters built for medium and large fish (docs/fish-shelters.md) take the fish they
  * were built for, by the engine's own size rules (§5.2): a mouth admits a fish whose height,
  * 0.4 of its length, fits its narrower side; a hollow or open shelter holds a fish no longer than
  * 1.1 times its run (a gate is passed straight through, so asks nothing of length); and a seat

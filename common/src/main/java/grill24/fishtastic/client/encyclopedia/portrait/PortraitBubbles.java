@@ -7,7 +7,7 @@ import java.util.Random;
 
 /**
  * Pure simulation of one Fishopedia portrait's ambient bubbles (embers in the Nether), a Java port of
- * {@code Plate} in docs/encyclopedia-redesign/bubbles/prototype_bubbles.py. Units are logical GUI px
+ * {@code Plate} in docs/encyclopedia-redesign/README.md. Units are logical GUI px
  * and seconds; the plate is {@link #W} x {@link #H}. No Minecraft client calls, so it is unit-testable.
  * Deterministic for a (theme, seed) pair and the same sequence of calls.
  */

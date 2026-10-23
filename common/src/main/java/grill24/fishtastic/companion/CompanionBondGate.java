@@ -7,7 +7,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * Whether a player may bond with a fish of this species (docs/fish-companions.md §8.4):
+ * Whether a player may bond with a fish of this species (docs/fish-companions.md):
  * a fully complete encyclopedia entry for a normal species, a completed (or claimed) bond quest
  * for an unlisted one. Both are stored the moment they first hold, so a bond never re-locks.
  *

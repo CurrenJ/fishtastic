@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Everything about a shelter that is derived rather than authored (docs/fish-shelters.md §3.1):
+ * Everything about a shelter that is derived rather than authored (docs/fish-shelters.md):
  * its mouths, its hull and the run its interior offers, worked out from the interior cells and
  * the structure's parts in the structure's own build grid — the integer grid the parts were
  * captured on, before {@code scale}, facing south.

@@ -25,7 +25,7 @@ import java.util.TreeSet;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Solid cosmetics must not cost shelters their use (docs/fish-shelters.md §12.3): with every
+ * Solid cosmetics must not cost shelters their use (docs/fish-shelters.md): with every
  * shipped shelter's own parts solid round it, fish still get in as often per attempt, through the
  * same mouths, and still swim through the ones that pass through.
  *

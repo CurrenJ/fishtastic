@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The derived half of a shelter (docs/fish-shelters.md §3.1). Everything an author can get wrong
+ * The derived half of a shelter (docs/fish-shelters.md). Everything an author can get wrong
  * by marking the wrong cells is decided here, so each rule has a case: a sealed hollow, a pocket
  * that touches the hollow but not the outside, a tube with two ends, and the real Hollow Log.
  */

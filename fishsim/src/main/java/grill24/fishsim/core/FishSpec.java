@@ -18,7 +18,7 @@ package grill24.fishsim.core;
  *                species school together and tolerate closeness; different species keep the wider
  *                cross-species separation and don't align/cohere with each other. Planar (voxel)
  *                model only; the single-tank binary model ignores it (bitwise parity).
- * @param shelterUse how this fish uses shelters (docs/fish-shelters.md §3.3) — {@link ShelterUse#NONE}
+ * @param shelterUse how this fish uses shelters (docs/fish-shelters.md) — {@link ShelterUse#NONE}
  *                unless its species opts in. Planar model only.
  */
 public record FishSpec(float length, Locomotion locomotion, boolean mirrored, int species,

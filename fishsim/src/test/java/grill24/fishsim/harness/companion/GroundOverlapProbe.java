@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * Diagnostic (docs/fish-companions-party.md §6.2, Phase 2f): where do two different-species ground
+ * Diagnostic (docs/fish-companions.md, Phase 2f): where do two different-species ground
  * benthics overlap? Every inter-unit drawn overlap tick of the ground parties is binned by both
  * bodies' states (land mode and goal, or the beat under way) and by whether the owner walks, so
  * the candidate fix (a shared foot-trail queue while following, or a mixed-species line) can be

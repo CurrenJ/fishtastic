@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * The world around the owner as moods see it (docs/fish-companions-sim-plan.md §5 Phase 5, spec
+ * The world around the owner as moods see it (docs/fish-companions.md Phase 5, spec
  * §6): where they are, the weather, the time and the moon, and warm things nearby. One per tick,
  * shared by every companion; each fish reads it against its own species' {@link Habitat}, so a
  * mixed party can be split.

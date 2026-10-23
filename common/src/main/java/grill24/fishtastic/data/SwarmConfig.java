@@ -23,7 +23,7 @@ import java.util.Optional;
  * fish), so it never clips a legitimately-admitted shoal. Species that want a tighter artistic
  * cap regardless of size can still override {@code count} downward in their fish_profile JSON.
  *
- * <p>{@link #shelter} is how this species uses shelter cosmetics (docs/fish-shelters.md §3.3).
+ * <p>{@link #shelter} is how this species uses shelter cosmetics (docs/fish-shelters.md).
  * Absent means never — the default, so no profile changes behaviour by not naming one. It is an
  * explicit authoring choice, never derived from the fishing minigame's temperament.
  */
@@ -37,7 +37,7 @@ public record SwarmConfig(
 ) {
     public static final SwarmConfig DEFAULT = new SwarmConfig(25, 3, 0.22f, 0.25f, 0f, Optional.empty());
 
-    /** How a species uses shelters (docs/fish-shelters.md §3.3). */
+    /** How a species uses shelters (docs/fish-shelters.md). */
     public enum ShelterBehaviour implements StringRepresentable {
         /** Occasional unhurried visits: in, linger, out. */
         VISITOR,

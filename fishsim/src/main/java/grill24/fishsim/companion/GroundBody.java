@@ -3,7 +3,7 @@ package grill24.fishsim.companion;
 import grill24.fishsim.core.Locomotion;
 
 /**
- * A benthic companion's body on the ground (docs/fish-companions-benthic-follow.md §4): a walk on
+ * A benthic companion's body on the ground (docs/fish-companions.md): a walk on
  * the floor with the same heading-first rules as the swimmers' {@link Body}.
  *
  * <ul>

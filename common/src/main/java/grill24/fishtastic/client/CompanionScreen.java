@@ -33,7 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The companion party screen (docs/fish-companions-party.md §5.3, §5.5). Vanilla slots do all item
+ * The companion party screen (docs/fish-companions.md, §5.5). Vanilla slots do all item
  * movement. Every action names its own slot: the pencil tab under a party slot opens the name row
  * for that slot, and the pile strip puts the chosen fish on the cursor (the server takes it out of
  * the pile). A fish that isn't bonded yet is refused loudly: the slot it was headed for flashes

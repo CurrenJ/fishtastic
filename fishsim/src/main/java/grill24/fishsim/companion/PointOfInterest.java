@@ -1,7 +1,7 @@
 package grill24.fishsim.companion;
 
 /**
- * Something near the owner a companion might react to (docs/fish-companions-sim-plan.md §3.2).
+ * Something near the owner a companion might react to (docs/fish-companions.md).
  *
  * @param kind   what it is
  * @param id     stable while the thing exists (the entity id in game), so the mind can tell a cat

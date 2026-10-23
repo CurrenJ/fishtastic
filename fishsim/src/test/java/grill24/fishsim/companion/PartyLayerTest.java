@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * PartyLayer's contract (docs/fish-companions-party.md §6): a one-unit party is bitwise the unit
+ * PartyLayer's contract (docs/fish-companions.md): a one-unit party is bitwise the unit
  * stepped on its own, and the step order can't change results. Phase 2d (§6.1): every percher has
  * its own home, anchored fish first on the head (D5), and with leases no two units ride one perch.
  */

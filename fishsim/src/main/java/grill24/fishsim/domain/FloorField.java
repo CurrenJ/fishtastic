@@ -21,7 +21,7 @@ package grill24.fishsim.domain;
  * {@link #heightAt} propagates rather than silently reading as 0.
  *
  * <p>Immutable and shared: a group's field is built once per membership epoch alongside the
- * distance field, never per rebuild (docs/fish-tank-group-scaling.md §5.3a).
+ * distance field, never per rebuild (docs/fish-tank-group-scaling.mda).
  */
 public final class FloorField {
 

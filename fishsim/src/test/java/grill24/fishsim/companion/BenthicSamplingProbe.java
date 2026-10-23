@@ -9,7 +9,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Block samples per tick for ground benthics, headless (docs/fish-companions-benthic-follow.md §21):
+ * Block samples per tick for ground benthics, headless (docs/fish-companions.md):
  * the same count the game's overlay shows ({@code LevelBlocks.samples}: one per {@code solid} call,
  * {@code top} sharing that collision query), against the sim plan's 25 samples/tick budget per
  * companion. A swimmer and the no-gait percher (the game's path until now) are the references.

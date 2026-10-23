@@ -85,7 +85,7 @@ public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTank
     }
 
     // Reused across frames — the old code allocated a fresh Random per fish per frame (see Task 1
-    // of docs/fish-simulation-handoff.md). The Random is safe to share because FishAnimator consumes
+    // of docs/fish-sim-engine-plan.md). The Random is safe to share because FishAnimator consumes
     // it synchronously, and on 1.21.1 each fish is drawn immediately.
     private final Random fishRandom = new Random();
 
@@ -323,7 +323,7 @@ public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTank
         int n = flock.count();
         int[] order = eng.order;
         // A lone tank promoted to the planar model (it holds a shelter and a fish that uses it,
-        // docs/fish-shelters.md §7, or a solid cosmetic and a swimmer, §12.3) is posed as a group's fish are — continuous yaw, no mirror —
+        // docs/fish-shelters.md, or a solid cosmetic and a swimmer, §12.3) is posed as a group's fish are — continuous yaw, no mirror —
         // but in the tank's own turned frame, so the frame's turn is added to every yaw. Its
         // vertical is the engine's own, measured from the item baseline like the shelters it
         // swims into, with no sand-layer nudge.
@@ -814,7 +814,7 @@ public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTank
     }
 
     /**
-     * Draws a structure's parts that a reaction moves or lights (docs/fish-shelters.md §12.13),
+     * Draws a structure's parts that a reaction moves or lights (docs/fish-shelters.md),
      * which are left out of the chunk mesh for it. Each is placed as the mesh would place it, then
      * moved by its group's motion at the reaction's openness: a hinge turns it about its pivot, a
      * slide carries it by its offset, both turned with the structure. A glowing group is drawn

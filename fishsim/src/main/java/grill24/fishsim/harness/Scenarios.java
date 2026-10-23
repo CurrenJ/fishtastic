@@ -28,7 +28,7 @@ public final class Scenarios {
 
     /**
      * A shoal of clown loaches (0.26 blocks, give or take a little) that visit shelters — the
-     * Phase 2 acceptance cast (docs/fish-shelters.md §9).
+     * Phase 2 acceptance cast (docs/fish-shelters.md).
      */
     public static FishSpec[] loaches(int n, long seed) {
         Random r = new Random(seed * 31 + n);

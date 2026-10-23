@@ -11,7 +11,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Party-built schools of mixed sizes (docs/fish-companions-party.md §3, D8): every owner script ×
+ * Party-built schools of mixed sizes (docs/fish-companions.md, D8): every owner script ×
  * three seeds × two minutes. Held hard on every run: followers never in a block, finite poses,
  * swimming like any free swimmer, not drawn through each other, keeping up. Obstacle impacts and
  * contacts are held to the identical-member reference's 8-seed envelope (MixedGroupProbe): today's

@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The rule that splits a member tank's contents between the group engine and its own
- * (docs/fish-sim-locomotion.md §3.5). Worth its own test because the failure it guards against is
+ * (docs/fish-sim-locomotion.md). Worth its own test because the failure it guards against is
  * silent in every cheaper check: {@code rebuildGroupMode} applies this twice over the same slots —
  * once deciding what a tank keeps, once collecting what the group takes — and any disagreement
  * draws a fish twice or not at all.

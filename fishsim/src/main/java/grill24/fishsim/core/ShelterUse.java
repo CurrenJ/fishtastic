@@ -1,7 +1,7 @@
 package grill24.fishsim.core;
 
 /**
- * How a species uses shelters (docs/fish-shelters.md §3.3). An explicit per-species authoring
+ * How a species uses shelters (docs/fish-shelters.md). An explicit per-species authoring
  * choice made on the host side; the engine never derives it.
  */
 public enum ShelterUse {

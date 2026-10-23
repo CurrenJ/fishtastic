@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * The party metric suite (docs/fish-companions-party.md §8, Phase 2b): a party stepped through
+ * The party metric suite (docs/fish-companions.md, Phase 2b): a party stepped through
  * {@link PartyLayer} on an owner script, measured against each of its units run alone on the same
  * script and seed. Each measure is a level paired with a rate (episodes per minute), so a change
  * that trades a long overlap for many short flickers still shows.

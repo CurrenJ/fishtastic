@@ -11,7 +11,7 @@ import java.util.Random;
  * inlined with vanilla's exact semantics.
  *
  * <p>This class exists solely as the bitwise-parity oracle for {@code FlockEngine}
- * (docs/fish-sim-engine-handoff.md Task 3). <b>Never edit the math here</b> — it is the record of
+ * (docs/fish-sim-engine-plan.md Task 3). <b>Never edit the math here</b> — it is the record of
  * what the game shipped. Delete the class only after the adapter rewire (Task 4) has shipped; the
  * golden fixtures stay forever.
  */

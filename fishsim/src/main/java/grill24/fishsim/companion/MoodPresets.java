@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Named mood presets (docs/fish-companions-sim-plan.md §5 Phase 5): an ambient around the owner and
+ * Named mood presets (docs/fish-companions.md Phase 5): an ambient around the owner and
  * the habitat of the species feeling it. Each one sets off one mood at full strength in a plain ocean
  * fish (or the kind of fish that feels it). Shipped, because the mod's dev mood trigger reads them;
  * the harness applies them to headless runs through {@code MoodScenes}.

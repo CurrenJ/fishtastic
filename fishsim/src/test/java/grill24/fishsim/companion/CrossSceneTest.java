@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Cross-player scenes (docs/fish-companions-party.md §28, step 3a-2): the path geometry both
+ * Cross-player scenes (docs/fish-companions.md, step 3a-2): the path geometry both
  * clients compute, the scene's own end rules, and the scene played by two parties headless —
  * greeting, path, the D25 refusal, the D28 hand-over from a predator scene, a corridor with no
  * room, and the owner clearance that keeps swimmers out of the other player.

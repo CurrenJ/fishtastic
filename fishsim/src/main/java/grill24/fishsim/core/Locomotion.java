@@ -3,7 +3,7 @@ package grill24.fishsim.core;
 /**
  * How a creature moves through the tank volume — deliberately separate from how its sprite is
  * posed and idle-animated, which is the Minecraft side's business alone (see
- * docs/fish-sim-locomotion.md §2). The two used to be one enum on the MC side
+ * docs/fish-sim-locomotion.md). The two used to be one enum on the MC side
  * ({@code FishAnimationConfig.mode}), which is why anything that was not a horizontal swimmer
  * could not be simulated at all: the engine's only question was "is this a horizontal swimmer",
  * and every other pose answered no.

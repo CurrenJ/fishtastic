@@ -9,7 +9,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The player's companion party: three slots of bonded fish (docs/fish-companions-party.md §5.1).
+ * The player's companion party: three slots of bonded fish (docs/fish-companions.md).
  * On 1.20.1 the server side lives in {@link CompanionPartySavedData} (no attachment API on Fabric
  * 0.92 / Forge 47 — see that class); the call sites are identical to the other versions.
  *

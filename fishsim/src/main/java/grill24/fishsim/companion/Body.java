@@ -4,7 +4,7 @@ import grill24.fishsim.core.Locomotion;
 
 /**
  * A free-swimming companion's body: it takes the velocity the mind wants and turns it into motion
- * a fish could make (docs/fish-companions-sim-plan.md §3.4).
+ * a fish could make (docs/fish-companions.md).
  *
  * <p><b>Heading first.</b> The body has a heading (yaw, pitch) and a forward speed, and it travels
  * where it faces. The tank's planar model instead steers a velocity vector and caps only the

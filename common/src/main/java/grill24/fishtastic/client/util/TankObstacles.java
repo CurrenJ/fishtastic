@@ -22,7 +22,7 @@ import java.util.Optional;
 
 /**
  * Turns the structures placed in tanks into the obstacle boxes the simulation steers round
- * (docs/fish-shelters.md §12.3), through exactly the frames {@link TankShelters} places a shelter
+ * (docs/fish-shelters.md), through exactly the frames {@link TankShelters} places a shelter
  * in: build grid → block frame ({@link TankShelters#box}), then block frame → engine frame
  * ({@link TankShelters#toEngine}). A spanning structure comes from its anchor tank alone, as its
  * shelter does.

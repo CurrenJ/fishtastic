@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Triggers (docs/fish-shelters.md §12.13): a structure's own rare clock sends a fish to nose its
+ * Triggers (docs/fish-shelters.md): a structure's own rare clock sends a fish to nose its
  * anchor, or through its locked gate; one reaction at a time per domain, a rest after each, and
  * nobody goes of its own accord.
  */

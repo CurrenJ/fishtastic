@@ -190,16 +190,18 @@ file("build/datagen").mkdirs()
 file("build/gametest").mkdirs()
 apply from: rootProject.file('gradle/gametest-world.gradle')
 
-tasks.register("copyGeneratedAssetsToCommon", Exec) {
+tasks.register("syncGeneratedResources", Exec) {
     group = "fishtastic"
-    description = "Merges fabric's datagen output into the common module's resources."
+    description = "Merges generated resources while preserving authored registry entries."
     workingDir rootProject.projectDir
     // `python3` is canonical on POSIX, but on Windows it usually only resolves to a
     // broken Microsoft Store alias — use `python` there instead (same 3.x interpreter).
     def python = System.getProperty("os.name").toLowerCase().contains("win") ? "python" : "python3"
-    commandLine python, "scripts/copy_assets_to_common.py"
+    commandLine python, "scripts/sync_generated_resources.py"
+    // Do not merge stale output after a failed generation.
+    onlyIf { tasks.named("runDatagen").get().state.failure == null }
 }
 
 tasks.named("runDatagen") {
-    finalizedBy tasks.named("copyGeneratedAssetsToCommon")
+    finalizedBy tasks.named("syncGeneratedResources")
 }

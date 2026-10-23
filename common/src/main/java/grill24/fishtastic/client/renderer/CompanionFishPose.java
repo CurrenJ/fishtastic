@@ -15,7 +15,7 @@ import java.util.Random;
 
 /**
  * Draws a companion fish with its class's idle pose and no simulation behind it
- * (docs/fish-companions.md §3). Used where a companion is attached to something rather than
+ * (docs/fish-companions.md). Used where a companion is attached to something rather than
  * swimming free: the player render layer that draws a percher on its owner's body. (The look-down
  * hand is drawn by the world pass — see ClientCompanion.)
  *

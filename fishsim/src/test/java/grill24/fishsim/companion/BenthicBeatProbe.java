@@ -7,7 +7,7 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import java.util.List;
 
 /**
- * Diagnostic for the ground's in-view beats (docs/fish-companions-benthic-follow.md §5): how often
+ * Diagnostic for the ground's in-view beats (docs/fish-companions.md): how often
  * each beat starts, and the seen share while walking against the no-gait percher. Run with
  * -PsimStdout; {@code -PsweepSeeds=3}.
  */

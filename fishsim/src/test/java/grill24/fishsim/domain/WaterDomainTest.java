@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The Phase 2 natural-water domain contract (docs/fish-in-world-phase2.md §domain): fractional
+ * The Phase 2 natural-water domain contract (docs/fish-in-world.md §domain): fractional
  * surfaces and partial collision end up in the spans, containment and avoidance are exact where it
  * matters, whole animated bodies either fit or are rejected, the floor follows the real bed, the
  * soft avoidance keeps the hard backstop from ever engaging for a shoal that actually swims, and a
@@ -463,7 +463,7 @@ class WaterDomainTest {
     @Test
     void aBuildOfATwoThousandColumnDomainIsCheap() {
         // The order-of-magnitude guard on the field-build budget: the harness reports the real
-        // per-rebuild numbers for live domains (docs/fish-in-world-phase2.md §budgets).
+        // per-rebuild numbers for live domains (docs/fish-in-world.md §budgets).
         List<WaterDomain.Column> big = new ArrayList<>();
         for (int x = 0; x < 48; x++) {
             for (int z = 0; z < 48; z++) {

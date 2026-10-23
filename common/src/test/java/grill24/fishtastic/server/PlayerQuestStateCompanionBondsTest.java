@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Companion bond persistence (docs/fish-companions.md §8.4, R6.4): unlocks are stored so a bond
+ * Companion bond persistence (docs/fish-companions.md, R6.4): unlocks are stored so a bond
  * never re-locks, they survive a save/load round trip (and therefore backup restores), and an old
  * save written before the field existed still loads. The banner queue is deliberately <em>not</em>
  * persisted.
