@@ -185,6 +185,7 @@ public class FishtasticItems {
     public static Holder<Item> BULL_TROUT;
     public static Holder<Item> CHAUNACOPS;
     public static Holder<Item> CLOWN_LOACH;
+    public static Holder<Item> COELACANTH;
     public static Holder<Item> COMMON_OCTOPUS;
     public static Holder<Item> DEVILS_HOLE_PUPFISH;
     public static Holder<Item> DISCUS;
@@ -278,6 +279,7 @@ public class FishtasticItems {
         BULL_TROUT = RegistrationApiSided.getInstance().registerItem("bull_trout", loc -> new FishtasticFishItem(props(loc)));
         CHAUNACOPS = RegistrationApiSided.getInstance().registerItem("chaunacops", loc -> new FishtasticFishItem(props(loc)));
         CLOWN_LOACH = RegistrationApiSided.getInstance().registerItem("clown_loach", loc -> new FishtasticFishItem(props(loc)));
+        COELACANTH = RegistrationApiSided.getInstance().registerItem("coelacanth", loc -> new FishtasticFishItem(props(loc)));
         COMMON_OCTOPUS = RegistrationApiSided.getInstance().registerItem("common_octopus", loc -> new FishtasticFishItem(props(loc)));
         DEVILS_HOLE_PUPFISH = RegistrationApiSided.getInstance().registerItem("devils_hole_pupfish", loc -> new FishtasticFishItem(props(loc)));
         DISCUS = RegistrationApiSided.getInstance().registerItem("discus", loc -> new FishtasticFishItem(props(loc)));

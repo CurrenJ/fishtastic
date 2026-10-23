@@ -110,7 +110,8 @@ public class FishtasticItemTagProvider extends FabricTagProvider.ItemTagProvider
                 .add(FishtasticItems.ORNATE_BICHIR.value())
                 .add(FishtasticItems.AMERICAN_PADDLEFISH.value())
                 .add(FishtasticItems.LARGETOOTH_SAWFISH.value())
-                .add(FishtasticItems.OPHISTERNON_CANDIDUM.value());
+                .add(FishtasticItems.OPHISTERNON_CANDIDUM.value())
+                .add(FishtasticItems.COELACANTH.value());
 
         // Unlisted fish: secret one-off variants, no encyclopedia silhouette until first catch
         getOrCreateTagBuilder(FishtasticItemTags.UNLISTED_FISH)
@@ -127,6 +128,7 @@ public class FishtasticItemTagProvider extends FabricTagProvider.ItemTagProvider
         getOrCreateTagBuilder(FishtasticItemTags.PREDATOR_FISH)
                 .add(FishtasticItems.ANGLER_FISH.value())
                 .add(FishtasticItems.BULL_TROUT.value())
+                .add(FishtasticItems.COELACANTH.value())
                 .add(FishtasticItems.COMMON_OCTOPUS.value())
                 .add(FishtasticItems.ELECTRIC_EEL.value())
                 .add(FishtasticItems.GIANT_MANTA_RAY.value())
@@ -228,7 +230,8 @@ public class FishtasticItemTagProvider extends FabricTagProvider.ItemTagProvider
                 .add(FishtasticItems.LARGETOOTH_SAWFISH.value())
                 .add(FishtasticItems.RAINBOW_TROUT.value())
                 .add(FishtasticItems.BULL_TROUT.value())
-                .add(FishtasticItems.EUROPEAN_GRAYLING.value());
+                .add(FishtasticItems.EUROPEAN_GRAYLING.value())
+                .add(FishtasticItems.COELACANTH.value());
 
         // Steady fish: bait-affinity/encyclopedia cluster for mid-difficulty reef/river fish.
         // Curated membership (not derivable from fish_profile), same rationale as above.
@@ -278,9 +281,11 @@ public class FishtasticItemTagProvider extends FabricTagProvider.ItemTagProvider
                 .add(FishtasticItems.RAINBOW_TROUT.value())
                 .add(FishtasticItems.EUROPEAN_GRAYLING.value());
 
-        // Ancient non-teleost ray-finned lineages that have changed little since the Mesozoic.
+        // Ancient lineages that have changed little since the Mesozoic: non-teleost ray-finned
+        // fish plus the lobe-finned coelacanth.
         getOrCreateTagBuilder(FishtasticItemTags.LIVING_FOSSILS)
                 .add(FishtasticItems.AMERICAN_PADDLEFISH.value())
+                .add(FishtasticItems.COELACANTH.value())
                 .add(FishtasticItems.LONGNOSE_GAR.value())
                 .add(FishtasticItems.ORNATE_BICHIR.value());
 
