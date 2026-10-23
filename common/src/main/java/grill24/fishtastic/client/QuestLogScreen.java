@@ -467,6 +467,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
                 QuestClientCache.update(packet.questProgress(), packet.tokenBalance(), packet.triggeringItems(),
                         packet.purchaseCounts(), packet.cleanupGoal(), packet.serverGameTime(),
                         packet.baitDepletedItem(), packet.firstCatchItems(), packet.shopRefreshCount(),
+                        packet.shopRefreshNonce(), packet.freeShopRerollAvailable(),
                         packet.unlockedCompanions(), packet.newlyUnlockedCompanions());
                 Minecraft mc = Minecraft.getInstance();
                 if (mc.screen == this) {
@@ -2249,7 +2250,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
     private VBox buildShopPanel(Registry<ShopEntry> shopRegistry, long currentDay) {
         VBox page = UI.vbox().spacing(6).alignment(VBox.Alignment.LEFT);
         List<ResourceKey<ShopEntry>> stock = shopRegistry == null ? List.of() :
-                ShopEntry.getActiveDailyShop(shopRegistry, currentDay, QuestClientCache.getShopRefreshCount(),
+                ShopEntry.getActiveDailyShop(shopRegistry, currentDay, QuestClientCache.getShopRefreshNonce(),
                         key -> QuestClientCache.getProgress(key.location()).claimed()).stream()
                         .filter(key -> shopRegistry.getOptional(key).map(entry -> !isEntrySoldOut(key, entry)).orElse(false))
                         .sorted(Comparator.<ResourceKey<ShopEntry>, Boolean>comparing(key ->
@@ -2264,14 +2265,20 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             }
             page.addChild(row);
         }
-        int price = ShopEntry.refreshCost(QuestClientCache.getShopRefreshCount());
+        boolean freeRerollAvailable = QuestClientCache.isFreeShopRerollAvailable();
+        int price = freeRerollAvailable ? 0 : ShopEntry.refreshCost(QuestClientCache.getShopRefreshCount());
         ManualContainer reroll = insetPanel(QUEST_PAGE_WIDTH, 42);
         place(reroll, copy("shop.replace", 0xFFFFFFFF), 8, 6);
-        place(reroll, copy("shop.next", COLOR_MUTED, ShopEntry.refreshCost(QuestClientCache.getShopRefreshCount() + 1)), 8, 23);
-        place(reroll, shopCoinIconFor(price), 184, 9);
-        place(reroll, new Label(String.valueOf(price), COLOR_SELECTION).init(tempContext), 204, 12);
-        boolean affordable = QuestClientCache.getTokenBalance() >= price;
-        SpriteButton button = marketButton(73, "shop.reroll", affordable);
+        if (freeRerollAvailable) {
+            place(reroll, copy("shop.free_today", COLOR_MUTED), 8, 23);
+            place(reroll, new Label(translated("screen.fishtastic.quest_log.shop.free"), COLOR_SELECTION).init(tempContext), 198, 12);
+        } else {
+            place(reroll, copy("shop.cost", COLOR_MUTED, price), 8, 23);
+            place(reroll, shopCoinIconFor(price), 184, 9);
+            place(reroll, new Label(String.valueOf(price), COLOR_SELECTION).init(tempContext), 204, 12);
+        }
+        boolean affordable = freeRerollAvailable || QuestClientCache.getTokenBalance() >= price;
+        SpriteButton button = marketButton(73, freeRerollAvailable ? "shop.free_reroll" : "shop.reroll", affordable);
         if (affordable) button.onClick(e -> {
             Minecraft mc = Minecraft.getInstance();
             if (mc.player != null) FishtasticTransport.sendToServer(new RefreshShopPacket());
@@ -2317,10 +2324,11 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         return card;
     }
 
-    /** Header row letting the player spend a fixed token cost to reroll today's active shop entries. */
+    /** Header row for the daily free reroll and subsequent paid rerolls. */
     private HBox buildShopRefreshRow() {
-        int refreshCost = ShopEntry.refreshCost(QuestClientCache.getShopRefreshCount());
-        boolean canAfford = QuestClientCache.getTokenBalance() >= refreshCost;
+        boolean freeRerollAvailable = QuestClientCache.isFreeShopRerollAvailable();
+        int refreshCost = freeRerollAvailable ? 0 : ShopEntry.refreshCost(QuestClientCache.getShopRefreshCount());
+        boolean canAfford = freeRerollAvailable || QuestClientCache.getTokenBalance() >= refreshCost;
 
         HBox refreshRow = UI.hbox().spacing(4).alignment(HBox.Alignment.CENTER);
 
@@ -2329,7 +2337,8 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
                 .textureSize(SHOP_BUY_BUTTON_FILE_WIDTH, SHOP_BUY_BUTTON_FILE_HEIGHT);
         SpriteButton refreshBtn = new SpriteButton(SHOP_BUY_BUTTON_WIDTH, SHOP_BUY_BUTTON_HEIGHT, SHOP_BUY_BUTTON_TEXTURE)
                 .texture(refreshButtonSprite)
-                .text(translated("screen.fishtastic.quest_log.shop.refresh"), 0xFFFFFFFF)
+                .text(translated(freeRerollAvailable ? "screen.fishtastic.quest_log.shop.free_reroll"
+                        : "screen.fishtastic.quest_log.shop.refresh"), 0xFFFFFFFF)
                 .scaleFromCenter();
         refreshBtn.onMouseEnter(e -> refreshBtn.setTargetScale(1.12f, true));
         refreshBtn.onMouseExit(e -> refreshBtn.setTargetScale(1.0f, true));
@@ -2343,7 +2352,8 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         refreshBtn.setVisible(canAfford);
         shopRefreshBtn = refreshBtn;
 
-        Label costLabel = new Label(String.valueOf(refreshCost), canAfford ? 0xFFFFAA00 : 0xFFFF4444).init(tempContext);
+        Label costLabel = new Label(freeRerollAvailable ? translated("screen.fishtastic.quest_log.shop.free")
+                : String.valueOf(refreshCost), canAfford ? 0xFFFFAA00 : 0xFFFF4444).init(tempContext);
         shopRefreshCostLabel = costLabel;
 
         Label notEnoughLabel = new Label(translated("screen.fishtastic.quest_log.shop.not_enough_tokens"), 0xFFFF4444).init(tempContext);
@@ -2540,9 +2550,14 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         }
 
         if (shopRefreshBtn != null) {
-            boolean canAffordRefresh = QuestClientCache.getTokenBalance()
-                    >= ShopEntry.refreshCost(QuestClientCache.getShopRefreshCount());
+            boolean freeRerollAvailable = QuestClientCache.isFreeShopRerollAvailable();
+            int refreshCost = freeRerollAvailable ? 0 : ShopEntry.refreshCost(QuestClientCache.getShopRefreshCount());
+            boolean canAffordRefresh = freeRerollAvailable || QuestClientCache.getTokenBalance() >= refreshCost;
             shopRefreshBtn.setVisible(canAffordRefresh);
+            shopRefreshCostLabel.text(freeRerollAvailable ? translated("screen.fishtastic.quest_log.shop.free")
+                    : String.valueOf(refreshCost));
+            shopRefreshBtn.text(translated(freeRerollAvailable ? "screen.fishtastic.quest_log.shop.free_reroll"
+                    : "screen.fishtastic.quest_log.shop.refresh"), 0xFFFFFFFF);
             shopRefreshCostLabel.color(canAffordRefresh ? 0xFFFFAA00 : 0xFFFF4444);
             shopRefreshNotEnoughLabel.setVisible(!canAffordRefresh);
         }

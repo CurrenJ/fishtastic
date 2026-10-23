@@ -89,6 +89,7 @@ public final class FishtasticForgeClient {
                 QuestClientCache.update(packet.questProgress(), packet.tokenBalance(), packet.triggeringItems(),
                         packet.purchaseCounts(), packet.cleanupGoal(), packet.serverGameTime(),
                         packet.baitDepletedItem(), packet.firstCatchItems(), packet.shopRefreshCount(),
+                        packet.shopRefreshNonce(), packet.freeShopRerollAvailable(),
                         packet.unlockedCompanions(), packet.newlyUnlockedCompanions()));
         TutorialSyncPacket.registerClientHandler(TutorialClientHandler.PACKET_HANDLER);
         EncyclopediaTutorialSyncPacket.registerClientHandler(EncyclopediaTutorialClientHandler.PACKET_HANDLER);

@@ -2,6 +2,7 @@ package grill24.fishtastic.neoforge.gametest;
 
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.gametest.FishtasticGameTests;
+import grill24.fishtastic.gametest.GameTestSelection;
 import grill24.fishtastic.gametest.FishtasticTestSupport;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -31,6 +32,15 @@ public final class NeoForgeGameTestRegistration {
     public static void onRegisterGameTests(RegisterGameTestsEvent event) {
         FishtasticTestSupport.installPlayerFactory(NeoForgeTestPlayers::makeMockServerPlayerInLevel);
         FishtasticTestSupport.installRespawnHandoff((before, after) -> after.restoreFrom(before, false));
-        event.register(FishtasticGameTests.class);
+        if (!GameTestSelection.hasFilter()) {
+            event.register(FishtasticGameTests.class);
+            return;
+        }
+        for (var method : FishtasticGameTests.class.getDeclaredMethods()) {
+            if (method.isAnnotationPresent(net.minecraft.gametest.framework.GameTest.class)
+                    && GameTestSelection.matches(method.getName())) {
+                event.register(method);
+            }
+        }
     }
 }

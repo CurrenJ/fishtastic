@@ -3,6 +3,7 @@ package grill24.fishtastic.forge.gametest;
 import grill24.fishtastic.companion.CompanionParty;
 import grill24.fishtastic.companion.CompanionStorage;
 import grill24.fishtastic.gametest.FishtasticGameTests;
+import grill24.fishtastic.gametest.GameTestSelection;
 import grill24.fishtastic.gametest.FishtasticTestSupport;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestGenerator;
@@ -71,6 +72,7 @@ public final class ForgeGameTestRegistration {
                         || method.getParameterTypes()[0] != GameTestHelper.class) {
                     continue;
                 }
+                if (!GameTestSelection.matches(method.getName())) continue;
                 String name = BATCH + "." + method.getName().toLowerCase(Locale.ROOT);
                 tests.add(new TestFunction(
                         BATCH,
