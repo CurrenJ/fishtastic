@@ -39,8 +39,8 @@ import java.util.function.Supplier;
  *   the happy path doesn't throw and produces a usable session id.
  * - handleMinigameComplete tests use FishingMinigameManager.seedSessionForTest, a test-only seam
  *   added specifically because the real session contents are RNG-driven and not otherwise
- *   inspectable/controllable from outside the class — see the test-coverage roadmap's Tier 3.1
- *   writeup for why a black-box-only approach doesn't work here.
+ *   inspectable/controllable from outside the class, so this test seam pins exact rewards and
+ *   validation outcomes instead of relying on RNG-driven black-box observations.
  *
  * Each test takes a {@code mockPlayer} supplier rather than calling
  * GameTestHelper.makeMockServerPlayerInLevel() directly — see TutorialManagerGameTests for why
@@ -232,10 +232,8 @@ public final class FishingMinigameManagerGameTests {
 
     /**
      * Documents current behavior: a sub-20-tick completion only logs a warning, it does not
-     * withhold the reward. Flagged in the test-coverage roadmap as a real product question
-     * worth a deliberate decision, not assumed correct — this test pins down what the code
-     * actually does today so a future behavior change shows up as an intentional test update,
-     * not a silent regression either way.
+     * withhold the reward. Whether fast completions should be rejected remains a product
+     * question. This test pins down current behavior until that decision is made.
      */
     public static void handleMinigameCompleteGrantsRewardsEvenWhenCompletedInUnderTwentyTicks(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
         ServerPlayer player = mockPlayer.get();
