@@ -11,7 +11,7 @@ public class FishtasticBlockTags {
     public static final TagKey<Block> TANK_HANGING_COSMETICS = create("tank_hanging_cosmetics");
     /**
      * Blocks fish may brush through when they are part of a cosmetic structure: foliage, kelp,
-     * seagrass, coral fans (docs/fish-shelters.md §12.3). Every other part is solid to swimmers.
+     * seagrass, coral fans (docs/fish-shelters.md). Every other part is solid to swimmers.
      */
     public static final TagKey<Block> SOFT_COSMETIC = create("soft_cosmetic");
 

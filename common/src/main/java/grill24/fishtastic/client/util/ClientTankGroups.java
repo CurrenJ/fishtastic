@@ -104,7 +104,7 @@ public final class ClientTankGroups {
                         group.blockedX(), group.blockedY(), group.blockedZ())
                 : null;
         // Shelters and obstacles ride the floor's refresh path for the same reason
-        // (docs/fish-shelters.md §2, §12.3), and a fresh domain has to carry them from the start: a
+        // (docs/fish-shelters.md, §12.3), and a fresh domain has to carry them from the start: a
         // group that inherits its flock across a membership change never sees cosmeticsChanged
         // fire, so anything left off here stays off until a cosmetic moves.
         if (domain != null) {

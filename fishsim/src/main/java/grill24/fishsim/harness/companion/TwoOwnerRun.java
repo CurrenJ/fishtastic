@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Two owners and their two parties in one world (docs/fish-companions-party.md §28.3, step 3a-0):
+ * Two owners and their two parties in one world (docs/fish-companions.md, step 3a-0):
  * the headless twin of one client running two players' parties. {@link Sim} steps them the way
  * {@code ClientCompanions.tick} does, and {@link #measure} runs the cross-party guard rails. There
  * are no scenes yet; with none, each party sees the other only as the game shows it.

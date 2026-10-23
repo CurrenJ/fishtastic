@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Gates (docs/fish-shelters.md §12.4): an opening swum straight through, by any swimmer that fits,
+ * Gates (docs/fish-shelters.md): an opening swum straight through, by any swimmer that fits,
  * only in the direction it is already going, without stopping, and never as cover.
  */
 class ShelterGateTest {

@@ -21,7 +21,7 @@ import net.minecraft.world.item.Items;
 import java.util.function.Supplier;
 
 /**
- * The companion menu (docs/fish-companions-party.md §5.3): three persistent party slots (menu slots
+ * The companion menu (docs/fish-companions.md): three persistent party slots (menu slots
  * 0–2, slot 0 the lead) backed by the companion attachment, driven here through real container
  * inputs. Every test checks the same thing underneath — a fish is always in exactly one place,
  * never duplicated, never lost.

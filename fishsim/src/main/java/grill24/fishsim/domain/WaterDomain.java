@@ -4,7 +4,7 @@ import java.util.List;
 
 /**
  * Natural water: a bounded, world-anchored volume built from discovered water columns instead of a
- * union of full unit cubes (docs/fish-in-world-phase2.md §domain).
+ * union of full unit cubes (docs/fish-in-world.md §domain).
  *
  * <p><b>Why not {@link VoxelDomain}.</b> A voxel domain is a rectilinear union of whole blocks, and
  * natural water is not: a still source cell's surface is 8/9 of a block and a flowing cell's is
@@ -19,7 +19,7 @@ import java.util.List;
  * <p><b>Coordinates.</b> Local coordinates are the world's, minus the host's fixed origin: a local
  * lateral equals its world X minus the origin X, and so on. The origin belongs to the water patch,
  * not to the window, so it never moves while the patch lives — which is what makes a rebuild carry
- * positions straight through with no rebasing (docs/fish-in-world-phase2.md §frame). Callers that
+ * positions straight through with no rebasing (docs/fish-in-world.md §frame). Callers that
  * anchor a patch to the world pass their patch's origin and use {@code baseRotationDeg = 0}.
  *
  * <p><b>Clearance.</b> {@link #contains} is centre containment — it keeps a fish's simulated point

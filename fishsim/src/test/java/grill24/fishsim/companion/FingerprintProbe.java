@@ -41,7 +41,7 @@ class FingerprintProbe {
             }
         }
         // A benthic with no ground gait: the game's path until Phase 5 wires the gait in
-        // (docs/fish-companions-benthic-follow.md §8). Must hash as the Phase 3 BENTHIC did.
+        // (docs/fish-companions.md). Must hash as the Phase 3 BENTHIC did.
         for (String script : OwnerScript.NAMES) {
             for (long seed = 1; seed <= 3; seed++) {
                 CompanionRun run = CompanionRun.benthic(script, seed, CompanionRun.lengthOf(Locomotion.BENTHIC),
@@ -65,7 +65,7 @@ class FingerprintProbe {
                 System.out.printf("FPA %-9s %-15s #%d %016x%n", "TRIO", script, seed, h);
             }
         }
-        // Drifters by style (docs/fish-companions-drift.md §2); the plain DRIFT lines above are the bell.
+        // Drifters by style (docs/fish-companions-drift.md); the plain DRIFT lines above are the bell.
         for (DriftStyle style : List.of(DriftStyle.JET, DriftStyle.BOB)) {
             for (String script : OwnerScript.NAMES) {
                 for (long seed = 1; seed <= 3; seed++) {

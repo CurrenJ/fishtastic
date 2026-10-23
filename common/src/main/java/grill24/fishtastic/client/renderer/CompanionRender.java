@@ -20,7 +20,7 @@ import net.minecraft.world.phys.Vec3;
 import java.util.Random;
 
 /**
- * Draws a companion's fish from the sim's world-space pose (docs/fish-companions-sim-plan.md §3.5):
+ * Draws a companion's fish from the sim's world-space pose (docs/fish-companions.md):
  * position, heading, pitch and bank from the body, the tail clock from its tail phase, the appear
  * fade as scale, and each class through its own {@link FishAnimator} entry point — the same per-class
  * pose dispatch the tank group renderer uses. Nothing here is box-relative: the fish's world pose
@@ -45,7 +45,7 @@ public final class CompanionRender {
     public static final float DEFAULT_UPRIGHT_SWELL = 2.5f;
     public static float uprightSwell = DEFAULT_UPRIGHT_SWELL;
     /**
-     * Gain on a drifter's squeeze for a companion (docs/fish-companions-drift.md §13.10): the tank's
+     * Gain on a drifter's squeeze for a companion (docs/fish-companions-drift.md): the tank's
      * {@code pulse_stretch} alone (10%) over an idle stroke's second-long squeeze reads as nothing,
      * though the push it gives plainly shows. The squeeze is already scaled by the stroke's strength.
      * Set live with {@code /fishtastic companion squeeze}.
@@ -175,7 +175,7 @@ public final class CompanionRender {
      * @param pitchDeg Minecraft pitch of the heading (positive is nose down)
      * @param riding   a percher on its owner (the hand): poses as perched, not swimming
      * @param onFloor  {@code pos} is the floor under a benthic walking on the ground: the pose is
-     *                 lifted by its own floor offset (docs/fish-companions-benthic-follow.md §21)
+     *                 lifted by its own floor offset (docs/fish-companions.md)
      * @param pulse    a drifter's squeeze, 0..1 (its stroke envelope scaled by the stroke's strength)
      * @param ripple   a flatfish gliding on the ground: its ripple runs on the gait's phase
      *                 ({@code tailPhase}), quickening as it glides faster and slowing when it stops

@@ -1,7 +1,7 @@
 package grill24.fishsim.companion;
 
 /**
- * How a benthic companion gets about on the ground (docs/fish-companions-benthic-follow.md §4).
+ * How a benthic companion gets about on the ground (docs/fish-companions.md).
  */
 public enum GroundGait {
     /** Legs or tube feet: crabs, octopus, starfish, sea slugs. Scuttle and pause, a crouch before a hop. */

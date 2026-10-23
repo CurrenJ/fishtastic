@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The drift model's own invariants (docs/fish-sim-locomotion.md §3.2) — the set that replaces
+ * The drift model's own invariants (docs/fish-sim-locomotion.md) — the set that replaces
  * {@code DRIFT}'s "never moves" row in {@link LocomotionTest} now that it has a motion model.
  *
  * <p>The load-bearing one is {@link #theVerticalCycleStaysCentred}: pulse-and-sink is an open

@@ -4,7 +4,7 @@ import java.util.Arrays;
 
 /**
  * A rolling window of blocks around the owner, plus the geometric questions the companion asks of
- * them (docs/fish-companions-sim-plan.md §3.1).
+ * them (docs/fish-companions.md).
  *
  * <p>Cells are sampled lazily: the first question about a cell asks the {@link BlockQuery} and the
  * answer is kept until the window re-centres (the owner wandered far from its centre) or

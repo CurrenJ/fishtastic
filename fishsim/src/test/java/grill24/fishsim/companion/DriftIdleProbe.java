@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * Diagnostic: how busy a drifter is while its owner idles (docs/fish-companions-drift.md §13.7) —
+ * Diagnostic: how busy a drifter is while its owner idles (docs/fish-companions-drift.md) —
  * moves (new spots) per minute, mean and p90 speed, path length per minute, strokes per minute and
  * the mean velocity change per stroke, all over the ticks its owner has stood still for a second or
  * more; the same over the rested ticks (SETTLE) alone; and a FREE_SWIM reference on the same seeds.

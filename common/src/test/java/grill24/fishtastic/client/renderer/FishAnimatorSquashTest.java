@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Squash-and-stretch on the locomotion drive (docs/fish-sim-locomotion.md §3.6) — the pose half,
+ * Squash-and-stretch on the locomotion drive (docs/fish-sim-locomotion.md) — the pose half,
  * where the engine's envelope becomes an actual deformation.
  *
  * <p>Two things here are easy to get wrong and invisible in review. The first is the <b>frame</b>:

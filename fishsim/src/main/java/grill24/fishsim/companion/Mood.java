@@ -1,7 +1,7 @@
 package grill24.fishsim.companion;
 
 /**
- * How the ambient world makes one fish feel (docs/fish-companions-sim-plan.md §5 Phase 5, spec §6),
+ * How the ambient world makes one fish feel (docs/fish-companions.md Phase 5, spec §6),
  * read against its own species' {@link Habitat}: cold, glum, glad of the rain, sleepy in its
  * off-hours, moonstruck. Each feeling eases in and out over seconds and acts only as a small,
  * capped modifier on the drives and body the temperament already sets (the owner's call: subtle,

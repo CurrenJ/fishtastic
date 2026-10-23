@@ -72,13 +72,6 @@ Temporary Items
 
 # Logs
 Xplat/logs/latest.log
-src/generated/resources/assets/potionsplus/lang/GENERATED_en_us.json
-
-script/output
-script/ore_edges
-script/input_ore
-script/*.png
-script/**/*.png
 
 run-data/*
 
@@ -141,3 +134,7 @@ AGENTS.md
 .agents/
 .codex/
 /.scratch/
+
+# Regenerable content-tool previews.
+/tools/shelter-structure-gen/preview/
+/tools/span-structure-gen/preview/

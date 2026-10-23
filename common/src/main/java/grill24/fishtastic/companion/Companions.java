@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Server-side companion operations (docs/fish-companions-party.md §5.1). The fish item <i>is</i> the
+ * Server-side companion operations (docs/fish-companions.md). The fish item <i>is</i> the
  * companion: bonding moves one fish out of the player's inventory into a slot of the player's
  * {@link CompanionParty}, and unequipping gives that exact stack back. Every change happens in one
  * call on the server thread, so a fish is always in exactly one place.
@@ -100,7 +100,7 @@ public final class Companions {
     }
 
     /**
-     * Renames the companion in {@code slot} (docs/fish-companions.md §7): the name is the stored
+     * Renames the companion in {@code slot} (docs/fish-companions.md): the name is the stored
      * fish's custom name, so this rewrites that one component and syncs; blank clears it back to the
      * species name. Returns false when the slot is empty.
      */

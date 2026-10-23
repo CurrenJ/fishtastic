@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * {@code occupied_cells} (docs/fish-shelters.md §12.10): the cells of a structure's footprint that
+ * {@code occupied_cells} (docs/fish-shelters.md): the cells of a structure's footprint that
  * actually block other cosmetics and crawling fish.
  */
 class OccupiedCellsTest {

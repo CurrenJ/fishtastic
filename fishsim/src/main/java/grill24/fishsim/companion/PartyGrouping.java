@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Which of an owner's party members form a group (docs/fish-companions-party.md §3). The party is up
+ * Which of an owner's party members form a group (docs/fish-companions.md). The party is up
  * to {@link #SLOTS} bonded fish, each one body:
  *
  * <ul>
@@ -36,7 +36,7 @@ import java.util.Objects;
 public final class PartyGrouping {
     private PartyGrouping() {}
 
-    /** Party size (docs/fish-companions-party.md R1). */
+    /** Party size (docs/fish-companions.md R1). */
     public static final int SLOTS = 3;
 
     public enum Kind { SOLO, SCHOOL, GROUND }

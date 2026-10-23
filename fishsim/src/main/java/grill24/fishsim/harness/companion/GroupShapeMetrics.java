@@ -4,7 +4,7 @@ import grill24.fishsim.companion.CompanionAgent;
 import grill24.fishsim.companion.Vec;
 
 /**
- * Formation measures for a group of party members (docs/fish-companions-party.md §3, §8 last row),
+ * Formation measures for a group of party members (docs/fish-companions.md, §8 last row),
  * each a level paired with a rate, so a school can't buy calm spacing with a twitching one:
  *
  * <ul>

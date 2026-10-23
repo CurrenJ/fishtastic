@@ -20,7 +20,7 @@ import java.awt.image.BufferedImage;
 
 /**
  * Draws one simulation frame to a {@link BufferedImage} — <b>Java2D only, no Swing/JavaFX
- * imports</b>, so it runs headless (docs/fish-sim-engine-handoff.md Task 7). The desktop viewer
+ * imports</b>, so it runs headless (docs/fish-sim-engine-plan.md Task 7). The desktop viewer
  * blits this same renderer's output, which is what guarantees the viewer and the headless export
  * can never disagree.
  *
@@ -143,7 +143,7 @@ public final class FrameRenderer {
     /**
      * Each shelter's hull (solid to fish not using it), its interior (dashed) and its mouths, with
      * a tick pointing out of each mouth into open water — so a GIF shows which way a shelter faces
-     * (docs/fish-shelters.md §3). Drawn under the fish, so a fish inside shows over its hull.
+     * (docs/fish-shelters.md). Drawn under the fish, so a fish inside shows over its hull.
      */
     private void drawShelters(Graphics2D g, FlockDomain domain, View view) {
         float[] p = new float[3];
@@ -190,7 +190,7 @@ public final class FrameRenderer {
     }
 
     /**
-     * The solid parts of the cosmetics (docs/fish-shelters.md §12.3): grey boxes under the fish
+     * The solid parts of the cosmetics (docs/fish-shelters.md): grey boxes under the fish
      * and the shelters, translucent so that where several overlap in this view reads darker.
      */
     private void drawObstacles(Graphics2D g, FlockDomain domain, View view) {
@@ -365,7 +365,7 @@ public final class FrameRenderer {
                     ? Color.getHSBColor((engine.species[i] % 6) / 6f * 0.85f + 0.05f, 0.62f, 0.95f)
                     : new Color(110, 116, 124);
             Color fin = swims ? body.brighter() : new Color(140, 146, 152);
-            // A fish on a shelter visit (docs/fish-shelters.md §5.1): ghosted while inside — in
+            // A fish on a shelter visit (docs/fish-shelters.md): ghosted while inside — in
             // game the shelter's own blocks hide it — and half-ghosted in the mouth.
             int visit = engine.shelterState(i);
             if (visit == FlockEngine.SHELTER_INSIDE || visit == FlockEngine.SHELTER_ENTER

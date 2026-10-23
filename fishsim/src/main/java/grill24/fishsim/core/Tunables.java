@@ -249,7 +249,7 @@ public record Tunables(
 
     /**
      * The parameter set a {@link Locomotion#GLIDE} creature is stepped with — rays, and anything
-     * else large and solitary (docs/fish-sim-locomotion.md §3.3). {@code GLIDE} runs the same
+     * else large and solitary (docs/fish-sim-locomotion.md). {@code GLIDE} runs the same
      * planar model as a free swimmer, so unlike the crawl and the drift it is a set of numbers
      * rather than a step function of its own, and numbers belong here.
      *

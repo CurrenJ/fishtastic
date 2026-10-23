@@ -7,11 +7,11 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * A headless stand-in for the world around a companion's owner (docs/fish-companions-sim-plan.md
+ * A headless stand-in for the world around a companion's owner (docs/fish-companions.md
  * §4.1): solid ground at and below {@link #groundTop}, solid boxes on top, and air boxes carved
  * back out of them (a corridor is a solid block with a tunnel through it), then water boxes filling
  * whatever they cover that isn't solid. Partial blocks (slabs, carpets) and a door that opens and
- * closes are for things that walk on the ground (docs/fish-companions-benthic-follow.md).
+ * closes are for things that walk on the ground (docs/fish-companions.md).
  */
 public final class VoxelScene implements BlockQuery {
 
@@ -278,7 +278,7 @@ public final class VoxelScene implements BlockQuery {
                 .air(-6, 59, 7, 7, 64, 17).water(-6, 59, 7, 7, 64, 17);
     }
 
-    // -- Ground scenes (docs/fish-companions-benthic-follow.md section 7) --
+    // -- Ground scenes (docs/fish-companions.md section 7) --
 
     /**
      * A flight of half-block steps (how stairs climb underfoot) going north from z=4, 3 wide

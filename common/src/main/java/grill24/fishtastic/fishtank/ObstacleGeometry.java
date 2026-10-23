@@ -5,7 +5,7 @@ import java.util.List;
 
 /**
  * The solid parts of a cosmetic structure as a list of boxes fish steer around
- * (docs/fish-shelters.md §12.3), worked out in the structure's own build units — the grid its parts
+ * (docs/fish-shelters.md), worked out in the structure's own build units — the grid its parts
  * were captured on, before {@code scale}, facing south — so they are turned and placed at
  * placement exactly like a shelter ({@link ShelterGeometry}).
  *

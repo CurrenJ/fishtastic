@@ -20,7 +20,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
  * cosmetic) from a fish tank browser GUI row. {@code segmentPos} is whichever tank in the
  * connected group actually holds the entry — not necessarily the tank the player clicked to open
  * the menu — and {@code key} is a slot index for {@link TankEntryKind#FISH}, or a packed
- * {@link CosmeticGridCell} for the cosmetic kinds. See docs/fish-tank-interaction-redesign.md.
+ * {@link CosmeticGridCell} for the cosmetic kinds. See docs/fish-tanks.md.
  */
 public record RemoveTankEntryPacket(BlockPos segmentPos, TankEntryKind kind, int key) implements CustomPacketPayload {
 

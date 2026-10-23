@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A shelter kept for big fish (docs/fish-shelters.md §12.9): {@code minLength} turns away every
+ * A shelter kept for big fish (docs/fish-shelters.md): {@code minLength} turns away every
  * fish shorter than it — visitors and lurkers alike — and changes nothing for the fish it admits.
  */
 class ShelterMinLengthTest {

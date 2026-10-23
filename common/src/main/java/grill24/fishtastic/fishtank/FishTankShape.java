@@ -234,7 +234,7 @@ public enum FishTankShape implements TooltipProvider {
      * {@code ArchTankSpans#glassBands}) to keep the base glass bake from extending into the beam's
      * territory, plus a matching {@code generateEdgeGlassFillFragment} for both of an edge's end
      * corners, not just one. Bramble has no uniform corner post at all, and stays permanently
-     * excluded. See docs/tank-shapes/edge-diagonal-fix-remaining-shapes.md for the full writeup.
+     * excluded. See docs/fish-tanks.md for the diagonal-fragment contract.
      * Mirrors {@code TankShapeGeometryStrategies}'s {@code edgeFragment == null} entries in
      * {@code tools/tank-shape-gen} exactly — keep the two in sync.
      */

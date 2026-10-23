@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The companion sim's floor (docs/fish-companions-sim-plan.md §4.2): every locomotion class × owner
+ * The companion sim's floor (docs/fish-companions.md): every locomotion class × owner
  * script × three seeds × two minutes, checked against invariants that guard specific failures. These say nothing
  * about whether the fish feels alive — the viewer and the owner's eye decide that — only that it
  * never does something plainly wrong.
@@ -27,7 +27,7 @@ class CompanionInvariantTest {
 
     private static final long[] SEEDS = {1, 2, 3};
     /**
-     * DRIFT has its own rows below (docs/fish-companions-drift.md §13): the swimmer's turn, facing and
+     * DRIFT has its own rows below (docs/fish-companions-drift.md): the swimmer's turn, facing and
      * jerk checks are blind for a bell, so it gets drift-aware ones.
      */
     private static final List<Locomotion> CLASSES = List.of(
@@ -47,7 +47,7 @@ class CompanionInvariantTest {
      */
     private static final Set<String> TUNNEL_SCRIPTS = Set.of("corridor");
     /**
-     * Known gaps, carried to Phase 2's attention work (docs/fish-companions-sim-plan.md §9.1): an
+     * Known gaps, carried to Phase 2's attention work (docs/fish-companions.md): an
      * owner who never stops walking (reversing every 2–3 s, or climbing a 3-wide stairwell) keeps
      * the fish trailing or riding just outside the view, so the visibility bounds don't hold yet,
      * and the stairwell's tight turns bring it near the camera slightly too often. Every other
@@ -371,7 +371,7 @@ class CompanionInvariantTest {
         });
     }
 
-    // ── DRIFT (docs/fish-companions-drift.md §13) ─────────────────────────────────────────────
+    // ── DRIFT (docs/fish-companions-drift.md) ─────────────────────────────────────────────
     //
     // The bell (Phase 1: the shared drift core and the flapjack's style) × every owner script × the
     // same three seeds. Blocks, tail-first, the owner, visibility, keep-up and commitment are the
@@ -443,7 +443,7 @@ class CompanionInvariantTest {
     private static final Set<String> DRIFT_VISIBILITY_GAPS = Set.of("walk_turns", "sprint_stop", "forest", "teleport",
             "low_ceiling", "pond_dive", "wading", "creative_flight", "doorway", "elytra", "about_face", "stairwell",
             "jumping");
-    // The calm idle (docs/fish-companions-drift.md §13.7) shifted these tails. Equal-ground A/B over the
+    // The calm idle (docs/fish-companions-drift.md) shifted these tails. Equal-ground A/B over the
     // stop-and-go scripts was neutral (48 runs); these are single seeds of a chaotic system, named
     // rather than tuned against:
     //  - jumping (added above): longest unseen 25.6–29.1 s before, 18.7–44.9 s after (3 of 8 seeds
@@ -453,7 +453,7 @@ class CompanionInvariantTest {
     /**
      * camera_sweep: the owner turns the view away and back, and one seed in 16 leaves the bell out
      * of view for a sweep and a half: 34.1 s before §13.11 (seed 14), 34.6 s after (seed 3); median
-     * 20 s in both (docs/fish-companions-drift.md §13.12). Bound 36 s there.
+     * 20 s in both (docs/fish-companions-drift.md). Bound 36 s there.
      */
     private static final double DRIFT_CAMERA_SWEEP_UNSEEN = 36;
     /** The 1-wide tunnel: one seed in 8 grazes 50 times in 2 min (25/min; the rest 9–18). Bound 30/min. */
@@ -559,7 +559,7 @@ class CompanionInvariantTest {
     }
 
     /**
-     * The art never flips (docs/fish-companions-drift.md §13.9). Swinging back through upright, the
+     * The art never flips (docs/fish-companions-drift.md). Swinging back through upright, the
      * bell's lean swaps sides in a tick; drawn as the facing, that was a 180° flip of the flapjack
      * and the man o' war about once every six seconds. The facing now turns at a capped rate.
      */
@@ -584,7 +584,7 @@ class CompanionInvariantTest {
     }
 
     /**
-     * By a still owner it leans only somewhat (docs/fish-companions-drift.md §13.11). Showing off and
+     * By a still owner it leans only somewhat (docs/fish-companions-drift.md). Showing off and
      * leaving the centre of view were not idling, so the bell lay over past 60° on 17–19% of those
      * ticks (8 seeds). With the lean scaled by the asked speed, and no lean toward a level or
      * downward need, that is 0.

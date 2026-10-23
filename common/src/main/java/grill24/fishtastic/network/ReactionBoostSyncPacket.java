@@ -10,7 +10,7 @@ import net.minecraft.server.level.ServerPlayer;
 
 /**
  * Tells the invoking player's client how much faster cosmetic reaction clocks should run
- * (docs/fish-shelters.md §12.13): the fish simulation, and so every reaction, lives on the client.
+ * (docs/fish-shelters.md): the fish simulation, and so every reaction, lives on the client.
  * A dev setting, not persisted; round-tripped from {@code /fishtastic cosmetic reactionboost} to the
  * same player, like {@link TankInteriorLightSyncPacket}.
  */

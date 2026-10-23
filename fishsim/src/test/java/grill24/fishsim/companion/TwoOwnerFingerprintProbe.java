@@ -7,7 +7,7 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 /**
  * Diagnostic: one hash per two-owner pair × script × seed over every tick's bodies of both parties
- * (docs/fish-companions-party.md §28.3). Recorded before the cross-player scene goals land; with no
+ * (docs/fish-companions.md). Recorded before the cross-player scene goals land; with no
  * scene requested it must stay bitwise. Diff the output before and after. Run with -PsimStdout.
  */
 @EnabledIfSystemProperty(named = "simStdout", matches = "true")

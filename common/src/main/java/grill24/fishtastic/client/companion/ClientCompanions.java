@@ -32,8 +32,8 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Every companion fish the client can see (docs/fish-companions-sim-plan.md §3.5,
- * docs/fish-companions-party.md §3). Each tick it reads the synced party of every player in the
+ * Every companion fish the client can see (docs/fish-companions.md,
+ * docs/fish-companions.md). Each tick it reads the synced party of every player in the
  * client level ({@link CompanionStorage#party}), groups it ({@link PartyGrouping}, via
  * {@link CompanionGroups#members}) and keeps one {@link ClientCompanion} per group — created when a
  * player with a party comes into view, all rebuilt when their party changes, dropped when they leave

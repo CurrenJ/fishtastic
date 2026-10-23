@@ -9,7 +9,7 @@ import java.util.List;
 
 /**
  * Diagnostic: one hash per formation × script × seed over every member's position and heading, for
- * proving that groups built from explicit party members (docs/fish-companions-party.md §3) leave
+ * proving that groups built from explicit party members (docs/fish-companions.md) leave
  * today's benthic groups bitwise unchanged. {@link FingerprintProbe} covers the trio; this covers
  * the ground formations it never hashed. Run with -PsimStdout and diff the {@code FPG} lines.
  */

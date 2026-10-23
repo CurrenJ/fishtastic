@@ -3,7 +3,7 @@ package grill24.fishsim.companion;
 import java.util.List;
 
 /**
- * One owner's perches, shared by the party's perchers (docs/fish-companions-party.md §6.1, Phase
+ * One owner's perches, shared by the party's perchers (docs/fish-companions.md, Phase
  * 2d). Every percher has its own home; a transient move (shoulder-wander, a hand, cover, a climb)
  * takes a perch only if no party-mate calls it home, sits on it or is heading for it, or doesn't
  * happen. So a fade or a return always lands on the fish's own home, and that home is always free.

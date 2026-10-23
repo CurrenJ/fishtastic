@@ -80,7 +80,7 @@ public final class CombFrameGeometryGenerator {
 
     /**
      * A standalone edge-diagonal frame-beam fragment for {@code edge} — see the edge-diagonal frame
-     * beam fix design doc and {@code docs/tank-shapes/edge-diagonal-fix-remaining-shapes.md}'s
+     * beam fix design doc and {@code docs/fish-tanks.md}'s
      * tooth/film writeup. Unlike {@link TaperedFrameGeometryGenerator#generateEdgeFragment}'s single
      * uniform-width box, the comb family's near-cap "teeth" bands carry their own asymmetric
      * low/high pixels per row (e.g. tooth's row just above the waist is 1px on the low side but 2px

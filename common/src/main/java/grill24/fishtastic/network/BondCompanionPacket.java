@@ -10,7 +10,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * Sent CLIENT → SERVER to bond with a fish the player is carrying (docs/fish-companions-party.md
+ * Sent CLIENT → SERVER to bond with a fish the player is carrying (docs/fish-companions.md
  * §5.3). {@code fish} describes the fish the player picked; the server finds an identical one itself
  * ({@link Companions#bond}) — never an inventory index, and never trusted to exist. {@code slot} is
  * the party slot to fill, or {@link Companions#FIRST_EMPTY}; the server validates it.

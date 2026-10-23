@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * Tells the companion sim about client block changes, so the blocks its fish sampled round their
- * owner are resampled (docs/fish-companions-sim-plan.md §3.2: "dirty updates for block changes").
+ * owner are resampled (docs/fish-companions.md: "dirty updates for block changes").
  * PORT-ONLY: 1.21.1 has no placeholder mixin on LevelRenderer to extend, so this is the whole file.
  */
 @Mixin(LevelRenderer.class)

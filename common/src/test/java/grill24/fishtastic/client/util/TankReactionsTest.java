@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Every shipped reaction (docs/fish-shelters.md §12.13) reaches the engine as a trigger, through
+ * Every shipped reaction (docs/fish-shelters.md) reaches the engine as a trigger, through
  * every step a tank's shelters take: placed in the block frame, then moved into a lone tank's
  * turned frame or a group's. A step that rebuilt a shelter and dropped its trigger crashed world
  * load on the first tank holding a nose anchor.

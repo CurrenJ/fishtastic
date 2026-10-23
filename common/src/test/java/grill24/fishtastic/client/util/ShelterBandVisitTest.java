@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The shelters built for medium and large fish (docs/fish-shelters.md §12.9) are used by them in a
+ * The shelters built for medium and large fish (docs/fish-shelters.md) are used by them in a
  * running tank, with the structure's parts solid round them: a shoal of fish the size the shelter
  * was built for, in the group shape it needs, gets in. {@link ShelterSizeBandsTest} holds the fit
  * on paper; this holds that the fish get there (staging room, corridors, the obstacles).

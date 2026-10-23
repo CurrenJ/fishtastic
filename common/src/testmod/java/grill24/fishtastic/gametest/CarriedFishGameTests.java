@@ -11,7 +11,7 @@ import net.minecraft.world.item.ItemStack;
 import java.util.List;
 
 /**
- * The picker's grouping rule (docs/fish-companions.md §8.2): fish collapse into one row only when
+ * The picker's grouping rule (docs/fish-companions.md): fish collapse into one row only when
  * they are identical in <em>every</em> component — two bluegills of different sizes, or one with a
  * custom name, are separate rows — so "you get the exact fish back" holds for whichever row you
  * pick. Same rule the server's find uses, so the picker can never offer a row the server refuses.

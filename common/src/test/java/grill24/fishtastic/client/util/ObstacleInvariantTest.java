@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The obstacle invariant over every shipped cosmetic (docs/fish-shelters.md §12.3): a swimmer not
+ * The obstacle invariant over every shipped cosmetic (docs/fish-shelters.md): a swimmer not
  * using a shelter is never inside a solid obstacle box, the hard backstop never engages, and the
  * dynamics and stuck bounds the shelter matrix holds ({@code ShelterHullTest},
  * {@code ShelterVisitTest}) hold here too. Real structures through the real derivation and frame

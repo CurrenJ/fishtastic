@@ -101,12 +101,12 @@ public final class HeadlessRunner {
         int gifStart = Math.max(0, ticks - gifTicks);
 
         // The first fish to make a whole shelter visit, filmed from the start of its approach to
-        // the end of its exit (docs/fish-shelters.md §10) — a sheet to read, where the GIF is to
+        // the end of its exit (docs/fish-shelters.md) — a sheet to read, where the GIF is to
         // watch. Empty when the domain has no shelters or nobody visits.
         boolean watched = !watcher.equals("none");
         VisitFilm visit = new VisitFilm(engine.count(), watched, filmView);
         // The first lunge that sends the shoal every way at once: some dash for cover, the rest
-        // flinch (docs/fish-shelters.md §5.3.2).
+        // flinch (docs/fish-shelters.md).
         StartleFilm startle = new StartleFilm(engine.count());
         float watcherAt = 7.5f;
 

@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Adds the fish companion perch layer to every player renderer (docs/fish-companions.md §11).
+ * Adds the fish companion perch layer to every player renderer (docs/fish-companions.md).
  *
  * <p>Both player model variants go through this constructor. A common mixin rather than a loader
  * event so the registration is identical on both loaders. PORT-ONLY: 1.21.1 names the target

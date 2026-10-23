@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The glide model's own invariants (docs/fish-sim-locomotion.md §3.3) — the set that replaces
+ * The glide model's own invariants (docs/fish-sim-locomotion.md) — the set that replaces
  * {@code GLIDE}'s "never moves" row in {@link LocomotionTest} now that it has a motion model.
  *
  * <p>{@code GLIDE} is the planar swimmer model under {@link Tunables#GLIDE}, so what is worth

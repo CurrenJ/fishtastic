@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Lurkers (docs/fish-shelters.md §5.5): a claimed home that stays claimed, one lurker to a
+ * Lurkers (docs/fish-shelters.md): a claimed home that stays claimed, one lurker to a
  * shelter, a mouth pose that holds its place and faces out, and a home that costs everyone else
  * exactly one place.
  */

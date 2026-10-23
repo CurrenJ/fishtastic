@@ -11,7 +11,7 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import java.util.Random;
 
 /**
- * Throwaway measurement probe (docs/fish-tank-group-scaling.md §7) — step cost vs fish count,
+ * Throwaway measurement probe (docs/fish-tank-group-scaling.md) — step cost vs fish count,
  * brute force against the spatial index. Not a correctness test; skipped unless {@code -PsimStdout}
  * is passed, so it never slows the normal suite.
  */

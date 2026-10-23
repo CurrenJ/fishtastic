@@ -28,7 +28,7 @@ public final class FishtasticClientConfig {
     private static final String SHAPE_GALLERY_OPEN_KEY = "shapeGalleryOpen";
     private static final String ENCYCLOPEDIA_PORTRAIT_ANIMATIONS_KEY = "encyclopediaPortraitAnimations";
     private static final String REDUCED_CELEBRATION_EFFECTS_KEY = "reducedCelebrationEffects";
-    /** Don't draw other players' fish companions (docs/fish-companions.md §11 settings). */
+    /** Don't draw other players' fish companions (docs/fish-companions.md settings). */
     public static final String HIDE_OTHER_COMPANIONS_KEY = "hideOtherCompanions";
     /** Don't draw your own companion in first person. */
     public static final String HIDE_OWN_COMPANION_FIRST_PERSON_KEY = "hideOwnCompanionFirstPerson";
@@ -266,7 +266,7 @@ public final class FishtasticClientConfig {
         return encyclopediaPortraitAnimations;
     }
 
-    /** Persists the portrait pause toggle (docs/encyclopedia-redesign/bubbles/PLAN.md §4a) and caches it. */
+    /** Persists the portrait pause toggle (docs/encyclopedia-redesign/README.mda) and caches it. */
     public static void setEncyclopediaPortraitAnimations(boolean animate) {
         encyclopediaPortraitAnimations = animate;
         persist();

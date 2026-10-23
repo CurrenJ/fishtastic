@@ -54,7 +54,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * The companion playground (docs/fish-companions-sim-plan.md §4.3): walk an owner around a scene
+ * The companion playground (docs/fish-companions.md): walk an owner around a scene
  * with the keyboard and mouse and watch the fish decide what to do — in first person, as a player
  * would see it, beside a top-down map with its drives, goal and trail.
  *
@@ -70,7 +70,7 @@ import java.util.Set;
  *   G ground · P climb · B tumble · K hurt
  *   The terrain scenes (half_stairs, slab_path, terraces, trench, cliff, door_wall,
  *   benthic_park) and the ground owner scripts are in the dropdowns.
- *   The "PARTY ..." classes run a whole party (docs/fish-companions-party.md §6, PartyRun.PARTIES):
+ *   The "PARTY ..." classes run a whole party (docs/fish-companions.md, PartyRun.PARTIES):
  *   the overlay and dev keys follow the lead's unit, the others are drawn too (teal on the map).
  *   "mixed shoal" off groups them by the pre-D13 rule, on the same seed, for A/B.
  *   The "PAIR ..." classes run two owners' parties (§28.3, TwoOwnerRun.PAIRS) on a pair_* owner
@@ -108,7 +108,7 @@ public final class CompanionViewer {
     private Locomotion locomotion = Locomotion.FREE_SWIM;
     /** A benthic's ground gait and length (the class dropdown's crab, plaice, slug, spider crab). */
     private GroundGait gait = GroundGait.CRAWL;
-    /** A drifter's style (docs/fish-companions-drift.md §2): the class dropdown's flapjack, squid, man o' war. */
+    /** A drifter's style (docs/fish-companions-drift.md): the class dropdown's flapjack, squid, man o' war. */
     private grill24.fishsim.companion.DriftStyle driftStyle = grill24.fishsim.companion.DriftStyle.BELL;
     private float benthicLength = CompanionRun.lengthOf(Locomotion.BENTHIC);
     private boolean jumpNext;
@@ -144,7 +144,7 @@ public final class CompanionViewer {
     private grill24.fishsim.companion.BenthicGroup benthicGroup;
     private grill24.fishsim.companion.BenthicGroup.Formation benthicFormation;
     /**
-     * A party-built group's member lengths, leader first (docs/fish-companions-party.md §3), or null
+     * A party-built group's member lengths, leader first (docs/fish-companions.md), or null
      * for the old identical-member trio and benthic groups.
      */
     private float[] memberLengths;
@@ -686,7 +686,7 @@ public final class CompanionViewer {
         return out;
     }
 
-    /** Party-built groups (docs/fish-companions-party.md §3): same-species members of different sizes. */
+    /** Party-built groups (docs/fish-companions.md): same-species members of different sizes. */
     private static final String SCHOOL_MIXED = "SCHOOL bluegill 9/16/24 cm", SCHOOL_PAIR = "SCHOOL pair 16/24 cm",
             SCHOOL_BIG = "SCHOOL big 25/40/60 cm", STARFISH_PAIR = "BENTHIC starfish pair 30/45 cm",
             SLUG_CROWD_MIXED = "BENTHIC slug crowd 8/12/18 cm";

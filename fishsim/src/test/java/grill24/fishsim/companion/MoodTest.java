@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Phase 5 moods (docs/fish-companions-sim-plan.md §5, spec §6): the rules that read the ambient
+ * Phase 5 moods (docs/fish-companions.md, spec §6): the rules that read the ambient
  * against a species' habitat, the reactions they show, and the owner's bar that they stay subtle:
  * seen % and fades no worse than without them on equal seeds.
  */

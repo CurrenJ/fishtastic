@@ -26,7 +26,7 @@ import static grill24.fishtastic.client.encyclopedia.page.ScaledTooltip.line;
 
 /**
  * Lays out the info page on the fixed 416x232 canvas, in logical GUI pixels, following
- * docs/encyclopedia-redesign/mockups/render_mockups.py ({@code concept_a} / {@code catch_guide})
+ * docs/encyclopedia-redesign/README.md ({@code concept_a} / {@code catch_guide})
  * number for number. Everything static goes into one {@link PageSurface}; item icons and coins are
  * child elements above it; buttons and hover tooltips are {@link HitArea}s / {@link PageButton}s on
  * top. Build is cheap and pure, so the screen simply rebuilds the host whenever the model, the tab

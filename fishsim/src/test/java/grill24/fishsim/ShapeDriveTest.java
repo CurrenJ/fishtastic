@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The silhouette envelope that drives squash-and-stretch (docs/fish-sim-locomotion.md §3.6).
+ * The silhouette envelope that drives squash-and-stretch (docs/fish-sim-locomotion.md).
  *
  * <p>Everything here is plumbing rather than behaviour — the amplitude itself is an eye call, like
  * the {@code CRAWL_*} and {@code DRIFT_*} constants — but the plumbing has one genuinely

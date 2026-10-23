@@ -6,7 +6,7 @@ import java.util.Arrays;
 
 /**
  * Uniform-grid spatial index over the planar model's fish positions — the O(n²) → O(n) fix from
- * docs/fish-tank-group-scaling.md §5.2.
+ * docs/fish-tank-group-scaling.md.
  *
  * <p>Both of {@code stepFishPlanar}'s brute-force passes (species-aware separation with its
  * anticipatory extension, and {@code findNearestSwimmers}) are radius-limited, and §3.2 of that

@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The encyclopedia tier derivation (docs/fish-companions.md §9): a species' tier comes from its
+ * The encyclopedia tier derivation (docs/fish-companions.md): a species' tier comes from its
  * best share of base weight across the location pools it can be caught in, unlisted fish stay out
  * of the totals, and no species ever needs more than 50 catches of itself to complete its entry.
  */

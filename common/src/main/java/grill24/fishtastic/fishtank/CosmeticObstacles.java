@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.function.Predicate;
 
 /**
- * A structure's solid parts as the boxes fish steer round (docs/fish-shelters.md §12.3), in its
+ * A structure's solid parts as the boxes fish steer round (docs/fish-shelters.md), in its
  * own build grid, unrotated — the Minecraft half of {@link ObstacleGeometry}: it reads each part's
  * block shape and whether the part is {@link FishtasticBlockTags#SOFT_COSMETIC soft}.
  *
@@ -62,7 +62,7 @@ public final class CosmeticObstacles {
         return !of(structure).isEmpty();
     }
 
-    /** The groups that move for a gate a reaction locks: a portcullis's bars (docs/fish-shelters.md §12.13). */
+    /** The groups that move for a gate a reaction locks: a portcullis's bars (docs/fish-shelters.md). */
     public static java.util.Set<String> lockedGateDoors(CosmeticStructure structure) {
         java.util.Set<String> out = new java.util.HashSet<>();
         for (CosmeticReaction reaction : structure.reactions()) {

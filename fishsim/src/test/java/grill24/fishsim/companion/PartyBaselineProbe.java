@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Diagnostic (docs/fish-companions-party.md §6, §8; Phase 2 review): a mixed party run exactly as
+ * Diagnostic (docs/fish-companions.md, §8; Phase 2 review): a mixed party run exactly as
  * the game runs it today, with no party layer. Each group is its own unit, and each unit sees the
  * others' leaders as COMPANION points of interest (ClientCompanions). Every member is also run solo
  * on the same script and seed, so each measure is "in the party" against "alone".

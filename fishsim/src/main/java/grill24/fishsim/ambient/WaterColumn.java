@@ -15,7 +15,7 @@ import java.util.Arrays;
  *
  * <p>Immutable. {@link #truncated()} records that the scan hit its search bound while still in
  * water — i.e. the real water continues past what is known — which is what lets a domain mark a
- * face as artificial rather than as a bank (docs/fish-in-world-phase2.md).
+ * face as artificial rather than as a bank (docs/fish-in-world.md).
  */
 public final class WaterColumn {
 

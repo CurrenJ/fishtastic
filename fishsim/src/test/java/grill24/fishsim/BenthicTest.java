@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The floor walk's own invariants (docs/fish-sim-locomotion.md §6) — the set that replaces
+ * The floor walk's own invariants (docs/fish-sim-locomotion.md) — the set that replaces
  * {@code BENTHIC}'s "never moves" row in {@link LocomotionTest} now that it has a motion model.
  *
  * <p>The load-bearing one is {@link #crawlersNeverStandOnAnObstacle}: a crawler must be

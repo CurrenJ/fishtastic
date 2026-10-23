@@ -20,7 +20,7 @@ import java.util.Map;
 
 /**
  * One headless companion run: a scripted owner in a scene, an agent following them, and a
- * per-tick record the invariants and diagnostics are computed from (docs/fish-companions-sim-plan.md §4).
+ * per-tick record the invariants and diagnostics are computed from (docs/fish-companions.md).
  */
 public final class CompanionRun {
 
@@ -84,7 +84,7 @@ public final class CompanionRun {
         this(scriptName, seed, locomotion, length, Temperament.BASELINE, tunables, record, false);
     }
 
-    /** A benthic of a given size, temperament and ground gait (docs/fish-companions-benthic-follow.md). */
+    /** A benthic of a given size, temperament and ground gait (docs/fish-companions.md). */
     public static CompanionRun benthic(String scriptName, long seed, float length, Temperament temperament, GroundGait gait,
                                        CompanionTunables tunables, boolean record) {
         return new CompanionRun(scriptName, seed, Locomotion.BENTHIC, length, temperament, gait, tunables, record);
@@ -122,12 +122,12 @@ public final class CompanionRun {
     /** A typical rendered length for a trio member, blocks (a fish under 20 cm). */
     public static final float TRIO_LENGTH = 0.18f;
 
-    /** Party-built group member lengths, leader first, blocks (docs/fish-companions-party.md §3; true to scale). */
+    /** Party-built group member lengths, leader first, blocks (docs/fish-companions.md; true to scale). */
     public static final float[] SCHOOL_MIXED = {0.09f, 0.16f, 0.24f}, SCHOOL_PAIR = {0.16f, 0.24f},
             SCHOOL_BIG = {0.25f, 0.40f, 0.60f}, STARFISH_PAIR = {0.30f, 0.45f}, SLUG_CROWD_MIXED = {0.08f, 0.12f, 0.18f};
 
     /**
-     * A school built from explicit party members (docs/fish-companions-party.md §3): {@code
+     * A school built from explicit party members (docs/fish-companions.md): {@code
      * lengths[0]} is the leader's body length, the rest the followers'. Three equal lengths of
      * {@link #TRIO_LENGTH} are exactly {@link #trio}.
      */
@@ -148,7 +148,7 @@ public final class CompanionRun {
         this.agent = group.leader();
     }
 
-    /** A drifter of the given style (docs/fish-companions-drift.md §2). */
+    /** A drifter of the given style (docs/fish-companions-drift.md). */
     public static CompanionRun drifter(String scriptName, long seed, DriftStyle style, Temperament temperament,
                                        CompanionTunables tunables, boolean record) {
         return new CompanionRun(scriptName, seed, Locomotion.DRIFT, lengthOf(Locomotion.DRIFT), temperament, tunables,
@@ -175,7 +175,7 @@ public final class CompanionRun {
             this.agent = group.leader();
         } else {
             this.group = null;
-            // A benthic walks the ground (docs/fish-companions-benthic-follow.md), with the crawl.
+            // A benthic walks the ground (docs/fish-companions.md), with the crawl.
             this.agent = new CompanionAgent(tunables, seed, locomotion, length, temperament,
                     locomotion == Locomotion.BENTHIC ? GroundGait.CRAWL : null, driftStyle, world);
         }
@@ -356,7 +356,7 @@ public final class CompanionRun {
     public static final double STRAGGLE = 2.5;
 
     /**
-     * The school's formation shape over the recorded run (docs/fish-companions-party.md §8): spacing,
+     * The school's formation shape over the recorded run (docs/fish-companions.md): spacing,
      * overtakes, lag and contact, each with its rate. Null for a solo companion. A member counts on a
      * tick only when fully appeared.
      */
@@ -596,7 +596,7 @@ public final class CompanionRun {
 
     /**
      * Whether {@code s} is travelling more than 100° from its front: the heading for a swimmer, the
-     * bell's axis for a drifter. Per drift style (docs/fish-companions-drift.md §5), a {@code jet}
+     * bell's axis for a drifter. Per drift style (docs/fish-companions-drift.md), a {@code jet}
      * squid travelling mantle-first is going forwards: its reported axis points toward the mantle,
      * rather than the tentacles. Off-axis fin corrections can briefly travel across this axis.
      */
@@ -613,7 +613,7 @@ public final class CompanionRun {
         return front.dot(s.vel().normalize()) < -0.17;
     }
 
-    // ── Drifters (docs/fish-companions-drift.md §9) ────────────────────────────────────────────
+    // ── Drifters (docs/fish-companions-drift.md) ────────────────────────────────────────────
 
     /**
      * What a drifter's strokes did, each a level paired with a rate (a level alone can be met by a
@@ -647,7 +647,7 @@ public final class CompanionRun {
     }
 
     /**
-     * A drifter's body limits (docs/fish-companions-drift.md §13), the drift-aware stand-ins for the
+     * A drifter's body limits (docs/fish-companions-drift.md), the drift-aware stand-ins for the
      * swimmer's turn, facing and jerk checks, which are blind for a bell (its yaw holds the lean
      * direction, it has no turn rate, and every stroke's onset is a jerk by design). Over settled,
      * contact-free ticks: the most the bell's axis turned in a tick, degrees; the largest jerk while
@@ -688,7 +688,7 @@ public final class CompanionRun {
     }
 
     /**
-     * Coasting into the owner (docs/fish-companions-drift.md §13.8), over settled ticks: how often the
+     * Coasting into the owner (docs/fish-companions-drift.md), over settled ticks: how often the
      * fish's centre enters the owner's body capsule, per minute; how many of those entries come while
      * the owner is stopping (slower than 1 b/s within 3 s of having gone faster than 2.5 b/s — the
      * owner's "walk or sprint ahead and stop"); the deepest the fish's sphere reaches into the capsule,
@@ -875,7 +875,7 @@ public final class CompanionRun {
                 || goal.equals("GROUND_IDLE") || goal.equals("GROUND_FOLLOW");
     }
 
-    // ── On the ground (docs/fish-companions-benthic-follow.md section 7) ───────────────────────────
+    // ── On the ground (docs/fish-companions.md section 7) ───────────────────────────
 
     /**
      * What a benthic did on the ground.

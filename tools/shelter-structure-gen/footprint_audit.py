@@ -11,7 +11,7 @@ below PLANT_HEIGHT ("core-low": where a neighbouring plant would clip), and whet
     python tools/shelter-structure-gen/footprint_audit.py --apply name...     # write occupied_cells
 
 The generators (shelter-structure-gen, span-structure-gen) call with_occupied() on every export;
---apply is for hand-captured structures. docs/fish-shelters.md §12.10.
+--apply is for hand-captured structures. docs/fish-shelters.md.
 """
 import json
 import math

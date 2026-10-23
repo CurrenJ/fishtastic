@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * A scripted owner for headless runs (docs/fish-companions-sim-plan.md §4.1): a list of segments
+ * A scripted owner for headless runs (docs/fish-companions.md): a list of segments
  * (walk somewhere, wait, look around, teleport, fly) played in a loop by a simple {@link Pilot}.
  * The viewer drives the same pilot from the keyboard instead.
  */
@@ -25,7 +25,7 @@ public final class OwnerScript {
             "held_items", "hostile_approach", "cat_lounging", "item_drops", "companion_passes");
 
     /**
-     * Scripts for companions on the ground (docs/fish-companions-benthic-follow.md section 7, Phase 1):
+     * Scripts for companions on the ground (docs/fish-companions.md section 7, Phase 1):
      * terrain a walker has to get over, and travel it can't follow on foot. Kept apart from
      * {@link #NAMES} so the swimmers' table and fingerprints don't run them.
      */
@@ -39,7 +39,7 @@ public final class OwnerScript {
             "group_passers", "walk_backward", "climb_cycles");
 
     /**
-     * Two-owner scripts (docs/fish-companions-party.md §28.3), played by {@link #pair}: owner A
+     * Two-owner scripts (docs/fish-companions.md), played by {@link #pair}: owner A
      * starts where the swimmer scripts do, owner B somewhere around them. Kept apart from
      * {@link #NAMES} so no single-owner table or fingerprint runs them.
      */
@@ -581,7 +581,7 @@ public final class OwnerScript {
             case "stop_and_go" -> {
                 // Walking or sprinting on ahead of the fish and stopping, over and over, each leg
                 // bending at most 60° from the last, so the fish is always catching up from behind or
-                // to one side when the owner stops (docs/fish-companions-drift.md §13.8). Kept out of
+                // to one side when the owner stops (docs/fish-companions-drift.md). Kept out of
                 // NAMES: the swimmers' tables and fingerprints don't run it.
                 double x = 0.5, z = 0.5, a = 0;
                 for (int i = 0; i < 24; i++) {

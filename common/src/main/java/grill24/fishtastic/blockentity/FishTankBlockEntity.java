@@ -1301,7 +1301,7 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
      * Removes one unit of the single-cell cosmetic at {@code cell} — one sea pickle, one kelp
      * segment, or the whole cosmetic for anything else — and returns the item that should be
      * given back to the player, or {@link ItemStack#EMPTY} if the cell held nothing. Mirrors the
-     * old edit-mode removal branch's per-unit behavior (see docs/fish-tank-interaction-redesign.md).
+     * old edit-mode removal branch's per-unit behavior (see docs/fish-tanks.md).
      */
     public ItemStack removeCosmeticEntry(CosmeticGridCell cell) {
         PlacedCosmetic existing = cosmetics.get(cell);

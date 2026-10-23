@@ -5,7 +5,7 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 
 /**
- * The pet-to-pet scenes of v1 (docs/fish-companions.md §10): G1 (two companions of the same
+ * The pet-to-pet scenes of v1 (docs/fish-companions.md): G1 (two companions of the same
  * species loop together, with a bubble heart) and G2 (two free swimmers fly a figure-eight around
  * both owners, one lobe centred on each). The server picks one — see
  * {@code CompanionSceneManager} — and names it in a {@code CompanionScenePacket}; every client

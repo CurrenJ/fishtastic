@@ -1,7 +1,7 @@
 package grill24.fishsim.companion;
 
 /**
- * What a benthic companion on the ground decides (docs/fish-companions-benthic-follow.md §3, §6):
+ * What a benthic companion on the ground decides (docs/fish-companions.md, §6):
  * idle round its owner's feet, follow them, or catch up — and when it can't, ask for the fade
  * onto its perch.
  *

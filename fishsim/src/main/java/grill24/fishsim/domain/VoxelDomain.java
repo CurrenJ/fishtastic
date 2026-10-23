@@ -112,7 +112,7 @@ public final class VoxelDomain implements FlockDomain {
      * Rebuilds just the floor. It is the one part of a domain that changes without membership
      * changing — a player placing a cosmetic moves no tanks — and rebuilding the whole domain for
      * that would re-incur the distance-field cost the shared per-epoch cache exists to avoid
-     * (docs/fish-tank-group-scaling.md §5.3a). The floor is a cheap 2D pass over the same
+     * (docs/fish-tank-group-scaling.mda). The floor is a cheap 2D pass over the same
      * occupancy, so it is recomputed in place instead.
      */
     public void rebuildFloor(float floorSurfaceOffset, boolean[] blockedFloorCells) {
@@ -125,7 +125,7 @@ public final class VoxelDomain implements FlockDomain {
     /**
      * Replaces the shelters. Like the floor, they change whenever a cosmetic moves and membership
      * does not, so they are swapped in place on the same cosmetic fingerprint rather than costing
-     * a new domain (docs/fish-shelters.md §2).
+     * a new domain (docs/fish-shelters.md).
      */
     public void rebuildShelters(List<Shelter> shelters) {
         this.shelters = List.copyOf(shelters);
@@ -162,7 +162,7 @@ public final class VoxelDomain implements FlockDomain {
         // KNOWN DEFECT, deliberately left in place: marginVertical is accepted and ignored, so
         // `margin` applies on all three axes where FlockDomain.Box gives the vertical its own,
         // much narrower zone (0.20 vs 0.05 at the GROUP tunables). Noted in
-        // docs/fish-tank-group-scaling.md §1 and attempted with the rest of that document's fixes.
+        // docs/fish-tank-group-scaling.md and attempted with the rest of that document's fixes.
         //
         // It is not the one-line fix it looks like. Scaling the ramp by the gradient's verticality
         // (a vertical face keeps `margin`, a floor or ceiling gets `marginVertical`, corners blend)

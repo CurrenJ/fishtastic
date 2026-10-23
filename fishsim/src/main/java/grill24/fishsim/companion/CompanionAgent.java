@@ -4,7 +4,7 @@ import grill24.fishsim.core.Locomotion;
 
 /**
  * One companion fish: a {@link Mind} that decides, a {@link Body} that swims, and the blocks
- * around its owner (docs/fish-companions-sim-plan.md §3).
+ * around its owner (docs/fish-companions.md).
  *
  * <p>Fixed 20 Hz {@link #step}; {@link #interpolate} is the only per-frame call and never changes
  * simulation state. Fully deterministic for a given seed and input sequence.
@@ -109,7 +109,7 @@ public final class CompanionAgent {
     public CompanionAgent(CompanionTunables t, long seed, Locomotion locomotion, float length, Temperament temperament,
                           CompanionWorld world) {
         // No gait: a benthic rides its perch on land as in Phase 3 (the game's path until the
-        // adapter supplies a gait in Phase 5, docs/fish-companions-benthic-follow.md §8).
+        // adapter supplies a gait in Phase 5, docs/fish-companions.md).
         this(t, seed, locomotion, length, temperament, null, world);
     }
 
@@ -126,7 +126,7 @@ public final class CompanionAgent {
     }
 
     /**
-     * @param driftStyle how a drifter propels itself (docs/fish-companions-drift.md §2); ignored for
+     * @param driftStyle how a drifter propels itself (docs/fish-companions-drift.md); ignored for
      *                   other classes
      */
     public CompanionAgent(CompanionTunables t, long seed, Locomotion locomotion, float length, Temperament temperament,
@@ -158,7 +158,7 @@ public final class CompanionAgent {
         if (locomotion == Locomotion.BENTHIC || locomotion == Locomotion.ANCHORED) {
             Body swim = new Body(t, Locomotion.FREE_SWIM, start, owner.yawDeg(), radius, seed ^ 0x5DEECE66DL);
             if (locomotion == Locomotion.BENTHIC && gait != null) {
-                // On land a benthic lives on the ground (docs/fish-companions-benthic-follow.md).
+                // On land a benthic lives on the ground (docs/fish-companions.md).
                 GroundBody ground = new GroundBody(locomotion, gait, start, owner.yawDeg(), radius, length,
                         seed ^ 0x2545F4914F6CDD1DL);
                 GroundMind gmind = new GroundMind(footCrumbs, ground, seed ^ 0x6A09E667F3BCC909L);

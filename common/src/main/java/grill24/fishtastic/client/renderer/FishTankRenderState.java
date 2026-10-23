@@ -49,7 +49,7 @@ public class FishTankRenderState {
     public float spanScale = 1f;
     /** Multi-block structure cosmetics, keyed by their anchor cell. */
     public Map<CosmeticGridCell, ResolvedStructureCosmetic> structureCosmetics = Collections.emptyMap();
-    /** Per structure under way, how open each of its reactions is this frame (docs/fish-shelters.md §12.13). */
+    /** Per structure under way, how open each of its reactions is this frame (docs/fish-shelters.md). */
     public Map<CosmeticGridCell, float[]> reactionOpenness = Collections.emptyMap();
     /**
      * The per-tank flock simulation driving this frame's fish. Attached in snapshot and read by

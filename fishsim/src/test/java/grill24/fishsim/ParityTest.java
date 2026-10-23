@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 /**
- * Task 3's gate (docs/fish-sim-engine-handoff.md): {@link FlockEngine} must produce
+ * Task 3's gate (docs/fish-sim-engine-plan.md): {@link FlockEngine} must produce
  * <b>bitwise-identical</b> trajectories to {@link LegacyStepReference} — the frozen copy of the
  * pre-extraction float math — across a matrix of fish counts, seeds, and swarm parameters.
  * Equality is asserted on raw float bits, not within an epsilon: any reassociated expression or

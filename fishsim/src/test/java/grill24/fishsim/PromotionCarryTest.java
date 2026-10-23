@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A lone tank that gains a shelter and a fish that uses it switches its own engine from the
- * binary model to the planar one (docs/fish-shelters.md §7), and back when either half goes. The
+ * binary model to the planar one (docs/fish-shelters.md), and back when either half goes. The
  * switch must not move a fish: the host keeps the engine's turned frame across it precisely so
  * that {@code rebuildPreserving} can carry every fish where it is. A teleporting shoal the moment
  * a log is placed is the failure this guards.

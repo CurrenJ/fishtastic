@@ -8,7 +8,7 @@ The skull is sculpted in its own frame (u east, v up, w toward the face) as a sm
 anatomical masses, carved, then rolled onto one cheek and voxelised. Shelters are boxes in the
 build grid, laid over the rolled skull afterwards, so they stay exact to the cell.
 
-What fish do with it (docs/fish-shelters.md §12.9, §12.13):
+What fish do with it (docs/fish-shelters.md, §12.13):
 - the temple tunnel (hollow, two mouths): in at one temple, out the other, behind the eyes. A
   tunnel, so untagged fish pass straight through and visitors linger. The dark left orbit opens
   into it: a window from the front, and a third mouth for a tank group that runs front to back;
