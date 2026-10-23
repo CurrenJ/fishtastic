@@ -1,0 +1,20 @@
+{
+  "render_calibration": 0.8,
+  "base_weight": 2,
+  "size": { "mean": 85.0, "std_dev": 15.0 },
+  "zones": [
+    "deep_ocean"
+  ],
+  "biome_weights": [
+    { "biome": ["minecraft:deep_lukewarm_ocean", "minecraft:deep_ocean"], "multiplier": 1.5 }
+  ],
+  "time_weights": [
+    { "time": "night", "multiplier": 1.75 },
+    { "time": "day", "multiplier": 0.4 }
+  ],
+  "moon_weights": [
+    { "phase": "new_moon", "multiplier": 1.2, "tier": "secondary" }
+  ],
+  "temperament": "fishtastic:ghost",
+  "swarm": { "shelter": "lurker" }
+}
