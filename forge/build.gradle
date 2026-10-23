@@ -222,7 +222,7 @@ tasks.named('sourcesJar').configure {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
-tasks.matching { it.name in ['runClient', 'runServer'] }.configureEach {
+tasks.matching { it.name in ['runClient', 'runServer', 'runGametest'] }.configureEach {
     dependsOn forgeCommonJar
 }
 

@@ -22,6 +22,8 @@ public class QuestClientCache {
     private static int tokenBalance = 0;
     private static Map<Identifier, Integer> purchaseCounts = new HashMap<>();
     private static int shopRefreshCount = 0;
+    private static int shopRefreshNonce = 0;
+    private static boolean freeShopRerollAvailable = true;
     private static CleanupGoalProgress cleanupGoal = CleanupGoalProgress.EMPTY;
     private static Set<Identifier> unlockedCompanions = new HashSet<>();
     private static boolean isInitialSync = true;
@@ -101,7 +103,7 @@ public class QuestClientCache {
                               Map<Identifier, ItemStack> triggeringItems,
                               Map<Identifier, Integer> newPurchaseCounts) {
         update(progress, tokens, triggeringItems, newPurchaseCounts, CleanupGoalProgress.EMPTY, -1L,
-                ItemStack.EMPTY, List.of(), 0, List.of(), List.of());
+                ItemStack.EMPTY, List.of(), 0, 0, true, List.of(), List.of());
     }
 
     public static void update(Map<Identifier, PlayerQuestState.QuestProgress> progress, int tokens,
@@ -112,6 +114,8 @@ public class QuestClientCache {
                               ItemStack baitDepletedItem,
                               List<ItemStack> firstCatchItems,
                               int newShopRefreshCount,
+                              int newShopRefreshNonce,
+                              boolean newFreeShopRerollAvailable,
                               List<Identifier> newUnlockedCompanions,
                               List<Identifier> newlyUnlockedCompanions) {
         // Diff old vs new and fire listener only for quests explicitly flagged for notification
@@ -157,6 +161,8 @@ public class QuestClientCache {
         tokenBalance = tokens;
         purchaseCounts = new HashMap<>(newPurchaseCounts);
         shopRefreshCount = newShopRefreshCount;
+        shopRefreshNonce = newShopRefreshNonce;
+        freeShopRerollAvailable = newFreeShopRerollAvailable;
         cleanupGoal = newCleanupGoal;
         unlockedCompanions = new LinkedHashSet<>(newUnlockedCompanions);
         if (serverGameTime >= 0) {
@@ -168,13 +174,13 @@ public class QuestClientCache {
     public static void update(Map<Identifier, PlayerQuestState.QuestProgress> progress, int tokens,
                               Map<Identifier, ItemStack> triggeringItems) {
         update(progress, tokens, triggeringItems, Map.of(), CleanupGoalProgress.EMPTY, -1L,
-                ItemStack.EMPTY, List.of(), 0, List.of(), List.of());
+                ItemStack.EMPTY, List.of(), 0, 0, true, List.of(), List.of());
     }
 
     /** Backward-compatible overload for callers that don't have triggering items. */
     public static void update(Map<Identifier, PlayerQuestState.QuestProgress> progress, int tokens) {
         update(progress, tokens, Map.of(), Map.of(), CleanupGoalProgress.EMPTY, -1L,
-                ItemStack.EMPTY, List.of(), 0, List.of(), List.of());
+                ItemStack.EMPTY, List.of(), 0, 0, true, List.of(), List.of());
     }
 
     /** Whether the server has this player's bond for {@code species} unlocked. */
@@ -220,6 +226,14 @@ public class QuestClientCache {
         return shopRefreshCount;
     }
 
+    public static int getShopRefreshNonce() {
+        return shopRefreshNonce;
+    }
+
+    public static boolean isFreeShopRerollAvailable() {
+        return freeShopRerollAvailable;
+    }
+
     /** Estimated server overworld game time right now, or -1 if no sync has carried one yet. */
     private static long estimatedServerGameTime() {
         if (syncedServerGameTime < 0) return -1;
@@ -239,6 +253,8 @@ public class QuestClientCache {
         tokenBalance = 0;
         purchaseCounts = new HashMap<>();
         shopRefreshCount = 0;
+        shopRefreshNonce = 0;
+        freeShopRerollAvailable = true;
         cleanupGoal = CleanupGoalProgress.EMPTY;
         unlockedCompanions = new HashSet<>();
         isInitialSync = true;

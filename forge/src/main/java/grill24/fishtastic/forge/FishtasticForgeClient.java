@@ -255,7 +255,8 @@ public final class FishtasticForgeClient {
                 grill24.fishtastic.client.QuestClientCache.update(packet.questProgress(), packet.tokenBalance(),
                         packet.triggeringItems(), packet.purchaseCounts(), packet.cleanupGoal(),
                         packet.serverGameTime(), packet.baitDepletedItem(), packet.firstCatchItems(),
-                        packet.shopRefreshCount(), packet.unlockedCompanions(), packet.newlyUnlockedCompanions()));
+                        packet.shopRefreshCount(), packet.shopRefreshNonce(), packet.freeShopRerollAvailable(),
+                        packet.unlockedCompanions(), packet.newlyUnlockedCompanions()));
         grill24.fishtastic.network.TutorialSyncPacket.registerClientHandler(
                 grill24.fishtastic.client.TutorialClientHandler.PACKET_HANDLER);
         grill24.fishtastic.network.EncyclopediaTutorialSyncPacket.registerClientHandler(

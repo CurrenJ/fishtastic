@@ -1,6 +1,7 @@
 package grill24.fishtastic.forge.gametest;
 
 import com.mojang.serialization.MapCodec;
+import grill24.fishtastic.gametest.GameTestSelection;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.WritableRegistry;
@@ -35,6 +36,9 @@ public final class ForgeGameTestRegistration {
     public static void registerIntoRegistry(WritableRegistry<GameTestInstance> registry) {
         Map<Identifier, ForgeGameTestHooks.TestReference> gathered =
                 ForgeGameTestHooks.gatherTests(ForgeFishtasticGameTests.class, null);
+        if (GameTestSelection.hasFilter()) {
+            gathered.entrySet().removeIf(entry -> !GameTestSelection.matches(entry.getKey().getPath()));
+        }
 
         Map<ResourceKey<GameTestInstance>, GameTestInstance> instances = new LinkedHashMap<>();
         Holder<TestEnvironmentDefinition<?>> environment =

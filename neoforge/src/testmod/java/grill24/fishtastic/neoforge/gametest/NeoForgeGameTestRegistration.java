@@ -26,6 +26,7 @@ import grill24.fishtastic.gametest.PacketRoundTripGameTests;
 import grill24.fishtastic.gametest.PlayerQuestStateGameTests;
 import grill24.fishtastic.gametest.QuestTrackerGameTests;
 import grill24.fishtastic.gametest.FishTankAssemblyRefitGameTests;
+import grill24.fishtastic.gametest.GameTestSelection;
 import grill24.fishtastic.gametest.CarriedFishGameTests;
 import grill24.fishtastic.gametest.CompanionBondGameTests;
 import grill24.fishtastic.gametest.CompanionGroupsGameTests;
@@ -644,6 +645,8 @@ public class NeoForgeGameTestRegistration {
         // ----- ShopEntry tests -----
         register(event, env, "get_active_daily_shop_is_stable_per_day", 200,
             ShopEntryGameTests::getActiveDailyShopIsStablePerDay);
+        register(event, env, "shop_reroll_interaction_grants_one_free_use_per_day_and_escalates_paid_costs", 200,
+            ShopEntryGameTests::shopRerollInteractionGrantsOneFreeUsePerDayAndEscalatesPaidCosts);
         register(event, env, "get_active_daily_shop_never_exceeds_cap", 200,
             ShopEntryGameTests::getActiveDailyShopNeverExceedsCap);
         register(event, env, "get_active_daily_shop_caps_at_registry_size_when_smaller_than_count", 200,
@@ -931,6 +934,7 @@ public class NeoForgeGameTestRegistration {
         int maxTicks,
         Consumer<GameTestHelper> test
     ) {
+        if (!GameTestSelection.matches(name)) return;
         TestData<Holder<TestEnvironmentDefinition<?>>> data =
             new TestData<>(env, EMPTY_STRUCTURE, maxTicks, 0, true);
         event.registerTest(

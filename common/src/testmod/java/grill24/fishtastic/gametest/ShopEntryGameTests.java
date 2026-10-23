@@ -5,6 +5,8 @@ import com.mojang.serialization.JsonOps;
 import com.mojang.serialization.Lifecycle;
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.data.ShopEntry;
+import grill24.fishtastic.network.RefreshShopPacket;
+import grill24.fishtastic.server.PlayerQuestState;
 import grill24.fishtastic.network.PurchaseShopEntryPacket;
 import grill24.fishtastic.util.Ids;
 import net.minecraft.core.BlockPos;
@@ -109,6 +111,62 @@ public final class ShopEntryGameTests {
         Set<ResourceKey<ShopEntry>> second = ShopEntry.getActiveDailyShop(registry, 42L);
 
         helper.assertTrue(first.equals(second), "getActiveDailyShop must be deterministic for the same day");
+        helper.succeed();
+    }
+
+    /** Exercises the server action behind the shop's reroll button, including the resulting draw. */
+    public static void shopRerollInteractionGrantsOneFreeUsePerDayAndEscalatesPaidCosts(GameTestHelper helper) {
+        Registry<ShopEntry> registry = buildRegistry(32);
+        PlayerQuestState state = new PlayerQuestState();
+        long day = 42L;
+        int startingBalance = state.getTokenBalance();
+        Set<ResourceKey<ShopEntry>> originalDraw =
+            ShopEntry.getActiveDailyShop(registry, day, state.getShopRefreshNonce());
+
+        helper.assertTrue("success".equals(RefreshShopPacket.applyReroll(state, day)),
+            "The first reroll request of the day must succeed for free");
+        helper.assertTrue(state.getTokenBalance() == startingBalance,
+            "The free reroll must not deduct tokens");
+        helper.assertTrue(!state.isFreeShopRerollAvailable(),
+            "The free reroll must be consumed after a successful request");
+        helper.assertTrue(state.getShopRefreshCount() == 0 && state.getShopRefreshNonce() == 1,
+            "The free reroll must advance the draw nonce without counting as a paid reroll");
+        Set<ResourceKey<ShopEntry>> freeDraw =
+            ShopEntry.getActiveDailyShop(registry, day, state.getShopRefreshNonce());
+        helper.assertTrue(!freeDraw.equals(originalDraw),
+            "The free reroll must change the active shop draw");
+
+        helper.assertTrue("insufficient_tokens".equals(RefreshShopPacket.applyReroll(state, day)),
+            "A second reroll must be rejected when the player cannot afford the first paid price");
+        helper.assertTrue(state.getTokenBalance() == startingBalance && state.getShopRefreshCount() == 0
+                && state.getShopRefreshNonce() == 1,
+            "A rejected paid reroll must leave the balance and active draw unchanged");
+
+        state.setTokenBalance(200);
+        helper.assertTrue("success".equals(RefreshShopPacket.applyReroll(state, day)),
+            "The first paid reroll must succeed when the player has 25 tokens");
+        helper.assertTrue(state.getTokenBalance() == 175 && state.getShopRefreshCount() == 1
+                && state.getShopRefreshNonce() == 2,
+            "The first paid reroll must charge 25 tokens and advance the paid count and draw nonce");
+        Set<ResourceKey<ShopEntry>> firstPaidDraw =
+            ShopEntry.getActiveDailyShop(registry, day, state.getShopRefreshNonce());
+        helper.assertTrue(!firstPaidDraw.equals(freeDraw),
+            "The first paid reroll must change the active shop draw");
+
+        helper.assertTrue("success".equals(RefreshShopPacket.applyReroll(state, day)),
+            "The second paid reroll must succeed when the player can afford its escalated price");
+        helper.assertTrue(state.getTokenBalance() == 125 && state.getShopRefreshCount() == 2
+                && state.getShopRefreshNonce() == 3,
+            "The second paid reroll must charge 50 tokens and advance the draw nonce");
+
+        helper.assertTrue("success".equals(RefreshShopPacket.applyReroll(state, day + 1)),
+            "The next in-game day must grant a new free reroll");
+        helper.assertTrue(state.getTokenBalance() == 125 && state.getShopRefreshCount() == 0
+                && state.getShopRefreshNonce() == 1 && !state.isFreeShopRerollAvailable(),
+            "A new day must reset paid escalation and the draw nonce before consuming its free reroll");
+        helper.assertTrue(!ShopEntry.getActiveDailyShop(registry, day + 1, 0)
+                .equals(ShopEntry.getActiveDailyShop(registry, day + 1, state.getShopRefreshNonce())),
+            "The new day's free reroll must change that day's active shop draw");
         helper.succeed();
     }
 

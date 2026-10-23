@@ -16,7 +16,7 @@ import java.util.WeakHashMap;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-/** Correlated, authoritative receipt for quest claims, purchases and paid rerolls. */
+/** Correlated, authoritative receipt for quest claims, purchases and shop rerolls. */
 public record QuestActionResultPacket(long requestId, String action, Identifier target, String result) implements CustomPacketPayload {
     public static final Type<QuestActionResultPacket> TYPE = new Type<>(Fishtastic.id("quest_action_result"));
     public static final StreamCodec<RegistryFriendlyByteBuf, QuestActionResultPacket> STREAM_CODEC = StreamCodec.composite(

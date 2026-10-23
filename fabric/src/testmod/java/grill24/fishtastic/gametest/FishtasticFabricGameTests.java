@@ -1369,6 +1369,11 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void shopRerollInteractionGrantsOneFreeUsePerDayAndEscalatesPaidCosts(GameTestHelper helper) {
+        ShopEntryGameTests.shopRerollInteractionGrantsOneFreeUsePerDayAndEscalatesPaidCosts(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void getActiveDailyShopNeverExceedsCap(GameTestHelper helper) {
         ShopEntryGameTests.getActiveDailyShopNeverExceedsCap(helper);
     }

@@ -192,9 +192,10 @@ for server validation.
 
 The implemented [quest-book interaction contract](quest-log-redesign/design-spec.md) uses
 labelled navigation, readable objective rows, category-local Ready filters, inline Claim,
-one expanded row with an inline species/silhouette grid for collection quests. Market exposes affordability and paid
-reroll costs; Cleanup explains automatic cycle payouts and keeps personal contribution visible.
-These are design requirements, not implemented screen behavior. The gallery includes a
+one expanded row with an inline species/silhouette grid for collection quests. Market offers
+one free reroll per in-game day, then exposes affordability and escalating paid reroll costs;
+Cleanup explains automatic cycle payouts and keeps personal contribution visible.
+Remaining interaction details are tracked in the design contract. The gallery includes a
 content-matched comparison with the current live capture and static edge-case fixtures.
 
 ---

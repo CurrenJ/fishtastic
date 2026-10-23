@@ -1333,6 +1333,11 @@ public class ForgeFishtasticGameTests {
     }
 
     @GameTest(structure = "fishtastic:empty_testarea")
+    public static void shopRerollInteractionGrantsOneFreeUsePerDayAndEscalatesPaidCosts(GameTestHelper helper) {
+        ShopEntryGameTests.shopRerollInteractionGrantsOneFreeUsePerDayAndEscalatesPaidCosts(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
     public static void getActiveDailyShopNeverExceedsCap(GameTestHelper helper) {
         ShopEntryGameTests.getActiveDailyShopNeverExceedsCap(helper);
     }

@@ -10,7 +10,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
-/** Sent when the player clicks the shop's refresh button to spend tokens rerolling today's active entries. */
+/** Sent when the player clicks the shop's refresh button to reroll today's active entries. */
 public record RefreshShopPacket(long requestId) implements CustomPacketPayload {
 
     public RefreshShopPacket() { this(0); }
@@ -37,15 +37,20 @@ public record RefreshShopPacket(long requestId) implements CustomPacketPayload {
             QuestActionResultPacket.respond(serverPlayer, packet.requestId(), "reroll", grill24.fishtastic.Fishtastic.id("market"), () -> {
             FishCatchSavedData data = FishCatchSavedData.getOrCreate(server);
             PlayerQuestState state = data.getOrCreateQuestState(serverPlayer);
-
-            state.resetDailyPurchasesIfNeeded(server.overworld().getGameTime() / 24000L);
-            // Price is read from the player's current reroll count, so the server — not the
-            // client's rendered label — decides what this reroll costs.
-            if (!state.refreshShop(ShopEntry.refreshCost(state.getShopRefreshCount()))) return "insufficient_tokens";
-
+            String result = applyReroll(state, server.overworld().getGameTime() / 24000L);
+            if (!"success".equals(result)) return result;
             data.setDirty();
-            return "success";
+            return result;
             });
         });
+    }
+
+    /** Applies the authoritative shop-button action; shared with GameTests for interaction coverage. */
+    public static String applyReroll(PlayerQuestState state, long currentDay) {
+        state.resetDailyPurchasesIfNeeded(currentDay);
+        // Price is read from the player's current reroll count, so the server — not the
+        // client's rendered label — decides what this reroll costs.
+        if (!state.refreshShop(ShopEntry.refreshCost(state.getShopRefreshCount()))) return "insufficient_tokens";
+        return "success";
     }
 }
