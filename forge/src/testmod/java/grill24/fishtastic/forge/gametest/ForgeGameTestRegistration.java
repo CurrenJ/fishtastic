@@ -2,6 +2,7 @@ package grill24.fishtastic.forge.gametest;
 
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.gametest.FishtasticGameTests;
+import grill24.fishtastic.gametest.GameTestSelection;
 import grill24.fishtastic.gametest.FishtasticTestSupport;
 import net.minecraftforge.event.RegisterGameTestsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -27,6 +28,11 @@ public final class ForgeGameTestRegistration {
     public static void onRegisterGameTests(RegisterGameTestsEvent event) {
         FishtasticTestSupport.installPlayerFactory(ForgeTestPlayers::create);
         FishtasticTestSupport.installRespawnHandoff((before, after) -> after.restoreFrom(before, false));
-        event.register(FishtasticGameTests.class);
+        if (!GameTestSelection.hasFilter()) {
+            event.register(FishtasticGameTests.class);
+        } else if (GameTestSelection.matches(
+                "shopRerollInteractionGrantsOneFreeUsePerDayAndEscalatesPaidCosts")) {
+            event.register(ForgeShopRerollGameTests.class);
+        }
     }
 }

@@ -181,6 +181,10 @@ Quest Tokens are the single currency for cosmetic purchases. They do **not** pur
 
 Tokens are spent in a dedicated Quest Shop UI (accessed from the Quest Log, or a block — TBD). Purchasable cosmetics: rod skins (texture-only, no stats), exclusive tank frames, background overlays, leaderboard profile badges.
 
+The shop grants one free reroll per in-game day. Further rerolls that day cost Quest Tokens, with
+the paid price escalating independently of the free use. The free-use allowance and shop draw reset
+with the daily purchase rotation.
+
 ---
 
 ## UI

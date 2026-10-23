@@ -43,7 +43,7 @@ public record ShopEntry(
         List<ResourceKey<Quest>> unlockQuests
 ) {
     public static final int DAILY_SHOP_COUNT = 4;
-    /** Cost of the first reroll in a rotation — see {@link #refreshCost(int)}. */
+    /** Cost of the first paid reroll after the daily free use — see {@link #refreshCost(int)}. */
     public static final int SHOP_REFRESH_BASE_COST = 25;
     /** Doublings applied to {@link #SHOP_REFRESH_BASE_COST} before the price stops climbing (25 → 200). */
     public static final int SHOP_REFRESH_MAX_DOUBLINGS = 3;
@@ -181,7 +181,7 @@ public record ShopEntry(
 
     /**
      * Same as {@link #getActiveDailyShop(Registry, long)}, but mixes in a per-player
-     * {@code refreshNonce} (see {@link grill24.fishtastic.server.PlayerQuestState#getShopRefreshCount()})
+     * {@code refreshNonce} (see {@link grill24.fishtastic.server.PlayerQuestState#getShopRefreshNonce()})
      * so a manual reroll changes the drawn set without waiting for the next in-game day.
      */
     public static Set<ResourceKey<ShopEntry>> getActiveDailyShop(Registry<ShopEntry> registry, long currentDay, int refreshNonce) {

@@ -67,7 +67,7 @@ public record PurchaseShopEntryPacket(ResourceLocation entryId, long requestId) 
             // Re-derive the draw with this player's unlocks so a gated capstone entry can't be
             // bought by anyone who hasn't claimed the quest that unlocks it, whatever the client sent.
             Set<ResourceKey<ShopEntry>> activeToday = ShopEntry.getActiveDailyShop(
-                    shopRegistry, currentDay, state.getShopRefreshCount(),
+                    shopRegistry, currentDay, state.getShopRefreshNonce(),
                     questKey -> state.getProgress(questKey).claimed());
             if (!activeToday.contains(entryKey)) return "expired";
 

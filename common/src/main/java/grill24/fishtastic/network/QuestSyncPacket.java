@@ -24,10 +24,20 @@ public record QuestSyncPacket(
         long serverGameTime,
         ItemStack baitDepletedItem,
         List<ItemStack> firstCatchItems,
-        int shopRefreshCount,
+        ShopRerollState shopRerollState,
         List<ResourceLocation> unlockedCompanions,
         List<ResourceLocation> newlyUnlockedCompanions
 ) implements FishtasticPayload {
+
+    /** Keeps the 1.20.1 payload's fixed-arity codec compact while syncing paid pricing and free use. */
+    public record ShopRerollState(int paidRerollCount, int refreshNonce, boolean freeRerollAvailable) {
+        public static final BufCodec<ShopRerollState> STREAM_CODEC = BufCodec.composite(
+                BufCodecs.VAR_INT, ShopRerollState::paidRerollCount,
+                BufCodecs.VAR_INT, ShopRerollState::refreshNonce,
+                BufCodecs.BOOL, ShopRerollState::freeRerollAvailable,
+                ShopRerollState::new
+        );
+    }
 
     public static final FishtasticPayload.PayloadType<QuestSyncPacket> TYPE =
             new FishtasticPayload.PayloadType<>(FishtasticPackets.QUEST_SYNC_ID);
@@ -50,8 +60,8 @@ public record QuestSyncPacket(
                     QuestSyncPacket::baitDepletedItem,
                     BufCodecs.ITEM_STACK.apply(BufCodecs.list()),
                     QuestSyncPacket::firstCatchItems,
-                    BufCodecs.VAR_INT,
-                    QuestSyncPacket::shopRefreshCount,
+                    ShopRerollState.STREAM_CODEC,
+                    QuestSyncPacket::shopRerollState,
                     BufCodecs.RESOURCE_LOCATION.apply(BufCodecs.list()),
                     QuestSyncPacket::unlockedCompanions,
                     BufCodecs.RESOURCE_LOCATION.apply(BufCodecs.list()),
@@ -62,6 +72,18 @@ public record QuestSyncPacket(
     @Override
     public FishtasticPayload.PayloadType<?> type() {
         return TYPE;
+    }
+
+    public int shopRefreshCount() {
+        return shopRerollState.paidRerollCount();
+    }
+
+    public int shopRefreshNonce() {
+        return shopRerollState.refreshNonce();
+    }
+
+    public boolean freeShopRerollAvailable() {
+        return shopRerollState.freeRerollAvailable();
     }
 
     /** Send a sync packet without triggering items (e.g. initial sync on join). */
@@ -109,7 +131,8 @@ public record QuestSyncPacket(
         QuestSyncPacket packet = new QuestSyncPacket(
                 state.getProgressSnapshot(), state.getTokenBalance(),
                 triggeringItems, state.getPurchaseCountSnapshot(), cleanupGoal, gameTime,
-                baitDepletedItem, firstCatchItems, state.getShopRefreshCount(),
+                baitDepletedItem, firstCatchItems, new ShopRerollState(state.getShopRefreshCount(),
+                        state.getShopRefreshNonce(), state.isFreeShopRerollAvailable()),
                 List.copyOf(state.getUnlockedCompanionSnapshot()), state.drainPendingCompanionBanners());
         NetworkApiSided.sendToPlayer(player, packet, STREAM_CODEC);
     }

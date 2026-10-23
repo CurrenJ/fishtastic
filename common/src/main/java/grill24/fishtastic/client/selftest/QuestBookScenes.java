@@ -126,7 +126,7 @@ final class QuestBookScenes {
                     new grill24.fishtastic.network.CleanupGoalProgress.Contributor(java.util.UUID.randomUUID(), "Ari", 21),
                     new grill24.fishtastic.network.CleanupGoalProgress.Contributor(mc.player.getUUID(), "You", 10)));
             grill24.fishtastic.client.QuestClientCache.update(progress, 42, java.util.Map.of(), java.util.Map.of(), cleanup,
-                    mc.level.getGameTime(), ItemStack.EMPTY, List.of(), 0, List.of(), List.of());
+                    mc.level.getGameTime(), ItemStack.EMPTY, List.of(), 0, 0, true, List.of(), List.of());
             var tab = QuestLogScreen.class.getDeclaredField("activeTabIndex");
             tab.setAccessible(true);
             tab.setInt(screen, destination);

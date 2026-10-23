@@ -13,7 +13,7 @@ import java.util.WeakHashMap;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-/** Correlated, authoritative receipt for quest claims, purchases and paid rerolls. */
+/** Correlated, authoritative receipt for quest claims, purchases and shop rerolls. */
 public record QuestActionResultPacket(long requestId, String action, ResourceLocation target, String result) implements FishtasticPayload {
     public static final FishtasticPayload.PayloadType<QuestActionResultPacket> TYPE =
             new FishtasticPayload.PayloadType<>(Fishtastic.id("quest_action_result"));

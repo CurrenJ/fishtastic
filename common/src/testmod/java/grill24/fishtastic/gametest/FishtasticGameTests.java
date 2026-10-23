@@ -1272,6 +1272,11 @@ public class FishtasticGameTests {
     }
 
     @GameTest(template = "fishtastic_empty")
+    public void shopRerollInteractionGrantsOneFreeUsePerDayAndEscalatesPaidCosts(GameTestHelper helper) {
+        ShopEntryGameTests.shopRerollInteractionGrantsOneFreeUsePerDayAndEscalatesPaidCosts(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
     public void getActiveDailyShopNeverExceedsCap(GameTestHelper helper) {
         ShopEntryGameTests.getActiveDailyShopNeverExceedsCap(helper);
     }

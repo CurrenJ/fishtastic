@@ -27,10 +27,13 @@ public class PlayerQuestState {
     private int tokenBalance = 0;
     private final Map<ResourceKey<ShopEntry>, Integer> purchaseCounts = new HashMap<>();
     private long lastPurchaseResetDay = -1;
-    // Incremented each time the player spends tokens to manually reroll the shop (see refreshShop) -
-    // mixed into ShopEntry#getActiveDailyShop's seed so the drawn set changes without waiting for
-    // the next in-game day. Reset alongside the daily purchase-count rotation.
+    // Number of paid manual rerolls this rotation. Used for escalating cost and retained under
+    // the existing codec field name for save compatibility.
     private int shopRefreshCount = 0;
+    // Every manual reroll, including the free daily one, changes the active draw.
+    private int shopRefreshNonce = 0;
+    // The free reroll is consumed independently of paid rerolls and resets with the in-game day.
+    private boolean freeShopRerollUsed = false;
     // Composite keys from EncyclopediaRewardSection#key — one entry per fish/section reward
     // slot the player has claimed, ever. See claimEncyclopediaReward.
     private final Set<String> claimedEncyclopediaRewards = new HashSet<>();
@@ -111,10 +114,13 @@ public class PlayerQuestState {
             Codec.STRING.listOf().optionalFieldOf("claimed_encyclopedia_rewards", List.of())
                     .forGetter(state -> new ArrayList<>(state.claimedEncyclopediaRewards)),
             Codec.INT.optionalFieldOf("shop_refresh_count", 0).forGetter(state -> state.shopRefreshCount),
+            Codec.INT.optionalFieldOf("shop_refresh_nonce", -1).forGetter(state -> state.shopRefreshNonce),
+            Codec.BOOL.optionalFieldOf("free_shop_reroll_used", false).forGetter(state -> state.freeShopRerollUsed),
             Codec.INT.optionalFieldOf("lifetime_tank_placements", 0).forGetter(state -> state.lifetimeTankPlacements),
             ResourceLocation.CODEC.listOf().optionalFieldOf("unlocked_companion_species", List.of())
                     .forGetter(state -> new ArrayList<>(state.unlockedCompanionSpecies))
-    ).apply(i, (identMap, tokens, purchaseMap, lastPurchaseResetDay, claimedRewards, shopRefreshCount, lifetimeTankPlacements, unlockedCompanions) -> {
+    ).apply(i, (identMap, tokens, purchaseMap, lastPurchaseResetDay, claimedRewards, shopRefreshCount,
+                shopRefreshNonce, freeShopRerollUsed, lifetimeTankPlacements, unlockedCompanions) -> {
         PlayerQuestState s = new PlayerQuestState();
         identMap.forEach((id, prog) ->
                 s.progress.put(ResourceKey.create(FishtasticRegistries.QUEST_REGISTRY_KEY, id), prog));
@@ -124,6 +130,10 @@ public class PlayerQuestState {
         s.lastPurchaseResetDay = lastPurchaseResetDay;
         s.claimedEncyclopediaRewards.addAll(claimedRewards);
         s.shopRefreshCount = shopRefreshCount;
+        // Older saves only tracked paid rerolls. Preserve their stock draw when adding the new
+        // all-rerolls nonce field.
+        s.shopRefreshNonce = shopRefreshNonce < 0 ? shopRefreshCount : shopRefreshNonce;
+        s.freeShopRerollUsed = freeShopRerollUsed;
         s.lifetimeTankPlacements = lifetimeTankPlacements;
         s.unlockedCompanionSpecies.addAll(unlockedCompanions);
         return s;
@@ -221,21 +231,40 @@ public class PlayerQuestState {
             purchaseCounts.clear();
             lastPurchaseResetDay = currentDay;
             shopRefreshCount = 0;
+            shopRefreshNonce = 0;
+            freeShopRerollUsed = false;
         }
     }
 
+    /** Number of paid rerolls this in-game day, used to calculate the next paid price. */
     public int getShopRefreshCount() {
         return shopRefreshCount;
     }
 
+    /** Nonce for the active shop draw; includes both free and paid rerolls. */
+    public int getShopRefreshNonce() {
+        return shopRefreshNonce;
+    }
+
+    public boolean isFreeShopRerollAvailable() {
+        return !freeShopRerollUsed;
+    }
+
     /**
-     * Attempt to spend {@code cost} tokens to reroll today's active shop entries.
-     * Returns false if the player can't afford it.
+     * Reroll today's active shop entries, granting one free use per in-game day before paid
+     * rerolls. Paid reroll pricing escalates independently of the free use.
+     * Returns false if the player can't afford the paid reroll.
      */
     public boolean refreshShop(int cost) {
+        if (!freeShopRerollUsed) {
+            freeShopRerollUsed = true;
+            shopRefreshNonce++;
+            return true;
+        }
         if (tokenBalance < cost) return false;
         tokenBalance -= cost;
         shopRefreshCount++;
+        shopRefreshNonce++;
         return true;
     }
 
