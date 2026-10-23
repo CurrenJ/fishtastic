@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Skittish fish dash for cover when the watcher lunges at them (docs/fish-shelters.md §5.3,
+ * Skittish fish dash for cover when the watcher lunges at them (docs/fish-shelters.md,
  * trigger 2). This mirrors {@code AnchoredTest}'s transients: the watcher who arrives, the watcher
  * who stays, the watcher signal that drops out, the watcher who sways, and the watcher who was
  * already there. Every one of them, written as a state instead of an event, once made the eels

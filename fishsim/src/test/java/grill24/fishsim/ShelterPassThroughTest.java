@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A shelter with a mouth at each end is passed through (docs/fish-shelters.md §12.4): a fish goes
+ * A shelter with a mouth at each end is passed through (docs/fish-shelters.md): a fish goes
  * in one end of the Clay Pipe and out of the other, rather than turning round inside and backing
  * out. A one-mouthed log is still left the way it was entered. ShelterVisitTest's matrix holds
  * every other visit invariant for the pipe.

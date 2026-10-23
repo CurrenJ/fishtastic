@@ -77,13 +77,6 @@ Temporary Items
 **/replay_pid*.log
 /common/logs/
 Xplat/logs/latest.log
-src/generated/resources/assets/potionsplus/lang/GENERATED_en_us.json
-
-script/output
-script/ore_edges
-script/input_ore
-script/*.png
-script/**/*.png
 
 run-data/*
 
@@ -137,3 +130,7 @@ AGENTS.md
 
 ## Vanilla block textures for tools/sticker_sheet.html (Mojang assets, never commit)
 /tools/block_textures/
+
+# Regenerable content-tool previews.
+/tools/shelter-structure-gen/preview/
+/tools/span-structure-gen/preview/

@@ -1,274 +1,84 @@
-# Fish Tank Rendering Architecture
+# Tank rendering architecture
 
-The fish tank is a dynamically retextured block — its frame, glass, and sand faces all display the texture of whatever blocks the player chose during customization. This is more complex than a normal block model because the texture isn't known at bake time; it depends on per-block-entity data that only exists at runtime.
+Tank appearance combines shape geometry with runtime frame/sand/glass materials and
+cosmetics. Shape/material persistence and generation are covered in
+[fish-tanks.md](fish-tanks.md); fish runtime ownership/budget in
+[fish-tank-group-scaling.md](fish-tank-group-scaling.md).
 
-This document explains how that works on each platform, why the two implementations diverge where they do, and the specific pitfalls that were discovered and fixed along the way.
+## Shared data and geometry
 
----
+A block entity's material and connection state is snapped into
+`FishTankCompositeModelData` on the main thread, then read during chunk meshing.
+Do not read mutable block-entity state directly from a background mesher. The
+snapshot includes cosmetics and diagonal/edge information; model/cache keys must
+include all inputs that change visible geometry, not only the six face bits.
 
-## The Core Challenge
+Each shape has 64 open-face permutations of frame, sand and glass, plus applicable
+corner and edge fragments. `Direction.ordinal` agrees with the standalone generator's
+`TankFace`. `FishTankShape` selects the prefix; preload all shape dependencies rather
+than allowing non-standard shapes to fall back silently to STANDARD.
 
-A normal Minecraft block model is fully baked at resource-load time: textures, geometry, and UV mapping are all resolved once into a static `BlockStateModel`. The result is stored in the chunk section's mesh and never changes until the chunk is re-meshed.
+Shared `client/compositemodel` utilities include:
 
-The fish tank cannot do this because:
+- `BlockstateModelScanner` / `BlockstateRedirectRegistry`: scan blockstates on
+  resource reload for actual model redirects instead of guessing `block/<id>`.
+- `BlockModelPathResolver`: redirect/fallback lookup. Ignore builtin-missing
+  sentinel models so a failed candidate cannot prevent later fallbacks.
+- `CompositeTextureHelper`: resolve materials and apply texture overrides.
+- `TankCosmeticMesh`: immutable decoration snapshot, transformed mesh and tint data.
 
-1. Two fish tanks in the same chunk may have different frame/sand/glass choices.
-2. The player can change a tank's customization at any time, which must be reflected without a full resource reload.
-3. The texture to display is a property of the **block entity**, not the block state.
+## Loader boundaries
 
-The solution on both platforms is a **dynamic block state model** that is called at chunk-meshing time with world context (level + block position), reads the block entity's current configuration, and emits the correct geometry on the fly.
-
----
-
-## Shared Utilities (`client/compositemodel` package)
-
-The logic common to both platforms lives in `common/src/main/java/grill24/fishtastic/client/compositemodel/`:
-
-| Class | Role |
+| Loader | Integration |
 |---|---|
-| `BlockstateRedirectRegistry` | Shared volatile map of `standardPath → actualPath`; populated at resource reload by each platform's adapter |
-| `BlockstateModelScanner` | Scans all `assets/*/blockstates/*.json` to build the redirect map; used by both platform adapters |
-| `BlockModelPathResolver` | Base path resolution: redirect → standard path fallback; Fabric uses this directly |
-| `CompositeTextureHelper` | `resolveBlockTexture()` and `overrideAllTexture()` — extracted from both baked model classes where they were previously duplicated |
-
-The fish-tank-specific data record also lives in common:
-
-| Class | Role |
-|---|---|
-| `fishtank/FishTankCompositeModelData` | `record(Block frame, Block sand, Block glass, Set<Direction> openFaces)` — the snapshot passed across the thread boundary on both platforms |
-
----
-
-## Sub-Model System (shared)
-
-Rather than one monolithic mesh, the fish tank is broken into three composited parts:
-
-- **Frame** — the wooden/stone border, with a texture taken from the chosen frame block.
-- **Sand** — the bottom layer, textured from the chosen sand/ground block.
-- **Glass** — the transparent panels, textured from the chosen glass block.
-
-Each part has **64 geometric permutations** (2⁶ = 64) corresponding to which of the six faces are open (for connected tanks). These are pre-baked meshes stored as named sub-models:
-
-```
-fishtastic:block/fishtankbase/fish_tank_frame_0  .. fish_tank_frame_63
-fishtastic:block/fishtankbase/fish_tank_sand_0   .. fish_tank_sand_63
-fishtastic:block/fishtankbase/fish_tank_glass_0  .. fish_tank_glass_63
-```
-
-The permutation index for a given tank is derived from its `openFaces` bitmask (`Direction.ordinal()` → bit position). At chunk mesh time the correct permutation geometry is selected, then retextured dynamically.
-
-All 192 sub-models are declared as dependencies during the `resolveDependencies` phase so the model bakery loads them unconditionally.
-
----
-
-## Runtime Data Flow
-
-```
-Block entity (main thread)
-    │  getFrameBlock() / getSandBlock() / getGlassBlock() / getOpenFaces()
-    ▼
-FishTankCompositeModelData  ← immutable snapshot, safe to hand to meshing thread
-    │
-    ▼
-Chunk meshing thread
-    │  reads snapshot (via platform-specific API — see below)
-    ▼
-Dynamic block state model
-    │  getPermutationIndex() → picks sub-model geometry [0..63]
-    │  CompositeTextureHelper.resolveBlockTexture() for each of the three blocks
-    │  CompositeTextureHelper.overrideAllTexture() → builds TextureSlots override
-    │  getTopGeometry().bake() directly → QuadCollection  (bypasses ModelWrapper cache)
-    ▼
-Chunk mesh / render
-```
-
-The snapshot step is the critical thread-safety boundary. The block entity's fields live on the main thread; the chunk mesher runs on a background thread. Both platforms have different APIs for crossing this boundary (see below).
-
----
-
-## NeoForge Architecture
-
-### Registration
-
-| What | How |
-|---|---|
-| Custom block state model type | `RegisterBlockStateModels` event → `event.registerModel(ft("fish_tank"), FishTankBlockStateModel.CODEC)` |
-| Custom item model loader | `ModelEvent.RegisterLoaders` event → `event.register(ft("fish_tank"), FishTankModel.Loader.INSTANCE)` |
-| Block entity renderer | `EntityRenderersEvent.RegisterRenderers` |
-
-### Block State Model (`FishTankBlockStateModel`)
-
-Implements NeoForge's `CustomUnbakedBlockStateModel`. Referenced in `blockstates/fish_tank.json` as `"type": "fishtastic:fish_tank"`.
-
-`resolveDependencies` marks all 192 sub-models as dependencies. `bake(ModelBaker)` retrieves all 192 `ResolvedModel`s from the baker and constructs `FishTankBakedModel`.
-
-### Baked Model (`FishTankBakedModel`)
-
-Implements NeoForge's `DynamicBlockStateModel`, which extends `BlockStateModel` and adds `collectParts(BlockAndTintGetter, BlockPos, …)`. This overload is called by NeoForge's chunk mesher when it detects that the model is dynamic, giving it world context.
-
-**Data access:** NeoForge uses `ModelData` — a typed property bag. `FishTankBlockEntityNeoForge.getModelData()` constructs a `ModelData` containing a `FishTankCompositeModelData` value, stored under the `FishTankModelData.DATA_PROPERTY` key. The mesher calls `level.getModelData(pos)` to retrieve it.
-
-Note: `FishTankModelData` (NeoForge-only) is now just the property key holder:
-```java
-public final class FishTankModelData {
-    public static final ModelProperty<FishTankCompositeModelData> DATA_PROPERTY = new ModelProperty<>();
-}
-```
-
-**Model cache:** Composite models are keyed by `CacheKey(frame, sand, glass, permutation)` in a `ConcurrentHashMap`. Cache misses generate the composite under a `synchronized` lock. Failed generations (null texture) are intentionally **not** cached so the next chunk re-mesh retries.
-
-### Item Model (`FishTankModel`)
-
-A separate `UnbakedModel` for the fish tank item, baked once at load time into a static default composite (permutation 0, oak planks / sand / blue glass). It also calls `resolveDependencies` for all 192 sub-models, so loading the item model is sufficient to guarantee all sub-models are resolved regardless of load order.
-
-### Model Path Resolution (`BlockModelPathResolver` — NeoForge)
-
-NeoForge's `BlockModelPathResolver` extends the common base with `FishtasticConfig.STARTUP.blockModelPathOverrides` — a user-configurable list of `{pattern, blocks, modelPath}` entries. Config entries support wildcard patterns and tag references. Priority order: blockstate redirect (from common `BlockstateRedirectRegistry`) → config overrides → standard path.
-
----
-
-## Fabric Architecture
-
-### Registration
-
-| What | How |
-|---|---|
-| Custom block state model type | `CustomUnbakedBlockStateModel.register(ft("fish_tank"), FishTankBlockStateModelFabric.CODEC)` |
-| Custom item model loader | `UnbakedModelDeserializer.register(ft("fish_tank"), FishTankModelFabric.Loader.INSTANCE)` |
-| Block entity renderer | `BlockEntityRendererRegistry.register(…)` |
-| Blockstate redirect map | `PreparableModelLoadingPlugin.register(BlockstateModelRedirectPlugin.LOADER, BlockstateModelRedirectPlugin.PLUGIN)` |
-
-All four registrations happen in `FishtasticFabricClient.onInitializeClient()`.
-
-### Block State Model (`FishTankBlockStateModelFabric`)
-
-Implements Fabric API's `CustomUnbakedBlockStateModel`. Referenced in `blockstates/fish_tank.json` as `"fabric:type": "fishtastic:fish_tank"` (note the `fabric:` prefix — this is a Fabric API extension to the blockstate JSON format).
-
-`resolveDependencies` and `bake` are structurally identical to the NeoForge version. The result is `FishTankBakedModelFabric`.
-
-### Baked Model (`FishTankBakedModelFabric`)
-
-Implements both vanilla `BlockStateModel` and Fabric API's `FabricBlockStateModel`.
-
-`FabricBlockStateModel` adds `emitQuads(QuadEmitter, BlockAndTintGetter, BlockPos, …)`, which is the Fabric equivalent of NeoForge's `DynamicBlockStateModel.collectParts`. When this interface is present, Fabric's chunk mesher calls it with world context instead of the vanilla `collectParts(RandomSource, List)`.
-
-**Data access:** Fabric uses `RenderDataBlockEntity` — an interface injected by Fabric API. `FishTankBlockEntityFabric.getRenderData()` returns a `FishTankCompositeModelData` snapshot. During meshing, `((FabricBlockGetter) level).getBlockEntityRenderData(pos)` retrieves it. The snapshot is captured on the main thread before the meshing job is dispatched, providing thread safety without any explicit synchronisation.
-
-**Model cache:** Identical structure to NeoForge (`ConcurrentHashMap<CacheKey, CachedModel>`, synchronized lazy generation, failed generations not cached).
-
-### Model Path Resolution (Fabric)
-
-Fabric uses the common `BlockModelPathResolver` directly (redirect → standard path). There is no config override system — the automatic redirect map from `BlockstateModelScanner` covers all cases.
-
-### Why `FabricBlockStateModel` Instead of a Block Entity Renderer
-
-A `BlockEntityRenderer` runs every frame (or every render tick) and draws directly with `PoseStack` + `MultiBufferSource`. It works, but it bypasses the chunk mesh system entirely — the block renders outside the static geometry pass, which means no ambient occlusion, no smooth lighting, and no batching with adjacent blocks.
-
-`FabricBlockStateModel` participates in the normal chunk meshing pipeline, producing the same `BlockStateModelPart`/`QuadCollection` output as any static block. This gives correct lighting and batching at the cost of needing to re-mesh the chunk section when the tank's customization changes.
-
----
-
-## Key Divergence Points
-
-### 1. World-Context API
-
-| NeoForge | Fabric |
-|---|---|
-| `DynamicBlockStateModel.collectParts(BlockAndTintGetter, BlockPos, …)` | `FabricBlockStateModel.emitQuads(QuadEmitter, BlockAndTintGetter, BlockPos, …)` |
-| `level.getModelData(pos)` → `ModelData` | `((FabricBlockGetter) level).getBlockEntityRenderData(pos)` |
-| `FishTankBlockEntityNeoForge.getModelData()` | `FishTankBlockEntityFabric.getRenderData()` |
-
-### 2. Blockstate JSON Syntax
-
-The `fish_tank.json` blockstate file is different per platform because the custom block state model extension point uses different JSON keys:
-
-- **NeoForge:** `"type": "fishtastic:fish_tank"` (standard MC extension key)
-- **Fabric:** `"fabric:type": "fishtastic:fish_tank"` (Fabric API namespace prefix)
-
-Each platform ships its own copy of this file.
-
-### 3. Item Model Loader
-
-- **NeoForge:** `UnbakedModelLoader` registered via `ModelEvent.RegisterLoaders`; referenced in JSON as `"loader": "fishtastic:fish_tank"`
-- **Fabric:** `UnbakedModelDeserializer` registered via `UnbakedModelDeserializer.register`; referenced in JSON as `"fabric:type": "fishtastic:fish_tank"`
-
-### 4. Blockstate Redirect Resolution
-
-When `CompositeTextureHelper.resolveBlockTexture()` looks up a block's texture, it calls `baker.getModel(path)` where `path` is the model location. The expected path is `namespace:block/<blockname>`, but many blocks (311 in vanilla alone, and all of fishtastic's glass blocks) have their blockstate JSON point to a model at a different path. In this case `baker.getModel` returns the missing model placeholder.
-
-Both platforms now share `BlockstateRedirectRegistry` and `BlockstateModelScanner` from the `compositemodel` package — the scanner reads every `assets/*/blockstates/*.json` at resource-reload time to build the redirect map. The platform difference is only in how the scan is triggered:
-
-- **Fabric:** `BlockstateModelRedirectPlugin` (a `PreparableModelLoadingPlugin`) triggers the scan off-thread during resource reload, before baking begins.
-- **NeoForge:** `BlockstateModelReloadListener` (a `PreparableReloadListener` registered before `MODELS`) triggers the same scan.
-
-After the scan, both platforms call `BlockstateRedirectRegistry.update(map)` to store the result, and both use it through their respective `BlockModelPathResolver` implementations.
-
-**NeoForge only:** additionally reads `FishtasticConfig.STARTUP.blockModelPathOverrides` as a manual escape hatch for edge cases not caught by the scanner.
-
-`CompositeTextureHelper.resolveBlockTexture()` skips any `ResolvedModel` whose `debugName()` equals `"minecraft:builtin/missing"` (the sentinel for `MissingCuboidModel`) before trying the next candidate path — preventing a missing-texture material from short-circuiting the fallback chain.
-
-### 5. Geometry Bake Call
-
-The one line that cannot be shared between platforms:
-
-- **Fabric:** `model.getTopGeometry().bake(slots, baker, BlockModelRotation.IDENTITY, model)`
-- **NeoForge:** `model.getTopGeometry().bake(slots, baker, BlockModelRotation.IDENTITY, model, ResolvedModelExtension.findTopAdditionalProperties(model))`
-
-NeoForge extends the `UnbakedGeometry.bake` signature with an additional properties argument. This is why `bakeGeometry()` stays as a private method in each platform's baked model class rather than moving to `CompositeTextureHelper`.
-
----
-
-## Cosmetics in the Chunk Mesh
-
-Static cosmetics are baked into the tank's chunk mesh alongside its body, not drawn by the block
-entity renderer. A BER re-submits every block every frame (model lookup, pose copy, every face
-again), so a 1,000-block set piece cost a thousand submissions a frame; in the chunk mesh it costs
-what the same blocks would cost in the world. Measured uncapped in the `spanpreview` self-test:
-FPS with the Whale Fall and Drowned Pagoda in view matched empty tanks on both loaders.
-
-`client/compositemodel/TankCosmeticMesh` does the shared work:
-
-1. **Snapshot** (main thread, inside `getRenderData()` / `getModelData()`): every static piece the
-   tank draws — single floor cosmetics, kelp and hanging segments passing through this storey,
-   single-tank structures, and this tank's share of a spanning structure — as a block state plus
-   its pose into the tank's block space. Carried as `FishTankCompositeModelData.cosmetics`.
-2. **Bake** (meshing thread, cached per snapshot): each piece's block-model quads, transformed,
-   all in the unculled bucket, so they take the tank's own light and are never culled against the
-   world. Inside a spanning structure a face against a neighbouring solid part is dropped (the
-   generator's cull mask in `SpanStructures.Placed`).
-3. **Tint** (per mesh): a tinted quad's colour comes from the *cosmetic's* tint sources (a leaf's
-   foliage colour), because the mesher would otherwise resolve it against the tank block's. Fabric
-   writes it into the emitter's vertex colours; NeoForge re-makes the quad with `BakedColors`.
-
-Both loaders add the result after the tank body, with AO off like the body, include the snapshot
-in `createGeometryKey`, and OR its material flags into `materialFlags`.
-
-**Re-meshing.** A cosmetic stored on one tank is meshed by others: kelp by the storeys above, a
-hanging strand by the storeys below, a span by its whole box. `TankCosmeticMesh.refreshDependents`
-runs whenever a tank's data arrives on the client and refreshes those tanks' model data and
-sections. The `/fishtastic cosmetic nudge|rotate|scale` dev commands bump
-`CosmeticTransforms.version()`, and the renderer re-meshes the world once when it changes.
-
-**Still on the BER:** chests (their lid animates and their model is special-rendered), the
-particles lit furnaces and campfires spawn, the water fill, and fish.
-
-## The `bakeTopGeometry` Cache Bug
-
-`ResolvedModel.bakeTopGeometry(TextureSlots, ModelBaker, ModelState)` is the natural API for baking a model's geometry. However, the concrete implementation (`ModelDiscovery.ModelWrapper`) maintains two internal caches keyed by `ModelState` **only**, completely ignoring `TextureSlots`:
-
-- For `BlockModelRotation.IDENTITY` it stores the result in a fixed atomic slot on first call and returns it forever after.
-- For other `ModelState`s it uses `ConcurrentHashMap.computeIfAbsent(state, …)` keyed by object identity.
-
-This means if we baked the default model (oak planks) first through `bakeTopGeometry`, that result would be returned for every subsequent call with the same `ModelState`, regardless of the `TextureSlots` we pass — completely bypassing our texture override.
-
-**Fix:** Both `FishTankBakedModel` (NeoForge) and `FishTankBakedModelFabric` (Fabric) call `model.getTopGeometry().bake(slots, baker, state, model, …)` directly, bypassing `ResolvedModel` entirely and going straight to the `UnbakedGeometry` implementation. This always produces fresh quads using the `TextureSlots` we actually want.
-
-The particle material has the same problem — `ResolvedModel.resolveParticleMaterial` also uses a cached slot. The fix is to call the static `ResolvedModel.resolveParticleMaterial(slots, baker, model)` overload (NeoForge adds this as `ResolvedModelExtension`) or the equivalent direct call on Fabric, which bypasses the instance cache.
-
----
-
-## Testing Blockstate Redirects
-
-To verify the redirect map is working, use any **waxed copper block** as a fish tank frame material. Waxed copper variants (`waxed_copper_block`, `waxed_exposed_copper`, `waxed_weathered_copper`, `waxed_oxidized_copper`) have no model at `minecraft:block/waxed_*` — their blockstate JSON redirects entirely to the unwaxed counterpart's model (e.g., `minecraft:block/copper_block`). Without the redirect map these blocks would silently fall back to the default oak texture.
-
-Other vanilla examples with the same property: all `*_wall` blocks (redirect to `*_wall_post`), all `infested_*` blocks (redirect to the un-infested block's model), and all `waxed_*` copper variants.
+| Fabric | Fabric model loading/render-data hooks and its own geometry bake signature; emitter vertex colors carry cosmetic tint |
+| NeoForge | Model events and model-data snapshot; extended geometry bake properties; baked quad colors carry tint |
+| Forge | `IForgeBlockStateModel.collectParts` receives refreshed `ModelData`; `FishTankModelData`, `FishTankModelResources`, `FishTankBakedModel` and `FishTankItemModel` supply adapter-specific loading/baking |
+
+Forge and NeoForge APIs are separate. Preserve per-loader model reload registration,
+block data refresh, item presentation and material/tint handling. A block entity update
+must invalidate model data/section geometry immediately; a successful inventory render
+does not validate placed tank behavior. Forge checks must include non-standard shapes,
+all connection layouts and corner/edge pieces. Cosmetic tint handling lives in
+`FishTankCosmeticTints` on Forge.
+
+## Caching traps
+
+`ResolvedModel.bakeTopGeometry` caches by ModelState rather than supplied TextureSlots
+in this Minecraft line. Calling it repeatedly for different material overrides can
+return the first tank's material. Bake through `getTopGeometry().bake(...)` with the
+loader's correct signature, preserving additional properties where required.
+Particle-material instance caches have the same problem: use the uncached/static
+resolution path with the intended slots.
+
+Cache identity must distinguish shape, connections/diagonals, materials and cosmetic
+snapshot. Resource reload invalidates both resolved models and redirect/tint inputs.
+Two differently decorated tanks must never borrow each other's cached mesh.
+
+## Static and live cosmetics
+
+Static cosmetics are baked into chunk meshes, avoiding per-part per-frame submission.
+Snapshot each block state and pose in the drawing tank's block space. A spanning
+structure's parts are assigned to member tanks; its generator cull mask drops faces
+against solid neighbors. Bake transformed quads in the unculled bucket with the tank's
+lighting/AO convention. Resolve tint from the cosmetic block, not from the tank block.
+
+Column kelp/hanging strands and spans are stored once but drawn in every relevant
+member tank. `TankCosmeticMesh.refreshDependents` refreshes their dependent model data
+and sections after updates. Dev transform changes bump `CosmeticTransforms.version`
+and trigger remeshing. Otherwise parts disappear when the storing tank is culled.
+
+Fish, water, special-rendered chests, grouped moving/glowing reaction parts and particle
+emitters retain live rendering. `CosmeticStructure.liveParts()` preselects chest and
+furnace work instead of scanning all parts each frame. Keep static/reaction grouping
+consistent so a part is neither omitted nor drawn twice. Historical performance
+methodology is in [cosmetic-render-cost.md](cosmetic-render-cost.md).
+
+## Checks
+
+Use the isolated [render launcher](../tools/README.md) with tank, shapes, pertank,
+spanpreview, lighting and applicable Forge review scenes. Include placed, held and
+inventory tanks; edit shape/material/cosmetics, reload resources, change camera
+sections and compare different decorations. Waxed copper is a useful redirect test:
+its blockstate points at an unwaxed model. Walls and infested blocks test other
+nontrivial redirects. Check tinted leaves/ferns and animation as well as geometry.

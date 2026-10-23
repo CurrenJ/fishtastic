@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A cosmetic dropped across a shelter's doorway closes that doorway, and only that one
- * (docs/fish-shelters.md §12.3): a post standing in front of the Clay Pipe's high mouth means no
+ * (docs/fish-shelters.md): a post standing in front of the Clay Pipe's high mouth means no
  * fish goes in that way and none passes through to leave that way, while the low mouth carries on.
  * Nobody is ever inside the post, and the hard backstop never engages. The same tank without the
  * post is the control: there, fish do use the high mouth both ways.

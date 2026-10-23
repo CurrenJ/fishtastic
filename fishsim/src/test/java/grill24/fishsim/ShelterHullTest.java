@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Shelter hulls are solid to swimmers (docs/fish-shelters.md §4): the hull invariant — a swimmer
+ * Shelter hulls are solid to swimmers (docs/fish-shelters.md): the hull invariant — a swimmer
  * not using a shelter is never inside its hull — over the voxel matrix with a Hollow Log in each
  * domain, alongside the containment, dynamics and stuck bounds {@link VoxelDomainTest} holds every
  * shelter-less domain to. The hard backstop does not know about hulls, so zero engagements here

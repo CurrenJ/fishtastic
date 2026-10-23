@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The two-owner harness's contract (docs/fish-companions-party.md §28.3, step 3a-0): each party
+ * The two-owner harness's contract (docs/fish-companions.md, step 3a-0): each party
  * sees the other as the game shows it (companion points by owner-keyed id within 16 blocks, the
  * other owner's feet within 4), runs are deterministic, and every pair script plays.
  */

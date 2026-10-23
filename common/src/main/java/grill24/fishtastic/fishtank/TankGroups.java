@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Discovery of connected fish tank groups from the existing {@code openFaces} adjacency
- * (docs/fish-sim-engine-handoff.md Task 9). Works against any {@link Level} (client or server) —
+ * (docs/fish-sim-engine-plan.md Task 9). Works against any {@link Level} (client or server) —
  * flood-fills through faces both sides agree are open.
  */
 public final class TankGroups {
@@ -38,7 +38,7 @@ public final class TankGroups {
      * those must see the *same* full group regardless of which member the query started from, and
      * any cap makes the visited subset anchor-dependent — clicking two different segments of an
      * over-cap structure would silently compute two different member sets (see
-     * docs/fish-tank-interaction-redesign.md).
+     * docs/fish-tanks.md).
      */
     public static final int RENDER_MAX_GROUP_SIZE = 512;
 
@@ -51,7 +51,7 @@ public final class TankGroups {
 
     /**
      * Ceiling on how many fish one group simulates and renders at once — the bound that actually
-     * protects the frame (docs/fish-tank-group-scaling.md §5.4).
+     * protects the frame (docs/fish-tank-group-scaling.md).
      *
      * <p>Measured against the post-§5.2 engine on the development machine, at the ≤4 fish/block
      * densities §4 calls plausible: 1.7 µs/fish in an 8-cube, 2.3 µs/fish in a 6-cube — so this
@@ -115,7 +115,7 @@ public final class TankGroups {
      *       Both compute this from the same member list and the same inventories, so both get the
      *       same cap — whereas a running total would depend on where in the walk a tank sat, and any
      *       mismatch would leave a fish rendered twice or not at all (the failure mode
-     *       docs/fish-tank-group-scaling.md §1 describes).</li>
+     *       docs/fish-tank-group-scaling.md describes).</li>
      * </ul>
      *
      * <p>The cap is never below 1: a budget that renders an aquarium empty reads as a bug, not as a
@@ -208,7 +208,7 @@ public final class TankGroups {
 
         // The cap is tested before each *admission*, not before each poll. Testing it at the poll
         // let the node being polled expand all six of its faces afterward, so a capped walk
-        // overshot by up to five members (docs/fish-tank-group-scaling.md §1).
+        // overshot by up to five members (docs/fish-tank-group-scaling.md).
         walk:
         while (!frontier.isEmpty()) {
             FishTankBlockEntity tank = frontier.poll();

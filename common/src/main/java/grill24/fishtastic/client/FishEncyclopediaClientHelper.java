@@ -56,7 +56,7 @@ public final class FishEncyclopediaClientHelper {
 
     /**
      * The quest whose completion unlocks this species' companion bond, if one is authored
-     * ({@code unlocks_companion}, docs/fish-companions.md §8.3). Client-side lookup off the quest
+     * ({@code unlocks_companion}, docs/fish-companions.md). Client-side lookup off the quest
      * registry so the encyclopedia can name — and link to — the quest without extra sync.
      */
     public static ResourceKey<grill24.fishtastic.data.Quest> findCompanionUnlockQuest(

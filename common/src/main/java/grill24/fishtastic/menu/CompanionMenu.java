@@ -19,7 +19,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * The companion party's three persistent slots (docs/fish-companions-party.md §5.3) above the
+ * The companion party's three persistent slots (docs/fish-companions.md) above the
  * player's inventory, with ordinary, server-authoritative vanilla inventory handling. Menu slots
  * 0–2 are party slots 0–2; slot 0 is the lead. Moving a fish between them reorders the party.
  */

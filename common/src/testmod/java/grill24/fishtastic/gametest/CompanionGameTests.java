@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.function.Supplier;
 
 /**
- * Fish companion storage and the server-side bond/unequip operations (docs/fish-companions.md §8):
+ * Fish companion storage and the server-side bond/unequip operations (docs/fish-companions.md):
  * the fish item is the companion, so every operation has to move exactly one fish between the
  * inventory (or a Pile of Fish) and the companion slot — never duplicate it, never lose it.
  */

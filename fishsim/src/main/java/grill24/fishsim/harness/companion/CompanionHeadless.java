@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Headless companion export (docs/fish-companions-sim-plan.md §4.3). For each owner script it
+ * Headless companion export (docs/fish-companions.md). For each owner script it
  * writes:
  * <ul>
  *   <li>{@code <script>.gif} — first person beside the top view, 10 fps;</li>
@@ -77,7 +77,7 @@ public final class CompanionHeadless {
             }
         }
         Files.createDirectories(out);
-        // A drift style implies DRIFT; without one a drifter is the default bell (docs/fish-companions-drift.md §2).
+        // A drift style implies DRIFT; without one a drifter is the default bell (docs/fish-companions-drift.md).
         if (driftStyle != null) locomotion = Locomotion.DRIFT;
         grill24.fishsim.companion.DriftStyle style = driftStyle == null ? grill24.fishsim.companion.DriftStyle.BELL : driftStyle;
         List<String> scripts = scriptArg.equals("all") ? OwnerScript.NAMES

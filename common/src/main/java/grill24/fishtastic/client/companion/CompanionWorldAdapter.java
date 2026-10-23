@@ -26,7 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The only Minecraft-aware part of the companion sim (docs/fish-companions-sim-plan.md §3.5):
+ * The only Minecraft-aware part of the companion sim (docs/fish-companions.md):
  * builds the {@link CompanionWorld} snapshot the agents step from, once per client tick.
  *
  * <ul>

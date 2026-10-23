@@ -102,8 +102,7 @@ public final class ArchFrameGeometryGenerator {
 
     /**
      * A standalone edge-diagonal frame-beam fragment for {@code edge} — see the edge-diagonal frame
-     * beam fix design doc and {@code docs/tank-shapes/edge-diagonal-fix-remaining-shapes.md}'s arch
-     * writeup. Arch's jamb is a plain rectangular post whose width varies only by height band (1px
+     * beam contract in {@code docs/fish-tanks.md}. Arch's jamb is a plain rectangular post whose width varies only by height band (1px
      * near the ceiling, 2px near the floor — {@link ArchTankSpans#NEAR_CEILING_JAMB_WIDTH}/{@link
      * ArchTankSpans#NEAR_FLOOR_JAMB_WIDTH}), so — unlike the comb family's asymmetric teeth — a
      * single uniform box borrowed at the width of the row nearest the vacated cap is enough, mirroring

@@ -8,7 +8,7 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import java.util.function.Consumer;
 
 /**
- * Diagnostic: a drifter's standard and drift metrics (docs/fish-companions-drift.md §9), per seed and
+ * Diagnostic: a drifter's standard and drift metrics (docs/fish-companions-drift.md), per seed and
  * per script (mean and worst over the seeds), for equal-grounds A/B of a drifter change. Run with
  * -PsimStdout.
  *

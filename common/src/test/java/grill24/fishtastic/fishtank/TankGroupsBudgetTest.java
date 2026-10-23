@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * The arithmetic that makes {@link TankGroups#RENDER_MAX_GROUP_SIZE} safe to raise.
  *
  * <p>The tank cap bounds nothing on its own — every measured cost scales with fish, and a tank
- * holds {@link FishTankBlockEntity#CONTAINER_SIZE} of them (docs/fish-tank-group-scaling.md §4).
+ * holds {@link FishTankBlockEntity#CONTAINER_SIZE} of them (docs/fish-tank-group-scaling.md).
  * What bounds the frame is {@link TankGroups#perTankFishCap}, so the properties worth locking down
  * are that no legal group can exceed the fish budget however it is shaped, and that a group
  * <em>under</em> the budget freezes nobody.

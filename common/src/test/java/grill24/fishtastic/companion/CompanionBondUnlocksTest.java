@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The pure "entry complete" rule behind companion bond unlocks (docs/fish-companions.md §8.4,
+ * The pure "entry complete" rule behind companion bond unlocks (docs/fish-companions.md,
  * R6.5): every derived threshold on the one species — not just the lore count — must be met.
  * The quest-hook half of the derivation touches {@code Quest}'s registry-backed codecs and runs
  * as a game test instead (CompanionQuestUnlockGameTests).

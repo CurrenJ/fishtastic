@@ -296,7 +296,7 @@ public final class TankGroupFlock {
         engine.setWatcher(false, 0f, 0f, 0f);
     }
 
-    /** Points the engine at the player, in the group's own frame (docs/fish-sim-locomotion.md §3.4). */
+    /** Points the engine at the player, in the group's own frame (docs/fish-sim-locomotion.md). */
     public void setWatcher(double px, double py, double pz) {
         // The draw loop translates by the group's offsets alone, in the anchor block's own frame,
         // and the group engine carries no rotation — so this is a plain subtraction and toLocal is

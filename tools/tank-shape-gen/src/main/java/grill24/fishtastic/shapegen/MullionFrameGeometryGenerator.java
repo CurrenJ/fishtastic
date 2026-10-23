@@ -93,7 +93,7 @@ public final class MullionFrameGeometryGenerator {
 
     /**
      * A standalone edge-diagonal frame-beam fragment for {@code edge} — see the edge-diagonal frame
-     * beam fix design doc and {@code docs/tank-shapes/edge-diagonal-fix-remaining-shapes.md}'s
+     * beam fix design doc and {@code docs/fish-tanks.md}'s
      * mullion writeup. Unlike every corner-post-based shape, mullion's frame is not gated on a
      * combined-face corner at all (anchor bars are unconditional, the far wall gates on a single
      * perpendicular face independently) — the "gap in the middle of an open wall" problem this fix

@@ -1190,7 +1190,7 @@ public class ForgeFishtasticGameTests {
     }
 
     // -------------------------------------------------------------------------
-    // Companion profile data (ground benthics, docs/fish-companions-benthic-follow.md §21)
+    // Companion profile data (ground benthics, docs/fish-companions.md)
     // -------------------------------------------------------------------------
 
     @GameTest(structure = "fishtastic:empty_testarea")

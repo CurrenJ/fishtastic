@@ -9,7 +9,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Party-built ground formations of mixed sizes (docs/fish-companions-party.md §3, D8), held to
+ * Party-built ground formations of mixed sizes (docs/fish-companions.md, D8), held to
  * {@link BenthicGroupTest}'s formation floor over three seeds: members never in a block, finite,
  * never sharing a perch, rarely stacked or underfoot, a line keeping its order, and nothing fading
  * where the group can follow.
@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * party sorts a group smallest first, so the leader is the slowest walker. A line built from a
  * big-first party ("line 50/40/30 by slot") is grouped through {@link PartyGrouping} like the game's,
  * so it walks 30/40/50. Crowds keep their existing sprint exemption (tiny slugs can't keep up with a
- * sprint whatever the order; docs/fish-companions-party-2a-asbuilt.md).
+ * sprint whatever the order; docs/fish-companions.md).
  */
 class MixedGroundInvariantTest {
 

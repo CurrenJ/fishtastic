@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Benthics on the ground (docs/fish-companions-benthic-follow.md §7, Phase 1): the ground scripts
+ * Benthics on the ground (docs/fish-companions.md, Phase 1): the ground scripts
  * ({@link OwnerScript#GROUND_NAMES}) × three seeds × two minutes, for a crab (crawl, 0.3 blocks),
  * a plaice (ripple, 0.35), a sea-slug-sized crawler (0.12) and a spider-crab-sized one (0.6). The
  * swimmers' table ({@link CompanionInvariantTest}) runs BENTHIC on its own scripts too.

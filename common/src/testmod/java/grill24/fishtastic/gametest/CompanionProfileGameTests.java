@@ -8,7 +8,7 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.Identifier;
 
 /**
- * The shipped data that puts ground benthics into the game (docs/fish-companions-benthic-follow.md
+ * The shipped data that puts ground benthics into the game (docs/fish-companions.md
  * §21): which species walk in groups and which glide, as loaded from the real datapack.
  */
 public final class CompanionProfileGameTests {
@@ -20,7 +20,7 @@ public final class CompanionProfileGameTests {
 
     /**
      * Plaice ripples; starfish walk in a line and the two sea slugs in crowds when the party holds
-     * several (docs/fish-companions-party.md §3: groups come from the party, and the profile's
+     * several (docs/fish-companions.md: groups come from the party, and the profile's
      * deprecated {@code count} is no longer shipped).
      */
     public static void benthicCompanionDataLoads(GameTestHelper helper) {

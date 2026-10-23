@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The obstacle boxes derived from every shipped structure (docs/fish-shelters.md §12.3), checked
+ * The obstacle boxes derived from every shipped structure (docs/fish-shelters.md), checked
  * against the structure itself: what is drawn solid is covered, what is soft is not, no pocket is
  * left that a fish could not get out of, and the openings fish do use stay open.
  */

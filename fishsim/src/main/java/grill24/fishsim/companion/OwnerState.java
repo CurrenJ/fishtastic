@@ -1,7 +1,7 @@
 package grill24.fishsim.companion;
 
 /**
- * Everything the companion perceives about its owner on one tick (docs/fish-companions-sim-plan.md
+ * Everything the companion perceives about its owner on one tick (docs/fish-companions.md
  * §3.2). In game the adapter fills it from the player and camera; headless, a scripted owner does.
  *
  * @param eye         eye position
@@ -20,7 +20,7 @@ package grill24.fishsim.companion;
  * @param landedFall  the height the owner fell from, blocks, on the tick they land; 0 on every
  *                    other tick. A fall, not a climb down a ladder or a creative descent: in game,
  *                    the player's fall distance as they touch down. A hard landing (3+ blocks)
- *                    knocks a ground companion off its perch (docs/fish-companions-benthic-follow.md §3)
+ *                    knocks a ground companion off its perch (docs/fish-companions.md)
  */
 public record OwnerState(Vec eye, Vec velocity, float yawDeg, float pitchDeg,
                          boolean sprinting, boolean teleported, boolean firstPerson, float fovDeg,

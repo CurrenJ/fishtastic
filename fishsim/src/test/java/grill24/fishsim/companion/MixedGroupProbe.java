@@ -13,7 +13,7 @@ import java.util.Locale;
 import java.util.function.ToDoubleFunction;
 
 /**
- * Diagnostic (docs/fish-companions-party.md §3, §8): party-built groups of mixed sizes against the
+ * Diagnostic (docs/fish-companions.md, §8): party-built groups of mixed sizes against the
  * identical-member groups they replace, over 8 equal seeds. Per config, the mean and the worst run of
  * each measure. Run with -PsimStdout; -PsweepSeeds=N changes the seed count.
  */

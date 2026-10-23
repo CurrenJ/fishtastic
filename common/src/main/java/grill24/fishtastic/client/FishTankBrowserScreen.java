@@ -43,7 +43,7 @@ import java.util.Set;
 /**
  * Lists every fish and cosmetic across the connected tank group the player opened this from, and
  * lets them remove any entry directly — replaces the old raycast-only, edit-mode-gated removal
- * (see docs/fish-tank-interaction-redesign.md). Reads the group's contents straight off the
+ * (see docs/fish-tanks.md). Reads the group's contents straight off the
  * already chunk-synced client-side {@link FishTankBlockEntity}s, exactly the way the swarm
  * renderer's {@link TankGroups} does.
  *

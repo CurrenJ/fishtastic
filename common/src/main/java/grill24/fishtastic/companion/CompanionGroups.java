@@ -20,7 +20,7 @@ import java.util.function.ToDoubleFunction;
 import java.util.function.ToLongFunction;
 
 /**
- * How a party's fish group up (docs/fish-companions-party.md §3), as the game sees it. The rule
+ * How a party's fish group up (docs/fish-companions.md), as the game sees it. The rule
  * itself lives in {@code :fishsim}'s {@link PartyGrouping} and only there: this class turns each
  * slot's stack into a {@link PartyGrouping.Member} (species, class, gait, formation) and reports
  * what PartyGrouping decided, in the shapes the menu preview and the scene scheduler want.
@@ -138,7 +138,7 @@ public final class CompanionGroups {
     /**
      * A benthic's ground gait from its profile (CRAWL unless it names the flatfish ripple), or null
      * for every other class. Every benthic species walks the ground today
-     * (docs/fish-companions-benthic-follow.md §21), so none is a gait-less pure percher.
+     * (docs/fish-companions.md), so none is a gait-less pure percher.
      */
     public static GroundGait gaitOf(Locomotion locomotion, Optional<FishProfile> profile) {
         if (locomotion != Locomotion.BENTHIC) return null;

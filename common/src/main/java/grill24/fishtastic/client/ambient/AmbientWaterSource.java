@@ -10,7 +10,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 
 /**
  * The {@link WaterSource} the ambient discovery reads the client level through — the only
- * Minecraft-aware part of discovery (docs/fish-in-world-phase2.md §discovery).
+ * Minecraft-aware part of discovery (docs/fish-in-world.md §discovery).
  *
  * <p><b>Loaded chunks only.</b> Every read starts with {@link ClientLevel#hasChunkAt}, and a cell
  * whose chunk is absent answers {@link #LOADED} clear. Asking the level for a block in an unloaded

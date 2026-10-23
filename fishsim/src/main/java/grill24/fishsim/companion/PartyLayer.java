@@ -6,7 +6,7 @@ import java.util.function.Function;
 import java.util.function.IntUnaryOperator;
 
 /**
- * One owner's party as the sim steps it (docs/fish-companions-party.md §6): the units {@link
+ * One owner's party as the sim steps it (docs/fish-companions.md): the units {@link
  * PartyGrouping} forms (a solo, a school or a ground formation), stepped together. Each unit sees
  * the others' leaders as {@link PointOfInterest.Kind#COMPANION} points within {@link #MATE_RANGE},
  * the way ClientCompanions feeds them in game.

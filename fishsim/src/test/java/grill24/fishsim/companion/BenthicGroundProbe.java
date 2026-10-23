@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Diagnostic for benthics on the ground (docs/fish-companions-benthic-follow.md §7): the general
+ * Diagnostic for benthics on the ground (docs/fish-companions.md): the general
  * metrics and the ground metrics per script and seed. Run with -PsimStdout. Options:
  * {@code -PsweepClass=CRAWL|RIPPLE} (gait), {@code -PsweepLength=0.3} (body length, blocks),
  * {@code -PsweepSeeds=3}, {@code -Psweep=all} (also the swimmers' scripts), {@code -PsweepTemperament=name}.

@@ -190,8 +190,7 @@ Collector, Challenge, Shop and Cleanup, with a three-column quest grid. Each que
 shows its objective, progress and reward preview. Claim sends `CompleteQuestPacket`
 for server validation.
 
-A reviewed redesign is proposed separately in [Quest book redesign](quest-log-redesign/README.md)
-and its [interaction and visual specification](quest-log-redesign/design-spec.md). It uses
+The implemented [quest-book interaction contract](quest-log-redesign/design-spec.md) uses
 labelled navigation, readable objective rows, category-local Ready filters, inline Claim,
 one expanded row with an inline species/silhouette grid for collection quests. Market exposes affordability and paid
 reroll costs; Cleanup explains automatic cycle payouts and keeps personal contribution visible.

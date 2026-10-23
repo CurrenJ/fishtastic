@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * One benthic group on one script, with the formation measures (docs/fish-companions-benthic-follow.md
+ * One benthic group on one script, with the formation measures (docs/fish-companions.md
  * §4, §20): line order, members overlapping each other, the line's wave (how far a follower strays
  * from the way its predecessor went) and spacing, the crowd's spread, and members underfoot.
  */
@@ -57,7 +57,7 @@ final class GroupRun {
         first = world;
     }
 
-    /** A party-built formation: one member per length, leader first (docs/fish-companions-party.md §3). */
+    /** A party-built formation: one member per length, leader first (docs/fish-companions.md). */
     GroupRun(String script, long seed, float[] lengths, Temperament tm, BenthicGroup.Formation formation) {
         this(script, seed, lengths, tm, formation, CompanionTunables.defaults());
     }

@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A sprite in a shelter's hollow stays clear of its floor and roof (docs/fish-shelters.md §5.7).
+ * A sprite in a shelter's hollow stays clear of its floor and roof (docs/fish-shelters.md).
  * The engine keeps the fish's centre in a box shortened by its sprite's half-height, and reports
  * the room left over as {@code renderBobRoom}, which the renderer caps its bob at. In game, a
  * loach bobbing at the default ±0.125 inside the Hollow Log's 0.18-tall bore went through both.

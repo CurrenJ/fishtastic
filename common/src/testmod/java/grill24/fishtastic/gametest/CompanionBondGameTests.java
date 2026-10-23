@@ -19,7 +19,7 @@ import net.minecraft.world.item.ItemStack;
 import java.util.function.Supplier;
 
 /**
- * The Phase 4 companion bond gate (docs/fish-companions.md §8.3, §8.4): a normal species unlocks
+ * The Phase 4 companion bond gate (docs/fish-companions.md, §8.4): a normal species unlocks
  * on a fully complete encyclopedia entry and never re-locks; an unlisted species never unlocks by
  * catch volume at all — only a quest carrying {@code unlocks_companion} can do it. Also the
  * rename path and the untrusted-description rule.

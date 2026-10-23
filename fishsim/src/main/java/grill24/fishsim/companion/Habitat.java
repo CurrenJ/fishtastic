@@ -4,7 +4,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * What one species likes, read from its fish profile by the adapter (docs/fish-companions-sim-plan.md
+ * What one species likes, read from its fish profile by the adapter (docs/fish-companions.md
  * §5 Phase 5, spec §6 "moods respect the species' home"). The raw preferences, uninterpreted: the
  * mood rules decide what an unfamiliar place or a disliked weather does.
  *

@@ -8,7 +8,7 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import java.util.Arrays;
 
 /**
- * Diagnostic: the two-owner guard rails before any cross-player scene (docs/fish-companions-party.md
+ * Diagnostic: the two-owner guard rails before any cross-player scene (docs/fish-companions.md
  * §28.3, step 3a-0), per pair and script, means over 8 seeds. The scene steps (3a-2) are judged
  * against this table. Run with -PsimStdout.
  */

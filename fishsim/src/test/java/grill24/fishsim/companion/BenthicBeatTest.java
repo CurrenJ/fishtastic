@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The ground's in-view beats (docs/fish-companions-benthic-follow.md §5, §18): a racer overtakes
+ * The ground's in-view beats (docs/fish-companions.md, §18): a racer overtakes
  * on a straight walk and is seen more for it, on equal seeds with the beats switched off, and no
  * beat costs a fade; a run with no beat in it is the run without them.
  */

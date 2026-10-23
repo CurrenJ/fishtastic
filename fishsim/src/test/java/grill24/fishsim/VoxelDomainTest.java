@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Task 6's gate (docs/fish-sim-engine-handoff.md): the voxel occupancy domain — invariants 1–6 on
+ * Task 6's gate (docs/fish-sim-engine-plan.md): the voxel occupancy domain — invariants 1–6 on
  * the multi-tank domain matrix, invariant 7 (L-domain: both arms visited, concave corner never
  * penetrated, no stuck fish), and 1-voxel parity with the legacy Box geometry. Thresholds
  * calibrated the same way as {@link InvariantTest}'s (measured 2026-08-22, then tightened; voxel
@@ -46,7 +46,7 @@ class VoxelDomainTest {
     //
     // This is a real improvement in the model, not a threshold moved to make a test pass; the
     // reverse move (raising a bound because behaviour got worse) is never the right fix here — see
-    // docs/fish-swarm-tier2-handoff.md on the backstop invariant.
+    // docs/fish-swarm-realism.md on the backstop invariant.
     private static final float MIN_PAIRWISE_FLOOR = 0.035f;            // (0.072)
     /**
      * Invariant 7's stuck bound: every fish must move at least this far in every 30 s window.

@@ -22,7 +22,7 @@ import java.util.UUID;
 import java.util.function.Predicate;
 
 /**
- * Server-side detection of newly unlocked companion bonds (docs/fish-companions.md §8.3, §8.4).
+ * Server-side detection of newly unlocked companion bonds (docs/fish-companions.md, §8.4).
  * A normal species unlocks the moment its encyclopedia entry is fully complete (every threshold on
  * that one species — R6.5: claiming rewards is not required); an unlisted species only unlocks via a
  * quest carrying {@code unlocks_companion}, once that quest is completed or claimed. The transition

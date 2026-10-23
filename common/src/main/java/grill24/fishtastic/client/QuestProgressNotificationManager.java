@@ -92,7 +92,7 @@ public class QuestProgressNotificationManager {
 
     /**
      * Prefix for synthetic "quest" ids driving companion bond-unlock banners, one per species
-     * (docs/fish-companions.md §8.4, R7.7). Same per-species-id reasoning as first-catch: several
+     * (docs/fish-companions.md, R7.7). Same per-species-id reasoning as first-catch: several
      * unlocks in one sync each get their own banner instead of replacing one another.
      */
     public static final String COMPANION_BOND_ID_PREFIX = "companion_bond/";

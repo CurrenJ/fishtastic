@@ -1,5 +1,5 @@
 """
-The first reactive cosmetics (docs/fish-shelters.md §12.13): structures that do something when a fish
+The first reactive cosmetics (docs/fish-shelters.md): structures that do something when a fish
 sets them off. Built with gen.py's Build; run through gen.py like every other floor design:
 
     python tools/shelter-structure-gen/gen.py giant_clam sunken_strongbox wayside_shrine sunken_gatehouse --preview

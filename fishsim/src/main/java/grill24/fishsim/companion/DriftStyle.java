@@ -3,7 +3,7 @@ package grill24.fishsim.companion;
 import java.util.Locale;
 
 /**
- * How a drifter companion propels itself (docs/fish-companions-drift.md §2). Phase 0 plumbs the
+ * How a drifter companion propels itself (docs/fish-companions-drift.md). Phase 0 plumbs the
  * style through; the body doesn't read it yet, so every style moves as the first-cut bell.
  */
 public enum DriftStyle {

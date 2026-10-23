@@ -6,7 +6,7 @@ import java.util.function.Supplier;
 
 /**
  * A percher's body — crabs and the like (BENTHIC), garden eels (ANCHORED): it rides on its owner
- * and gets about by hopping (docs/fish-companions-sim-plan.md §3.4, spec §3).
+ * and gets about by hopping (docs/fish-companions.md, spec §3).
  *
  * <ul>
  *   <li><b>Perched</b> is a real attachment, the parrot pattern: the body sits at a slot on the
@@ -22,7 +22,7 @@ import java.util.function.Supplier;
  *       (spec E1), then hop back on once the owner is out.</li>
  *   <li><b>In a party</b> each percher has its own home perch, and a transient move takes only a
  *       perch no party-mate calls home, holds or is heading for ({@link PerchLeases}).</li>
- *   <li><b>On the ground</b> (BENTHIC, docs/fish-companions-benthic-follow.md): on land a benthic
+ *   <li><b>On the ground</b> (BENTHIC, docs/fish-companions.md): on land a benthic
  *       lives on the ground, walking with a {@link GroundBody} that a {@link GroundMind} steers,
  *       and hops up to the owner only to show itself on the hand, to take cover, or when the
  *       owner rides or glides off. Past what it can follow on foot it asks the agent for the fade
@@ -121,7 +121,7 @@ public final class PerchBody extends Motor {
     private boolean devClimb, devTumble;
     boolean groupMember, groupFollower;
     boolean allowGroupClimb = true;
-    /** The party's perch bookkeeping (docs/fish-companions-party.md §6.1), or null alone: every move is allowed. */
+    /** The party's perch bookkeeping (docs/fish-companions.md), or null alone: every move is allowed. */
     PerchLeases leases;
     /** Its party slot: the lower claims a contested perch first, so the lead has first claim on a hand. */
     int partySlot;

@@ -36,7 +36,7 @@ public final class FishtasticFabric implements ModInitializer {
         }
 
         // Register synced datapack registries
-        // Fish companion player attachment (docs/fish-companions.md §8.1).
+        // Fish companion player attachment (docs/fish-companions.md).
         grill24.fishtastic.companion.fabric.CompanionStorageImpl.register();
         DynamicRegistries.registerSynced(FishtasticRegistries.ITEM_EFFECT_REGISTRY_KEY, ItemEffect.CODEC);
         DynamicRegistries.registerSynced(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, grill24.fishtastic.data.FishProfile.CODEC);

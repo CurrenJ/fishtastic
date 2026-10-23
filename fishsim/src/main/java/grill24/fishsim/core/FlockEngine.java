@@ -109,7 +109,7 @@ public final class FlockEngine {
     /**
      * A second envelope off the same trigger as {@link #burstDrive}, shaped for the
      * <i>silhouette</i> rather than for the velocity — the squash-and-stretch drive of
-     * docs/fish-sim-locomotion.md §3.6. Only the classes whose poses are otherwise nearly still
+     * docs/fish-sim-locomotion.md. Only the classes whose poses are otherwise nearly still
      * run it: a drifter's bell contraction and a crawler's push-off.
      *
      * <p>It is a separate array rather than a reuse of {@code burstDrive} because the two want
@@ -320,7 +320,7 @@ public final class FlockEngine {
     private static final float BURST_ATTACK_RATE = 3.0f;
     private static final float BURST_DECAY_RATE = 0.8f;
 
-    // ── Benthic crawl (docs/fish-sim-locomotion.md §3.1) ───────────────────────────────────────
+    // ── Benthic crawl (docs/fish-sim-locomotion.md) ───────────────────────────────────────
     // Deliberately engine constants rather than Tunables, following PLANAR_TURN_RATE and the burst
     // envelope rates above: they are internal to one motion model, DEFAULT and GROUP stay untouched
     // (so the parity lock cannot be reached from here at all), and nothing sweeps them yet. They
@@ -360,7 +360,7 @@ public final class FlockEngine {
     /** Keeps a crawler off the very edge of the swim volume, blocks. */
     private static final float CRAWL_EDGE_MARGIN = 0.02f;
 
-    // ── Drift (docs/fish-sim-locomotion.md §3.2) ───────────────────────────────────────────────
+    // ── Drift (docs/fish-sim-locomotion.md) ───────────────────────────────────────────────
     // Engine constants for the same reason the crawl's are: internal to one motion model, and
     // unreachable from DEFAULT/GROUP so the parity lock cannot be perturbed from here.
 
@@ -408,7 +408,7 @@ public final class FlockEngine {
      */
     private static final float DRIFT_SPIN_RATE_DEG = 6.0f;
 
-    // ── Anchored (docs/fish-sim-locomotion.md §3.4) ────────────────────────────────────────────
+    // ── Anchored (docs/fish-sim-locomotion.md) ────────────────────────────────────────────
     /**
      * How close the <b>watcher</b> — whatever the host has declared it is worth hiding from, which
      * on the Minecraft side is the local player — has to come before an eel withdraws.
@@ -475,7 +475,7 @@ public final class FlockEngine {
     private static final float COLONY_MIN_RADIUS = 0.05f;
     /**
      * Average seconds between relocations — long enough to read as an occasional event rather than
-     * a fidget. Not real garden-eel behaviour (see docs/fish-sim-locomotion.md §3.4); it exists
+     * a fidget. Not real garden-eel behaviour (see docs/fish-sim-locomotion.md); it exists
      * purely so an anchored class isn't the one thing in the tank that never does anything.
      */
     private static final float COLONY_RELOCATION_PERIOD_SECONDS = 600f;
@@ -536,7 +536,7 @@ public final class FlockEngine {
      */
     private static final float DRIFT_GATE_HEIGHT_FACTOR = 0.6f;
 
-    // ── GLIDE (docs/fish-sim-locomotion.md §3.3) ───────────────────────────────────────────────
+    // ── GLIDE (docs/fish-sim-locomotion.md) ───────────────────────────────────────────────
     // The class's *parameters* are Tunables.GLIDE, not constants here, because GLIDE is the planar
     // swimmer model with different numbers. What lives here is the one thing that is not in that
     // model at all: a ray's relationship with the floor it flies over.
@@ -567,7 +567,7 @@ public final class FlockEngine {
     public float[] renderPhase = new float[0];
     /**
      * How far this frame's sprite may bob up or down before it leaves a shelter's hollow, in
-     * blocks (docs/fish-shelters.md §5.7). The renderer's bob is drawn on top of {@link #renderY}
+     * blocks (docs/fish-shelters.md). The renderer's bob is drawn on top of {@link #renderY}
      * and never seen by the simulation, so the engine can keep a fish's centre inside a hollow but
      * only the renderer can keep the bob there. Infinite for everything but a swimmer with a
      * shelter in its domain.
@@ -595,7 +595,7 @@ public final class FlockEngine {
     private final float[] floorScratch = new float[2];
     private final float[] avoidScratch = new float[3];
 
-    // ── Shelters (docs/fish-shelters.md §4) ─────────────────────────────────
+    // ── Shelters (docs/fish-shelters.md) ─────────────────────────────────
     // A shelter's hull is solid to every swimmer except the ones using it. Only the planar model
     // reads shelters, and only a domain that has some; a domain without any takes none of the
     // code below, which is what keeps every existing trajectory bitwise unchanged.
@@ -618,7 +618,7 @@ public final class FlockEngine {
 
     private final float[] hullGrad = new float[3];
 
-    // ── The visit state machine (docs/fish-shelters.md §5) ──────────────────
+    // ── The visit state machine (docs/fish-shelters.md) ──────────────────
     // One state per fish, layered on the planar swimmer. ROAMING is today's flocking, untouched;
     // everything else steers toward, into, around inside, or out of one chosen shelter.
 
@@ -628,7 +628,7 @@ public final class FlockEngine {
     public static final int SHELTER_INSIDE = 3;
     public static final int SHELTER_EXIT = 4;
     /**
-     * A lurker at home (docs/fish-shelters.md §5.5): body inside, head at the mouth plane, facing
+     * A lurker at home (docs/fish-shelters.md): body inside, head at the mouth plane, facing
      * out, holding position. The most visible thing in the tank, so it counts as visible for the
      * hidden budget.
      */
@@ -760,7 +760,7 @@ public final class FlockEngine {
      */
     static final float BOB_ROOM_SLOPE = 0.5f;
 
-    // ── Startle to cover (docs/fish-shelters.md §5.3 trigger 2: SKITTISH only) ──
+    // ── Startle to cover (docs/fish-shelters.md trigger 2: SKITTISH only) ──
     // The event is the watcher *lunging*: within STARTLE_RADIUS of the fish and at least
     // STARTLE_LUNGE closer to it than a second ago. Then the fish can't be startled again for
     // STARTLE_REFRACTORY_SECONDS. This replaced the garden eels' rule (armed only by seeing the
@@ -768,7 +768,7 @@ public final class FlockEngine {
     // a 5x2x1 with two logs, a watcher stepping between 3.5 and 1.5 blocks startled nobody, ever.
     // A watcher standing still, or there when the tank loaded, is not moving, so it startles
     // nobody. Places in cover go nearest first (resolveStartles), and a fish that gets none
-    // flinches: a short dart away from the watcher (docs/fish-shelters.md §5.3.2).
+    // flinches: a short dart away from the watcher (docs/fish-shelters.md).
 
     /** How near the watcher has to come to startle a skittish fish, blocks (the eels' radius). */
     static final float STARTLE_RADIUS = 3.0f;
@@ -797,7 +797,7 @@ public final class FlockEngine {
      * A skittish fish that is lunged at but gets no place in cover flinches: a short dart away from
      * the watcher, then it settles back into the shoal. So a lunge reads as the whole group
      * flinching while the nearest few make it into the log, not as most of the shoal ignoring
-     * the watcher (docs/fish-shelters.md §5.3.2).
+     * the watcher (docs/fish-shelters.md).
      */
     static final float FLINCH_SECONDS = 1.6f;
     /** The flinch's top speed, blocks/s, scaled by the fish's own patrol jitter; under the dash's. */
@@ -898,7 +898,7 @@ public final class FlockEngine {
     private boolean anyVisibleShelter;
     private final float[] shelterSteer = new float[3];
 
-    // ── Triggers (docs/fish-shelters.md §12.13) ─────────────────────────────
+    // ── Triggers (docs/fish-shelters.md) ─────────────────────────────
     // A structure that reacts to a fish: a clam that opens when a fish noses its lip, a portcullis
     // that rises for a fish. Each such shelter runs its own rare clock (§12.2); when it fires, the
     // structure sends the nearest free fish. One reaction at a time per domain, then a rest.
@@ -1043,7 +1043,7 @@ public final class FlockEngine {
     /**
      * Verification hook: turns the planar model's spatial index off, forcing the brute-force
      * O(n²) scan. The index is meant to be a pure optimisation — identical results, not merely
-     * similar ones (docs/fish-tank-group-scaling.md §5.2) — and the only way to assert that is to
+     * similar ones (docs/fish-tank-group-scaling.md) — and the only way to assert that is to
      * run both and compare raw float bits, which {@code SpatialIndexEquivalenceTest} does.
      * Production code must never call this; the brute-force path is quadratic by construction.
      */
@@ -1336,7 +1336,7 @@ public final class FlockEngine {
     private float[] cWanderState = new float[0], cWanderStateY = new float[0], cSpinState = new float[0];
     private float[] cBurstPhase = new float[0], cBurstDrive = new float[0];
     private long[] cNoiseState = new long[0];
-    // The visit (docs/fish-shelters.md §5.1): carried like anchorTimer, so a rebuild — a fish
+    // The visit (docs/fish-shelters.md): carried like anchorTimer, so a rebuild — a fish
     // added, a cosmetic moved — never yanks a fish out of a log. The index is re-resolved against
     // the shelter list once it is known (remapShelterState).
     private int[] cShelterState = new int[0], cShelterIndex = new int[0], cShelterMouth = new int[0];
@@ -1576,7 +1576,7 @@ public final class FlockEngine {
      * Applies a locomotion class's own size gate, demoting to {@link Locomotion#STATIC} when the
      * domain is too small for that kind of creature to do its thing. One gate per class, because
      * they measure different quantities: a swimmer needs a straight run, a crawler needs floor
-     * area, a drifter needs headroom (docs/fish-sim-locomotion.md §2.4).
+     * area, a drifter needs headroom (docs/fish-sim-locomotion.md).
      *
      * <p>The swim gate is the pre-existing rule, unchanged and still bitwise-locked. Every class
      * has its own gate now; a creature that fails one is demoted to {@link Locomotion#STATIC} and
@@ -1738,7 +1738,7 @@ public final class FlockEngine {
         return Math.max(APPROACH_TIMEOUT_SECONDS, reach / speed + APPROACH_TIMEOUT_SLACK_SECONDS);
     }
 
-    /** Whether fish #{@code i}'s current visit is a startle (docs/fish-shelters.md §5.3). */
+    /** Whether fish #{@code i}'s current visit is a startle (docs/fish-shelters.md). */
     public boolean startled(int i) { return startled[i]; }
 
     /** Seconds until fish #{@code i} may be startled again; 0 when it may be now. */
@@ -1880,7 +1880,7 @@ public final class FlockEngine {
     }
 
     /**
-     * Carries every fish's visit across a change of shelter list (docs/fish-shelters.md §4.3): a
+     * Carries every fish's visit across a change of shelter list (docs/fish-shelters.md): a
      * fish whose shelter is still there keeps it under its new index; one whose shelter has gone
      * drops to ROAMING right where it is, which is open water now. Then any swimmer a new hull has
      * landed on is adopted: put INSIDE that shelter and sent out by a mouth, never pushed through
@@ -2555,7 +2555,7 @@ public final class FlockEngine {
     }
 
     /**
-     * The trigger clocks, once per step before anyone moves (docs/fish-shelters.md §12.2, §12.13):
+     * The trigger clocks, once per step before anyone moves (docs/fish-shelters.md, §12.13):
      * an errand that has ended lets its structure go; then, unless a reaction is under way or the
      * domain is resting after one, each structure's Poisson clock may fire and send a fish.
      */
@@ -3206,7 +3206,7 @@ public final class FlockEngine {
         return false;
     }
 
-    // ── Obstacles (docs/fish-shelters.md §12.3) ─────────────────────────────
+    // ── Obstacles (docs/fish-shelters.md) ─────────────────────────────
     // The solid parts of every cosmetic, as boxes steered round exactly like a shelter's hull. A
     // domain with none takes none of this code, which keeps every existing trajectory bitwise.
 
@@ -3366,7 +3366,7 @@ public final class FlockEngine {
             // The one place that decides what a locomotion class actually does. FREE_SWIM reaches
             // the identical instructions it always has (the parity lock depends on that); the
             // classes below it have no motion model yet and hold their scatter position exactly
-            // like STATIC — each gains one in its own phase, docs/fish-sim-locomotion.md §5.
+            // like STATIC — each gains one in its own phase, docs/fish-sim-locomotion.md.
             boolean beats = switch (locomotion[i]) {
                 case FREE_SWIM -> {
                     if (planar) {
@@ -3429,7 +3429,7 @@ public final class FlockEngine {
         // Which parameter set this fish is stepped with. A free swimmer gets the engine's own,
         // which is the SAME OBJECT and therefore the identical arithmetic — the planar goldens
         // depend on that. A glider gets the class's set (Tunables.GLIDE): same model, different
-        // numbers, which is the whole of what makes a ray a ray (docs/fish-sim-locomotion.md §3.3).
+        // numbers, which is the whole of what makes a ray a ray (docs/fish-sim-locomotion.md).
         final Tunables p = params(i);
         final boolean glide = locomotion[i] == Locomotion.GLIDE;
         // The visit state machine runs for free swimmers in a domain with shelters; a fish that is
@@ -3473,7 +3473,7 @@ public final class FlockEngine {
         float wallMargin = blend == 0f ? p.wallMargin()
                 : p.wallMargin() + (Math.min(p.wallMargin(), VISIT_WALL_MARGIN) - p.wallMargin()) * blend;
         domain.avoidance(posL[i], posY[i], posD[i], wallMargin, p.wallMarginVertical(), avoidScratch);
-        // Shelter hulls are walls too (docs/fish-shelters.md §4.1), so they also calm the burst
+        // Shelter hulls are walls too (docs/fish-shelters.md), so they also calm the burst
         // and loosen formation as a fish nears one — summed in before avoidMag is taken.
         List<Shelter> shelters = domain.shelters();
         if (!shelters.isEmpty()) addHullAvoidance(i, shelters, avoidScratch);
@@ -3648,7 +3648,7 @@ public final class FlockEngine {
             dD += dirD * match;
         }
 
-        // A fish on a visit steers by its state instead (docs/fish-shelters.md §5.1), keeping only
+        // A fish on a visit steers by its state instead (docs/fish-shelters.md), keeping only
         // its separation — which, inside a shelter, is from the fish sharing it.
         if (visit == SHELTER_ROAMING && blend > 0f) {
             dL += (exitVelL[i] - dL) * blend;
@@ -4173,7 +4173,7 @@ public final class FlockEngine {
         shapeDrive[i] += (target - shapeDrive[i]) * rate * dt;
     }
 
-    // ── Benthic crawl (docs/fish-sim-locomotion.md §3.1) ───────────────────────────────────────
+    // ── Benthic crawl (docs/fish-sim-locomotion.md) ───────────────────────────────────────
 
     /**
      * One step of the floor walk. Deliberately <b>not</b> the swimmers' force model: a crawler is
@@ -4640,7 +4640,7 @@ public final class FlockEngine {
         return true;
     }
 
-    // ── Drift (docs/fish-sim-locomotion.md §3.2) ───────────────────────────────────────────────
+    // ── Drift (docs/fish-sim-locomotion.md) ───────────────────────────────────────────────
 
     /**
      * One step of the passive drift. Like the crawl and unlike the swimmers, this commands
@@ -4761,7 +4761,7 @@ public final class FlockEngine {
         bank[i] = 0f;
     }
 
-    // ── Anchored (docs/fish-sim-locomotion.md §3.4) ────────────────────────────────────────────
+    // ── Anchored (docs/fish-sim-locomotion.md) ────────────────────────────────────────────
 
     /**
      * One step of the burrow. The cheapest model here by a wide margin, and deliberately so: an

@@ -85,7 +85,7 @@ public sealed interface FishAnimationConfig
     ) implements FishAnimationConfig {
         /**
          * How far the bell deforms at the peak of a pulse, as a fraction of the creature's height
-         * (docs/fish-sim-locomotion.md §3.6). Positive stretches it vertically and — volume is
+         * (docs/fish-sim-locomotion.md). Positive stretches it vertically and — volume is
          * preserved — narrows it by the same amount of matter, which is what a bell doing its one
          * stroke actually looks like: it pulls in and elongates, then relaxes.
          *
@@ -140,7 +140,7 @@ public sealed interface FishAnimationConfig
 
         /**
          * How far the body deforms as it pushes off into a scuttle, as a fraction of its own size
-         * (docs/fish-sim-locomotion.md §3.6), driven by the engine's crawl envelope
+         * (docs/fish-sim-locomotion.md), driven by the engine's crawl envelope
          * ({@code FlockEngine.renderShape}).
          *
          * <p>A flat-lying creature deforms <i>in its own plane</i> rather than vertically: it
@@ -190,7 +190,7 @@ public sealed interface FishAnimationConfig
         /**
          * How much of its height the creature loses at a full retract — the withdrawal into the
          * burrow, driven by the engine's own startle envelope
-         * ({@code FlockEngine.renderShape}, docs/fish-sim-locomotion.md §3.4).
+         * ({@code FlockEngine.renderShape}, docs/fish-sim-locomotion.md).
          *
          * <p>It scales about the base rather than translating, so the animal appears to pull down
          * into the sand and leave a nub, which is what a garden eel does and what a translate

@@ -27,7 +27,7 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * The Minecraft side of the Phase 5 moods (docs/fish-companions-sim-plan.md §5, spec §6): the
+ * The Minecraft side of the Phase 5 moods (docs/fish-companions.md, spec §6): the
  * {@link Ambient} around an owner, read from the level, and a species' {@link Habitat}, read from
  * its fish profile. Both speak the sim's place tokens: {@code "minecraft:plains"},
  * {@code "#minecraft:is_ocean"}, {@code "dim:minecraft:the_nether"}, and of the fishing zones only

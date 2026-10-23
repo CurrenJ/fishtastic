@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The structure-to-boxes geometry on its own, without Minecraft (docs/fish-shelters.md §12.3):
+ * The structure-to-boxes geometry on its own, without Minecraft (docs/fish-shelters.md):
  * rasterising block shapes, the exact greedy merge, carving a hull out, and filling the pockets no
  * fish could get into.
  */

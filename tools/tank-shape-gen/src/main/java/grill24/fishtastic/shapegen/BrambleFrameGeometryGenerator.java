@@ -25,6 +25,8 @@ import static grill24.fishtastic.shapegen.TankShapeGeometry.vec3;
  * Unlike shaggy there is no edge-cell merge: a gated run simply vanishes when its face opens, with
  * nothing added back, because (confirmed against the horizontal-connection reference) nothing needs
  * to fill the gap — the neighboring tank's own geometry does.
+ * Bramble intentionally has no edge-diagonal frame-beam retrofit: its per-row thorns
+ * do not use the uniform cap/post geometry of the other families.
  */
 public final class BrambleFrameGeometryGenerator {
     public static final String DEFAULT_TEXTURE = "block/oak_planks";

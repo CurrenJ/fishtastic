@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * The client half of a structure's reactions (docs/fish-shelters.md §12.13): turns the engine's
+ * The client half of a structure's reactions (docs/fish-shelters.md): turns the engine's
  * trigger events into the moment itself. A reaction opens when its event starts, holds, and
  * closes; this keeps each one's timeline, plays its quiet sound cues and bubble bursts where the
  * structure stands, and answers the renderer's one question — how open is it now.

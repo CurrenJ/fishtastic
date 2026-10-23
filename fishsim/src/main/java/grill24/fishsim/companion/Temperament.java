@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * How a species' temperament colours its companion (spec §4, docs/fish-companions-sim-plan.md
+ * How a species' temperament colours its companion (spec §4, docs/fish-companions.md
  * §3.3, §10.5): weights on the drives and the timing of decisions, never a different set of
  * behaviours — temperament changes <i>how</i> a display mode behaves, not <i>which</i> one is used.
  *

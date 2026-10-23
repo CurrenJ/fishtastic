@@ -4,7 +4,7 @@ import java.util.List;
 
 /**
  * A cosmetic a fish can swim into, rest in and leave — a hollow log, a clay pipe, a cave
- * (docs/fish-shelters.md §3). Expressed in the engine's local frame, ready to steer against: the
+ * (docs/fish-shelters.md). Expressed in the engine's local frame, ready to steer against: the
  * host derives it from the structure's authored hollow and maps it through the same frame the
  * fish are simulated in.
  *
@@ -46,7 +46,7 @@ public record Shelter(OrientedBox hull, OrientedBox interior, List<Mouth> mouths
     }
 
     /**
-     * A reaction a fish sets off (docs/fish-shelters.md §12.13): a clam opening, a portcullis
+     * A reaction a fish sets off (docs/fish-shelters.md): a clam opening, a portcullis
      * rising. The engine never decides what happens, only when, and reports it as an event
      * carrying {@code key}, which is the host's own handle on the structure.
      *
@@ -69,7 +69,7 @@ public record Shelter(OrientedBox hull, OrientedBox interior, List<Mouth> mouths
         this(hull, interior, mouths, capacity, interiorRun, kind, 0f);
     }
 
-    /** What a visit looks like (docs/fish-shelters.md §12.1, §12.4). */
+    /** What a visit looks like (docs/fish-shelters.md, §12.4). */
     public enum Kind {
         /**
          * A hollow fish hide in (the Hollow Log, the Clay Pipe): opt-in species only, counted
@@ -89,7 +89,7 @@ public record Shelter(OrientedBox hull, OrientedBox interior, List<Mouth> mouths
          */
         GATE,
         /**
-         * A spot a fish noses to set a reaction off (docs/fish-shelters.md §12.13): a clam's lip, a
+         * A spot a fish noses to set a reaction off (docs/fish-shelters.md): a clam's lip, a
          * chest's lock. Its interior is the anchor, just inside the structure's surface, and its
          * one mouth is that surface. No fish visits it of its own accord: only the structure's
          * clock sends one, which swims up, touches it with its nose, holds, and backs off. It has

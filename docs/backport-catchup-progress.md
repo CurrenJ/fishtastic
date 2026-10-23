@@ -27,7 +27,7 @@ The later cosmetic-placement work does not close these checks.
 
 ## Resuming parity work
 
-Read [the catch-up plan](backport-catchup-plan.md), the complete
+Read the complete
 [feature ledger](backport-catchup/features.md), and the
 [source commit ledger](backport-catchup/source-commit-ledger.json). Follow the backport-specific
 instructions in `AGENTS.md` and use the target branches' existing porting plans and the canonical
@@ -37,3 +37,13 @@ Before a new operation, record its exact action and evidence path here. Record i
 action at each checkpoint and before ending the session. An interrupted operation is unverified.
 Do not advance a ported-through marker until the complete pinned backlog is accounted for. Preserve
 unrelated edits and target runtime files.
+
+## Scope and safeguards
+
+Carry final source behavior while preserving Minecraft/loader adaptations; account
+for superseded intermediate changes rather than replaying them. Target branch
+plans remain under `docs/backport-plan.md` and `docs/backport-pass2/` on those
+branches. Canonical guide topics 19 and 20 cover backport APIs and workflow.
+The visual switches `driftBob`, `bobRetime`, `bobMindTurn`, `bobCalm`,
+`partySwimSeparation` and `otherPlayerClearance` retain their current defaults
+until owner review. Publication/profile deployment are separate operations.

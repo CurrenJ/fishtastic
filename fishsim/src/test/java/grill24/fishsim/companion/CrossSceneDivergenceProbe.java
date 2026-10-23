@@ -9,7 +9,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Diagnostic (docs/fish-companions-party.md §28.3, D29, step 3a-3): the same scenes as two clients
+ * Diagnostic (docs/fish-companions.md, D29, step 3a-3): the same scenes as two clients
  * see them. Each client runs both parties; its own player is exact and the other player arrives a
  * few ticks late (an interpolated remote player). The server's schedule is the same in both. Per
  * pair and script, over 8 seeds:

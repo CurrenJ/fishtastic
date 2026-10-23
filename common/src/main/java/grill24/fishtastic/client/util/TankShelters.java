@@ -24,7 +24,7 @@ import java.util.function.IntFunction;
 
 /**
  * Turns the shelter structures placed in tanks into the {@link Shelter}s the simulation steers
- * against (docs/fish-shelters.md §3), the way {@link TankFloors} does for the floor. The other of
+ * against (docs/fish-shelters.md), the way {@link TankFloors} does for the floor. The other of
  * the three classes that know both worlds' frames.
  *
  * <p>Two steps, kept apart so each can be tested on its own:
@@ -132,7 +132,7 @@ public final class TankShelters {
 
     /**
      * {@link #inBlockFrame(CosmeticStructure, float, float, Rotation)} with the structure's
-     * reactions (docs/fish-shelters.md §12.13) as triggers, each keyed by {@code keys} from its
+     * reactions (docs/fish-shelters.md) as triggers, each keyed by {@code keys} from its
      * index: a gate a reaction locks carries its trigger, and every nose anchor is one more
      * {@link Shelter.Kind#TRIGGER} after the authored shelters. Null {@code keys}: no triggers.
      * A shelter that fails to derive is skipped, so a gate reaction finds its shelter by spec.

@@ -35,7 +35,7 @@ public class PlayerQuestState {
     // slot the player has claimed, ever. See claimEncyclopediaReward.
     private final Set<String> claimedEncyclopediaRewards = new HashSet<>();
     // Species whose companion bond this player has unlocked, ever. Once unlocked a bond never
-    // re-locks, even if the derived thresholds later move (docs/fish-companions.md §8.4, R6.4).
+    // re-locks, even if the derived thresholds later move (docs/fish-companions.md, R6.4).
     // Normal species unlock by completing their encyclopedia entry; unlisted ones unlock via a
     // quest carrying `unlocks_companion`. See CompanionBondUnlocks.
     private final Set<Identifier> unlockedCompanionSpecies = new LinkedHashSet<>();

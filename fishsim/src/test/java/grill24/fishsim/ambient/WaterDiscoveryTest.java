@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
- * The Phase 2 discovery contract (docs/fish-in-world-phase2.md §discovery): budgets that hold every
+ * The Phase 2 discovery contract (docs/fish-in-world.md §discovery): budgets that hold every
  * tick, water geometry that survives fractional surfaces and waterlogged cells, patch keys that do
  * not move when the window does, disconnected pools that stay apart, merges when water joins them,
  * and eviction that retires what the window has left behind.

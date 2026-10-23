@@ -14,7 +14,7 @@ import java.io.IOException;
 
 /**
  * Minimal looping animated-GIF writer on top of the JDK's built-in GIF {@link ImageWriter} — no
- * external dependency (docs/fish-sim-engine-handoff.md open decision: simplest thing that works).
+ * external dependency (docs/fish-sim-engine-plan.md open decision: simplest thing that works).
  */
 public final class GifSequenceWriter implements Closeable {
 

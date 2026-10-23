@@ -16,13 +16,16 @@ param(
     [string]$McVersion = "26.1.2",
     [string]$ForgeVersion = "26.1.2-forge-64.1.0",
     [string[]]$SystemProps = @(),
-    [string]$AssetsDir = "C:/Users/curre/.gradle/caches/fabric-loom/assets",
+    [string]$AssetsDir = (Join-Path $env:USERPROFILE ".gradle/caches/fabric-loom/assets"),
     [string]$AssetIndex = "26.1.2-30",
-    [string]$Java = "C:/Users/curre/.gradle/jdks/eclipse_adoptium-25-amd64-windows.2/bin/java.exe",
+    [string]$Java = "",
     [switch]$PrepareOnly
 )
 
 $ErrorActionPreference = "Stop"
+if (-not $Java) {
+    $Java = if ($env:JAVA_HOME) { Join-Path $env:JAVA_HOME "bin/java.exe" } else { (Get-Command java -ErrorAction Stop).Source }
+}
 $client = (Resolve-Path $ClientDir).Path
 $versions = Join-Path $client "versions"
 $libraries = Join-Path $client "libraries"

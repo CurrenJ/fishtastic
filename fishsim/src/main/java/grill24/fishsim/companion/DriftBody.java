@@ -1,7 +1,7 @@
 package grill24.fishsim.companion;
 
 /**
- * A drifter's body — jellyfish and their kin (docs/fish-companions-sim-plan.md §3.4, §9): a bell
+ * A drifter's body — jellyfish and their kin (docs/fish-companions.md, §9): a bell
  * that moves only by pulsing along its own axis, coasts between pulses, and sinks when it stops.
  *
  * <p><b>A pulsed controller.</b> Each tick the body works out the acceleration it needs: enough
@@ -279,7 +279,7 @@ final class DriftBody extends Motor {
     }
 
     /**
-     * The man o' war (docs/fish-companions-drift.md §6, §15): a float that stays near upright and bobs
+     * The man o' war (docs/fish-companions-drift.md, §15): a float that stays near upright and bobs
      * on a vertical cycle, and turns each downstroke into a horizontal shove along its sail, like a
      * buoy skipping across waves. The shove is fixed at the downstroke's start, sized to arrive (what
      * drag takes over the cycle plus most of the gap, along the sail), weakened when the sail is off
@@ -441,7 +441,7 @@ final class DriftBody extends Motor {
     }
 
     /**
-     * The brake (docs/fish-companions-drift.md §4): a bell can't push backwards, but it can spread its
+     * The brake (docs/fish-companions-drift.md): a bell can't push backwards, but it can spread its
      * web like a parachute. It flares by how much faster it is going than it wants to go that way —
      * coasting past its spot, still carrying a stroke when the owner stops, or heading off at an
      * angle to where it now wants to be — and the flare is drag and a little extra sink. A bell

@@ -7,7 +7,7 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import java.util.function.Consumer;
 
 /**
- * Diagnostic: equal-ground, per-seed A/B for the calm idle (docs/fish-companions-drift.md §13.7).
+ * Diagnostic: equal-ground, per-seed A/B for the calm idle (docs/fish-companions-drift.md).
  * Side A is {@code -PtweakA}; each entry of {@code -PabList=over1/over2/...} is side B = A plus that
  * override. For every idle script it compares the idle numbers of {@link DriftIdleProbe}, and for
  * every travel script the standard ones, seed by seed: "+b/-w" is seeds better / worse beyond a

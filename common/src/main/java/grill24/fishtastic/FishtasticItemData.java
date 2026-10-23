@@ -24,7 +24,7 @@ import java.util.Optional;
  * The single point through which the mod reads and writes per-stack item data — both our own
  * {@link FishtasticDataComponents} and the vanilla {@link DataComponents} gameplay depends on.
  * <p>
- * Backport seam S1 (docs/backport-plan.md §8): on MC 1.20.1 item stacks carry NBT, not data
+ * Backport seam S1 (port branches: docs/backport-plan.md §8): on MC 1.20.1 item stacks carry NBT, not data
  * components, and only this class gets an NBT implementation there. Call sites keep the same
  * shape on every version — they pass the {@code FishtasticDataComponents} field and never name
  * {@code DataComponentType} or {@code ItemStack#get/set/has/remove} themselves, so the 1.20.1 port

@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A shelter's kind (docs/fish-shelters.md §12.1, §12.4): what each shipped shelter is, and the one
+ * A shelter's kind (docs/fish-shelters.md, §12.4): what each shipped shelter is, and the one
  * rule a kind adds to validation — a gate must have a way through.
  */
 class ShelterKindTest {

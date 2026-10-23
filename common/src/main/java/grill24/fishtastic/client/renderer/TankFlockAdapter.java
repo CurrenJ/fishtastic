@@ -147,7 +147,7 @@ public final class TankFlockAdapter {
 
     /**
      * Tells this tank's own engine where the player is, so anchored creatures can react to being
-     * looked at (docs/fish-sim-locomotion.md §3.4). Called once per client tick, before
+     * looked at (docs/fish-sim-locomotion.md). Called once per client tick, before
      * {@link #step()}. The group engine is pointed at the player by {@link TankGroupFlock}, which
      * translates the same way in the group's own frame.
      *
@@ -321,7 +321,7 @@ public final class TankFlockAdapter {
 
     /**
      * Whether this lone tank runs the planar engine instead of the binary one
-     * (docs/fish-shelters.md §7): it holds a shelter <i>and</i> a fish whose species uses
+     * (docs/fish-shelters.md): it holds a shelter <i>and</i> a fish whose species uses
      * shelters. Every other lone tank keeps the bitwise-locked binary model — the shelter is only
      * worth the switch when something in the tank will swim into it.
      */
@@ -338,7 +338,7 @@ public final class TankFlockAdapter {
 
     /**
      * Whether this lone tank runs the planar engine so its swimmers steer round its cosmetics
-     * (docs/fish-shelters.md §12.8, open question 6): it holds a structure with a solid part
+     * (docs/fish-shelters.md, open question 6): it holds a structure with a solid part
      * <i>and</i> a fish that swims. The binary model cannot learn obstacles, and a fish swimming
      * through a castle wall reads as a bug wherever players keep it.
      */

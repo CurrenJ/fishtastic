@@ -6,7 +6,7 @@ import net.minecraft.world.item.ItemStack;
 
 /**
  * The player's companion party: three slots of bonded fish, held in a platform player attachment
- * (docs/fish-companions-party.md §5.1). Each platform's attachment is saved in the player's own
+ * (docs/fish-companions.md). Each platform's attachment is saved in the player's own
  * file, copied on death, and synced to the player and everyone tracking them, so the same call
  * answers "what is this player's party" on the server and on any client that can see them.
  *

@@ -5,7 +5,7 @@ import grill24.fishtastic.util.Ids;
 import net.minecraft.resources.Identifier;
 
 /**
- * Per-zone look of the Fishopedia portrait plate (docs/encyclopedia-redesign/bubbles/PLAN.md section 3).
+ * Per-zone look of the Fishopedia portrait plate (docs/encyclopedia-redesign/README.md section 3).
  * Every number is copied from {@code THEMES} in {@code prototype_bubbles.py}.
  */
 public enum PortraitTheme {

@@ -10,7 +10,7 @@ import net.minecraft.world.inventory.DataSlot;
 
 /**
  * Menu behind the fish tank browser GUI: lists every fish and cosmetic across a connected tank
- * group and lets the player remove any of them (see docs/fish-tank-interaction-redesign.md).
+ * group and lets the player remove any of them (see docs/fish-tanks.md).
  * Carries no real {@code Slot}s — the screen reads the group's contents straight off the already
  * chunk-synced {@link FishTankBlockEntity}s (see {@link grill24.fishtastic.fishtank.TankGroups}),
  * and removal goes through {@link grill24.fishtastic.network.RemoveTankEntryPacket} instead of

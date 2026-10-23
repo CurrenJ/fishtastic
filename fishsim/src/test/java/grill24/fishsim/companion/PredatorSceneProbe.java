@@ -8,7 +8,7 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import java.util.Locale;
 
 /**
- * The predator scene (D21, G4; docs/fish-companions-party.md §27) on {@code predator + 2 prey}:
+ * The predator scene (D21, G4; docs/fish-companions.md) on {@code predator + 2 prey}:
  * how often it comes at its real timing, and, with the timing cut short, how each scene plays: the
  * lap begun and finished, the prey hidden, the prey on the owner's far side from the predator while
  * it laps, body contact, and how much of the lap the owner sees.

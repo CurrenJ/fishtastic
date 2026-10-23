@@ -1,20 +1,22 @@
-# Forge support progress
+# Forge support continuation
 
-Forge support shipped in Fishtastic 2.1.2. The package-by-package implementation log and interim
-status table have been removed; this page is the current release and continuation state.
+Forge support shipped in Fishtastic 2.1.2 for 26.1.2 and 1.21.1 alongside Fabric
+and NeoForge; 1.20.1 retains its existing Forge support. The
+[implementation reference](forge-support-implementation-plan.md) defines acceptance
+checks. No Forge operation is currently in progress.
 
-## Current release state (2026-10-22)
+## Release records
 
-- Release 2.1.2 completed for all eight loader/version artifacts and ten allow-listed profiles.
-  The [release record](release-2.1.2.md) contains artifact hashes, file IDs, and publication evidence.
-- The 1.21.1 and 1.20.1 working versions are 2.1.3. The owner instructed that 2.1.3 remain
-  unpublished while further changes are added. The 26.1.2 line remains at 2.1.2 until that line
-  next changes.
-- No Forge-support implementation, publication, or deployment operation is currently in progress.
-- Do not touch backport parity markers for Forge work; this support track has its own scope and
-  evidence tree under `build/forge-support/`.
+[Release 2.1.2](release-2.1.2.md) records artifact hashes, upload IDs and profile
+deployment for that release. A local 2.1.3 release record reviewed during cleanup
+reported successful submissions, without independently establishing moderation or
+public visibility; that record is not retained in this checkout. The old instruction
+to hold 2.1.3 unpublished is historical, not a current release instruction.
+This checkout's working version is in `gradle.properties`; historical release
+records are not a version registry for other branches.
 
-For future Forge changes, read the [implementation reference](forge-support-implementation-plan.md)
-and repository `AGENTS.md` before editing. Re-run the relevant loader build, GameTests, dedicated
-server/client checks, and installed-artifact verification for the changed surface. Treat ignored
-`build/forge-support/` output as operation evidence, not as the current status record.
+For future changes, inspect the pinned checkout, repository guidance and exact
+loader sources. Re-run affected build, GameTest, installed client/server and
+packaging gates. Evidence goes under `build/forge-support/`; interrupted runs
+remain unverified. Keep support evidence separate from backport parity accounting.
+This cleanup does not advance any parity or acceptance marker.

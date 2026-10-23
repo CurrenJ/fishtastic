@@ -25,7 +25,7 @@ import java.util.Map;
  * water</em>: two columns are connected when their spans share a height — the rule for water that
  * can be swum through. Each patch gets a key and an origin decided once, from the column where it
  * was first found, and never changed afterwards, so a patch's local coordinate frame never moves
- * however the window slides (docs/fish-in-world-phase2.md §frame). Disconnected pools are separate
+ * however the window slides (docs/fish-in-world.md §frame). Disconnected pools are separate
  * patches. Terrain that later <em>splits</em> a patch leaves both halves under the one key: the key
  * names the water a population belongs to; the geometry, not the key, is what keeps fish from
  * crossing dry land.

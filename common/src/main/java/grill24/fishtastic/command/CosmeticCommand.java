@@ -73,7 +73,7 @@ public class CosmeticCommand {
                 .then(Commands.argument("value", FloatArgumentType.floatArg(0.01f))
                     .executes(ctx -> scale(ctx, FloatArgumentType.getFloat(ctx, "value")))))
             // Dev: run every cosmetic reaction clock this many times faster on the invoker's client
-            // (docs/fish-shelters.md §12.13); 1 is normal. The 30 s rest between reactions is not boosted.
+            // (docs/fish-shelters.md); 1 is normal. The 30 s rest between reactions is not boosted.
             .then(Commands.literal("reactionboost")
                 .then(Commands.argument("multiplier", com.mojang.brigadier.arguments.FloatArgumentType.floatArg(0f, 1000f))
                     .executes(ctx -> {
@@ -174,7 +174,7 @@ public class CosmeticCommand {
      * pitch) need this compensation but {@code offsetY} (already multiplied by {@code scale} at render
      * time) doesn't and is captured as a plain, unscaled world-block delta.
      * <p>
-     * {@code minecraft:structure_void} marks a shelter's hollow (docs/fish-shelters.md §3.2): those
+     * {@code minecraft:structure_void} marks a shelter's hollow (docs/fish-shelters.md): those
      * cells are left out of {@code parts} and written as {@code shelter.interior} in the build grid,
      * and the mouth derivation runs right here, so a sealed hollow fails the capture instead of the
      * next datapack load.

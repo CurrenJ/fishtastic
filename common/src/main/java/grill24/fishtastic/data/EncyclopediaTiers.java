@@ -19,7 +19,7 @@ import java.util.WeakHashMap;
 
 /**
  * Derives every species' encyclopedia unlock thresholds from how rare it is where it can be caught,
- * so no entry authors its own (docs/fish-companions.md §9). Thresholds always count catches of the
+ * so no entry authors its own (docs/fish-companions.md). Thresholds always count catches of the
  * one species; the pool share below only picks which tier a species is in.
  *
  * <p>A species' rarity is its best share of base weight across the location pools it can appear

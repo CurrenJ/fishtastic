@@ -1,15 +1,9 @@
-# Worktree cleanup — 2026-10-19
+# Recovery snapshots: 19 October 2026
 
-Owner approved preserving unfinished work separately, recording released dependency
-metadata and durable notes, and removing obsolete checkouts. No port parity or
-acceptance marker is advanced by this cleanup.
+Historical recovery references, not current release versions or accepted features.
+The named feature and recovery branches still exist at the 23 October cleanup check.
+Snapshots preserve unfinished work; they are not release-tested commits.
 
-## Retained work
-
-- Fishtastic active checkouts: 26.1.2 (`codex/forge-26.1.2`), 1.21.1
-  (`codex/forge-1.21.1`), and 1.20.1 (`port/1.20.1`), all version 2.1.1.
-- Gelatin UI active checkouts: 26.1.2 (`codex/forge-26.1.2`), 1.21.1
-  (`codex/forge-1.21.1`), and 1.20.1 (`mc/1.20.1`), all version 1.0.38.
 - `codex/ambient-debug-filming`: the unfinished ambient debug spawn/clear commands,
   runtime support and `docs/fish-in-world.md` changes, separated from the release
   branch. Snapshot parent: `03fd54b75b24a57c36979d8dd6e44c06f369e990`.
@@ -17,17 +11,9 @@ acceptance marker is advanced by this cleanup.
   `C:/Users/curre/.codex/worktrees/companion-squid/fishtastic`. Snapshot parent:
   `8c99327cb051875dbf84d761f98ea4abc38ff252`. The candidate remains pending owner acceptance. This cleanup does not merge or approve it.
 
-The two feature branches and the recovery branches below are signed, single-parent
-**recovery snapshots**, including untracked source files. They deliberately capture
-unfinished work without running release acceptance checks. They were created using
-an alternate Git index, leaving original staging state undisturbed until archival.
-They are not ready-to-release feature commits.
-
 ## Archived agent experiments
 
-All 15 old agent checkout bases were ancestors of the current 26.1.2 release branch.
-Their dirty changes were not assumed redundant: each full nonignored working tree
-was captured on a recovery branch before its checkout was removed.
+Each old nonignored working tree was captured as a recovery snapshot before its checkout was removed.
 
 Each ID below maps to `codex/recovery/2026-10-19/<ID>`:
 
@@ -57,8 +43,7 @@ The repository's common Git directory contains
 For this checkout the directory is
 `D:/GitHub/fishtastic/.git/cleanup-archives/2026-10-19/`.
 It survives Gradle cleaning but is local: remote pushes of source branches do not
-back up these private archives. No existing stash was dropped or rewritten
-(29 Fishtastic, two Gelatin UI).
+back up these private archives. Existing stashes were not rewritten by that cleanup.
 
 To resume an experiment, create a worktree from its named branch, for example:
 
@@ -69,14 +54,3 @@ git worktree add D:/GitHub/fishtastic-worktrees/recovered-drift codex/recovery/2
 The snapshot is the combined working state; the saved staged/unstaged patches
 record the earlier staging split. Do not apply those patches on top of the snapshot
 as if they were additional changes.
-
-## Release and hygiene changes
-
-Record the previously released required-Gelatin metadata and CurseForge dependency
-settings on each Fishtastic version branch. Preserve the current backport progress and ledgers, research, ideas and technical references without changing historical claims.
-Untrack generated port `common/logs/latest.log` files while keeping them on disk;
-ignore generated logs, local agent tooling and scratch files. Apply matching local
-tooling ignore rules to the three Gelatin UI checkouts. Preserve all local configs.
-
-Normal release/documentation cleanup commits use the existing signing configuration
-and pre-commit hooks. Recovery branches are local; nothing is published by cleanup.

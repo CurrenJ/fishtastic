@@ -1,5 +1,5 @@
 """
-Procedural generator for fishtastic's shelter cosmetics (docs/fish-shelters.md §12.9): structures
+Procedural generator for fishtastic's shelter cosmetics (docs/fish-shelters.md): structures
 whose hollows, gates and open spaces are sized for medium and large fish as well as small ones.
 
 Shelter interiors have to be exact to the cell: a hollow's interior is the box the engine confines a
@@ -65,7 +65,7 @@ class Build:
         self.shelters = []
         self.groups = {}              # (x, y, z) -> group name: parts a reaction moves or lights
         self.doors = set()            # groups that stand in a gate's opening at rest (a portcullis)
-        self.reactions = []           # CosmeticReaction JSON objects (docs/fish-shelters.md §12.13)
+        self.reactions = []           # CosmeticReaction JSON objects (docs/fish-shelters.md)
 
     def inside(self, x, y, z):
         if y < 0:
@@ -1862,7 +1862,7 @@ def preview(b, name):
 
 if __name__ == "__main__":
     names = [a for a in sys.argv[1:] if not a.startswith("--")]
-    import reactive  # the reactive cosmetics (docs/fish-shelters.md §12.13), built with this file's Build
+    import reactive  # the reactive cosmetics (docs/fish-shelters.md), built with this file's Build
     FLOOR = FLOOR + reactive.FLOOR
     for design in FLOOR + SPANS:
         if names and design.__name__ not in names:

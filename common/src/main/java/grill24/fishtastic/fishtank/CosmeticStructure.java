@@ -48,14 +48,14 @@ import java.util.Optional;
  * ignored. Placement, storage and rendering across the box live in {@link SpanStructures}.
  * <p>
  * <b>Shelters.</b> With a {@code shelter} the structure has a hollow fish can swim into
- * (docs/fish-shelters.md §3): {@code interior} lists the build-grid cells of the hollow (the
+ * (docs/fish-shelters.md): {@code interior} lists the build-grid cells of the hollow (the
  * integer grid the parts were captured on, before {@code scale}, facing south — for a span, the
  * box's own build grid). Mouths, hull and run are derived from those cells and the parts by
  * {@link ShelterGeometry}, and a hollow with no way out fails validation. Rotation follows the
  * parts: the stored shelter is unrotated and turns with the structure at placement. Its
  * {@code kind} says what a visit looks like ({@link ShelterKind}); a hollow by default.
  * <p>
- * A structure may hold several shelters ({@code shelters}, docs/fish-shelters.md §12.9): the
+ * A structure may hold several shelters ({@code shelters}, docs/fish-shelters.md): the
  * Drowned Cathedral's chapels, apse and nave are three. One is written as {@code shelter}, as
  * every structure before them was. They may not share a cell, and none may reach into another's
  * hull, which is solid to every fish not using that shelter.
@@ -63,14 +63,14 @@ import java.util.Optional;
  * <b>Occupied cells.</b> {@code footprint_cells} is the structure's extent: every cell its parts
  * reach into, which must all land on the grid, so nothing pokes through the glass. Optional
  * {@code occupied_cells} is the subset that actually blocks other cosmetics and crawling fish —
- * the cells with solid mass near the sand (docs/fish-shelters.md §12.10). Missing, every
+ * the cells with solid mass near the sand (docs/fish-shelters.md). Missing, every
  * footprint cell is occupied. A span lists its occupied cells across the whole box, {@code dx}
  * and {@code dz} counting floor cells from the box's north-west corner as authored (facing
  * south); missing, they are derived from its lowest parts ({@link SpanStructures#footprint}).
  * <p>
  * <b>Reactions.</b> Optional {@code reactions} make a floor structure react to a fish: a clam
  * that opens when one noses its lip, a portcullis that rises to let one through
- * ({@link CosmeticReaction}, docs/fish-shelters.md §12.13). Their moving and glowing parts are
+ * ({@link CosmeticReaction}, docs/fish-shelters.md). Their moving and glowing parts are
  * named by each part's optional {@code group}.
  */
 public record CosmeticStructure(List<GridOffset> footprintCells, List<StructurePart> parts, float scale,
@@ -105,7 +105,7 @@ public record CosmeticStructure(List<GridOffset> footprintCells, List<StructureP
         ).apply(i, Span::new));
     }
 
-    /** What a visit to a shelter looks like (docs/fish-shelters.md §12.1, §12.4). */
+    /** What a visit to a shelter looks like (docs/fish-shelters.md, §12.4). */
     public enum ShelterKind implements StringRepresentable {
         /** A hollow fish hide in: the Hollow Log, the Clay Pipe, the whale's skull. */
         HOLLOW,

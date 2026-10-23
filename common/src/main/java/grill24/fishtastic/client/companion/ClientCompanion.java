@@ -49,10 +49,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * One unit of a player's companion party on the client (docs/fish-companions-party.md §3): a solo
+ * One unit of a player's companion party on the client (docs/fish-companions.md): a solo
  * fish, a school of 2–3 same-species free swimmers, or a ground formation of 2–3 same-species
  * benthics, as {@link PartyGrouping} groups the party. Drawn for its owner and for everyone who can
- * see them (docs/fish-companions-sim-plan.md §3.5). {@link ClientCompanions} owns the instances, one
+ * see them (docs/fish-companions.md). {@link ClientCompanions} owns the instances, one
  * per group.
  *
  * <p>All motion and behaviour is the {@code :fishsim} companion sim — a {@link CompanionAgent}, a
@@ -91,7 +91,7 @@ public final class ClientCompanion {
     private final Temperament temperament;
     /** How a benthic walks on land, or null for every other class. */
     @Nullable private final GroundGait gait;
-    /** How a drifter propels itself (docs/fish-companions-drift.md §2), from the profile's companion_drift. */
+    /** How a drifter propels itself (docs/fish-companions-drift.md), from the profile's companion_drift. */
     private final DriftStyle driftStyle;
     /** Each member's species' habitat (Phase 5 moods): a mixed shoal's members differ. */
     private final Habitat[] habitats;

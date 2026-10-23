@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Adds the fish companion perch layer to every player renderer (docs/fish-companions.md §11).
+ * Adds the fish companion perch layer to every player renderer (docs/fish-companions.md).
  *
  * <p>Both player model variants — and the mannequin renderers, which are also
  * {@link AvatarRenderer}s — go through this constructor; the layer itself filters mannequins out by

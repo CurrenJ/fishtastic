@@ -65,7 +65,7 @@ public final class TankCapacity {
      * Finds a member of {@code group} with room for {@code incoming}, checked in group order
      * (the clicked segment should be first in that order, so it's preferred when it has room).
      * Returns null if every member's own budget is already spent — storage stays strictly
-     * per-segment (see docs/fish-tank-interaction-redesign.md §3a), this just spreads a rejected
+     * per-segment (see docs/fish-tanks.mda), this just spreads a rejected
      * insert across the connected group instead of failing outright.
      */
     @Nullable

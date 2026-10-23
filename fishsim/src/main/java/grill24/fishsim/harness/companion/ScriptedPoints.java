@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The scripted things around a headless owner (docs/fish-companions-sim-plan.md §10): mobs that
+ * The scripted things around a headless owner (docs/fish-companions.md): mobs that
  * walk up and stay, cats that come to lounge, items that drop, other companions swimming past,
  * what the owner holds, and when they get hurt. Each track is played on the script's own clock,
  * looping with the given period, and sees where the owner is.

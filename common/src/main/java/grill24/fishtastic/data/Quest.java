@@ -33,7 +33,7 @@ public record Quest(
 
     /**
      * Whether this quest's objective is done — the moment a quest with {@code unlocks_companion}
-     * unlocks its species' bond (docs/fish-companions.md §8.3). Pure so the bond-unlock scan can
+     * unlocks its species' bond (docs/fish-companions.md). Pure so the bond-unlock scan can
      * be unit-tested with fabricated quests; the caller supplies the progress flags.
      */
     public static Optional<Identifier> companionUnlockedBy(Quest quest, boolean completed, boolean claimed) {

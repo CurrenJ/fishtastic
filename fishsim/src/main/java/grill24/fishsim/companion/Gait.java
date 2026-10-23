@@ -4,7 +4,7 @@ import grill24.fishsim.core.Locomotion;
 
 /**
  * One locomotion class's way of moving: the body's limits and the mind's sense of where such a
- * creature rides (docs/fish-companions-sim-plan.md §3.4, §9). Built fresh from
+ * creature rides (docs/fish-companions.md, §9). Built fresh from
  * {@link CompanionTunables} every tick, so the viewer's sliders apply live; FREE_SWIM's gait is the
  * tunables' own swim fields, untouched.
  *
