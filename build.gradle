@@ -159,40 +159,40 @@ tasks.register('publishCurseForge', TaskPublishCurseForge) {
     def changelogText = findProperty('changelog_override')
             ?: (file('CHANGELOG.md').exists() ? file('CHANGELOG.md').text : 'No changelog provided.')
 
-    // ── Fabric ──
+    // -Pcurseforge_loaders=fabric uploads only the named loaders (default: both) — for
+    // re-running a release where some loaders already went up, without duplicate files.
+    def selectedLoaders = (findProperty('curseforge_loaders') ?: 'fabric,forge')
+            .toString().split(',').collect { it.trim().toLowerCase() } as Set
     // remapJar, not shadowJar: on the remapping Loom, shadowJar is the named-mappings dev jar.
-    def fabricJar = project(':fabric').tasks.named('remapJar').get().archiveFile
-    def fabricUpload = upload(projectId, fabricJar)
-    fabricUpload.addRequirement('gelatin-ui')
-    fabricUpload.changelog = changelogText
-    fabricUpload.changelogType = 'markdown'
-    fabricUpload.releaseType = releaseType
-    fabricUpload.addGameVersion(minecraft_version)
-    fabricUpload.addModLoader('Fabric')
-    fabricUpload.addEnvironment('client')
-    fabricUpload.addEnvironment('server')
-    // CurseForge file tag ("Java 17" / "Java 21" / "Java 25"), from the same java_version the
-    // Fabric metadata's floor is templated with. The tag names are CF's own — validated against
-    // its version list at upload time.
-    fabricUpload.addJavaVersion("Java ${java_version}")
-    fabricUpload.displayName = fabricJar.get().asFile.name.replace('.jar', '')
+    def loaderUploads = [
+            fabric: [project: ':fabric', jarTask: 'remapJar', loader: 'Fabric'],
+            forge : [project: ':forge', jarTask: 'remapJar', loader: 'Forge'],
+    ]
+    def unknownLoaders = selectedLoaders - loaderUploads.keySet()
+    if (!unknownLoaders.isEmpty()) {
+        throw new GradleException("Unknown curseforge_loaders entries: ${unknownLoaders}")
+    }
 
-    // ── Forge ──
-    def forgeJar = project(':forge').tasks.named('remapJar').get().archiveFile
-    def forgeUpload = upload(projectId, forgeJar)
-    forgeUpload.addRequirement('gelatin-ui')
-    forgeUpload.changelog = changelogText
-    forgeUpload.changelogType = 'markdown'
-    forgeUpload.releaseType = releaseType
-    forgeUpload.addGameVersion(minecraft_version)
-    forgeUpload.addModLoader('Forge')
-    forgeUpload.addEnvironment('client')
-    forgeUpload.addEnvironment('server')
-    forgeUpload.addJavaVersion("Java ${java_version}")
-    forgeUpload.displayName = forgeJar.get().asFile.name.replace('.jar', '')
+    loaderUploads.findAll { name, cfg -> name in selectedLoaders }.each { name, cfg ->
+        def jar = project(cfg.project).tasks.named(cfg.jarTask).get().archiveFile
+        def fileUpload = upload(projectId, jar)
+        fileUpload.addRequirement('gelatin-ui')
+        fileUpload.changelog = changelogText
+        fileUpload.changelogType = 'markdown'
+        fileUpload.releaseType = releaseType
+        fileUpload.addGameVersion(minecraft_version)
+        fileUpload.addModLoader(cfg.loader)
+        fileUpload.addEnvironment('client')
+        fileUpload.addEnvironment('server')
+        // CurseForge file tag ("Java 17" / "Java 21" / "Java 25"), from the same java_version the
+        // Fabric metadata's floor is templated with. The tag names are CF's own — validated against
+        // its version list at upload time.
+        fileUpload.addJavaVersion("Java ${java_version}")
+        fileUpload.displayName = jar.get().asFile.name.replace('.jar', '')
+    }
 }
 
-// Ensure publish depends on both platforms being built.
+// Ensure publish depends on every platform being built.
 tasks.named('publishCurseForge') {
     dependsOn(':fabric:build', ':forge:build')
 }
