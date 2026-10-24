@@ -84,3 +84,25 @@ Installed-artifact checks remain separate from dev scene acceptance.
 
 Local agent instructions, skills and settings remain ignored. Contributor build,
 resource and verification instructions live in the tracked development guide.
+
+## Release smoke test
+
+```sh
+python tools/release-smoke/run_matrix.py                # all profiles in matrix.json
+python tools/release-smoke/run_matrix.py 1.20.1 Forge   # filter by profile words
+```
+
+Boots the built **release** jars inside each CurseForge profile (launched directly from
+CurseForge's `Install/` dir, offline, in a scratch copy under `build/release-smoke/`; the
+profile itself is only read) and quick-plays the tank template world in `worlds/<mc>/`.
+It catches packaging-only failures (shading, mixin, refmap) that dev runs never show. PASS
+= joined the world and survived 30s with no fatal log lines, no errors from our code and no
+crash report. Load errors fail fast; a client parked on a screen fails after 60s of log
+silence with `stuck.png`. Exit 3 (`PASS_WITH_FINDINGS`) means the run only booted after
+`--accept-experimental` confirmed vanilla's experimental-settings screen (keys are posted to
+the game window, never sent as global input).
+
+Template worlds are local and ignored. Create one per Minecraft version from that branch's
+checkout: write `tank` to `fabric/run/fishtastic_render_selftest`, run `:fabric:runClient`,
+**delete the marker**, then
+`python tools/release-smoke/make_template.py <checkout>/fabric/run/saves/fishtastic_render_selftest tools/release-smoke/worlds/<mc>`.

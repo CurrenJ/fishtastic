@@ -110,6 +110,9 @@ repo
 # python
 __pycache__/
 
+# release smoke template worlds: generated locally with tools/release-smoke/make_template.py
+tools/release-smoke/worlds/
+
 # architectury
 .architectury-transformer
 

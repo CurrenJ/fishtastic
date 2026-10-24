@@ -1,0 +1,13 @@
+{
+  "_comment": "Release smoke matrix. branch: the branch that publishes this MC version; run_matrix.py finds its checkout via `git worktree list`. Jars are derived from that checkout's gradle.properties, so they are always the current release build. accept_experimental: modern Forge parks on vanilla's experimental-settings screen (Fishtastic's DataPackRegistryEvent registries are rated experimental); the run confirms it and reports PASS_WITH_FINDINGS until that is fixed.",
+  "runs": [
+    {"profile": "F2 26.1.2 Fabric",   "branch": "26.1.2",      "loader": "fabric",   "world": "26.1.2"},
+    {"profile": "F2 26.1.2 NeoForge", "branch": "26.1.2",      "loader": "neoforge", "world": "26.1.2"},
+    {"profile": "F2 26.1.2 Forge",    "branch": "26.1.2",      "loader": "forge",    "world": "26.1.2", "accept_experimental": true},
+    {"profile": "F2 1.21.1 Fabric",   "branch": "port/1.21.1", "loader": "fabric",   "world": "1.21.1"},
+    {"profile": "F2 1.21.1 NeoForge", "branch": "port/1.21.1", "loader": "neoforge", "world": "1.21.1"},
+    {"profile": "F2 1.21.1 Forge",    "branch": "port/1.21.1", "loader": "forge",    "world": "1.21.1", "accept_experimental": true},
+    {"profile": "F2 1.20.1 Fabric",   "branch": "port/1.20.1", "loader": "fabric",   "world": "1.20.1"},
+    {"profile": "F2 1.20.1 Forge",    "branch": "port/1.20.1", "loader": "forge",    "world": "1.20.1"}
+  ]
+}
