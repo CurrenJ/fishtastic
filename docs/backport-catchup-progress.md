@@ -2,13 +2,45 @@
 
 The original pinned catch-up backlog is complete on `port/1.21.1` and `port/1.20.1`.
 
-The free-daily-reroll backport is implemented on source and both port branches. All eight client
-launch smokes are recorded, including the merged 1.21.1 Forge module.
+The free-daily-reroll and coelacanth backports are implemented on source and both port branches.
+All eight client launch smokes are recorded, including the merged 1.21.1 Forge module.
 The 2026-10-23 docs/tooling catch-up is complete; the
 isolated solo render check (`scripts/run_render_checks.py fabric --solo`) passed 14/14 on each
 port (evidence under each worktree's `build/verification/two-client/fabric/`).
 
 ## Current parity state
+
+- **Completed operation (2026-10-24): coelacanth backport.** Source `c20dac1a` (`Add coelacanth`)
+  is committed on both ports: 1.21.1 `c0f8415e` and 1.20.1 `8ba9199d` (`Backport coelacanth to
+  <mc>`), 15 feature files each: item registration, creative tab entry, English name, profile and
+  encyclopedia lore, item model and texture, six item tags, and Fabric datagen output. 1.21.1 uses
+  the legacy item model format without the newer client-item definition; 1.20.1 keeps its plural
+  `tags/items` paths and `replace: false` fields.
+  - Validation: Fabric datagen passed on both ports (1.21.1: 1 copied, 5,510 unchanged; 1.20.1:
+    1 copied, 5,508 unchanged; none pruned). Aggregate builds and uncached unit gates passed
+    (1.21.1 common 863 passed/1 skipped; 1.20.1 common 876 passed/1 skipped; fishsim 500/59
+    skipped and tank-shape-gen 21,955 on both). GameTests: 1.21.1 Fabric, NeoForge and Forge
+    378 each; 1.20.1 Fabric 378, Forge 379. Each commit's pre-commit hook passed.
+  - Release smoke (2026-10-24): the 2.1.6 release jars of both ports, which contain the
+    coelacanth, booted in their CurseForge profiles and loaded a tank world via
+    `tools/release-smoke/run_matrix.py`: 1.21.1 Fabric/NeoForge and 1.20.1 Fabric/Forge PASS;
+    1.21.1 Forge PASS_WITH_FINDINGS (vanilla's experimental-settings screen, which source
+    26.1.2 Forge shows too; not a port defect).
+  - Datagen caveats, unchanged and not blocking: 1.21.1 NeoForge `runData` fails at
+    configuration (Loom finds no `dataServer` run template); 1.20.1 Forge `runData` initialised the
+    registries, reported zero providers and stalled, so it was interrupted and is unverified.
+  - Evidence: `build/backport-catchup/2026-10-23/coelacanth/` (validation logs and commit logs
+    under `validation/`).
+- **Release follow-ups (2026-10-24):** `Bump Fishtastic to 2.1.6` (source `3cde87e4`) maps to
+  1.21.1 `801b1004` and 1.20.1 `704dbfee`. `Publish Forge jars from publishCurseForge` (source
+  `3834ead3`) maps to 1.21.1 `ba12b1a3` and 1.20.1 `e529cd35`. 1.20.1 already uploaded Forge, so
+  its port adds only the `-Pcurseforge_loaders=` subset option (fabric, forge; `remapJar` jars).
+  Dry runs (`publishCurseForge -m`) confirmed default = both jars, `fabric` / `forge` = that jar
+  alone, and `neoforge` rejected as unknown; its pre-commit hook passed 378 GameTests.
+  Source-only tooling `71214244` (release smoke test) drives all three branches from the source
+  checkout and is not ported.
+- Neither ported-through marker changed; no push was made. Preserve 1.21.1's and 1.20.1's
+  unrelated `docs/backport-plan.md` edits and 1.20.1's untracked `docs/fish-companions-twoclient/`.
 
 - **Completed operation (2026-10-23):** Extracted the authoritative reroll action into a shared
   callable operation and added shop_reroll_interaction GameTest coverage for free use, denied
