@@ -136,39 +136,40 @@ tasks.register('publishCurseForge', TaskPublishCurseForge) {
     def changelogText = findProperty('changelog_override')
             ?: (file('CHANGELOG.md').exists() ? file('CHANGELOG.md').text : 'No changelog provided.')
 
-    // ── Fabric ──
-    def fabricJar = project(':fabric').tasks.named('shadowJar').get().archiveFile
-    def fabricUpload = upload(projectId, fabricJar)
-    fabricUpload.addRequirement('gelatin-ui')
-    fabricUpload.changelog = changelogText
-    fabricUpload.changelogType = 'markdown'
-    fabricUpload.releaseType = releaseType
-    fabricUpload.addGameVersion(minecraft_version)
-    fabricUpload.addModLoader('Fabric')
-    fabricUpload.addEnvironment('client')
-    fabricUpload.addEnvironment('server')
-    // CurseForge file tag ("Java 17" / "Java 21" / "Java 25"), from the same java_version the
-    // Fabric metadata's floor is templated with. The tag names are CF's own — validated against
-    // its version list at upload time.
-    fabricUpload.addJavaVersion("Java ${java_version}")
-    fabricUpload.displayName = fabricJar.get().asFile.name.replace('.jar', '')
+    // -Pcurseforge_loaders=fabric,forge uploads only the named loaders (default: all three) —
+    // for re-running a release where some loaders already went up, without duplicate files.
+    def selectedLoaders = (findProperty('curseforge_loaders') ?: 'fabric,neoforge,forge')
+            .toString().split(',').collect { it.trim().toLowerCase() } as Set
+    def loaderUploads = [
+            fabric  : [project: ':fabric', jarTask: 'shadowJar', loader: 'Fabric'],
+            neoforge: [project: ':neoforge', jarTask: 'shadowJar', loader: 'NeoForge'],
+            forge   : [project: ':forge', jarTask: 'shadowJar', loader: 'Forge'],
+    ]
+    def unknownLoaders = selectedLoaders - loaderUploads.keySet()
+    if (!unknownLoaders.isEmpty()) {
+        throw new GradleException("Unknown curseforge_loaders entries: ${unknownLoaders}")
+    }
 
-    // ── NeoForge ──
-    def neoJar = project(':neoforge').tasks.named('shadowJar').get().archiveFile
-    def neoUpload = upload(projectId, neoJar)
-    neoUpload.addRequirement('gelatin-ui')
-    neoUpload.changelog = changelogText
-    neoUpload.changelogType = 'markdown'
-    neoUpload.releaseType = releaseType
-    neoUpload.addGameVersion(minecraft_version)
-    neoUpload.addModLoader('NeoForge')
-    neoUpload.addEnvironment('client')
-    neoUpload.addEnvironment('server')
-    neoUpload.addJavaVersion("Java ${java_version}")
-    neoUpload.displayName = neoJar.get().asFile.name.replace('.jar', '')
+    loaderUploads.findAll { name, cfg -> name in selectedLoaders }.each { name, cfg ->
+        def jar = project(cfg.project).tasks.named(cfg.jarTask).get().archiveFile
+        def fileUpload = upload(projectId, jar)
+        fileUpload.addRequirement('gelatin-ui')
+        fileUpload.changelog = changelogText
+        fileUpload.changelogType = 'markdown'
+        fileUpload.releaseType = releaseType
+        fileUpload.addGameVersion(minecraft_version)
+        fileUpload.addModLoader(cfg.loader)
+        fileUpload.addEnvironment('client')
+        fileUpload.addEnvironment('server')
+        // CurseForge file tag ("Java 17" / "Java 21" / "Java 25"), from the same java_version the
+        // Fabric metadata's floor is templated with. The tag names are CF's own — validated against
+        // its version list at upload time.
+        fileUpload.addJavaVersion("Java ${java_version}")
+        fileUpload.displayName = jar.get().asFile.name.replace('.jar', '')
+    }
 }
 
-// Ensure publish depends on both platforms being built.
+// Ensure publish depends on every platform being built.
 tasks.named('publishCurseForge') {
-    dependsOn(':fabric:build', ':neoforge:build')
+    dependsOn(':fabric:build', ':neoforge:build', ':forge:build')
 }
