@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.1.7
+
+- Added interactive fish schools. Catchable members approach nearby bobbers and can be caught through
+  the regular fishing minigame. Catching one removes it from the shared school.
+- School fish keep their quality, shown by the animated mote trail; bite movement and effects have
+  been polished.
+- Added the coelacanth and one free quest-shop reroll per in-game day.
+- Reworked the fish encyclopedia and quest book with improved small-window layouts, keyboard
+  navigation, and narrator support. Tutorial help is optional and available from the pause menu.
+- Cosmetic placement works on any grid cell with enough room and targets the tank sand so kelp
+  does not obscure placement.
+
 ## 2.1.2
 
 Fixed fish tank rendering and companion party sync found in review.
