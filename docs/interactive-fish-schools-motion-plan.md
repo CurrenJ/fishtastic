@@ -30,6 +30,7 @@ The first implementation moved school fish with its own math and it read as weir
 | M6 | Tank fish differing between multiplayer clients is fine and intended — no action. | 2026-10-24 |
 | M7 | Bites were unreliable in the owner's playtest at radius 5: interest radius back to 8, approach speed ×2.5, `approachMaxTicks` 600 (an 8-block approach takes ~17-18 s). Supersedes M5's values. | 2026-10-25 |
 | M8 | The sparkle trail stays on until the fish is caught (hooked out of the water) or leaves with its departing visit; it no longer stops while the fish approaches, bites or recovers. | 2026-10-25 |
+| M9 | The sparkle trail's colour shows the fish's quality. Each member's quality is fixed when the school forms (derived from its reward seed, so older saves get qualities too), and catching it gives exactly that quality. Bait and hook quality bias no longer apply to school fish, so the trail always matches the catch; `forcequality` still overrides. | 2026-10-25 |
 
 ## 3. Design
 
@@ -62,6 +63,9 @@ The first implementation moved school fish with its own math and it read as weir
 | 3 | Network + client copy: `FishSchoolSetupPacket` / `FishSchoolInputPacket` / `FishSchoolStatePacket` (old `FishSchoolSyncPacket` deleted), `FishSchoolWire` codecs, `FishSchoolReplica` (delay, budgeted replay, late-input and fingerprint replays), `GroupFishDraw` shared with ambient, sparkles from engine motion, client easing deleted; `/fishtasticambient schools debug`; `/fishtastic schools spawn [species]`. Tests: `FishSchoolReplicaTest` (mid-visit join, late input, client stall, wire round-trip). | Done 2026-10-24 |
 | 4a | `FishSchoolScenes` self-test spawns a real school on the integrated server (its scripted sine motion is gone) and checks the copy: on Fabric, caught up at once, 421 steps with 0 replays and 0 fingerprint mismatches, 72 frames with the school rendered. A follow-camera close-up (60 frames, 2 ticks apart) shows the sparkle trail; frames land in `fabric/run/screenshots/selftest-fabric-fishschoolgif-closeup-*.png`. | Done 2026-10-24 |
 | 4b | Owner's in-game look (solo): motion, approach pace at ×2, bite, sparkle cue, departure fade. | **Waiting on owner** |
+| 4d | Bite-approach polish from the owner's look (2026-10-25, §5 "Bite approach probe"): hold faces the anchor, anchor measured from the surface, nose-in quickened. Uncommitted; going above ×2.5 is the owner's call. | **Built, owner look pending** |
+| 4e | Quality trail tint (M9): `FishSchoolSavedData.qualityOf`, qualities in `FishSchoolSetupPacket`, per-quality mote palettes in `FishSchoolClientRuntime` (Common keeps the sea-glass cyans), and the bite burst drawn in the biting fish's palette. To look at them: `/fishtastic schools spawn <species> <quality\|mixed>`, or the `fishschoolgif` scene's `quality=` parameter. Tests: `FishSchoolQualityTest`; 389/389 Fabric GameTests. Uncommitted. | **Built, owner look pending** |
+| 4f | Sprint bubbles: while a fish is on its bobber errand (engine `SHELTER_APPROACH`/`SHELTER_ENTER`), it sheds the tanks' bubbles in their exertion size mix (`TankBubbleEmitter.exertionBubble`) at random points from nose to tail. About one per 0.09 blocks swum; each bubble keeps 30% of the fish's motion and pops at the water surface. Client only (`FishSchoolClientRuntime.sprintBubbles`). The first version used vanilla bubbles, which the owner found too big. Seen in the `fishschoolbite` scene. Uncommitted. | **Built, owner look pending** |
 | 4c | Two-client check (real multiplayer copies) and NeoForge/Forge runs of the scene. | Not started |
 | — | Ports (1.21.1, 1.20.1). `FishSchoolSim` uses Java 21 pattern switches: rewrite for 1.20.1 (Java 17). | Not started |
 
@@ -146,9 +150,40 @@ The first implementation moved school fish with its own math and it read as weir
   removed; the PNGs are now the source). They are greyscale so the vertex colour sets the hue: each mote picks
   a random sheet and a tint from `DEFAULT_MOTE_TINTS` (the old cyans). The bite flash is always the
   glint. `/fishtasticambient schools tint <RRGGBB...>|reset` overrides the tints locally (dev), and
-  the `fishschoolgif` close-up takes `tint=...`. Per-species or per-school tints are not wired yet.
+  the `fishschoolgif` close-up takes `tint=...` (both override the quality tints, M9) and `quality=...`.
 - Player tracking is tied to the `ServerPlayer` instance, not the UUID: a relog or respawn between
   two syncs would otherwise leave a client with no copy that the server thinks it has.
+
+### Bite approach probe (2026-10-25)
+
+The owner reported bites that sometimes looked wrong: a lazy approach, a fish facing away from the
+bobber when it got there, a bite 1-2 blocks under the surface. A throwaway headless probe ran 40
+approaches (bluegill, 3-deep 13 × 13 pond, nearest member sent, ×2.5) and logged speed, heading
+against the bearing to the anchor, and depth every tick.
+
+- **Facing away: a real bug, 40/40.** Each fish touched the anchor facing it, then turned a full
+  180° about 1.4 s into the hold. Holding the anchor creeps back and forth along the axis at
+  ~0.02 blocks/s, which is above `PLANAR_YAW_MIN_SPEED`, so the yaw followed the backward creep.
+  Fix: `FlockEngine.facesIn`. A fish in `SHELTER_INSIDE` at a `TRIGGER` faces along the mouth
+  normal, the same way `facesOut` turns resting lurkers (this also covers tank clam anchors).
+  After the fix 0/40 turned away and the hold stayed within 1°. Parity goldens unchanged.
+- **Deep bites: the anchor was set while the bobber was still sinking.** A reservation is made on
+  the first tick the bobber's cell is water. Vanilla scales velocity by (0.3, 0.2, 0.3) when the
+  bobber enters water, then pulls it back up only weakly (`vy -= d·rand·0.2`, drag 0.92). A
+  model of those constants gives a 0.25-1.0 block sink for a hard cast. The anchor stayed at that
+  depth because the drift check is horizontal only. Not measured live. Fix:
+  `FishSchoolSim.anchorPoint` starts its search from the column surface (`WaterDomain.surfaceAt`)
+  when the bobber is under it. In the probe a bobber 0.8 below the surface now anchors where a
+  floating one does.
+- **Lazy approach: pace, not a bug.** Peak speed 0.27-0.55 blocks/s at ×2.5 (the engine is
+  tank-scale: GROUP patrol 0.07, maxSpeed 0.20), and about 1.5 s of creeping at base
+  `ENTER_SPEED` at the end, because only the swim to the staging point was quickened. Fix: the
+  host errand's scale now covers the line-up and nose-in too (axis speed and `noseSteering`, cap
+  raised in `SHELTER_ENTER`). Nose-in went from 30 to 15 ticks at ×2 (mean touch 174 → 160
+  ticks). Probe at ×3: mean touch 114 ticks, peak 0.50, 3/40 overshoot the anchor by a few cm.
+  At ×4: 97 ticks, 14/40 overshoot. Going past ×2.5 is the owner's call.
+- During the swim the fish faced its bearing to within a few degrees, except when it started
+  within about 1.5 blocks and had to turn around.
 
 ## 6. Verification commands
 

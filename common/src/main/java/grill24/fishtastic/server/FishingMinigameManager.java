@@ -275,14 +275,13 @@ public class FishingMinigameManager {
 
         // A school bite reserves one particular fish. Bind it to this session before sending the
         // targets, then replace one realized slot so the encounter does not increase minigame
-        // length. School fish bypass personal bait pool filtering, while retaining ordinary
-        // quality bias and downstream catch handling.
+        // length. School fish bypass personal bait pool filtering and quality bias (a member's
+        // quality is its own, shown by its trail), while retaining downstream catch handling.
         FishSchoolManager schoolManager = FishSchoolManager.get(level);
         FishSchoolManager.SessionBinding schoolBinding = sessionHook == null
                 ? null : schoolManager.bindReadyMember(player, sessionHook, sessionId);
         if (schoolBinding != null) {
-            ServerFishingTarget schoolTarget = createSchoolTarget(player, schoolBinding, baitEffect, hookEffect,
-                    difficultyModifier);
+            ServerFishingTarget schoolTarget = createSchoolTarget(player, schoolBinding, difficultyModifier);
             if (schoolTarget != null && !targets.isEmpty()) {
                 int targetIndex = player.getRandom().nextInt(targets.size());
                 FishSchoolManager.SessionBinding indexedBinding = schoolManager.setBindingTarget(schoolBinding, targetIndex);
@@ -713,23 +712,23 @@ public class FishingMinigameManager {
                 difficultyModifier, baitEffect, hookEffect, charmEffect);
     }
 
-    /** Creates the reserved school fish with the same quality, size and temperament rules as a normal fish target. */
+    /**
+     * Creates the reserved school fish with the size and temperament rules of a normal fish target.
+     * Its quality is the member's own ({@link FishSchoolSavedData#qualityOf}), the one its trail showed.
+     */
     @Nullable
     private ServerFishingTarget createSchoolTarget(ServerPlayer player, FishSchoolManager.SessionBinding binding,
-            @Nullable BaitEffect baitEffect, @Nullable HookEffect hookEffect, float difficultyModifier) {
+            float difficultyModifier) {
         Item item = BuiltInRegistries.ITEM.getOptional(binding.species()).orElse(null);
         if (!(item instanceof FishtasticFishItem)
                 || !item.builtInRegistryHolder().is(FishtasticItemTags.FISH_SCHOOL_ENABLED)) return null;
 
-        float qualityBias = (baitEffect != null ? baitEffect.qualityBias() : 0.0f)
-                + (hookEffect != null ? hookEffect.qualityBias() : 0.0f);
         FishQuality.Quality forcedQuality = getForcedQuality(player.getUUID()).orElse(null);
         long seed = binding.rewardSeed()
-                ^ (0x9E3779B97F4A7C15L * Float.floatToIntBits(qualityBias))
                 ^ (forcedQuality == null ? 0L : 0xD1B54A32D192ED03L * (forcedQuality.ordinal() + 1L));
         RandomSource random = RandomSource.create(seed);
         FishQuality.Quality quality = forcedQuality != null
-                ? forcedQuality : FishtasticFishItem.sampleRandomQuality(random, qualityBias);
+                ? forcedQuality : FishSchoolSavedData.qualityOf(binding.rewardSeed());
         ItemStack reward = new ItemStack(item);
         Registry<FishProfile> profiles = level.registryAccess()
                 .lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);

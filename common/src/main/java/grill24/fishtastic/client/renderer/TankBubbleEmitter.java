@@ -345,6 +345,15 @@ public final class TankBubbleEmitter {
         }
     }
 
+    /**
+     * A bubble type from the exertion mix, for fish outside tanks that shed the same bubbles while
+     * working hard (an interactive school fish sprinting for a bobber). The type's spawn arguments
+     * are the tanks': x drift, the world Y to pop at, z drift.
+     */
+    public static SimpleParticleType exertionBubble(RandomSource random) {
+        return rollType(EXERTION_WEIGHTS, random).value();
+    }
+
     /** Rolls a bubble size from a (tiny, small, tank_bubble) weight table. */
     private static Holder<SimpleParticleType> rollType(int[] weights, RandomSource random) {
         int total = 0;

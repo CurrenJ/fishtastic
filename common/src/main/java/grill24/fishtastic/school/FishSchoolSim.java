@@ -247,6 +247,13 @@ public final class FishSchoolSim {
         return s >= 0 && engine.triggerFish(s) >= 0;
     }
 
+    /** The member on its way to, or holding at, {@code anchor}, or null. */
+    public @Nullable UUID errandMember(UUID anchor) {
+        int s = anchorIndex(anchor);
+        int fish = s < 0 ? -1 : engine.triggerFish(s);
+        return fish >= 0 && fish < order.size() ? order.get(fish) : null;
+    }
+
     public boolean hasAnchor(UUID anchor) {
         return anchors.containsKey(anchor);
     }
@@ -261,7 +268,7 @@ public final class FishSchoolSim {
 
     /**
      * Where under a bobber at {@code (l, y, d)} a fish can put its nose: the first point at or
-     * below it, down to {@link #ANCHOR_SEARCH_DEPTH}, where the whole anchor (its box reaches
+     * below it (below the surface, for a bobber still sinking from its cast), down to {@link #ANCHOR_SEARCH_DEPTH}, where the whole anchor (its box reaches
      * {@link Shelter#NOSE_ANCHOR_HALF} above and below) is in the water by the engine's own rule,
      * which is what the engine checks before it will send a fish there. A floating bobber sits
      * above the head-room a fish keeps under the surface, so this is usually a little below it.
@@ -269,6 +276,11 @@ public final class FishSchoolSim {
      * the answer inside its {@link Approach}.
      */
     public float @Nullable [] anchorPoint(float l, float y, float d) {
+        // From the surface, not the bobber: a bobber still plunging from its cast (vanilla damps
+        // it on entry but lets it sink up to about a block before it bobs back up) is already in
+        // the water, and anchoring at that depth left the fish biting well under the floating bobber.
+        float surface = domain.surfaceAt(l, d);
+        if (surface > y && surface - y <= ANCHOR_SEARCH_DEPTH) y = surface;
         float h = Shelter.NOSE_ANCHOR_HALF;
         for (float drop = 0f; drop <= ANCHOR_SEARCH_DEPTH; drop += ANCHOR_SEARCH_STEP) {
             float at = y - drop;

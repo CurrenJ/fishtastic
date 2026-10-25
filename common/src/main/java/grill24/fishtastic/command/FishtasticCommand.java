@@ -20,9 +20,23 @@ import java.net.URI;
  */
 public class FishtasticCommand {
 
-    private static int spawnSchool(CommandContext<CommandSourceStack> context, net.minecraft.resources.Identifier species) {
+    private static int spawnSchool(CommandContext<CommandSourceStack> context, net.minecraft.resources.Identifier species,
+                                   @org.jetbrains.annotations.Nullable String quality) {
+        grill24.fishtastic.component.FishQuality.Quality[] qualities = null;
+        if ("mixed".equals(quality)) {
+            qualities = grill24.fishtastic.component.FishQuality.Quality.values();
+        } else if (quality != null) {
+            for (var q : grill24.fishtastic.component.FishQuality.Quality.values()) {
+                if (q.getSerializedName().equals(quality)) qualities = new grill24.fishtastic.component.FishQuality.Quality[]{q};
+            }
+            if (qualities == null) {
+                context.getSource().sendFailure(Component.literal("Unknown quality " + quality
+                        + ": common, uncommon, rare, epic, legendary or mixed."));
+                return 0;
+            }
+        }
         String result = grill24.fishtastic.server.FishSchoolManager.get(context.getSource().getLevel())
-                .spawnForDebug(net.minecraft.core.BlockPos.containing(context.getSource().getPosition()), species);
+                .spawnForDebug(net.minecraft.core.BlockPos.containing(context.getSource().getPosition()), species, qualities);
         context.getSource().sendSuccess(() -> Component.literal(result), false);
         return 1;
     }
@@ -39,10 +53,17 @@ public class FishtasticCommand {
                 })
                         // Solo-playtest triggers: make a visit now, and read what its fish are doing.
                         .then(Commands.literal("spawn").requires(FishtasticPermissions.gamemaster())
-                                .executes(context -> spawnSchool(context, null))
+                                .executes(context -> spawnSchool(context, null, null))
                                 .then(Commands.argument("species", net.minecraft.commands.arguments.IdentifierArgument.id())
                                         .executes(context -> spawnSchool(context,
-                                                net.minecraft.commands.arguments.IdentifierArgument.getId(context, "species")))))
+                                                net.minecraft.commands.arguments.IdentifierArgument.getId(context, "species"), null))
+                                        // Every member that quality, or "mixed" for one of each in turn: the trail colours.
+                                        .then(Commands.argument("quality", com.mojang.brigadier.arguments.StringArgumentType.word())
+                                                .suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(
+                                                        java.util.List.of("common", "uncommon", "rare", "epic", "legendary", "mixed"), b))
+                                                .executes(context -> spawnSchool(context,
+                                                        net.minecraft.commands.arguments.IdentifierArgument.getId(context, "species"),
+                                                        com.mojang.brigadier.arguments.StringArgumentType.getString(context, "quality"))))))
                         .then(Commands.literal("debug").requires(FishtasticPermissions.gamemaster()).executes(context -> {
                             var schools = grill24.fishtastic.server.FishSchoolManager.get(context.getSource().getLevel());
                             String result = schools.debugNearest(context.getSource().getPosition());
