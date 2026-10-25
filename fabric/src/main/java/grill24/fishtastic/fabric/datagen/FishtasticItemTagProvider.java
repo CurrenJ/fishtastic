@@ -64,6 +64,14 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
             fishTagBuilder.add(itemForFishProfile(id));
         }
 
+        // Interactive schools are deliberately opt-in. The small first-release set avoids
+        // automatically making every future fish catchable in the world population.
+        valueLookupBuilder(FishtasticItemTags.FISH_SCHOOL_ENABLED)
+                .add(FishtasticItems.BLUEGILL.value())
+                .add(FishtasticItems.NEON_TETRA.value())
+                .add(FishtasticItems.BRIDLE_SHINER.value())
+                .add(FishtasticItems.YELLOWSTRIPE_GRUNT.value());
+
         // Fishing bait
         valueLookupBuilder(FishtasticItemTags.FISHING_BAIT)
                 .add(FishtasticItems.WORMS.value())

@@ -16,6 +16,7 @@ import grill24.fishtastic.gametest.FishEncyclopediaClientGameTests;
 import grill24.fishtastic.gametest.FishEncyclopediaEntryGameTests;
 import grill24.fishtastic.gametest.FishTankGameTests;
 import grill24.fishtastic.gametest.FishingMinigameManagerGameTests;
+import grill24.fishtastic.gametest.FishSchoolGameTests;
 import grill24.fishtastic.gametest.CatchCelebrationGameTests;
 import grill24.fishtastic.gametest.FishingTargetGameTests;
 import grill24.fishtastic.gametest.ItemComponentGameTests;
@@ -641,6 +642,18 @@ public class NeoForgeGameTestRegistration {
             helper -> FishingMinigameManagerGameTests.snapshotRecordsMainHandRodWhenBothHandsHoldRods(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "test_seeded_session_captures_no_species_snapshot", 200,
             helper -> FishingMinigameManagerGameTests.testSeededSessionCapturesNoSpeciesSnapshot(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+
+        // ----- Interactive fish school tests -----
+        register(event, env, "caught_school_target_depletes_once", 200,
+            helper -> FishSchoolGameTests.caughtSchoolTargetDepletesOnce(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "missed_school_target_recovers_and_retry_keeps_reward", 200,
+            helper -> FishSchoolGameTests.missedTargetRecoversAndRetryKeepsReward(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "live_school_approaches_and_triggers_owned_bite", 360,
+            helper -> FishSchoolGameTests.liveSchoolApproachesAndTriggersOwnedBite(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "school_stays_in_its_water_and_steps_once_per_tick", 360,
+            FishSchoolGameTests::schoolStaysInItsWaterAndStepsOncePerTick);
+        register(event, env, "school_transient_reservations_recover_across_save_reload", 200,
+            FishSchoolGameTests::transientReservationsRecoverAcrossSaveReload);
 
         // ----- ShopEntry tests -----
         register(event, env, "get_active_daily_shop_is_stable_per_day", 200,

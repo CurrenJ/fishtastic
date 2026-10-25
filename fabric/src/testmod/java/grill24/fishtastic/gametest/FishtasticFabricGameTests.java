@@ -1360,6 +1360,35 @@ public class FishtasticFabricGameTests {
     }
 
     // -------------------------------------------------------------------------
+    // Interactive fish school tests
+    // -------------------------------------------------------------------------
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void caughtSchoolTargetDepletesOnce(GameTestHelper helper) {
+        FishSchoolGameTests.caughtSchoolTargetDepletesOnce(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void missedSchoolTargetRecoversAndRetryKeepsReward(GameTestHelper helper) {
+        FishSchoolGameTests.missedTargetRecoversAndRetryKeepsReward(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 360)
+    public void liveSchoolApproachesAndTriggersOwnedBite(GameTestHelper helper) {
+        FishSchoolGameTests.liveSchoolApproachesAndTriggersOwnedBite(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 360)
+    public void schoolStaysInItsWaterAndStepsOncePerTick(GameTestHelper helper) {
+        FishSchoolGameTests.schoolStaysInItsWaterAndStepsOncePerTick(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void schoolTransientReservationsRecoverAcrossSaveReload(GameTestHelper helper) {
+        FishSchoolGameTests.transientReservationsRecoverAcrossSaveReload(helper);
+    }
+
+    // -------------------------------------------------------------------------
     // ShopEntry tests  (pure registry-only logic, no player needed)
     // -------------------------------------------------------------------------
 

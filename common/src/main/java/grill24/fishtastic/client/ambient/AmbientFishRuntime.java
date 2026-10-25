@@ -10,6 +10,7 @@ import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.core.Tunables;
 import grill24.fishsim.domain.WaterDomain;
 import grill24.fishtastic.client.renderer.FishVisuals;
+import grill24.fishtastic.client.renderer.GroupFishDraw;
 import grill24.fishtastic.client.renderer.GroupFishPose;
 import grill24.fishtastic.data.FishAnimationConfig;
 import grill24.fishtastic.data.FishProfile;
@@ -574,20 +575,9 @@ public final class AmbientFishRuntime {
                 .getOptional(profileKey).map(p -> p.size().mean()).orElse(fallback);
     }
 
-    /**
-     * The whole volume one individual's animated body can occupy, worst case: the horizontal radius
-     * a yaw, bank and surf rotation can reach, plus the vertical room the pose and bob need above
-     * and below its centre. A floor-walker stands on the floor, so nothing is needed below it — and
-     * so does an anchored species (a garden eel stands in its burrow and sways from there).
-     */
+    /** The volume one individual's animated body can occupy: {@link WaterDomain.BodyBox#of}. */
     public static WaterDomain.BodyBox bodyFor(Locomotion loco, float length) {
-        float reach = 0.7071f * length;
-        return switch (loco) {
-            case BENTHIC, ANCHORED -> new WaterDomain.BodyBox(reach, length, 0f);
-            case GLIDE -> new WaterDomain.BodyBox(reach, reach + 0.08f, reach + 0.08f);
-            case DRIFT -> new WaterDomain.BodyBox(reach, reach + 0.05f, reach + 0.05f);
-            default -> new WaterDomain.BodyBox(reach, reach + 0.125f, reach + 0.125f);
-        };
+        return WaterDomain.BodyBox.of(loco, length);
     }
 
     // ------------------------------------------------------------------ per-tick
@@ -1395,47 +1385,21 @@ public final class AmbientFishRuntime {
                         + (st.originY() + (frozen == null ? st.engine.renderY[i] : frozen.m31()) - cam.y) * forward.y()
                         + (st.originZ() + (frozen == null ? st.engine.renderZ[i] : frozen.m32()) - cam.z) * forward.z());
             }
-            for (int k = 1; k < n; k++) {
-                int i = orderScratch[k], at = k;
-                while (at > 0 && depthScratch[orderScratch[at - 1]] < depthScratch[i]) {
-                    orderScratch[at] = orderScratch[at - 1];
-                    at--;
-                }
-                orderScratch[at] = i;
-            }
+            GroupFishDraw.backToFront(depthScratch, orderScratch, n);
             for (int k = 0; k < n; k++) {
                 int i = orderScratch[k];
                 Member m = st.members.get(i);
-                double x = st.originX() + st.engine.renderX[i], y = st.originY() + st.engine.renderY[i],
-                        z = st.originZ() + st.engine.renderZ[i];
-                if (m.retirementPose != null) {
-                    x = st.originX() + m.retirementPose.m30();
-                    y = st.originY() + m.retirementPose.m31();
-                    z = st.originZ() + m.retirementPose.m32();
+                // A retiring fish holds the pose it had when it began to fade.
+                if (m.retiring() && m.retirementPose == null) {
+                    PoseStack frozen = new PoseStack();
+                    GroupFishPose.apply(frozen, st.engine, m.anim, i, t, 0f, 0f, 0f, poseRandom);
+                    m.retirementPose = new Matrix4f(frozen.last().pose());
                 }
-                double radius = Math.max(1.0, st.engine.lengths[i] * 2.0);
-                if (!level.hasChunkAt(BlockPos.containing(x, y, z))) continue;
-                if (!camera.getCullFrustum().isVisible(new AABB(x - radius, y - radius, z - radius,
-                        x + radius, y + radius, z + radius))) continue;
-                poses.pushPose();
-                poses.translate(st.originX() - cam.x, st.originY() - cam.y, st.originZ() - cam.z);
-                if (m.retiring()) {
-                    if (m.retirementPose == null) {
-                        PoseStack frozen = new PoseStack();
-                        GroupFishPose.apply(frozen, st.engine, m.anim, i, t, 0f, 0f, 0f, poseRandom);
-                        m.retirementPose = new Matrix4f(frozen.last().pose());
-                    }
-                    poses.mulPose(m.retirementPose);
-                } else {
-                    GroupFishPose.apply(poses, st.engine, m.anim, i, t, 0f, 0f, 0f, poseRandom);
+                if (GroupFishDraw.submit(poses, nodes, level, camera, st.originX(), st.originY(), st.originZ(),
+                        st.engine, i, m.anim, m.stack, m.state, m.fade, m.retiring() ? m.retirementPose : null,
+                        t, poseRandom)) {
+                    worldSubmitsThisFrame++;
                 }
-                mc.getItemModelResolver().updateForTopItem(m.state, m.stack, ItemDisplayContext.FIXED,
-                        null, null, 0);
-                if (m.fade < 1f) AmbientFishFade.apply(poses, m.fade, m.anim, m.state.getModelBoundingBox());
-                int light = LevelRenderer.getLightCoords(level, BlockPos.containing(x, y, z));
-                m.state.submit(poses, nodes, light, OverlayTexture.NO_OVERLAY, 0);
-                poses.popPose();
-                worldSubmitsThisFrame++;
             }
         }
         double millis = (System.nanoTime() - submitStarted) / 1_000_000.0;

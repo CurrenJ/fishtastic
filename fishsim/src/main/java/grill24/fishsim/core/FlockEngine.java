@@ -942,6 +942,8 @@ public final class FlockEngine {
     private int[] triggerFish = new int[0];
     /** Per shelter: its reaction has started (and so will be ended), for the fish it sent. */
     private boolean[] triggerStarted = new boolean[0];
+    /** Per shelter: how much faster than a visit its host-sent fish approaches (1 for the clocks'). */
+    private float[] triggerSpeed = new float[0];
     /** The shelter whose reaction is under way, or −1: one at a time per domain. */
     private int triggerBusy = -1;
     /** Seconds before any clock may send a fish again. */
@@ -1160,8 +1162,8 @@ public final class FlockEngine {
         }
 
         float rotRad = (float) Math.toRadians(baseRotationDeg);
-        cosR = (float) Math.cos(rotRad);
-        sinR = (float) Math.sin(rotRad);
+        cosR = (float) StrictMath.cos(rotRad);
+        sinR = (float) StrictMath.sin(rotRad);
         frameYawDeg = baseRotationDeg;
 
         float[] layerZ = t.layerZ();
@@ -1263,8 +1265,8 @@ public final class FlockEngine {
         }
 
         float rotRad = (float) Math.toRadians(baseRotationDeg);
-        cosR = (float) Math.cos(rotRad);
-        sinR = (float) Math.sin(rotRad);
+        cosR = (float) StrictMath.cos(rotRad);
+        sinR = (float) StrictMath.sin(rotRad);
         frameYawDeg = baseRotationDeg;
 
         this.domain = newDomain;
@@ -1305,6 +1307,31 @@ public final class FlockEngine {
             placedY[placed] = y;
             placedD[placed] = depth;
             placed++;
+        }
+        remapTriggerFish(carryFrom);
+    }
+
+    /**
+     * A rebuild renumbers the fish, so each trigger's errand follows its fish to its new index, or
+     * ends if that fish is gone — an interactive school takes a member out for its fight while
+     * another is on its way to a different bobber. (Before this, the errand kept the old index
+     * until the next step noticed the fish there was not on it.)
+     */
+    private void remapTriggerFish(int[] carryFrom) {
+        for (int s = 0; s < triggerFish.length; s++) {
+            int f = triggerFish[s];
+            if (f < 0) continue;
+            int to = -1;
+            if (carryFrom != null) {
+                for (int j = 0; j < carryFrom.length; j++) {
+                    if (carryFrom[j] == f) {
+                        to = j;
+                        break;
+                    }
+                }
+            }
+            if (to >= 0) triggerFish[s] = to;
+            else releaseTrigger(s);
         }
     }
 
@@ -1734,6 +1761,8 @@ public final class FlockEngine {
         if (startled[i]) return STARTLE_APPROACH_TIMEOUT_SECONDS;
         if (shelterClaim[i] >= 0 && shelterIndex[i] == shelterClaim[i]) return HOME_APPROACH_TIMEOUT_SECONDS;
         float speed = t.patrolSpeed() * patrolScale[i] * VISIT_APPROACH_SPEED;
+        // A host's errand is given up by the host, which takes its anchor away (sendToTrigger).
+        if (sentByTrigger(i) && avoidHullsSource.get(shelterIndex[i]).trigger().isHostSent()) return Float.POSITIVE_INFINITY;
         float reach = sentByTrigger(i) ? TRIGGER_REACH : VISIT_REACH;
         return Math.max(APPROACH_TIMEOUT_SECONDS, reach / speed + APPROACH_TIMEOUT_SLACK_SECONDS);
     }
@@ -1768,6 +1797,10 @@ public final class FlockEngine {
         float cap = t.maxSpeed() * speedScale[i];
         if (dashing(i)) return Math.max(cap, STARTLE_DASH_SPEED * patrolScale[i]);
         if (flinching(i)) return Math.max(cap, FLINCH_SPEED * patrolScale[i]);
+        if (shelterState[i] == SHELTER_APPROACH) {
+            float errand = errandSpeedScale(i);
+            if (errand > 1f) return Math.max(cap, t.patrolSpeed() * patrolScale[i] * VISIT_APPROACH_SPEED * errand);
+        }
         return cap;
     }
 
@@ -1837,15 +1870,33 @@ public final class FlockEngine {
                 anyVisibleShelter |= !shelter.kind().hides() || (shelter.kind() == Shelter.Kind.HOLLOW && isTunnel(s));
             }
         }
-        // A reaction under way on the old list ends; its fish is let go by the remap below.
-        for (int s = 0; s < triggerFish.length; s++) {
-            if (triggerStarted[s] && previous != null && s < previous.size() && previous.get(s).trigger() != null) {
-                triggerEvents.add(new TriggerEvent(previous.get(s).trigger().key(), false, triggerFish[s]));
+        // A reaction under way on the old list ends; its fish is let go by the remap below. A
+        // host's errand is the exception: it follows its anchor to its new index if the anchor is
+        // still there (compared by equals, as the remap compares shelters), so another bobber
+        // arriving or leaving never calls a fish back.
+        int[] oldFish = triggerFish;
+        boolean[] oldStarted = triggerStarted;
+        float[] oldSpeed = triggerSpeed;
+        int[] carriedTo = new int[oldFish.length];
+        for (int s = 0; s < oldFish.length; s++) {
+            carriedTo[s] = -1;
+            boolean had = previous != null && s < previous.size() && previous.get(s).trigger() != null;
+            if (had && oldFish[s] >= 0 && previous.get(s).trigger().isHostSent()) carriedTo[s] = shelters.indexOf(previous.get(s));
+            if (carriedTo[s] < 0 && oldStarted[s] && had) {
+                triggerEvents.add(new TriggerEvent(previous.get(s).trigger().key(), false, oldFish[s]));
             }
         }
         triggerFish = new int[shelters.size()];
         Arrays.fill(triggerFish, -1);
         triggerStarted = new boolean[shelters.size()];
+        triggerSpeed = new float[shelters.size()];
+        Arrays.fill(triggerSpeed, 1f);
+        for (int s = 0; s < oldFish.length; s++) {
+            if (carriedTo[s] < 0) continue;
+            triggerFish[carriedTo[s]] = oldFish[s];
+            triggerStarted[carriedTo[s]] = oldStarted[s];
+            triggerSpeed[carriedTo[s]] = oldSpeed[s];
+        }
         triggerBusy = -1;
         anyTrigger = false;
         for (Shelter shelter : shelters) anyTrigger |= shelter.trigger() != null;
@@ -1895,8 +1946,11 @@ public final class FlockEngine {
             int old = shelterIndex[i];
             int now = previous != null && old >= 0 && old < previous.size() ? shelters.indexOf(previous.get(old)) : -1;
             boolean inside = shelterState[i] == SHELTER_INSIDE || shelterState[i] == SHELTER_RESTING;
-            // An errand a structure's clock sent a fish on ends with the old list (see refreshAvoidHulls).
-            if (now < 0 || (!inside && !shelterUsable[now]) || shelters.get(now).trigger() != null) {
+            // An errand a structure's clock sent a fish on ends with the old list (see refreshAvoidHulls);
+            // a host's carries on, if its anchor carried and is still usable.
+            boolean carriedErrand = now >= 0 && triggerFish[now] == i;
+            if (now < 0 || (!inside && !shelterUsable[now]) || (shelters.get(now).trigger() != null && !carriedErrand)) {
+                if (now >= 0 && triggerFish[now] == i) releaseTrigger(now);
                 shelterState[i] = SHELTER_ROAMING;
                 shelterIndex[i] = -1;
                 shelterTimer[i] = SHELTER_COOLDOWN_SECONDS;
@@ -2398,7 +2452,7 @@ public final class FlockEngine {
         float nh = (float) Math.sqrt(nL * nL + nD * nD);
         if (nh < 1e-4f) return false;
         float yr = (float) Math.toRadians(yawDeg[i]);
-        return ((float) Math.cos(yr) * nL - (float) Math.sin(yr) * nD) / nh >= ENTER_ALIGN_COS;
+        return ((float) StrictMath.cos(yr) * nL - (float) StrictMath.sin(yr) * nD) / nh >= ENTER_ALIGN_COS;
     }
 
     /**
@@ -2537,7 +2591,7 @@ public final class FlockEngine {
         float nh = (float) Math.sqrt(nL * nL + nD * nD);
         if (nh < 1e-4f) return false;
         float yr = (float) Math.toRadians(yawDeg[i]);
-        float hL = (float) Math.cos(yr), hD = -(float) Math.sin(yr);
+        float hL = (float) StrictMath.cos(yr), hD = -(float) StrictMath.sin(yr);
         if ((hL * nL + hD * nD) / nh < GATE_HEADING_COS) return false;
         float tL = mouth.centerL() - posL[i], tD = mouth.centerD() - posD[i];
         float dist = (float) Math.sqrt(tL * tL + tD * tD);
@@ -2547,6 +2601,12 @@ public final class FlockEngine {
 
     /** A gate is taken only with the heading within 45° of straight through (§12.4). */
     static final float GATE_HEADING_COS = 0.70710677f;
+
+    /** How much faster than a visit fish #{@code i} approaches: its host errand's scale, else 1. */
+    private float errandSpeedScale(int i) {
+        int s = shelterIndex[i];
+        return s >= 0 && s < triggerFish.length && triggerFish[s] == i ? triggerSpeed[s] : 1f;
+    }
 
     /** Whether fish #{@code i} is on an errand a structure's clock sent it on. */
     private boolean sentByTrigger(int i) {
@@ -2572,7 +2632,7 @@ public final class FlockEngine {
         float boost = triggerRateBoost;
         for (int s = 0; s < shelters.size(); s++) {
             Shelter.Trigger trigger = shelters.get(s).trigger();
-            if (trigger == null) continue;
+            if (trigger == null || trigger.isHostSent()) continue;
             if (nextTriggerUnit() < dt * boost / Math.max(1f, trigger.meanSeconds()) && sendForTrigger(s)) return;
         }
     }
@@ -2591,41 +2651,108 @@ public final class FlockEngine {
         int bestI = -1, bestM = -1;
         float bestD2 = TRIGGER_REACH * TRIGGER_REACH;
         for (int i = 0; i < count; i++) {
-            if (locomotion[i] != Locomotion.FREE_SWIM || shelterState[i] != SHELTER_ROAMING
-                    || shelterClaim[i] >= 0 || flinchTimer[i] > 0f) continue;
-            float len = lengths[i], stage = len + STAGING_CLEARANCE;
-            for (int m = 0; m < shelter.mouths().size(); m++) {
-                if (!mouthUsable[s][m]) continue;
-                Shelter.Mouth mouth = shelter.mouths().get(m);
-                if (!nose && (MOUTH_HEIGHT_RATIO * len > 2f * mouth.halfSize() || throughMouth(i, s, m) < 0)) continue;
-                float sl = mouth.centerL() - mouth.normalL() * stage;
-                float sy = mouth.centerY() - mouth.normalY() * stage;
-                float sd = mouth.centerD() - mouth.normalD() * stage;
-                if (!stagingReachable(sl, sy, sd)) continue;
-                if (nose ? noseCorridorBlocked(mouth, stage) : corridorBlocked(mouth, stage)) continue;
-                float dl = sl - posL[i], dy = sy - posY[i], dd = sd - posD[i];
-                float d2 = dl * dl + dy * dy + dd * dd;
-                if (d2 < bestD2) {
-                    bestD2 = d2;
-                    bestI = i;
-                    bestM = m;
-                }
+            if (!freeForErrand(i)) continue;
+            int m = errandMouth(i, s, shelter, nose, bestD2);
+            if (m >= 0) {
+                bestD2 = errandD2;
+                bestI = i;
+                bestM = m;
             }
         }
         if (bestI < 0) return false;
-        int i = bestI;
+        beginErrand(bestI, s, bestM);
+        triggerBusy = s;
+        if (!nose) startTrigger(s);
+        return true;
+    }
+
+    /**
+     * Sends fish #{@code fish} to nose host-sent trigger {@code s} ({@link Shelter.Trigger#hostSent}),
+     * however far off it is — the host has already decided this fish goes, as an interactive
+     * school's server reserves one member for one bobber. It is the clocks' errand otherwise: the
+     * fish must be a free swimmer with nothing else to do, the staging point in the water with a
+     * clear swim in, and the swim, the touch and the hold are the engine's own. Being the host's,
+     * it neither waits on nor holds up the clocks' one reaction at a time, and the approach never
+     * times out: the host gives up, by taking the anchor away — which ends the errand wherever the
+     * fish has got to. {@link #triggerFish} going to −1 without a start event means the fish
+     * gave up at the anchor itself (it could not line its nose up).
+     *
+     * <p>Shelters swapped into the domain since the last step are taken up first, so a host may
+     * add the anchor and send the fish in one go. False, and nothing changes, when the fish cannot
+     * go: then the host decides what else happens.
+     */
+    public boolean sendToTrigger(int s, int fish) {
+        return sendToTrigger(s, fish, 1f);
+    }
+
+    /**
+     * As {@link #sendToTrigger(int, int)}, the fish approaching {@code speedScale} times as fast as
+     * a visit does — eager, as a fish going for bait is: the same approach, its top speed and the
+     * speed cap raised together for this one errand (the startle dash raises the cap the same way).
+     * Only the swim up to the staging point is quickened; the nose-in and the hold are as ever.
+     */
+    public boolean sendToTrigger(int s, int fish, float speedScale) {
+        if (!planar || !(speedScale >= 1f) || speedScale == Float.POSITIVE_INFINITY) return false;
+        refreshAvoidHulls(domain.shelters());
+        if (s < 0 || s >= triggerFish.length || fish < 0 || fish >= count) return false;
+        Shelter shelter = avoidHullsSource.get(s);
+        if (shelter.kind() != Shelter.Kind.TRIGGER || !shelter.trigger().isHostSent()) return false;
+        if (triggerFish[s] >= 0 || !shelterUsable[s] || !freeForErrand(fish)) return false;
+        int m = errandMouth(fish, s, shelter, true, Float.POSITIVE_INFINITY);
+        if (m < 0) return false;
+        beginErrand(fish, s, m);
+        triggerSpeed[s] = speedScale;
+        return true;
+    }
+
+    /** Whether fish #{@code i} may be sent on an errand: a free swimmer roaming with nothing else to do. */
+    private boolean freeForErrand(int i) {
+        return locomotion[i] == Locomotion.FREE_SWIM && shelterState[i] == SHELTER_ROAMING
+                && shelterClaim[i] < 0 && flinchTimer[i] <= 0f;
+    }
+
+    /** {@link #errandMouth}'s squared distance to the staging point it chose. */
+    private float errandD2;
+
+    /**
+     * The usable mouth of shelter {@code s} whose staging point is nearest fish #{@code i} and
+     * nearer than {@code maxD2}, with a clear swim in, or −1; its squared distance in {@link #errandD2}.
+     */
+    private int errandMouth(int i, int s, Shelter shelter, boolean nose, float maxD2) {
+        float len = lengths[i], stage = len + STAGING_CLEARANCE;
+        int best = -1;
+        float bestD2 = maxD2;
+        for (int m = 0; m < shelter.mouths().size(); m++) {
+            if (!mouthUsable[s][m]) continue;
+            Shelter.Mouth mouth = shelter.mouths().get(m);
+            if (!nose && (MOUTH_HEIGHT_RATIO * len > 2f * mouth.halfSize() || throughMouth(i, s, m) < 0)) continue;
+            float sl = mouth.centerL() - mouth.normalL() * stage;
+            float sy = mouth.centerY() - mouth.normalY() * stage;
+            float sd = mouth.centerD() - mouth.normalD() * stage;
+            if (!stagingReachable(sl, sy, sd)) continue;
+            if (nose ? noseCorridorBlocked(mouth, stage) : corridorBlocked(mouth, stage)) continue;
+            float dl = sl - posL[i], dy = sy - posY[i], dd = sd - posD[i];
+            float d2 = dl * dl + dy * dy + dd * dd;
+            if (d2 < bestD2) {
+                bestD2 = d2;
+                best = m;
+            }
+        }
+        errandD2 = bestD2;
+        return best;
+    }
+
+    /** Puts fish #{@code i} on its way to shelter {@code s}'s trigger by mouth {@code m}. */
+    private void beginErrand(int i, int s, int m) {
         climbBlend[i] = 0f;
         visitUrge[i] = 0f;
         startled[i] = false;
         shelterState[i] = SHELTER_APPROACH;
         shelterIndex[i] = s;
-        shelterMouth[i] = bestM;
+        shelterMouth[i] = m;
         shelterTimer[i] = 0f;
         shelterReserved[s]++;
         triggerFish[s] = i;
-        triggerBusy = s;
-        if (!nose) startTrigger(s);
-        return true;
     }
 
     /** {@link #corridorBlocked} for a nose anchor: checked from just clear of the structure it sits on. */
@@ -2657,6 +2784,7 @@ public final class FlockEngine {
         }
         triggerStarted[s] = false;
         triggerFish[s] = -1;
+        triggerSpeed[s] = 1f;
         if (triggerBusy == s) {
             triggerBusy = -1;
             triggerRefractory = TRIGGER_REFRACTORY_SECONDS;
@@ -2856,7 +2984,7 @@ public final class FlockEngine {
             // Clamped, not skipped, so straight sideways is always tried: a fish at a log's open
             // end, with the log between it and straight away, had nothing clear short of it.
             double turn = Math.toRadians(SimMath.clamp(spread + detour, -90f, 90f));
-            float c = (float) Math.cos(turn), sn = (float) Math.sin(turn);
+            float c = (float) StrictMath.cos(turn), sn = (float) StrictMath.sin(turn);
             float dirL = awayL * c - awayD * sn, dirD = awayL * sn + awayD * c;
             if (pathBlocked(posL[i], posY[i], posD[i],
                     posL[i] + dirL * FLINCH_CLEARANCE, posY[i], posD[i] + dirD * FLINCH_CLEARANCE)) continue;
@@ -2906,7 +3034,7 @@ public final class FlockEngine {
                         ? Math.min(STARTLE_DASH_SPEED * patrolScale[i],
                                 axisSpeed + (float) Math.sqrt(2f * STARTLE_BRAKE * dist))
                         : onItsWay ? patrol
-                        : Math.min(patrol * VISIT_APPROACH_SPEED,
+                        : Math.min(patrol * VISIT_APPROACH_SPEED * errandSpeedScale(i),
                                 axisSpeed + (float) Math.sqrt(2f * VISIT_BRAKE * dist));
                 float seek = dist > 1e-5f ? dash / dist : 0f;
                 out[0] = tl * seek * (1f - near) + (nL * axisSpeed - pL * CORRIDOR_GAIN) * near;
@@ -2962,9 +3090,9 @@ public final class FlockEngine {
                 }
                 float yr = (float) Math.toRadians(yawDeg[i]);
                 float speed = patrol * INSIDE_SPEED;
-                out[0] = (float) Math.cos(yr) * speed;
+                out[0] = (float) StrictMath.cos(yr) * speed;
                 out[1] = 0f;
-                out[2] = -(float) Math.sin(yr) * speed;
+                out[2] = -(float) StrictMath.sin(yr) * speed;
                 interiorConfinement(shelter.interior(), i, avoid, 0f, 0f, 0f);
                 return 1f;
             }
@@ -2973,7 +3101,7 @@ public final class FlockEngine {
                 // that the sprite keeps the heading it settled with, facing out.
                 float phase = (float) (2.0 * Math.PI * (simTick * p.dt() / REST_SWAY_SECONDS
                         + (unitFromHash(seeds[i], 0x2E57L) + 1f) * 0.5f));
-                float target = restDepth(i) + REST_SWAY * (float) Math.sin(phase);
+                float target = restDepth(i) + REST_SWAY * (float) StrictMath.sin(phase);
                 float hold = (target - along) * REST_HOLD_GAIN;
                 out[0] = nL * hold - pL * REST_HOLD_GAIN;
                 out[1] = nY * hold - pY * REST_HOLD_GAIN;
@@ -3458,8 +3586,8 @@ public final class FlockEngine {
         advanceBurst(i, p);
 
         float yr = (float) Math.toRadians(yawDeg[i]);
-        float dirL = (float) Math.cos(yr);
-        float dirD = -(float) Math.sin(yr);
+        float dirL = (float) StrictMath.cos(yr);
+        float dirD = -(float) StrictMath.sin(yr);
 
         // OU wander when it's configured, the legacy sine pair otherwise (which is what the
         // single-tank parity set leaves in place).
@@ -3510,7 +3638,7 @@ public final class FlockEngine {
             float base = glideFloor(i);
             float swellPhase = simTick * p.dt() / GLIDE_SWELL_SECONDS
                     + (unitFromHash(seeds[i], 7) + 1f) * 0.5f; // per-fish, so a pair never rises together
-            float swell = (float) Math.sin(swellPhase * 2.0 * Math.PI) * GLIDE_SWELL_FRACTION * ride;
+            float swell = (float) StrictMath.sin(swellPhase * 2.0 * Math.PI) * GLIDE_SWELL_FRACTION * ride;
             float target = SimMath.clamp(base + ride + swell, domain.minVertical(), domain.maxVertical());
             dY += SimMath.clamp((target - posY[i]) * GLIDE_HEIGHT_GAIN,
                     -GLIDE_CLIMB_SPEED, GLIDE_CLIMB_SPEED);
@@ -3740,6 +3868,12 @@ public final class FlockEngine {
                 cap = Math.max(cap, FLINCH_SPEED * patrolScale[i]);
                 fast = true;
             }
+            // An eager host errand (sendToTrigger's speedScale) has its own too, while it approaches.
+            float errand = shelterState[i] == SHELTER_APPROACH ? errandSpeedScale(i) : 1f;
+            if (errand > 1f) {
+                cap = Math.max(cap, p.patrolSpeed() * patrolScale[i] * VISIT_APPROACH_SPEED * errand);
+                fast = true;
+            }
             if (fast) {
                 fastSettle[i] = FAST_SETTLE_SECONDS;
             } else if (fastSettle[i] > 0f) {
@@ -3795,13 +3929,13 @@ public final class FlockEngine {
             // A lurker settling into its mouth, and resting there, faces out (§5.5) — whatever its
             // creeping velocity says, which at a rest pose's speeds says nothing at all.
             Shelter.Mouth mouth = chosenMouth(i);
-            float target = (float) Math.toDegrees(Math.atan2(mouth.normalD(), -mouth.normalL()));
+            float target = (float) Math.toDegrees(StrictMath.atan2(mouth.normalD(), -mouth.normalL()));
             float turnRate = (p.turnRateDegPerTick() > 0f ? p.turnRateDegPerTick() : PLANAR_TURN_RATE)
                     * turnScale[i];
             yawDeg[i] = wrapDeg(yawDeg[i] + SimMath.clamp(wrapDeg(target - yawDeg[i]), -turnRate, turnRate));
             bank[i] *= 0.9f;
         } else if (hsp2 > PLANAR_YAW_MIN_SPEED) {
-            float target = (float) Math.toDegrees(Math.atan2(-velD[i], velL[i]));
+            float target = (float) Math.toDegrees(StrictMath.atan2(-velD[i], velL[i]));
             float diff = wrapDeg(target - yawDeg[i]);
             // The same rate that bounds the trajectory above, so sprite and travel agree by
             // construction rather than by the velocity happening to turn slowly enough.
@@ -4079,13 +4213,13 @@ public final class FlockEngine {
 
     private float wanderL(int i) {
         float t = simTick;
-        return (float) (Math.sin(wanderPhaseA[i] + t * 0.031) * 0.7
-                + Math.sin(wanderPhaseB[i] + t * 0.017) * 0.5);
+        return (float) (StrictMath.sin(wanderPhaseA[i] + t * 0.031) * 0.7
+                + StrictMath.sin(wanderPhaseB[i] + t * 0.017) * 0.5);
     }
 
     private float wanderY(int i) {
         float t = simTick;
-        return (float) (Math.sin(wanderPhaseA[i] * 1.7 + t * 0.023) * 0.6);
+        return (float) (StrictMath.sin(wanderPhaseA[i] * 1.7 + t * 0.023) * 0.6);
     }
 
     /**
@@ -4220,8 +4354,8 @@ public final class FlockEngine {
         yawDeg[i] = yaw;
 
         float yr = (float) Math.toRadians(yaw);
-        float dirL = (float) Math.cos(yr);
-        float dirD = -(float) Math.sin(yr);
+        float dirL = (float) StrictMath.cos(yr);
+        float dirD = -(float) StrictMath.sin(yr);
 
         float drive = CRAWL_SPEED * burstDrive[i] * speedScale[i];
         float vl = dirL * drive;
@@ -4278,8 +4412,8 @@ public final class FlockEngine {
     /** Whether the floor a probe-length ahead on this bearing can be stood on. */
     private boolean clearAhead(int i, float yaw) {
         float yr = (float) Math.toRadians(yaw);
-        return standable(posL[i] + (float) Math.cos(yr) * CRAWL_PROBE,
-                posD[i] - (float) Math.sin(yr) * CRAWL_PROBE);
+        return standable(posL[i] + (float) StrictMath.cos(yr) * CRAWL_PROBE,
+                posD[i] - (float) StrictMath.sin(yr) * CRAWL_PROBE);
     }
 
     /**
@@ -4344,8 +4478,8 @@ public final class FlockEngine {
             float u = (unitFromHash(seed, 200 + attempt * 3L) + 1f) * 0.5f;
             float r = colony.radius * (float) Math.sqrt(u);
             float theta = (float) Math.PI * (unitFromHash(seed, 201 + attempt * 3L) + 1f);
-            float l = colony.anchorL + r * (float) Math.cos(theta);
-            float d = colony.anchorD + r * (float) Math.sin(theta);
+            float l = colony.anchorL + r * (float) StrictMath.cos(theta);
+            float d = colony.anchorD + r * (float) StrictMath.sin(theta);
             if (!standable(l, d)) continue;
             if (attempt < 32 && !farEnoughOnFloor(l, d, want, upTo)) continue;
             out[0] = l;

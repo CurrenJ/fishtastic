@@ -250,6 +250,21 @@ public class FishtasticPackets {
                 AmbientContextResponsePacket::handleServerToClient
         );
         registrar.registerServerToClient(
+                FishSchoolSetupPacket.TYPE,
+                FishSchoolSetupPacket.STREAM_CODEC,
+                FishSchoolSetupPacket::handleServerToClient
+        );
+        registrar.registerServerToClient(
+                FishSchoolInputPacket.TYPE,
+                FishSchoolInputPacket.STREAM_CODEC,
+                FishSchoolInputPacket::handleServerToClient
+        );
+        registrar.registerServerToClient(
+                FishSchoolStatePacket.TYPE,
+                FishSchoolStatePacket.STREAM_CODEC,
+                FishSchoolStatePacket::handleServerToClient
+        );
+        registrar.registerServerToClient(
                 CompanionPartySyncPacket.TYPE,
                 CompanionPartySyncPacket.STREAM_CODEC,
                 CompanionPartySyncPacket::handleServerToClient
@@ -282,6 +297,9 @@ public class FishtasticPackets {
         registrar.accept(CompanionScenePacket.TYPE, CompanionScenePacket.STREAM_CODEC);
         registrar.accept(CompanionPartySyncPacket.TYPE, CompanionPartySyncPacket.STREAM_CODEC);
         registrar.accept(AmbientContextResponsePacket.TYPE, AmbientContextResponsePacket.STREAM_CODEC);
+        registrar.accept(FishSchoolSetupPacket.TYPE, FishSchoolSetupPacket.STREAM_CODEC);
+        registrar.accept(FishSchoolInputPacket.TYPE, FishSchoolInputPacket.STREAM_CODEC);
+        registrar.accept(FishSchoolStatePacket.TYPE, FishSchoolStatePacket.STREAM_CODEC);
     }
 
     /**

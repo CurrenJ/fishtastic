@@ -1324,6 +1324,35 @@ public class ForgeFishtasticGameTests {
     }
 
     // -------------------------------------------------------------------------
+    // Interactive fish school tests
+    // -------------------------------------------------------------------------
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void caught_school_target_depletes_once(GameTestHelper helper) {
+        FishSchoolGameTests.caughtSchoolTargetDepletesOnce(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void missed_school_target_recovers_and_retry_keeps_reward(GameTestHelper helper) {
+        FishSchoolGameTests.missedTargetRecoversAndRetryKeepsReward(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea", maxTicks = 360)
+    public static void live_school_approaches_and_triggers_owned_bite(GameTestHelper helper) {
+        FishSchoolGameTests.liveSchoolApproachesAndTriggersOwnedBite(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea", maxTicks = 360)
+    public static void school_stays_in_its_water_and_steps_once_per_tick(GameTestHelper helper) {
+        FishSchoolGameTests.schoolStaysInItsWaterAndStepsOncePerTick(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void school_transient_reservations_recover_across_save_reload(GameTestHelper helper) {
+        FishSchoolGameTests.transientReservationsRecoverAcrossSaveReload(helper);
+    }
+
+    // -------------------------------------------------------------------------
     // ShopEntry tests  (pure registry-only logic, no player needed)
     // -------------------------------------------------------------------------
 

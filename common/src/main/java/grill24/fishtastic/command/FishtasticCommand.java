@@ -20,9 +20,47 @@ import java.net.URI;
  */
 public class FishtasticCommand {
 
+    private static int spawnSchool(CommandContext<CommandSourceStack> context, net.minecraft.resources.Identifier species) {
+        String result = grill24.fishtastic.server.FishSchoolManager.get(context.getSource().getLevel())
+                .spawnForDebug(net.minecraft.core.BlockPos.containing(context.getSource().getPosition()), species);
+        context.getSource().sendSuccess(() -> Component.literal(result), false);
+        return 1;
+    }
+
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         LiteralArgumentBuilder<CommandSourceStack> command = Commands.literal("fishtastic")
                 .executes(FishtasticCommand::openScreen)
+                .then(Commands.literal("schools").executes(context -> {
+                    context.getSource().sendSuccess(() -> Component.literal(
+                            "Interactive fish schools: sparkling wild fish can approach when you cast a supported Fishtastic rod nearby. "
+                                    + "The school fish replaces one normal target; catching it removes that member for everyone. "
+                                    + "Local display: /fishtasticambient schools visible <true|false>."), false);
+                    return 1;
+                })
+                        // Solo-playtest triggers: make a visit now, and read what its fish are doing.
+                        .then(Commands.literal("spawn").requires(FishtasticPermissions.gamemaster())
+                                .executes(context -> spawnSchool(context, null))
+                                .then(Commands.argument("species", net.minecraft.commands.arguments.IdentifierArgument.id())
+                                        .executes(context -> spawnSchool(context,
+                                                net.minecraft.commands.arguments.IdentifierArgument.getId(context, "species")))))
+                        .then(Commands.literal("debug").requires(FishtasticPermissions.gamemaster()).executes(context -> {
+                            var schools = grill24.fishtastic.server.FishSchoolManager.get(context.getSource().getLevel());
+                            String result = schools.debugNearest(context.getSource().getPosition());
+                            ServerPlayer player = context.getSource().getPlayer();
+                            String bobber = player == null ? "" : "\n" + schools.hookReport(player);
+                            context.getSource().sendSuccess(() -> Component.literal(result + bobber), false);
+                            return 1;
+                        })
+                                // Every approach's start, bite and failure (with why) to the server log.
+                                .then(Commands.literal("log")
+                                        .then(Commands.argument("enabled", com.mojang.brigadier.arguments.BoolArgumentType.bool())
+                                                .executes(context -> {
+                                                    boolean enabled = com.mojang.brigadier.arguments.BoolArgumentType.getBool(context, "enabled");
+                                                    grill24.fishtastic.server.FishSchoolManager.logApproaches = enabled;
+                                                    context.getSource().sendSuccess(() -> Component.literal("School approach logging "
+                                                            + (enabled ? "on: see [schools] lines in the log." : "off.")), false);
+                                                    return 1;
+                                                })))))
                 .then(CosmeticCommand.build())
                 .then(SetItemSizeCommand.build())
                 .then(SetFishQualityCommand.build())

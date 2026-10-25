@@ -39,6 +39,7 @@
     "ItemStackUseOnMixin",
     "PlayerAdvancementsMixin",
     "QuickCollectPileMixin",
+    "ServerLevelSchoolsMixin",
     "SizedItemClickMixin"
   ]
 }
