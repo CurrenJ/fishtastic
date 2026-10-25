@@ -4,6 +4,7 @@ import grill24.FishtasticRegistries;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.component.BaitEffect;
+import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.config.FishtasticServerConfig;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.item.FishtasticFishItem;
@@ -444,7 +445,7 @@ public final class FishSchoolManager {
                 + " water=" + runtime.water.size() + " members=[");
         for (FishSchoolSavedData.Member member : school.members()) {
             int i = sim.indexOf(member.id());
-            out.append(member.state()).append('#').append(i);
+            out.append(member.state()).append('/').append(member.quality().getSerializedName()).append('#').append(i);
             if (i >= 0) {
                 out.append(String.format(java.util.Locale.ROOT, "@(%.2f,%.2f,%.2f) shelter=%d", sim.engine().posL()[i],
                         sim.engine().posY()[i], sim.engine().posD()[i], sim.engine().shelterState(i)));
@@ -467,6 +468,11 @@ public final class FishSchoolManager {
      * appears is a school that could have formed there. A line saying what happened.
      */
     public String spawnForDebug(BlockPos near, @Nullable ResourceLocation species) {
+        return spawnForDebug(near, species, null);
+    }
+
+    /** {@link #spawnForDebug(BlockPos, ResourceLocation)}, member {@code i} given {@code qualities[i % length]} if set. */
+    public String spawnForDebug(BlockPos near, @Nullable ResourceLocation species, FishQuality.Quality @Nullable [] qualities) {
         BlockPos water = nearestWater(near, 12, 5, 2);
         if (water == null) return "No valid source water within 12 blocks.";
         Holder<Item> forced = null;
@@ -477,7 +483,7 @@ public final class FishSchoolManager {
             }
             forced = item.builtInRegistryHolder();
         }
-        FishSchoolSavedData.School school = tryCreateSchool(water, level.getGameTime(), forced);
+        FishSchoolSavedData.School school = tryCreateSchool(water, level.getGameTime(), forced, qualities);
         if (school == null) {
             return "No school formed at " + water.toShortString() + ": no school-enabled species fits this water,"
                     + " the water is too small, or the member budget is spent.";
@@ -699,14 +705,17 @@ public final class FishSchoolManager {
     }
 
     private @Nullable FishSchoolSavedData.School tryCreateSchool(BlockPos seed, long now) {
-        return tryCreateSchool(seed, now, null);
+        return tryCreateSchool(seed, now, null, null);
     }
 
     /**
-     * @param forced a species to use instead of drawing one from the natural pool (debug only): it
-     *               must still be school-enabled, but this water's habitat is not checked for it
+     * @param forced    a species to use instead of drawing one from the natural pool (debug only): it
+     *                  must still be school-enabled, but this water's habitat is not checked for it
+     * @param qualities debug only: member {@code i} gets {@code qualities[i % length]} (its reward
+     *                  seed is re-drawn until {@link FishSchoolSavedData#qualityOf} says so), or null
      */
-    private @Nullable FishSchoolSavedData.School tryCreateSchool(BlockPos seed, long now, @Nullable Holder<Item> forced) {
+    private @Nullable FishSchoolSavedData.School tryCreateSchool(BlockPos seed, long now, @Nullable Holder<Item> forced,
+                                                                FishQuality.Quality @Nullable [] qualities) {
         WaterScan waterScan = scanConnectedWater(seed, null, null);
         Set<BlockPos> water = waterScan.cells();
         if (water.size() < MIN_WATER_CELLS) return null;
@@ -755,7 +764,14 @@ public final class FishSchoolManager {
             float yaw = random.nextFloat() * 360f;
             FishSchoolSavedData.Position position = new FishSchoolSavedData.Position(
                     candidate.x, candidate.y, candidate.z, yaw);
-            schoolMembers.add(FishSchoolSavedData.newMember(random.nextLong(), position));
+            long rewardSeed = random.nextLong();
+            if (qualities != null) {
+                FishQuality.Quality want = qualities[schoolMembers.size() % qualities.length];
+                for (int tries = 0; tries < 100_000 && FishSchoolSavedData.qualityOf(rewardSeed) != want; tries++) {
+                    rewardSeed = random.nextLong();
+                }
+            }
+            schoolMembers.add(FishSchoolSavedData.newMember(rewardSeed, position));
         }
         if (schoolMembers.size() < 2) return null;
 
@@ -1310,7 +1326,8 @@ public final class FishSchoolManager {
                 if (held == null || held != runtime.epoch) {
                     FishtasticTransport.sendToPlayer(player, new FishSchoolSetupPacket(dimension, school.id(),
                             runtime.epoch, school.species(), runtime.setup, List.copyOf(runtime.inputs),
-                            runtime.sim.steps()));
+                            runtime.sim.steps(), school.members().stream()
+                                    .map(m -> new FishSchoolSetupPacket.MemberQuality(m.id(), m.quality())).toList()));
                     mine.put(school.id(), runtime.epoch);
                 }
                 runtime.trackers.add(player.getUUID());

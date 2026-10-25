@@ -3,13 +3,16 @@ package grill24.fishtastic.server;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.data.FishMoonPhase;
 import grill24.fishtastic.data.FishProfile;
+import grill24.fishtastic.item.FishtasticFishItem;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.RandomSource;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
@@ -96,6 +99,8 @@ public final class FishSchoolSavedData extends SavedData {
 
         public UUID id() { return id; }
         public long rewardSeed() { return rewardSeed; }
+        /** This fish's quality for its whole visit: its trail shows it, and catching it gives it. */
+        public FishQuality.Quality quality() { return qualityOf(rewardSeed); }
         /** Where the school's sim last had this member (frozen while it is out of the water). */
         public Position position() { return position; }
         public long recoveryUntil() { return recoveryUntil; }
@@ -298,6 +303,18 @@ public final class FishSchoolSavedData extends SavedData {
         }
         if (changed) setDirty();
     }
+
+    /**
+     * A school fish's quality, from its reward seed: settled when the school forms rather than when
+     * the fish is caught, so the trail can show it beforehand. Derived rather than stored, so a
+     * school saved before qualities existed gets them too. Unbiased: bait and hook quality bias
+     * apply to ordinary casts only, or a fish's trail would not match what catching it gives.
+     */
+    public static FishQuality.Quality qualityOf(long rewardSeed) {
+        return FishtasticFishItem.sampleRandomQuality(RandomSource.create(rewardSeed ^ QUALITY_SALT));
+    }
+
+    private static final long QUALITY_SALT = 0x51A11E7C0FFEE5EDL;
 
     static Member newMember(long seed, Position position) {
         return new Member(UUID.randomUUID(), seed, position, 0L,

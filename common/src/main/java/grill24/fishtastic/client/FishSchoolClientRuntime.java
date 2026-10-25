@@ -6,8 +6,10 @@ import com.mojang.math.Axis;
 import grill24.FishtasticRegistries;
 import grill24.fishsim.core.FlockEngine;
 import grill24.fishtastic.Fishtastic;
+import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.client.renderer.FishVisuals;
 import grill24.fishtastic.client.renderer.GroupFishDraw;
+import grill24.fishtastic.client.renderer.TankBubbleEmitter;
 import grill24.fishtastic.data.FishAnimationConfig;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.network.FishSchoolInputPacket;
@@ -72,6 +74,18 @@ public final class FishSchoolClientRuntime {
     private static final int RIPPLE_SPRITE = 5;
     /** The pearl/sea-glass cyans the motes were drawn in before the sprites went greyscale. */
     private static final int[] DEFAULT_MOTE_TINTS = {0xB4FFF0, 0x8CF5F0, 0x5AE6DC, 0xC8FFE6};
+    /**
+     * Each quality's mote tints, by {@link FishQuality.Quality} ordinal: a fish's trail shows what
+     * catching it gives. Common keeps the original sea-glass cyans; the rest are shades round their
+     * tooltip colour (green, blue, light purple, gold).
+     */
+    private static final int[][] QUALITY_MOTE_TINTS = {
+            DEFAULT_MOTE_TINTS,
+            {0x9CFF9C, 0x6EF56E, 0x55E655, 0xC8FFC8},
+            {0x8C9CFF, 0x6E7EFF, 0x5566FF, 0xB4BEFF},
+            {0xFF9CFF, 0xF06EF0, 0xE055E6, 0xFFC8FF},
+            {0xFFD966, 0xFFC233, 0xFFAA00, 0xFFE9A8},
+    };
     /** Dev override of every school's mote tints (RGB), or null for the defaults. */
     private static int @Nullable [] moteTintOverride;
     private static final int FULL_BRIGHT = 15728880;
@@ -184,7 +198,9 @@ public final class FishSchoolClientRuntime {
         final FishSchoolReplica replica;
         final ItemStack stack;
         final FishAnimationConfig anim;
-                final Map<UUID, Integer> visual = new HashMap<>();
+        final Map<UUID, Integer> visual = new HashMap<>();
+        /** Each member's quality, for its trail's colour. */
+        final Map<UUID, FishQuality.Quality> qualities = new HashMap<>();
         /** Each member's world position after the previous tick, for its trail. */
         final Map<UUID, Vec3> lastPositions = new HashMap<>();
         /** Each member's distance swum since its last mote, blocks. */
@@ -250,7 +266,9 @@ public final class FishSchoolClientRuntime {
         FishAnimationConfig anim = FishVisuals.resolve(stack, level).animation();
         FishSchoolReplica replica = new FishSchoolReplica(packet.school(), packet.epoch(), packet.setup(),
                 packet.inputs(), packet.serverStep());
-        COPIES.put(packet.school(), new Copy(replica, stack, anim));
+        Copy copy = new Copy(replica, stack, anim);
+        for (FishSchoolSetupPacket.MemberQuality q : packet.qualities()) copy.qualities.put(q.member(), q.quality());
+        COPIES.put(packet.school(), copy);
     }
 
     public static void onInputs(FishSchoolInputPacket packet) {
@@ -372,6 +390,10 @@ public final class FishSchoolClientRuntime {
             if (moved && before != null
                     && copy.visual.getOrDefault(id, FishSchoolStatePacket.AVAILABLE) != FishSchoolStatePacket.DEPARTING) {
                 spawnMotes(copy, id, before, at, drawn.subtract(at), engine.lengths[i]);
+                int state = engine.shelterState(i);
+                if (state == FlockEngine.SHELTER_APPROACH || state == FlockEngine.SHELTER_ENTER) {
+                    sprintBubbles(copy, before, at, drawn.subtract(at), engine.lengths[i]);
+                }
             }
         }
         copy.lastPositions.clear();
@@ -398,6 +420,7 @@ public final class FishSchoolClientRuntime {
         double tailOffset = clamp(length * 0.46f, 0.045f, 0.16f);
         // The first mote due on this segment lies (spacing - travelled) along it.
         double next = MOTE_SPACING - travelled;
+        int[] tints = tints(copy, member);
         for (; next <= distance; next += MOTE_SPACING) {
             double along = next * inverseDistance;
             double lateral = (random.nextDouble() - 0.5) * 0.045;
@@ -412,9 +435,44 @@ public final class FishSchoolClientRuntime {
                     (random.nextDouble() - 0.5) * 0.0012,
                     0.0008 + random.nextDouble() * 0.0012,
                     (random.nextDouble() - 0.5) * 0.0012,
-                    size, MOTE_LIFETIME + random.nextInt(MOTE_LIFETIME_SPREAD));
+                    size, MOTE_LIFETIME + random.nextInt(MOTE_LIFETIME_SPREAD), tints);
         }
         copy.sinceMote.put(member, distance - (next - MOTE_SPACING));
+    }
+
+    /** One bubble per this many blocks a fish sprints for a bobber, on average. */
+    private static final double SPRINT_BUBBLE_SPACING = 0.09;
+    /** Share of the fish's motion a shed bubble carries on with: the tanks' (TankBubbleEmitter). */
+    private static final double SPRINT_BUBBLE_DRIFT = 0.3;
+
+    /**
+     * Bubbles shed along a fish's whole body as it sprints for a bobber (a school's only errand is a
+     * bobber, so its approach and nose-in are the sprint): the tanks' bubbles in their exertion size
+     * mix ({@link TankBubbleEmitter#exertionBubble}), popping at the surface. More bubbles the faster
+     * the fish swims, at points anywhere from nose to tail, drifting on with a little of its way.
+     */
+    private static void sprintBubbles(Copy copy, Vec3 from, Vec3 to, Vec3 drawnOffset, float length) {
+        ClientLevel level = Minecraft.getInstance().level;
+        if (level == null) return;
+        Vec3 step = to.subtract(from);
+        double distance = step.length();
+        if (distance < 1e-4) return;
+        Vec3 dir = step.scale(1.0 / distance);
+        Random random = copy.trailRandom;
+        double due = distance / SPRINT_BUBBLE_SPACING;
+        int count = (int) due + (random.nextDouble() < due - (int) due ? 1 : 0);
+        for (int k = 0; k < count; k++) {
+            // Anywhere along the body: the centre is the drawn fish's, the body runs along its path.
+            double along = (random.nextDouble() - 0.5) * length;
+            double side = (random.nextDouble() - 0.5) * length * 0.25;
+            double x = to.x + drawnOffset.x + dir.x * along - dir.z * side;
+            double y = to.y + drawnOffset.y + dir.y * along + (random.nextDouble() - 0.5) * length * 0.2;
+            double z = to.z + drawnOffset.z + dir.z * along + dir.x * side;
+            if (!level.getFluidState(BlockPos.containing(x, y, z)).is(FluidTags.WATER)) continue;
+            // The tanks' particles take (x drift, pop Y, z drift), and inherit 30% of the fish's way.
+            level.addParticle(TankBubbleEmitter.exertionBubble(level.getRandom()), x, y, z,
+                    step.x * SPRINT_BUBBLE_DRIFT, waterSurfaceAbove(x, y, z), step.z * SPRINT_BUBBLE_DRIFT);
+        }
     }
 
     private static void marker(Copy copy, Vec3 at, int red, int green, int blue) {
@@ -455,11 +513,12 @@ public final class FishSchoolClientRuntime {
         BlockPos o = sim.origin();
         double x = o.getX() + at[0], y = o.getY() + at[1], z = o.getZ() + at[2];
         Random random = copy.trailRandom;
+        int[] tints = tints(copy, sim.errandMember(anchor));
         // A brief flash at the nose first: the moment of the bite, before the fountain.
-        addMote(copy, x, y, z, 0, 0.004, 0, 0.16f, 9, GLINT_SPRITE);
+        addMote(copy, x, y, z, 0, 0.004, 0, 0.16f, 9, GLINT_SPRITE, tints);
         double surface = waterSurfaceAbove(x, y, z);
-        addMote(copy, x, surface + 0.03, z, 0, 0.006, 0, 0.13f, 8, GLINT_SPRITE);
-        TrailMote ring = addMote(copy, x, surface + 0.015, z, 0, 0, 0, 0.3f, 16, RIPPLE_SPRITE);
+        addMote(copy, x, surface + 0.03, z, 0, 0.006, 0, 0.13f, 8, GLINT_SPRITE, tints);
+        TrailMote ring = addMote(copy, x, surface + 0.015, z, 0, 0, 0, 0.3f, 16, RIPPLE_SPRITE, tints);
         ring.flat = true;
         for (int i = 0; i < FOUNTAIN_DROPLETS; i++) {
             boolean jet = i < FOUNTAIN_JETS;
@@ -470,7 +529,7 @@ public final class FishSchoolClientRuntime {
             float size = (0.035f + random.nextFloat() * 0.03f) * (jet ? 1.2f : 1f);
             // Never the ripple ring in the air: it reads as a splash, not a droplet.
             TrailMote drop = addMote(copy, x, surface + 0.05, z, Math.cos(angle) * out, up, Math.sin(angle) * out,
-                    size, FOUNTAIN_LIFETIME, random.nextInt(RIPPLE_SPRITE));
+                    size, FOUNTAIN_LIFETIME, random.nextInt(RIPPLE_SPRITE), tints);
             drop.gravity = FOUNTAIN_GRAVITY;
             drop.drag = 0.98f;
             drop.surfaceY = surface;
@@ -535,16 +594,22 @@ public final class FishSchoolClientRuntime {
         return pos.getY();
     }
 
-    /** One pearl/sea-glass mote on a random sprite sheet, in one of the school's tints. */
+    /** The tints {@code member}'s motes are drawn in: its quality's, or the dev override's. */
+    private static int[] tints(Copy copy, @Nullable UUID member) {
+        if (moteTintOverride != null) return moteTintOverride;
+        FishQuality.Quality quality = member == null ? null : copy.qualities.get(member);
+        return quality == null ? DEFAULT_MOTE_TINTS : QUALITY_MOTE_TINTS[quality.ordinal()];
+    }
+
+    /** One mote on a random sprite sheet, in one of {@code tints}. */
     private static TrailMote addMote(Copy copy, double x, double y, double z, double driftX, double rise,
-                                     double driftZ, float size, int lifetime) {
+                                     double driftZ, float size, int lifetime, int[] tints) {
         return addMote(copy, x, y, z, driftX, rise, driftZ, size, lifetime,
-                copy.trailRandom.nextInt(MOTE_SPRITES.length));
+                copy.trailRandom.nextInt(MOTE_SPRITES.length), tints);
     }
 
     private static TrailMote addMote(Copy copy, double x, double y, double z, double driftX, double rise,
-                                     double driftZ, float size, int lifetime, int sprite) {
-        int[] tints = moteTintOverride != null ? moteTintOverride : DEFAULT_MOTE_TINTS;
+                                     double driftZ, float size, int lifetime, int sprite, int[] tints) {
         return addMote(copy, x, y, z, driftX, rise, driftZ, size, lifetime, sprite,
                 tints[copy.trailRandom.nextInt(tints.length)]);
     }
