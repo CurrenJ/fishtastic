@@ -10,6 +10,75 @@ port (evidence under each worktree's `build/verification/two-client/fabric/`).
 
 ## Current parity state
 
+- **Completed follow-up (2026-10-25): interactive fish schools.** Backport source commit
+  `a31a9298` (`Add interactive fish schools`) in order `26.1.2 → port/1.21.1 → port/1.20.1`,
+  adapting APIs and loader wiring per target. Include gameplay/networking, client simulation and
+  rendering, fishsim changes, resources/datagen, tests, and relevant feature docs. Validate each
+  target with focused compile/unit/GameTest gates and client/loader checks where practical. Keep
+  the historical pinned-backlog markers unchanged. Record logs and a result matrix under
+  `build/backport-catchup/2026-10-25/interactive-fish-schools/`; treat any interrupted run as
+  unverified. Baselines inspected: 1.21.1 `ba12b1a3` has an existing modified
+  `docs/backport-plan.md`; 1.20.1 `e529cd35` has the same existing modification plus untracked
+  `docs/fish-companions-twoclient/`. Preserve all three. **Checkpoint (2026-10-25):** the shared
+  1.21.1 source delta is applied. Source-only docs and platform test-registration files were
+  excluded for manual target adaptation. The port now uses 1.21.1 immediate-mode fish rendering,
+  has all three school payloads registered, preserves both ServerLevel mixins, and discovers the
+  five school GameTests through the target shared harness. The first compile surfaced expected
+  version differences (`ResourceLocation`, `SavedData.Factory`, and the 1.21.1 block-change hook);
+  those are adapted. **Pending operation:** rerun `:common:compileJava` and `:fishsim:test`; log at
+  `build/backport-catchup/2026-10-25/interactive-fish-schools/1.21.1-common-compile.log`.
+  The initial compile is unverified. The second attempt passed `:common:compileJava` and
+  `:fishsim:test` (`BUILD SUCCESSFUL`); the intervening attempt found RegistryAccess and
+  camera-vector differences, which are now adapted. The loader compile found one source-version
+  inventory API mismatch in the new school GameTest helper; changed it to the target's
+  `Inventory.items` list. The clean rerun passed `:common:test` (78 passed) and `:fishsim:test`
+  (516 passed, 59 skipped) but failed Fabric main compilation because this target uses
+  `getOrCreateTagBuilder`, not the source's `valueLookupBuilder`. Adapted the opt-in school tag.
+  The final forced rerun passed all three loader main compiles, all three testmod compiles,
+  `:common:test` (78 passed), and `:fishsim:test` (516 passed, 59 skipped); see
+  `build/backport-catchup/2026-10-25/interactive-fish-schools/1.21.1-loader-compile.log`.
+  Fabric datagen passed and wrote one generated file, the intended
+  `tags/item/fish_school_enabled.json`; sync preserved 101 authored entries and left 5,511
+  generated entries unchanged. Log: `build/backport-catchup/2026-10-25/interactive-fish-schools/1.21.1-datagen.log`.
+  Fabric GameTests passed: 383 total, 0 failures, including all five school cases; report is
+  `port-1.21.1/fabric/build/junit.xml`, full log at
+  `build/backport-catchup/2026-10-25/interactive-fish-schools/1.21.1-fabric-gametest.log`.
+  `:neoforge:runData` could not configure because Loom reported no `dataServer` Forge run template;
+  the shared GameTest structure files are already present under `common/src/testmod/resources`.
+  First `:neoforge:runGametest` attempt ran 383 tests and had one transient school approach failure
+  (mock-player hook link disappeared around tick 28). The full-suite retry passed all 383 required
+  tests, including all five school cases; logs are `1.21.1-neoforge-gametest.log` (first attempt)
+  and `1.21.1-neoforge-school-only.log` (successful full-suite retry; the filter was not forwarded).
+  `:forge:runGametest` passed all 383 required tests. Log:
+  `build/backport-catchup/2026-10-25/interactive-fish-schools/1.21.1-forge-gametest.log`.
+  The corrected Fabric render scene passed every school check: 4 members spawned; the server and
+  client copies remained present in broadside, reverse, and surface views; the close-up followed a
+  fish for 60 frames; and the final client replica was caught up with zero mismatches. Captures and
+  logs are in `build/backport-catchup/2026-10-25/interactive-fish-schools/1.21.1-fabric-render/`.
+  The temporary stage assertions remain in the self-test harness, which now assigns synthetic
+  school pools a river biome so Bluegill remains habitat-valid after its forced debug spawn.
+  Created a feature-only patch from the adapted 1.21.1 base, excluding its pre-existing plan edit.
+  Three existing-file hunks needed manual adaptation (`AmbientFishRuntime.java`, `RenderSelfTest.java`,
+  `FishtasticPackets.java`); all other files applied. The port uses the 1.20 `FishtasticPayload` /
+  `BufCodec` channel shim, older `SavedData` API, Java 17 syntax, and plural `tags/items` directory.
+  The source ambient renderer shares the extracted draw helper with 1.20 pose/normal-matrix handling.
+  `:common:test`, fishsim, and forced Fabric/Forge main plus testmod compilation now pass.
+  Fabric datagen passed (`BUILD SUCCESSFUL`, copied 1, preserved 101 authored entries, 5,509
+  unchanged, no files pruned). Fabric GameTests ran 383 tests and failed the new
+  `liveSchoolApproachesAndTriggersOwnedBite` scenario on its first run. The diagnostic showed the
+  sim advanced 300 steps with both members available, `inputs=0`, and `hookReport=Your bobber: no
+  line out.` Restoring `player.fishing = hook` on each callback kept the mock bobber available; the
+  rerun passed all 383 Fabric GameTests. Forge GameTests passed all 384 tests. The 1.20.1
+  `fishschoolgif` client smoke passed on retry in an isolated run directory. The first attempt was
+  held at Minecraft's first-run accessibility prompt; bringing the window forward and continuing
+  let the scene run. All 13 checks passed: four Bluegill rendered in broadside, reverse and surface
+  views; the server and client remained present; the client replica stayed caught up with zero
+  mismatches; and the close-up followed a fish for 60 frames. The run produced 72 view frames plus
+  60 close-up frames. Gradle/client logs and representative captures are under
+  `build/backport-catchup/2026-10-25/interactive-fish-schools/1.20.1-fabric-render-retry/`. The
+  original `fabric/run` world/logs were untouched, and the temporary run configuration and marker
+  were restored/removed. All requested functional and visual validation gates pass on both targets.
+  Historical port markers remain unchanged; no repository operation remains pending.
 - **Completed operation (2026-10-24): coelacanth backport.** Source `c20dac1a` (`Add coelacanth`)
   is committed on both ports: 1.21.1 `c0f8415e` and 1.20.1 `8ba9199d` (`Backport coelacanth to
   <mc>`), 15 feature files each: item registration, creative tab entry, English name, profile and
