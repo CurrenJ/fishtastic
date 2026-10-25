@@ -61,6 +61,10 @@ FATAL = [
 # of 26.1+ (unobfuscated). A refmap that is really needed fails loudly at apply time instead
 # ("Mixin apply failed ... No refMap loaded", seen on Forge 1.20.1), which FATAL catches.
 REFMAP = re.compile(r"Reference map '[^']*' .*could not be read")
+# Mixin scanners probe optional compatibility targets and log missing classes at WARN level.
+# These do not stop the loader; a genuinely required missing class will surface as a fatal
+# linkage error or a Mixin apply failure later in startup.
+OPTIONAL_CLASS_WARNING = re.compile(r"\[.*?/WARN\].*Error loading class: .*ClassNotFoundException")
 # Our code in a stack trace or logger name: any ERROR that mentions it fails the run.
 OURS = re.compile(r"fishtastic|grill24|gelatinui", re.IGNORECASE)
 ERROR_LINE = re.compile(r"/(ERROR|FATAL)\]")
@@ -334,7 +338,8 @@ def main() -> int:
 
     def failures(text: str) -> tuple[list[str], list[str], list[Path]]:
         lines = text.splitlines()
-        fatal = [l for l in lines if any(p.search(l) for p in FATAL)]
+        fatal = [l for l in lines if any(p.search(l) for p in FATAL)
+                 and not OPTIONAL_CLASS_WARNING.search(l)]
         ours = [l for l in lines if ERROR_LINE.search(l) and OURS.search(l)]
         crashes = sorted(crash_dir.glob("*.txt")) if crash_dir.is_dir() else []
         return fatal, ours, crashes
