@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.1.8
+
+- Interactive fish schools now have a 50% encounter chance per region every five minutes.
+
 ## 2.1.7
 
 - Added interactive fish schools. Catchable members approach nearby bobbers and can be caught through
