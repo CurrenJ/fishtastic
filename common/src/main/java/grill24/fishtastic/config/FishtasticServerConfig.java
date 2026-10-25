@@ -60,8 +60,8 @@ public final class FishtasticServerConfig {
             schools.enabled=true
             # One persisted opportunity per 128x128-block region at this interval. Failed rolls
             # also advance the deadline, so reloading or crossing a region edge cannot reroll it.
-            schools.attemptIntervalTicks=24000
-            schools.encounterChance=0.12
+            schools.attemptIntervalTicks=6000
+            schools.encounterChance=0.5
             schools.activeLifetimeTicks=12000
             schools.maxPerDimension=6
             schools.maxMembersPerDimension=24
@@ -114,9 +114,9 @@ public final class FishtasticServerConfig {
     }
 
     public static boolean fishSchoolsEnabled() { return bool("schools.enabled", true); }
-    public static int fishSchoolAttemptIntervalTicks() { return Math.max(300, Math.min(2_400_000, integer("schools.attemptIntervalTicks", 24000))); }
+    public static int fishSchoolAttemptIntervalTicks() { return Math.max(300, Math.min(2_400_000, integer("schools.attemptIntervalTicks", 6000))); }
     public static float fishSchoolEncounterChance() {
-        return (float) Math.max(0.0, Math.min(1.0, decimal("schools.encounterChance", 0.12)));
+        return (float) Math.max(0.0, Math.min(1.0, decimal("schools.encounterChance", 0.5)));
     }
     public static int fishSchoolActiveLifetimeTicks() { return Math.max(1200, Math.min(2_400_000, integer("schools.activeLifetimeTicks", 12000))); }
     public static int fishSchoolMaxPerDimension() { return Math.max(1, Math.min(16, integer("schools.maxPerDimension", 6))); }

@@ -302,10 +302,14 @@ def main() -> int:
 
     features = {"has_quick_plays_support": False, "is_quick_play_singleplayer": world is not None}
     name = "SmokeTest"
+    assets_index_name = next((d["assetIndex"]["id"] for d in chain
+                              if isinstance(d.get("assetIndex"), dict) and d["assetIndex"].get("id")), None)
+    if not assets_index_name:
+        die(f"no asset index in the version chain for {vid}")
     subst = {
         "auth_player_name": name, "version_name": vid, "game_directory": str(game),
         "assets_root": str(install / "assets"), "game_assets": str(install / "assets"),
-        "assets_index_name": next(d["assetIndex"]["id"] for d in chain if "assetIndex" in d),
+        "assets_index_name": assets_index_name,
         "auth_uuid": str(uuid.uuid3(uuid.NAMESPACE_OID, "OfflinePlayer:" + name)).replace("-", ""),
         "auth_access_token": "0", "auth_session": "0", "clientid": "", "auth_xuid": "",
         "user_type": "legacy", "user_properties": "{}", "version_type": chain[0].get("type", "release"),
@@ -319,10 +323,10 @@ def main() -> int:
     # Fabric Loader shows a blocking Swing dialog on load errors; nobody is there to dismiss it.
     jvm.append("-Dfabric.noGui=true")
     for d in reversed(chain):  # parent first, as the launcher does
-        args = d.get("arguments", {})
+        args = d.get("arguments") or {}
         jvm += expand(args.get("jvm", []), features, subst)
         game_args += expand(args.get("game", []), features, subst)
-        if "minecraftArguments" in d:  # pre-1.13 style
+        if d.get("minecraftArguments"):  # pre-1.13 style
             game_args = expand(d["minecraftArguments"].split(), features, subst)
     main_class = chain[0]["mainClass"]
     cmd = [str(java)] + jvm + [main_class] + drop_empty_options(game_args)

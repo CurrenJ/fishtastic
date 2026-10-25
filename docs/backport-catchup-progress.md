@@ -1,5 +1,37 @@
 # Backport parity progress
 
+## Completed follow-up (2026-10-25): interactive-school encounter odds
+
+- **Operation:** Carry the source defaults of 50% encounter chance every 6,000 ticks
+  (five minutes) to `port/1.21.1` and `port/1.20.1`, build all supported loader jars for
+  26.1.2, 1.21.1, and 1.20.1, sync the jars into the listed CurseForge profiles, then run
+  release smoke checks on every profile. The exact pending operation and evidence path were
+  recorded here before starting. Preserve unrelated worktree state; do not advance parity markers.
+- **Starting state:** Source `ef84f32d` was version 2.1.7 with the odds change already in its
+  working tree. Port baselines were 1.21.1 `341e6453` and 1.20.1 `73fe6fe6`, both at 2.1.7.
+  The 1.21.1 tree was clean; 1.20.1 had only the pre-existing untracked
+  `docs/fish-companions-twoclient/`, which remains untouched.
+- **Result:** Source and both port worktrees now default to 6,000 ticks and 0.5 chance; timing
+  notes and changelogs match, and all three versions are 2.1.8. All eight loader builds passed
+  (`:fabric:build`, `:neoforge:build`, `:forge:build` on 26.1.2 and 1.21.1; `:fabric:build`,
+  `:forge:build` on 1.20.1). Eight unique jars were synced into all ten allow-listed profiles.
+  All ten profile smokes passed: eight `PASS`; 26.1.2 Forge and 1.21.1 Forge were
+  `PASS_WITH_FINDINGS` after confirming vanilla's experimental-settings screen. The extra
+  `F2ALPHA` Fabric and NeoForge profiles passed.
+- **Smoke harness repair:** The first 1.20.1 Forge attempt stopped before launch because nullable
+  `assetIndex` and `minecraftArguments` entries in the loader version chain were not handled.
+  `tools/release-smoke/release_smoke.py` now skips null entries. The retry reached the world and
+  passed; no jar issue was observed.
+- **Backups:** Replaced profile jars were backed up to
+  `D:\Curse Forge\Minecraft\_profile_backups\20261025-173622`,
+  `D:\Curse Forge\Minecraft\_profile_backups\20261025-173820`, and
+  `D:\Curse Forge\Minecraft\_profile_backups\20261025-173930`.
+- **Evidence:** `build/backport-catchup/2026-10-25/school-odds/` contains all three sync/build
+  logs, the first smoke transcript, the 1.20.1 Forge retry log, per-profile scratch logs and
+  summaries, `run_smokes.py`, and `result-matrix.md`.
+- **Next action:** None required for this request. Changes remain local and uncommitted; no branch
+  was pushed, and no parity marker was advanced.
+
 The original pinned catch-up backlog is complete on `port/1.21.1` and `port/1.20.1`.
 
 The free-daily-reroll and coelacanth backports are implemented on source and both port branches.

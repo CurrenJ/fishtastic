@@ -78,7 +78,7 @@ drops them); player edits.
 `scheduleNearbyRegionAttempts` runs every 20 ticks for up to 2 players. It first calls
 `nearestWater(player, 12, 5, 2)`: up to 25 x 25 x 8 = 5000 `validWaterCell` calls. Only then
 does it look up the region's schedule, which allows one attempt per
-`fishSchoolAttemptIntervalTicks` (default 24000, one in-game day).
+`fishSchoolAttemptIntervalTicks` (default 6000, five minutes).
 
 That is about 10k wasted block lookups a second whenever anyone is online, with or without
 schools. `findRegion` is also a linear stream over up to `MAX_RETAINED_REGIONS` (4096) entries
