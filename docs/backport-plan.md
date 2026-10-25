@@ -84,7 +84,7 @@ The 1.21.1 ancestor's mixin set (`ItemRendererMixin`, `GuiGraphicsMixin`, `Level
 | Iris (optional, `IrisCompat`) | yes | yes | yes | Check which API the reflection targets on each version. |
 | Architectury | injectables 1.0.13 only (no runtime API) | same | same | Keep it this way. `@ExpectPlatform` via injectables worked on the 1.21.1 ancestor. |
 | Fabric API | 0.155.2+26.1.2 | 0.116.x+1.21.1 | 0.92.x+1.20.1 | |
-| Loader | NeoForge 26.1.2.100 | NeoForge 21.1.x | **Forge 47.x** | See decision D2. |
+| Loader | NeoForge 26.1.2.100 + Forge 64.1.0 | NeoForge 21.1.x + Forge 52.1.2 | Forge 47.x | Current shipped loaders; the 1.21.1 Forge addition supersedes original D2. |
 
 ---
 
@@ -96,7 +96,7 @@ The 1.21.1 ancestor's mixin set (`ItemRendererMixin`, `GuiGraphicsMixin`, `Level
 | Mixin compat level | `JAVA_25` | `JAVA_21` | `JAVA_17` |
 | Loom | `dev.architectury.loom-no-remap` 1.14 | `dev.architectury.loom` (remapping) + `loom.officialMojangMappings()` | same as 1.21.1, on an older loom line that supports 1.20.1 |
 | Names | unobfuscated official | mojmap (so most class names match 26.1 apart from the 1.21.11 rename shuffle) | mojmap |
-| Loaders | Fabric + NeoForge | Fabric + NeoForge (no Forge, D2) | Fabric + Forge |
+| Loaders | Fabric + NeoForge + Forge | Fabric + NeoForge + Forge | Fabric + Forge |
 | Access widener header | `official` namespace | `named` | `named` |
 | Resource pack / data pack format | current | 34 / 48 | 15 / 15 |
 | Data folder names | singular (`recipe`, `loot_table`, `tags/item`) | singular (**same as now**) | **plural** (`recipes`, `loot_tables`, `advancements`, `tags/items`, `tags/blocks`) |
@@ -351,7 +351,7 @@ Approach: create `mc-1.20.1` from the `port/1.21.1` branch at G2. Rendering carr
 | ID | Decision | Recommendation |
 |---|---|---|
 | **D1** | Feature scope: full 2.0.1 parity, or a trimmed backport? | **Decided: full parity on all three versions.** Cut only `mcp/` and the cool-cam compat (promo-video tooling, 26.1.2 only). Everything else, including dev and debug tooling and the podium, ships everywhere. |
-| **D2** | Loaders per version | **Decided:** 1.21.1 is **Fabric + NeoForge**, with no Forge. 1.20.1 is **Fabric + Forge**. |
+| **D2** | Loaders per version | **Original decision (2026-09-24):** 1.21.1 was **Fabric + NeoForge**, with no Forge. 1.20.1 was **Fabric + Forge**. Superseded by the current loader support note below. |
 | **D3** | Sequential or parallel | **Decided: sequential**, 1.21.1 then 1.20.1, with the dependency and scaffolding work overlapped (§5). |
 | **D4** | Save compatibility across MC versions (1.20.1 → 1.21.1 world upgrades) | **Decided: not supported.** An accepted limitation, to be stated in the release notes. Custom NBT → component migration would need a DFU fixer for our own data. |
 | **D5** | Do the seam refactors (S1–S4) on 26.1.2 first? | **Decided: S1 and S3 land on `26.1.2` before porting.** That commit is the A0.3 baseline, and `port/1.21.1` rebases onto it. S2 and S4 when convenient. |
@@ -393,3 +393,7 @@ For each phase (A0–A7, B0–B6, G-1.21.1, G-1.20.1, S1–S4):
 3. The gate check: the commands, the expected test counts, and the datagen diff expectation.
 4. For the rendering items (A5.x), a short design note on the target-version approach before any code, in the style of the existing `docs/*-rendering.md`.
 5. A tracked checklist, like the potions-plus parity ledger, recording progress and the "ported through" commit per branch.
+
+## Current loader support (2026-10-23)
+
+Forge support subsequently shipped in Fishtastic 2.1.2. The 1.21.1 Forge module is included in `port/1.21.1` (merged PR #7); Forge 26.1.2 is included in `26.1.2` (merged PR #8). The current supported matrix is Fabric + NeoForge + Forge on 26.1.2 and 1.21.1, and Fabric + Forge on 1.20.1. See `docs/forge-support-progress.md` and `docs/release-2.1.2.md`. D2 above remains the historical planning decision only.
