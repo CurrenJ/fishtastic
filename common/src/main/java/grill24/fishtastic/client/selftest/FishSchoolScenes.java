@@ -76,9 +76,16 @@ final class FishSchoolScenes {
 
         queuePool(x, y, z);
 
+        // quality=legendary (or any quality) gives every member that quality, quality=mixed one of
+        // each in turn: the trails are drawn in their qualities' tints.
+        String quality = RenderSelfTest.param("quality", "").trim();
+        grill24.fishtastic.component.FishQuality.Quality[] qualities = quality.isEmpty() ? null
+                : quality.equals("mixed") ? grill24.fishtastic.component.FishQuality.Quality.values()
+                : new grill24.fishtastic.component.FishQuality.Quality[]{
+                        grill24.fishtastic.component.FishQuality.Quality.valueOf(quality.toUpperCase(java.util.Locale.ROOT))};
         queue(5, mc -> server(mc, s -> {
             String result = FishSchoolManager.get(s.getLevel(mc.level.dimension()))
-                    .spawnForDebug(new BlockPos(x, y, z - 5), Fishtastic.id("bluegill"));
+                    .spawnForDebug(new BlockPos(x, y, z - 5), Fishtastic.id("bluegill"), qualities);
             check("fishschoolgif.spawn", result.startsWith("Spawned"), result);
         }));
         // Long enough for the next sync to send the setup and the copy to catch up.

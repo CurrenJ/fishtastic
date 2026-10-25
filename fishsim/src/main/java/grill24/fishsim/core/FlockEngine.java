@@ -1797,7 +1797,7 @@ public final class FlockEngine {
         float cap = t.maxSpeed() * speedScale[i];
         if (dashing(i)) return Math.max(cap, STARTLE_DASH_SPEED * patrolScale[i]);
         if (flinching(i)) return Math.max(cap, FLINCH_SPEED * patrolScale[i]);
-        if (shelterState[i] == SHELTER_APPROACH) {
+        if (shelterState[i] == SHELTER_APPROACH || shelterState[i] == SHELTER_ENTER) {
             float errand = errandSpeedScale(i);
             if (errand > 1f) return Math.max(cap, t.patrolSpeed() * patrolScale[i] * VISIT_APPROACH_SPEED * errand);
         }
@@ -2259,6 +2259,16 @@ public final class FlockEngine {
                 || (st == SHELTER_INSIDE && shelterClaim[i] >= 0 && shelterIndex[i] == shelterClaim[i] && shelterTimer[i] < 0f);
     }
 
+    /**
+     * Whether fish #{@code i} is holding its nose to a trigger's anchor — and so faces it. The hold
+     * creeps back and forth on the axis as it settles, and the yaw chasing that creep turned every
+     * fish's back on the anchor within 1.5 s of touching it (headless probe, 40 of 40 approaches).
+     */
+    private boolean facesIn(int i) {
+        return shelterState[i] == SHELTER_INSIDE && shelterIndex[i] >= 0
+                && avoidHullsSource.get(shelterIndex[i]).kind() == Shelter.Kind.TRIGGER;
+    }
+
     /** Fish #{@code i}'s rest point: on its mouth's axis, {@link #REST_DEPTH_SHARE} of its length in. */
     private float restDepth(int i) {
         return REST_DEPTH_SHARE * lengths[i];
@@ -2689,7 +2699,7 @@ public final class FlockEngine {
      * As {@link #sendToTrigger(int, int)}, the fish approaching {@code speedScale} times as fast as
      * a visit does — eager, as a fish going for bait is: the same approach, its top speed and the
      * speed cap raised together for this one errand (the startle dash raises the cap the same way).
-     * Only the swim up to the staging point is quickened; the nose-in and the hold are as ever.
+     * The swim up to the staging point and the nose-in are quickened; the hold is as ever.
      */
     public boolean sendToTrigger(int s, int fish, float speedScale) {
         if (!planar || !(speedScale >= 1f) || speedScale == Float.POSITIVE_INFINITY) return false;
@@ -3024,7 +3034,9 @@ public final class FlockEngine {
                 float tl = -nL * stage - rL, ty = -nY * stage - rY, td = -nD * stage - rD;
                 float dist = (float) Math.sqrt(tl * tl + ty * ty + td * td);
                 float near = SimMath.clamp(1f - dist / APPROACH_ALIGN_RANGE, 0f, 1f);
-                float axisSpeed = patrol * (startled[i] ? STARTLE_ENTER_SPEED : ENTER_SPEED);
+                // An eager host errand lines up and noses in at its own pace too: at the visit's, the
+                // last body length took 1.5 s of creeping after a quick swim (headless probe).
+                float axisSpeed = patrol * (startled[i] ? STARTLE_ENTER_SPEED : ENTER_SPEED * errandSpeedScale(i));
                 // A startled fish dashes, planning its arrival so it reaches the staging point at
                 // its entry speed: the fastest speed from which STARTLE_BRAKE stops it in time.
                 boolean home = shelterClaim[i] >= 0 && shelterIndex[i] == shelterClaim[i];
@@ -3062,7 +3074,7 @@ public final class FlockEngine {
             }
             case SHELTER_ENTER -> {
                 if (shelter.kind() == Shelter.Kind.TRIGGER) {
-                    return noseSteering(i, along, pL, pY, pD, nL, nY, nD, patrol * ENTER_SPEED, out, avoid);
+                    return noseSteering(i, along, pL, pY, pD, nL, nY, nD, patrol * ENTER_SPEED * errandSpeedScale(i), out, avoid);
                 }
                 float speed = patrol * (startled[i] ? STARTLE_ENTER_SPEED : ENTER_SPEED);
                 out[0] = nL * speed - pL * CORRIDOR_GAIN;
@@ -3869,7 +3881,8 @@ public final class FlockEngine {
                 fast = true;
             }
             // An eager host errand (sendToTrigger's speedScale) has its own too, while it approaches.
-            float errand = shelterState[i] == SHELTER_APPROACH ? errandSpeedScale(i) : 1f;
+            float errand = shelterState[i] == SHELTER_APPROACH || shelterState[i] == SHELTER_ENTER
+                    ? errandSpeedScale(i) : 1f;
             if (errand > 1f) {
                 cap = Math.max(cap, p.patrolSpeed() * patrolScale[i] * VISIT_APPROACH_SPEED * errand);
                 fast = true;
@@ -3925,11 +3938,15 @@ public final class FlockEngine {
 
         // Sprite yaw chases the travel direction with a turn-rate cap; bank leans into the turn.
         float hsp2 = (float) Math.sqrt(velL[i] * velL[i] + velD[i] * velD[i]);
-        if (shelterSim && !glide && facesOut(i)) {
+        boolean in = shelterSim && !glide && facesIn(i);
+        if (shelterSim && !glide && (in || facesOut(i))) {
             // A lurker settling into its mouth, and resting there, faces out (§5.5) — whatever its
-            // creeping velocity says, which at a rest pose's speeds says nothing at all.
+            // creeping velocity says, which at a rest pose's speeds says nothing at all. A fish
+            // nosing an anchor faces in, at it, for the same reason.
             Shelter.Mouth mouth = chosenMouth(i);
-            float target = (float) Math.toDegrees(StrictMath.atan2(mouth.normalD(), -mouth.normalL()));
+            float target = in
+                    ? (float) Math.toDegrees(StrictMath.atan2(-mouth.normalD(), mouth.normalL()))
+                    : (float) Math.toDegrees(StrictMath.atan2(mouth.normalD(), -mouth.normalL()));
             float turnRate = (p.turnRateDegPerTick() > 0f ? p.turnRateDegPerTick() : PLANAR_TURN_RATE)
                     * turnScale[i];
             yawDeg[i] = wrapDeg(yawDeg[i] + SimMath.clamp(wrapDeg(target - yawDeg[i]), -turnRate, turnRate));
