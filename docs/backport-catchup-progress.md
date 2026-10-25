@@ -29,8 +29,11 @@
 - **Evidence:** `build/backport-catchup/2026-10-25/school-odds/` contains all three sync/build
   logs, the first smoke transcript, the 1.20.1 Forge retry log, per-profile scratch logs and
   summaries, `run_smokes.py`, and `result-matrix.md`.
-- **Next action:** None required for this request. Changes remain local and uncommitted; no branch
-  was pushed, and no parity marker was advanced.
+- **Commits:** Source `056bec03` (`Balance interactive fish school encounter odds`), 1.21.1
+  `f30329a5` (`Backport fish-school encounter tuning to 1.21.1`), and 1.20.1 `e1788e7f`
+  (`Backport fish-school encounter tuning to 1.20.1`) are separate commits. No branch was pushed,
+  and no parity marker was advanced.
+- **Next action:** None required for this request; the changes are committed on all three branches.
 
 The original pinned catch-up backlog is complete on `port/1.21.1` and `port/1.20.1`.
 
