@@ -3,11 +3,13 @@ package grill24.fishtastic.mixin;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.FishtasticParticleTypes;
 import grill24.fishtastic.item.FishtasticFishingRodItem;
+import grill24.fishtastic.server.FishSchoolManager;
 import grill24.fishtastic.server.FishingMinigameManager;
 import grill24.fishtastic.tutorial.TutorialManager;
 import grill24.fishtastic.util.IFishingHookExtension;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.FluidTags;
@@ -21,6 +23,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
+import net.minecraft.sounds.SoundEvents;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -36,6 +39,19 @@ public class FishingHookMixin implements IFishingHookExtension {
     @Shadow
     @Final
     private int luck;
+
+    @Shadow @Final private static EntityDataAccessor<Boolean> DATA_BITING;
+    @Shadow private int nibble;
+    @Shadow private int timeUntilLured;
+    @Shadow private int timeUntilHooked;
+
+    @Inject(method = "catchingFish", at = @At("HEAD"), cancellable = true)
+    private void fishtastic$schoolOwnsBite(net.minecraft.core.BlockPos blockPos, CallbackInfo ci) {
+        FishingHook hook = (FishingHook) (Object) this;
+        if (!hook.level().isClientSide() && FishSchoolManager.ownsBite(hook)) {
+            ci.cancel();
+        }
+    }
 
     // On vanilla/Fabric, shouldStopFishing checks is(Items.FISHING_ROD) which excludes modded rods.
     // NeoForge patches this to canPerformAction(), so it already works there.
@@ -91,6 +107,31 @@ public class FishingHookMixin implements IFishingHookExtension {
     @Override
     public int getLuck() {
         return this.luck;
+    }
+
+    @Override
+    public boolean fishtastic$isBiting() {
+        return this.nibble > 0;
+    }
+
+    @Override
+    public void fishtastic$startSchoolBite() {
+        FishingHook hook = (FishingHook) (Object) this;
+        this.nibble = 40;
+        this.timeUntilLured = 0;
+        this.timeUntilHooked = 0;
+        hook.getEntityData().set(DATA_BITING, true);
+        hook.playSound(SoundEvents.FISHING_BOBBER_SPLASH, 0.25F,
+                1.0F + (hook.level().getRandom().nextFloat() - hook.level().getRandom().nextFloat()) * 0.4F);
+    }
+
+    @Override
+    public void fishtastic$clearSchoolBite() {
+        FishingHook hook = (FishingHook) (Object) this;
+        this.nibble = 0;
+        this.timeUntilLured = 0;
+        this.timeUntilHooked = 0;
+        hook.getEntityData().set(DATA_BITING, false);
     }
 
     // ----- Lava fishing (obsidian / copper rods) -----

@@ -2035,4 +2035,33 @@ public class FishtasticGameTests {
     public void anEmptyRequestDoesNotConsumeAThrottleToken(GameTestHelper helper) {
         AmbientContextGameTests.anEmptyRequestDoesNotConsumeAThrottleToken(helper, FishtasticTestSupport.playerSupplier(helper));
     }
+
+    // -------------------------------------------------------------------------
+    // Interactive fish school tests
+    // -------------------------------------------------------------------------
+
+    @GameTest(template = "fishtastic_empty")
+    public void caughtSchoolTargetDepletesOnce(GameTestHelper helper) {
+        FishSchoolGameTests.caughtSchoolTargetDepletesOnce(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void missedSchoolTargetRecoversAndRetryKeepsReward(GameTestHelper helper) {
+        FishSchoolGameTests.missedTargetRecoversAndRetryKeepsReward(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty", timeoutTicks = 360)
+    public void liveSchoolApproachesAndTriggersOwnedBite(GameTestHelper helper) {
+        FishSchoolGameTests.liveSchoolApproachesAndTriggersOwnedBite(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty", timeoutTicks = 360)
+    public void schoolStaysInItsWaterAndStepsOncePerTick(GameTestHelper helper) {
+        FishSchoolGameTests.schoolStaysInItsWaterAndStepsOncePerTick(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void transientReservationsRecoverAcrossSaveReload(GameTestHelper helper) {
+        FishSchoolGameTests.transientReservationsRecoverAcrossSaveReload(helper);
+    }
 }

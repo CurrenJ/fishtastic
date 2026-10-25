@@ -74,6 +74,7 @@ public final class ClientAmbientFish {
     /** Called even with no world, so disconnects release all state. */
     public static void tick() {
         Minecraft mc = Minecraft.getInstance();
+        grill24.fishtastic.client.FishSchoolClientRuntime.tick(mc);
         if (developmentView != null) {
             if (!developmentView.tick(mc)) clear();
             return;
@@ -112,5 +113,6 @@ public final class ClientAmbientFish {
             RUNTIME.submitWorld(poses, buffers, frustum, partialTick);
             worldSubmitsThisFrame = RUNTIME.submitsThisFrame();
         }
+        grill24.fishtastic.client.FishSchoolClientRuntime.submitWorld(poses, buffers, frustum, partialTick);
     }
 }

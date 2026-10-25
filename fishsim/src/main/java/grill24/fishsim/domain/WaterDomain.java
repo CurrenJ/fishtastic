@@ -86,7 +86,25 @@ public final class WaterDomain implements FlockDomain {
      * {@code half} is the horizontal radius (everything a yaw, bank and surf rotation can reach),
      * {@code above}/{@code below} the extents the pose and bob need.
      */
-    public record BodyBox(float half, float above, float below) {}
+    public record BodyBox(float half, float above, float below) {
+
+        /**
+         * The whole volume one individual's animated body can occupy, worst case: the horizontal
+         * radius a yaw, bank and surf rotation can reach, plus the vertical room the pose and bob
+         * need above and below its centre. A floor-walker stands on the floor, so nothing is needed
+         * below it — and so does an anchored species (a garden eel stands in its burrow and sways
+         * from there).
+         */
+        public static BodyBox of(grill24.fishsim.core.Locomotion loco, float length) {
+            float reach = 0.7071f * length;
+            return switch (loco) {
+                case BENTHIC, ANCHORED -> new BodyBox(reach, length, 0f);
+                case GLIDE -> new BodyBox(reach, reach + 0.08f, reach + 0.08f);
+                case DRIFT -> new BodyBox(reach, reach + 0.05f, reach + 0.05f);
+                default -> new BodyBox(reach, reach + 0.125f, reach + 0.125f);
+            };
+        }
+    }
 
     private final int sx, sz;
     private final float originY;
@@ -102,6 +120,7 @@ public final class WaterDomain implements FlockDomain {
     private final float[] layerDepths;
     private final float sizeGateRun;
     private final FloorField floor;
+    private List<Shelter> shelters = List.of();
 
     private WaterDomain(int sx, int sz, float originY, float gridMinL, float gridMinD,
                         float[] spanData, byte[] spanCount, float[] bed, boolean[] truncated,
@@ -420,6 +439,16 @@ public final class WaterDomain implements FlockDomain {
     @Override public float[] layerDepths() { return layerDepths; }
     @Override public float sizeGateRun() { return sizeGateRun; }
     @Override public FloorField floor() { return floor; }
+    @Override public List<Shelter> shelters() { return shelters; }
+
+    /**
+     * Replaces the shelters — for open water, the host's nose anchors ({@link Shelter#noseAnchor}),
+     * such as an interactive school's bobbers. Swapped in place, as {@link VoxelDomain} swaps a
+     * tank's, so that adding or removing one never costs a domain rebuild.
+     */
+    public void rebuildShelters(List<Shelter> shelters) {
+        this.shelters = List.copyOf(shelters);
+    }
 
     // ------------------------------------------------------------------ steering
 

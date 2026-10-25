@@ -33,6 +33,7 @@
     "PlayerAdvancementsMixin",
     "QuickCollectPileMixin",
     "ServerLevelTickTimeMixin",
+    "ServerLevelSchoolsMixin",
     "SizedItemClickMixin"
   ]
 }
