@@ -10,6 +10,34 @@ port (evidence under each worktree's `build/verification/two-client/fabric/`).
 
 ## Current parity state
 
+- **Completed follow-up (2026-10-25): fish-school bite/trail polish.** Source commit `e21bc4a3`
+  (`Polish fish school bites; colour trails by quality`) is backported in order
+  `26.1.2 → port/1.21.1 → port/1.20.1`, with version-specific packet/rendering APIs preserved.
+  The 1.21.1 port commit is `d8a09e1e`; the 1.20.1 port commit is `aaab94d3`. Source commit
+  `c311019d` is release-smoke-only tooling and is excluded by design; `1e4945bf` is a source-only
+  progress-ledger update and is excluded. Baselines were 1.21.1 `62b2b838` and 1.20.1 `77c0f5fd`.
+  1.21.1 validation passed: common 878 tests (0 failures, 1 skipped), fishsim 516 passed/59
+  skipped, all three loaders' main/testmod compiles, and Fabric/NeoForge/Forge GameTests 383/383.
+  1.20.1 validation passed: common 891 tests (0 failures, 1 skipped), fishsim 516 passed/59
+  skipped, Fabric/Forge main/testmod compiles, and Fabric/Forge GameTests 383/383 and 384/384.
+  The mixed-quality 1.20.1 `fishschoolgif` capture passed all scene checks with zero replica
+  mismatches and 72 real-renderer frames across three views. Both commits' normal hooks passed;
+  hooks skip NeoForge GameTests by policy, covered by the separate 1.21.1 run. Preserve the
+  existing 1.20.1 untracked `docs/fish-companions-twoclient/`. After auditing the complete
+  post-marker range, both ported-through markers now point through source `e21bc4a3`; the feature
+  commits are `d8a09e1e` and `aaab94d3`, and the marker-recording commits are `0c35f75c` and
+  `861c251f`. No push was made. Evidence and the result matrix:
+  `build/backport-catchup/2026-10-25/fish-school-polish/`.
+- **Completed follow-up (2026-10-25): final catch-up audit.** Audited every source commit in
+  `fa103289..e21bc4a3`: 13 ported to both branches and 8 excluded as source-only progress/tooling.
+  Verified all 91 pinned-ledger mappings against the target histories and corrected the stale
+  1.21.1 statuses. Both ported-through markers are now `e21bc4a3`, recorded by commits
+  `0c35f75c` (1.21.1) and `861c251f` (1.20.1); the source feature commits are `d8a09e1e` and
+  `aaab94d3`. The full crosswalk is
+  `docs/backport-catchup/forward-port-log.md`; current-head validation evidence is in
+  `build/backport-catchup/2026-10-25/fish-school-polish/result-matrix.md`. The existing untracked
+  1.20.1 companion-doc directory is preserved; manual owner checks remain open and no push was
+  made.
 - **Completed follow-up (2026-10-25): interactive fish schools.** Backport source commit
   `a31a9298` (`Add interactive fish schools`) in order `26.1.2 → port/1.21.1 → port/1.20.1`,
   adapting APIs and loader wiring per target. Include gameplay/networking, client simulation and
@@ -133,7 +161,8 @@ port (evidence under each worktree's `build/verification/two-client/fabric/`).
   unsupported/incomplete selection attempts and pre-fix stale-jar runs are unverified and are not
   counted. Do not advance parity markers.
 - Pinned source backlog: complete through `48fffdfbda1687cd42d59cb9fea0540e77aec982`.
-- Parity markers: source `fa103289`; 1.21.1 commit `9230042e`; 1.20.1 commit `68e2c77b`.
+- Current parity markers: source `e21bc4a3`; 1.21.1 marker commit `0c35f75c`; 1.20.1 marker
+  commit `861c251f`.
 - The scoped cosmetic-placement follow-up is complete without advancing those markers. Source
   commits `83fd745d` and `933214c5` map to 1.21.1 commits `9481dc9b` and `f9097e39`, and 1.20.1
   commits `edf20f2c` and `d44d7ee0`.

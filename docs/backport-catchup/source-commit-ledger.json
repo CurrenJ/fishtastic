@@ -1,7 +1,7 @@
 {
   "sourceSnapshot": "48fffdfbda1687cd42d59cb9fea0540e77aec982",
   "previousParityMarker": "4b0e818e",
-  "generatedOn": "2026-10-17",
+  "generatedOn": "2026-10-25",
   "commits": [
     {
       "sourceCommit": "703a09b11b36abde472750f9eb6befb85dda9baf",
@@ -89,9 +89,13 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "20fad8f0"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -121,9 +125,13 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "72f19d0b"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -164,9 +172,18 @@
       "featureIds": [],
       "disposition": "superseded",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Superseded",
+        "commits": [
+          "3b70479c",
+          "650b06bf",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -228,9 +245,24 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "0260b02c",
+          "08fb9667",
+          "1c32f60e",
+          "1d3562d3",
+          "8182a9df",
+          "818801ce",
+          "9386c8c3",
+          "a1309104",
+          "a5d2f9bd",
+          "bf27b3bc",
+          "c349169d",
+          "ca728245"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -281,9 +313,11 @@
       "featureIds": [],
       "disposition": "excluded",
       "target1211": {
-        "status": "Pending",
+        "status": "Excluded",
         "commits": [],
-        "evidence": [],
+        "evidence": [
+          "docs-only source handoff/design/record commit; the target carries no design handoffs (port docs live in docs/backport-catchup*). Not ported by design."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -320,9 +354,22 @@
       "featureIds": [],
       "disposition": "superseded",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Superseded",
+        "commits": [
+          "1fdf326d",
+          "3b70479c",
+          "650b06bf",
+          "84539ad8",
+          "88021d42",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e328ad6f",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -369,9 +416,11 @@
       "featureIds": [],
       "disposition": "excluded",
       "target1211": {
-        "status": "Pending",
+        "status": "Excluded",
         "commits": [],
-        "evidence": [],
+        "evidence": [
+          "docs-only source handoff/design/record commit; the target carries no design handoffs (port docs live in docs/backport-catchup*). Not ported by design."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -440,9 +489,24 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "0260b02c",
+          "08fb9667",
+          "1c32f60e",
+          "1d3562d3",
+          "8182a9df",
+          "818801ce",
+          "9386c8c3",
+          "a1309104",
+          "a5d2f9bd",
+          "bf27b3bc",
+          "c349169d",
+          "ca728245"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -493,9 +557,11 @@
       "featureIds": [],
       "disposition": "excluded",
       "target1211": {
-        "status": "Pending",
+        "status": "Excluded",
         "commits": [],
-        "evidence": [],
+        "evidence": [
+          "docs-only source handoff/design/record commit; the target carries no design handoffs (port docs live in docs/backport-catchup*). Not ported by design."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -537,9 +603,11 @@
       "featureIds": [],
       "disposition": "superseded",
       "target1211": {
-        "status": "Pending",
+        "status": "Superseded",
         "commits": [],
-        "evidence": [],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -564,9 +632,11 @@
       "featureIds": [],
       "disposition": "excluded",
       "target1211": {
-        "status": "Pending",
+        "status": "Excluded",
         "commits": [],
-        "evidence": [],
+        "evidence": [
+          "docs-only source handoff/design/record commit; the target carries no design handoffs (port docs live in docs/backport-catchup*). Not ported by design."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -604,9 +674,22 @@
       "featureIds": [],
       "disposition": "superseded",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Superseded",
+        "commits": [
+          "1fdf326d",
+          "3b70479c",
+          "650b06bf",
+          "84539ad8",
+          "88021d42",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e328ad6f",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -653,9 +736,11 @@
       "featureIds": [],
       "disposition": "excluded",
       "target1211": {
-        "status": "Pending",
+        "status": "Excluded",
         "commits": [],
-        "evidence": [],
+        "evidence": [
+          "docs-only source handoff/design/record commit; the target carries no design handoffs (port docs live in docs/backport-catchup*). Not ported by design."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -685,9 +770,22 @@
       "featureIds": [],
       "disposition": "superseded",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Superseded",
+        "commits": [
+          "1fdf326d",
+          "3b70479c",
+          "650b06bf",
+          "84539ad8",
+          "88021d42",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e328ad6f",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -734,9 +832,11 @@
       "featureIds": [],
       "disposition": "excluded",
       "target1211": {
-        "status": "Pending",
+        "status": "Excluded",
         "commits": [],
-        "evidence": [],
+        "evidence": [
+          "docs-only source handoff/design/record commit; the target carries no design handoffs (port docs live in docs/backport-catchup*). Not ported by design."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -767,9 +867,22 @@
       "featureIds": [],
       "disposition": "superseded",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Superseded",
+        "commits": [
+          "1fdf326d",
+          "3b70479c",
+          "650b06bf",
+          "84539ad8",
+          "88021d42",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e328ad6f",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -816,9 +929,11 @@
       "featureIds": [],
       "disposition": "excluded",
       "target1211": {
-        "status": "Pending",
+        "status": "Excluded",
         "commits": [],
-        "evidence": [],
+        "evidence": [
+          "docs-only source handoff/design/record commit; the target carries no design handoffs (port docs live in docs/backport-catchup*). Not ported by design."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -846,9 +961,22 @@
       "featureIds": [],
       "disposition": "superseded",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Superseded",
+        "commits": [
+          "1fdf326d",
+          "3b70479c",
+          "650b06bf",
+          "84539ad8",
+          "88021d42",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e328ad6f",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -895,9 +1023,11 @@
       "featureIds": [],
       "disposition": "excluded",
       "target1211": {
-        "status": "Pending",
+        "status": "Excluded",
         "commits": [],
-        "evidence": [],
+        "evidence": [
+          "docs-only source handoff/design/record commit; the target carries no design handoffs (port docs live in docs/backport-catchup*). Not ported by design."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -926,9 +1056,22 @@
       "featureIds": [],
       "disposition": "superseded",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Superseded",
+        "commits": [
+          "1fdf326d",
+          "3b70479c",
+          "650b06bf",
+          "84539ad8",
+          "88021d42",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e328ad6f",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -975,9 +1118,11 @@
       "featureIds": [],
       "disposition": "excluded",
       "target1211": {
-        "status": "Pending",
+        "status": "Excluded",
         "commits": [],
-        "evidence": [],
+        "evidence": [
+          "docs-only source handoff/design/record commit; the target carries no design handoffs (port docs live in docs/backport-catchup*). Not ported by design."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -1024,9 +1169,18 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "3b70479c",
+          "650b06bf",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -1078,9 +1232,18 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "3b70479c",
+          "650b06bf",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -1132,9 +1295,18 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "3b70479c",
+          "650b06bf",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -1185,9 +1357,18 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "3b70479c",
+          "650b06bf",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -1236,9 +1417,18 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "3b70479c",
+          "650b06bf",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -1286,9 +1476,18 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "3b70479c",
+          "650b06bf",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -1327,9 +1526,11 @@
       "featureIds": [],
       "disposition": "excluded",
       "target1211": {
-        "status": "Pending",
+        "status": "Excluded",
         "commits": [],
-        "evidence": [],
+        "evidence": [
+          "docs-only source handoff/design/record commit; the target carries no design handoffs (port docs live in docs/backport-catchup*). Not ported by design."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -1360,9 +1561,18 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "3b70479c",
+          "650b06bf",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -1410,9 +1620,18 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "3b70479c",
+          "650b06bf",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -1477,9 +1696,18 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "3b70479c",
+          "650b06bf",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -1518,9 +1746,11 @@
       "featureIds": [],
       "disposition": "excluded",
       "target1211": {
-        "status": "Pending",
+        "status": "Excluded",
         "commits": [],
-        "evidence": [],
+        "evidence": [
+          "docs-only source handoff/design/record commit; the target carries no design handoffs (port docs live in docs/backport-catchup*). Not ported by design."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -1560,9 +1790,21 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "1fdf326d",
+          "3b70479c",
+          "650b06bf",
+          "84539ad8",
+          "88021d42",
+          "a0e803fe",
+          "ba9fbf36",
+          "e328ad6f",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -1625,9 +1867,18 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "3b70479c",
+          "650b06bf",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -1659,7 +1910,7 @@
     },
     {
       "sourceCommit": "adc306590310212c358351a232bfa71c8852bc25",
-      "subject": "Carry benthic companions through transitions, groups, scatter, desires and in-view beats (benthic follow §12-§18)",
+      "subject": "Carry benthic companions through transitions, groups, scatter, desires and in-view beats (benthic follow ï¿½12-ï¿½18)",
       "changedPaths": [
         "common/src/main/java/grill24/fishtastic/client/companion/ClientCompanion.java",
         "common/src/main/java/grill24/fishtastic/client/companion/CompanionPerchLayer.java",
@@ -1699,9 +1950,18 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "3b70479c",
+          "650b06bf",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -1733,7 +1993,7 @@
     },
     {
       "sourceCommit": "2b6c48a442adaa37895901ac7909a43afd3c89aa",
-      "subject": "Put ground benthics into the game and finish their formations (benthic follow §19-§21)",
+      "subject": "Put ground benthics into the game and finish their formations (benthic follow ï¿½19-ï¿½21)",
       "changedPaths": [
         "common/src/main/java/grill24/fishtastic/client/companion/ClientCompanion.java",
         "common/src/main/java/grill24/fishtastic/client/companion/ClientCompanions.java",
@@ -1764,9 +2024,21 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "1fdf326d",
+          "3b70479c",
+          "650b06bf",
+          "84539ad8",
+          "88021d42",
+          "a0e803fe",
+          "ba9fbf36",
+          "e328ad6f",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -1816,9 +2088,18 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "3b70479c",
+          "650b06bf",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -1864,9 +2145,18 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "3b70479c",
+          "650b06bf",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -1938,9 +2228,24 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "0260b02c",
+          "08fb9667",
+          "1c32f60e",
+          "1d3562d3",
+          "8182a9df",
+          "818801ce",
+          "9386c8c3",
+          "a1309104",
+          "a5d2f9bd",
+          "bf27b3bc",
+          "c349169d",
+          "ca728245"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -2015,9 +2320,18 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "3b70479c",
+          "650b06bf",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -2068,9 +2382,18 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "3b70479c",
+          "650b06bf",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -2109,9 +2432,11 @@
       "featureIds": [],
       "disposition": "excluded",
       "target1211": {
-        "status": "Pending",
+        "status": "Excluded",
         "commits": [],
-        "evidence": [],
+        "evidence": [
+          "source-only tooling: .gitignore entries for Codex agent files; target keeps .codex/ untracked"
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -2135,9 +2460,13 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "115e15e5"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -2225,9 +2554,14 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "3089ba1f",
+          "52dbd61b"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -2261,9 +2595,11 @@
       "featureIds": [],
       "disposition": "excluded",
       "target1211": {
-        "status": "Pending",
+        "status": "Excluded",
         "commits": [],
-        "evidence": [],
+        "evidence": [
+          "docs-only source handoff/design/record commit; the target carries no design handoffs (port docs live in docs/backport-catchup*). Not ported by design."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -2470,9 +2806,17 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "1655f0c4",
+          "1a0608a4",
+          "52dbd61b",
+          "81018cbf",
+          "dfec46f1"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -2518,9 +2862,18 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "3b70479c",
+          "650b06bf",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -2601,9 +2954,29 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "0260b02c",
+          "08fb9667",
+          "1c32f60e",
+          "1d3562d3",
+          "3b70479c",
+          "650b06bf",
+          "8182a9df",
+          "818801ce",
+          "9386c8c3",
+          "a0e803fe",
+          "a1309104",
+          "a5d2f9bd",
+          "ba9fbf36",
+          "bf27b3bc",
+          "c349169d",
+          "ca728245",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -2673,9 +3046,29 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "0260b02c",
+          "08fb9667",
+          "1c32f60e",
+          "1d3562d3",
+          "3b70479c",
+          "650b06bf",
+          "8182a9df",
+          "818801ce",
+          "9386c8c3",
+          "a0e803fe",
+          "a1309104",
+          "a5d2f9bd",
+          "ba9fbf36",
+          "bf27b3bc",
+          "c349169d",
+          "ca728245",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -2754,9 +3147,29 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "0260b02c",
+          "08fb9667",
+          "1c32f60e",
+          "1d3562d3",
+          "3b70479c",
+          "650b06bf",
+          "8182a9df",
+          "818801ce",
+          "9386c8c3",
+          "a0e803fe",
+          "a1309104",
+          "a5d2f9bd",
+          "ba9fbf36",
+          "bf27b3bc",
+          "c349169d",
+          "ca728245",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -2827,9 +3240,29 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "0260b02c",
+          "08fb9667",
+          "1c32f60e",
+          "1d3562d3",
+          "3b70479c",
+          "650b06bf",
+          "8182a9df",
+          "818801ce",
+          "9386c8c3",
+          "a0e803fe",
+          "a1309104",
+          "a5d2f9bd",
+          "ba9fbf36",
+          "bf27b3bc",
+          "c349169d",
+          "ca728245",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -2891,9 +3324,11 @@
       "featureIds": [],
       "disposition": "excluded",
       "target1211": {
-        "status": "Pending",
+        "status": "Excluded",
         "commits": [],
-        "evidence": [],
+        "evidence": [
+          "source-only tooling: GUI designer CRLF build fix; tool not ported"
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -2918,9 +3353,11 @@
       "featureIds": [],
       "disposition": "excluded",
       "target1211": {
-        "status": "Pending",
+        "status": "Excluded",
         "commits": [],
-        "evidence": [],
+        "evidence": [
+          "docs-only source handoff/design/record commit; the target carries no design handoffs (port docs live in docs/backport-catchup*). Not ported by design."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -2950,9 +3387,18 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "3b70479c",
+          "650b06bf",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -3004,9 +3450,18 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "3b70479c",
+          "650b06bf",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -3056,9 +3511,18 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "3b70479c",
+          "650b06bf",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -3109,9 +3573,18 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "3b70479c",
+          "650b06bf",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -3156,9 +3629,18 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "3b70479c",
+          "650b06bf",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -3211,9 +3693,21 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "1fdf326d",
+          "3b70479c",
+          "650b06bf",
+          "84539ad8",
+          "88021d42",
+          "a0e803fe",
+          "ba9fbf36",
+          "e328ad6f",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -3263,9 +3757,21 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "1fdf326d",
+          "3b70479c",
+          "650b06bf",
+          "84539ad8",
+          "88021d42",
+          "a0e803fe",
+          "ba9fbf36",
+          "e328ad6f",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -3315,9 +3821,21 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "1fdf326d",
+          "3b70479c",
+          "650b06bf",
+          "84539ad8",
+          "88021d42",
+          "a0e803fe",
+          "ba9fbf36",
+          "e328ad6f",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -3364,9 +3882,21 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "1fdf326d",
+          "3b70479c",
+          "650b06bf",
+          "84539ad8",
+          "88021d42",
+          "a0e803fe",
+          "ba9fbf36",
+          "e328ad6f",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -3411,9 +3941,11 @@
       "featureIds": [],
       "disposition": "excluded",
       "target1211": {
-        "status": "Pending",
+        "status": "Excluded",
         "commits": [],
-        "evidence": [],
+        "evidence": [
+          "CHANGELOG.md note about lost companion trios; target changelog is per-version and not part of this catch-up (release policy outside scope)"
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -3444,9 +3976,18 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "3b70479c",
+          "650b06bf",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -3495,9 +4036,21 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "1fdf326d",
+          "3b70479c",
+          "650b06bf",
+          "84539ad8",
+          "88021d42",
+          "a0e803fe",
+          "ba9fbf36",
+          "e328ad6f",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -3535,7 +4088,7 @@
     },
     {
       "sourceCommit": "ab58471220590ae0d59850aab0a1413c086dbed4",
-      "subject": "Design cross-player companion scenes and prove a two-client self-test (party §28, D22-D31)",
+      "subject": "Design cross-player companion scenes and prove a two-client self-test (party ï¿½28, D22-D31)",
       "changedPaths": [
         "common/src/main/java/grill24/fishtastic/client/companion/ClientCompanions.java",
         "common/src/main/java/grill24/fishtastic/client/selftest/RenderSelfTest.java",
@@ -3546,9 +4099,16 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "1fdf326d",
+          "84539ad8",
+          "88021d42",
+          "e328ad6f"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -3576,7 +4136,7 @@
     },
     {
       "sourceCommit": "d82428246c717e448b9f8bbc05a680d565f81978",
-      "subject": "Add a two-owner harness for cross-player companion scenes (party Phase 4 step 3a-0, §28.6)",
+      "subject": "Add a two-owner harness for cross-player companion scenes (party Phase 4 step 3a-0, ï¿½28.6)",
       "changedPaths": [
         "docs/fish-companions-party-two-owner-fp.txt",
         "docs/fish-companions-party.md",
@@ -3592,9 +4152,16 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "1fdf326d",
+          "84539ad8",
+          "88021d42",
+          "e328ad6f"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -3633,9 +4200,16 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "1fdf326d",
+          "84539ad8",
+          "88021d42",
+          "e328ad6f"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -3663,7 +4237,7 @@
     },
     {
       "sourceCommit": "5154796e900119142c6d32b11e4509e6725385c6",
-      "subject": "Swim the cross-player scenes in the sim, and keep swimmers out of other players (party 3a-2, §28.8)",
+      "subject": "Swim the cross-player scenes in the sim, and keep swimmers out of other players (party 3a-2, ï¿½28.8)",
       "changedPaths": [
         "docs/fish-companions-party-two-owner-fp.txt",
         "docs/fish-companions-party.md",
@@ -3682,9 +4256,16 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "1fdf326d",
+          "84539ad8",
+          "88021d42",
+          "e328ad6f"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -3712,7 +4293,7 @@
     },
     {
       "sourceCommit": "5e4b1fa5583dfe873f0600835cac3c940861936c",
-      "subject": "Compare two clients' views of a cross-player scene (party 3a-3, §28.9)",
+      "subject": "Compare two clients' views of a cross-player scene (party 3a-3, ï¿½28.9)",
       "changedPaths": [
         "docs/fish-companions-party.md",
         "fishsim/src/main/java/grill24/fishsim/harness/companion/TwoOwnerRun.java",
@@ -3722,9 +4303,16 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "1fdf326d",
+          "84539ad8",
+          "88021d42",
+          "e328ad6f"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -3752,7 +4340,7 @@
     },
     {
       "sourceCommit": "31b55f4e62467b1f7f8c4ae8d669603f5389d15c",
-      "subject": "Play cross-player scenes in game, with a ghost owner and two-client self-tests (party 3b, §28.10)",
+      "subject": "Play cross-player scenes in game, with a ghost owner and two-client self-tests (party 3b, ï¿½28.10)",
       "changedPaths": [
         "common/src/main/java/grill24/fishtastic/client/companion/ClientCompanions.java",
         "common/src/main/java/grill24/fishtastic/client/selftest/RenderSelfTest.java",
@@ -3771,9 +4359,16 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "1fdf326d",
+          "84539ad8",
+          "88021d42",
+          "e328ad6f"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -3809,9 +4404,11 @@
       "featureIds": [],
       "disposition": "excluded",
       "target1211": {
-        "status": "Pending",
+        "status": "Excluded",
         "commits": [],
-        "evidence": [],
+        "evidence": [
+          "docs-only source handoff/design/record commit; the target carries no design handoffs (port docs live in docs/backport-catchup*). Not ported by design."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -3827,7 +4424,7 @@
     },
     {
       "sourceCommit": "24f22312bfb828c75a3d0be24555b24108c2cd9e",
-      "subject": "Log how far the game clock moves while a scene packet waits, confirming the dropped-scene cause (party §28.10)",
+      "subject": "Log how far the game clock moves while a scene packet waits, confirming the dropped-scene cause (party ï¿½28.10)",
       "changedPaths": [
         "common/src/main/java/grill24/fishtastic/client/companion/ClientCompanions.java",
         "docs/fish-companions-party.md"
@@ -3835,9 +4432,16 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "1fdf326d",
+          "84539ad8",
+          "88021d42",
+          "e328ad6f"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -3865,7 +4469,7 @@
     },
     {
       "sourceCommit": "07acfa6409bf583a68431e1ad4039bdb340cebb5",
-      "subject": "Give the man o' war its own bob motor: float, downstroke shove and sail (drift Phase 3, §15)",
+      "subject": "Give the man o' war its own bob motor: float, downstroke shove and sail (drift Phase 3, ï¿½15)",
       "changedPaths": [
         "docs/fish-companions-drift.md",
         "fishsim/src/main/java/grill24/fishsim/companion/CompanionTunables.java",
@@ -3879,9 +4483,18 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "3b70479c",
+          "650b06bf",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -3921,9 +4534,11 @@
       "featureIds": [],
       "disposition": "excluded",
       "target1211": {
-        "status": "Pending",
+        "status": "Excluded",
         "commits": [],
-        "evidence": [],
+        "evidence": [
+          "docs-only source handoff/design/record commit; the target carries no design handoffs (port docs live in docs/backport-catchup*). Not ported by design."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -3939,7 +4554,7 @@
     },
     {
       "sourceCommit": "25a018d29ae4520fac02c148fc9fc05d001b957f",
-      "subject": "Give companions moods from the world around them: cold, glum, glee, sleepy and the full moon (sim Phase 5, §12)",
+      "subject": "Give companions moods from the world around them: cold, glum, glee, sleepy and the full moon (sim Phase 5, ï¿½12)",
       "changedPaths": [
         "common/src/main/java/grill24/fishtastic/client/companion/ClientCompanion.java",
         "common/src/main/java/grill24/fishtastic/client/companion/ClientCompanions.java",
@@ -3976,9 +4591,18 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "3b70479c",
+          "650b06bf",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -4019,9 +4643,11 @@
       "featureIds": [],
       "disposition": "excluded",
       "target1211": {
-        "status": "Pending",
+        "status": "Excluded",
         "commits": [],
-        "evidence": [],
+        "evidence": [
+          "docs-only source handoff/design/record commit; the target carries no design handoffs (port docs live in docs/backport-catchup*). Not ported by design."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -4088,9 +4714,21 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "1fdf326d",
+          "3b70479c",
+          "650b06bf",
+          "84539ad8",
+          "88021d42",
+          "a0e803fe",
+          "ba9fbf36",
+          "e328ad6f",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -4143,9 +4781,18 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "3b70479c",
+          "650b06bf",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -4186,9 +4833,11 @@
       "featureIds": [],
       "disposition": "excluded",
       "target1211": {
-        "status": "Pending",
+        "status": "Excluded",
         "commits": [],
-        "evidence": [],
+        "evidence": [
+          "docs-only source handoff/design/record commit; the target carries no design handoffs (port docs live in docs/backport-catchup*). Not ported by design."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -4217,9 +4866,11 @@
       "featureIds": [],
       "disposition": "superseded",
       "target1211": {
-        "status": "Pending",
+        "status": "Superseded",
         "commits": [],
-        "evidence": [],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -4273,9 +4924,18 @@
       "featureIds": [],
       "disposition": "superseded",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Superseded",
+        "commits": [
+          "3b70479c",
+          "650b06bf",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -4340,9 +5000,18 @@
       "featureIds": [],
       "disposition": "superseded",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Superseded",
+        "commits": [
+          "3b70479c",
+          "650b06bf",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -4423,9 +5092,18 @@
       "featureIds": [],
       "disposition": "superseded",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Superseded",
+        "commits": [
+          "3b70479c",
+          "650b06bf",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -4457,7 +5135,7 @@
     },
     {
       "sourceCommit": "e7b7dc472f10ed7adf56fd9c63e8fe1dece09129",
-      "subject": "Add the calm idle mode for the bob drifter (bobCalm, drift spec §16)",
+      "subject": "Add the calm idle mode for the bob drifter (bobCalm, drift spec ï¿½16)",
       "changedPaths": [
         "docs/fish-companions-drift.md",
         "fishsim/src/main/java/grill24/fishsim/companion/CompanionTunables.java",
@@ -4468,9 +5146,18 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "3b70479c",
+          "650b06bf",
+          "a0e803fe",
+          "ba9fbf36",
+          "c8601812",
+          "e79dbfec"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -4583,9 +5270,11 @@
       "featureIds": [],
       "disposition": "excluded",
       "target1211": {
-        "status": "Pending",
+        "status": "Excluded",
         "commits": [],
-        "evidence": [],
+        "evidence": [
+          "source-only hygiene: untracks generated logs and docs logs; target still tracks common/logs/latest.log, handled per feedback_port_commit_staging by explicit-path commits"
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -4608,9 +5297,11 @@
       "featureIds": [],
       "disposition": "excluded",
       "target1211": {
-        "status": "Pending",
+        "status": "Excluded",
         "commits": [],
-        "evidence": [],
+        "evidence": [
+          "opt-in promo capture scene (fishspin, bridle shiner turntable) in RenderSelfTest; dev-only marketing clip, no gameplay effect; not ported"
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -4642,9 +5333,11 @@
       "featureIds": [],
       "disposition": "excluded",
       "target1211": {
-        "status": "Pending",
+        "status": "Excluded",
         "commits": [],
-        "evidence": [],
+        "evidence": [
+          "docs-only source handoff/design/record commit; the target carries no design handoffs (port docs live in docs/backport-catchup*). Not ported by design."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -4675,9 +5368,13 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "115e15e5"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -4743,9 +5440,15 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "0de14496",
+          "bde8a310",
+          "c28e37a5"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
@@ -4790,9 +5493,26 @@
       "featureIds": [],
       "disposition": "ported",
       "target1211": {
-        "status": "Pending",
-        "commits": [],
-        "evidence": [],
+        "status": "Done",
+        "commits": [
+          "0260b02c",
+          "08fb9667",
+          "115e15e5",
+          "1c32f60e",
+          "1d3562d3",
+          "8182a9df",
+          "818801ce",
+          "9386c8c3",
+          "a1309104",
+          "a5d2f9bd",
+          "bf27b3bc",
+          "c349169d",
+          "c8601812",
+          "ca728245"
+        ],
+        "evidence": [
+          "Mapped commits are verified on port/1.21.1; validation summary is in docs/backport-catchup-progress.md."
+        ],
         "versionDifferences": []
       },
       "target1201": {
