@@ -27,8 +27,8 @@ reproducible verification. [Product direction and backlog](backlog.md) holds uns
 - [Forge acceptance reference](forge-support-implementation-plan.md) and
   [continuation/release state](forge-support-progress.md).
 - [Forward-port investigation](forward-porting.md): future scope/risks, not target acceptance.
-- [Release 2.1.2](release-2.1.2.md). Historical versions/hashes are evidence,
-  not current branch version pins.
+- [Release 2.1.7](release-2.1.7.md) and [Release 2.1.2](release-2.1.2.md).
+  Historical versions/hashes are evidence, not current branch version pins.
 - [Recovery snapshot references](worktree-cleanup-2026-10-19.md).
 
 Pending owner checks stay in the relevant system/compatibility page. Passing tests
