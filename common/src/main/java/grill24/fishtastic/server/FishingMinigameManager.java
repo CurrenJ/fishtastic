@@ -267,8 +267,35 @@ public class FishingMinigameManager {
         // Decided now, once, rather than at completion — see ActiveSession#baitWillBeSaved.
         boolean baitWillBeSaved = rollBaitWillBeSaved(player, charmEffect);
 
+        FishingHook sessionHook = player.fishing;
         GeneratedTargets generated = generateTargets(player, difficultyModifier, baitEffect, hookEffect, charmEffect);
         List<ServerFishingTarget> targets = generated.targets();
+
+        // A school bite reserves one particular fish. Bind it to this session before sending the
+        // targets, then replace one realized slot so the encounter does not increase minigame
+        // length. School fish bypass personal bait pool filtering, while retaining ordinary
+        // quality bias and downstream catch handling.
+        FishSchoolManager schoolManager = FishSchoolManager.get(level);
+        FishSchoolManager.SessionBinding schoolBinding = sessionHook == null
+                ? null : schoolManager.bindReadyMember(player, sessionHook, sessionId);
+        if (schoolBinding != null) {
+            ServerFishingTarget schoolTarget = createSchoolTarget(player, schoolBinding, baitEffect, hookEffect,
+                    difficultyModifier);
+            if (schoolTarget != null && !targets.isEmpty()) {
+                int targetIndex = player.getRandom().nextInt(targets.size());
+                FishSchoolManager.SessionBinding indexedBinding = schoolManager.setBindingTarget(schoolBinding, targetIndex);
+                if (indexedBinding != null) {
+                    targets.set(targetIndex, schoolTarget);
+                    schoolBinding = indexedBinding;
+                } else {
+                    schoolManager.releaseBinding(schoolBinding);
+                    schoolBinding = null;
+                }
+            } else {
+                schoolManager.releaseBinding(schoolBinding);
+                schoolBinding = null;
+            }
+        }
 
         boolean revealTopWeightedFish = (charmEffect != null && charmEffect.showTopWeightedFish())
                 || hasCharmEffectInInventory(player, CharmEffect::showTopWeightedFish);
@@ -280,7 +307,6 @@ public class FishingMinigameManager {
         // targets were generated from already carries the exact environment it resolved for, so
         // reuse it rather than resolving the world a second time; only the no-hook fallback (target
         // generation returned nothing) has to sample the environment here.
-        FishingHook sessionHook = player.fishing;
         BlockPos sessionPos = sessionHook != null
                 ? BlockPos.containing(sessionHook.position())
                 : player.blockPosition();
@@ -300,7 +326,7 @@ public class FishingMinigameManager {
                     generated.inputs(), generated.species());
         }
         ActiveSession session = new ActiveSession(sessionId, playerId, targets, level.getGameTime(),
-                sessionEnvironment, baitWillBeSaved, sessionBaitId, snapshot);
+                sessionEnvironment, baitWillBeSaved, sessionBaitId, snapshot, schoolBinding);
         activeSessions.put(playerId, session);
 
         List<StartFishingMinigamePacket.TargetData> targetData = new ArrayList<>();
@@ -377,7 +403,7 @@ public class FishingMinigameManager {
         boolean baitWillBeSaved = rollBaitWillBeSaved(player, tutorialCharmEffect);
 
         ActiveSession session = new ActiveSession(sessionId, playerId, targets,
-                level.getGameTime(), tutorialEnvironment, baitWillBeSaved, null, null);
+                level.getGameTime(), tutorialEnvironment, baitWillBeSaved, null, null, null);
         activeSessions.put(playerId, session);
 
         // The tutorial hands out a scripted fish; it must never be dressed up as a discovery, so
@@ -416,10 +442,28 @@ public class FishingMinigameManager {
         boolean autoPileFish = (deliveryCharmEffect != null && deliveryCharmEffect.autoPileFish())
                 || hasCharmEffectInInventory(player, CharmEffect::autoPileFish);
 
+        Set<Integer> uniqueIndices = new LinkedHashSet<>(caughtTargetIndices);
+        boolean schoolTargetCommitted = false;
+        if (session.schoolBinding != null) {
+            FishSchoolManager schoolManager = FishSchoolManager.get(level);
+            if (uniqueIndices.contains(session.schoolBinding.targetIndex())) {
+                schoolTargetCommitted = schoolManager.resolveCaught(session.schoolBinding);
+                if (!schoolTargetCommitted) {
+                    Fishtastic.LOGGER.warn("Rejected stale fish school target {} from session {} for player {}",
+                            session.schoolBinding.targetIndex(), sessionId, player.getName().getString());
+                    schoolManager.releaseBinding(session.schoolBinding);
+                }
+            } else {
+                schoolManager.releaseBinding(session.schoolBinding);
+            }
+        }
+
         // De-dupe indices — a client re-reporting the same target index must not award its reward twice.
         List<ServerFishingTarget> caughtTargets = new ArrayList<>();
-        for (Integer index : new LinkedHashSet<>(caughtTargetIndices)) {
+        for (Integer index : uniqueIndices) {
             if (index >= 0 && index < session.targets.size()) {
+                if (session.schoolBinding != null && index == session.schoolBinding.targetIndex()
+                        && !schoolTargetCommitted) continue;
                 caughtTargets.add(session.targets.get(index));
             } else {
                 Fishtastic.LOGGER.warn("Player {} reported invalid target index {}",
@@ -629,22 +673,26 @@ public class FishingMinigameManager {
 
     public void tick() {
         long currentTime = level.getGameTime();
-        activeSessions.entrySet().removeIf(entry -> {
+        Iterator<Map.Entry<UUID, ActiveSession>> iterator = activeSessions.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<UUID, ActiveSession> entry = iterator.next();
             ActiveSession session = entry.getValue();
-            if (currentTime - session.startTime > SESSION_TIMEOUT_TICKS) {
-                Fishtastic.LOGGER.info("Session {} timed out", session.sessionId);
-                ServerPlayer player = level.getServer().getPlayerList().getPlayer(entry.getKey());
-                if (player != null) TutorialManager.onPracticeInterrupted(player);
-                return true;
-            }
-            return false;
-        });
+            ServerPlayer player = level.getServer().getPlayerList().getPlayer(entry.getKey());
+            boolean timedOut = currentTime - session.startTime > SESSION_TIMEOUT_TICKS;
+            boolean unavailable = player == null || player.level() != level || player.isDeadOrDying();
+            if (!timedOut && !unavailable) continue;
+            if (timedOut) Fishtastic.LOGGER.info("Session {} timed out", session.sessionId);
+            if (player != null) TutorialManager.onPracticeInterrupted(player);
+            if (session.schoolBinding != null) FishSchoolManager.get(level).releaseBinding(session.schoolBinding);
+            iterator.remove();
+        }
     }
 
     public void cancelSession(net.minecraft.world.entity.player.Player player) {
         ActiveSession session = activeSessions.remove(player.getUUID());
         if (session != null) {
             if (player instanceof ServerPlayer serverPlayer) TutorialManager.onPracticeInterrupted(serverPlayer);
+            if (session.schoolBinding != null) FishSchoolManager.get(level).releaseBinding(session.schoolBinding);
             Fishtastic.LOGGER.info("Cancelled session {} for player {}",
                     session.sessionId, player.getName().getString());
         }
@@ -658,6 +706,56 @@ public class FishingMinigameManager {
         float luckBonus = baitEffect != null ? baitEffect.luckBonus() : 0.0f;
         return generateTargetsForOrigin(player, hook.position(), hook, hookExt.getLuck() + luckBonus,
                 difficultyModifier, baitEffect, hookEffect, charmEffect);
+    }
+
+    /** Creates the reserved school fish with the same quality, size and temperament rules as a normal fish target. */
+    @Nullable
+    private ServerFishingTarget createSchoolTarget(ServerPlayer player, FishSchoolManager.SessionBinding binding,
+            @Nullable BaitEffect baitEffect, @Nullable HookEffect hookEffect, float difficultyModifier) {
+        Item item = BuiltInRegistries.ITEM.getOptional(binding.species()).orElse(null);
+        if (!(item instanceof FishtasticFishItem)
+                || !item.builtInRegistryHolder().is(FishtasticItemTags.FISH_SCHOOL_ENABLED)) return null;
+
+        float qualityBias = (baitEffect != null ? baitEffect.qualityBias() : 0.0f)
+                + (hookEffect != null ? hookEffect.qualityBias() : 0.0f);
+        FishQuality.Quality forcedQuality = getForcedQuality(player.getUUID()).orElse(null);
+        long seed = binding.rewardSeed()
+                ^ (0x9E3779B97F4A7C15L * Float.floatToIntBits(qualityBias))
+                ^ (forcedQuality == null ? 0L : 0xD1B54A32D192ED03L * (forcedQuality.ordinal() + 1L));
+        RandomSource random = RandomSource.create(seed);
+        FishQuality.Quality quality = forcedQuality != null
+                ? forcedQuality : FishtasticFishItem.sampleRandomQuality(random, qualityBias);
+        ItemStack reward = new ItemStack(item);
+        Registry<FishProfile> profiles = level.registryAccess()
+                .registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
+        FishtasticFishItem.applyQualityAndSize(reward, quality, random, profiles);
+
+        Registry<Temperament> temperaments = level.registryAccess()
+                .registryOrThrow(FishtasticRegistries.TEMPERAMENT_REGISTRY_KEY);
+        Temperament temperament = getForcedTemperament(player.getUUID())
+                .flatMap(temperaments::getOptional)
+                .orElseGet(() -> resolveTemperament(reward, profiles, temperaments));
+        Float forcedDifficulty = getForcedDifficulty(player.getUUID()).orElse(null);
+        float difficulty;
+        List<PhaseRule> phases;
+        if (forcedDifficulty != null) {
+            difficulty = forcedDifficulty;
+        } else if (temperament != null) {
+            difficulty = temperament.sampleDifficulty(random) * difficultyModifier;
+        } else {
+            float[] baseDifficulties = {0.3f, 0.4f, 0.5f, 0.6f, 0.8f, 0.9f, 0.7f};
+            difficulty = baseDifficulties[random.nextInt(baseDifficulties.length)] * difficultyModifier;
+        }
+        if (forcedDifficulty == null) difficulty = applyQualityDifficultyBoost(difficulty, reward);
+        if (temperament != null) {
+            phases = temperament.resolvedPhases();
+        } else {
+            FishingTarget.MovementPattern pattern = FishingTarget.pickRandom(difficulty, random.nextFloat());
+            phases = List.of(new PhaseRule(0f, List.of(pattern), Optional.empty(), Optional.empty(),
+                    Optional.empty(), Optional.empty()));
+        }
+        return new ServerFishingTarget(List.of(reward), FishingTarget.TargetCategory.FISH, difficulty,
+                random.nextFloat(), phases);
     }
 
     /**
@@ -1159,6 +1257,23 @@ public class FishingMinigameManager {
         return activeSessions.containsKey(uuid);
     }
 
+    public int schoolTargetIndexForTest(UUID playerId) {
+        ActiveSession session = activeSessions.get(playerId);
+        return session == null || session.schoolBinding == null ? -1 : session.schoolBinding.targetIndex();
+    }
+
+    public int targetCountForTest(UUID playerId) {
+        ActiveSession session = activeSessions.get(playerId);
+        return session == null ? 0 : session.targets.size();
+    }
+
+    public @Nullable ItemStack targetRewardForTest(UUID playerId, int index) {
+        ActiveSession session = activeSessions.get(playerId);
+        if (session == null || index < 0 || index >= session.targets.size()) return null;
+        List<ItemStack> rewards = session.targets.get(index).rewardStacks();
+        return rewards.isEmpty() ? ItemStack.EMPTY : rewards.get(0).copy();
+    }
+
     /**
      * Test-only seam: seeds a deterministic active session for {@code player}, bypassing the
      * RNG-driven, registry-dependent {@link #generateTargets} so {@link #handleMinigameComplete}'s
@@ -1181,7 +1296,7 @@ public class FishingMinigameManager {
                 FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR,
                 FishMoonPhase.at(level, player.blockPosition()), zones);
         activeSessions.put(playerId, new ActiveSession(sessionId, playerId, targets, level.getGameTime(),
-                environment, false, null, null));
+                environment, false, null, null, null));
         return sessionId;
     }
 
@@ -1236,10 +1351,15 @@ public class FishingMinigameManager {
         // point is that the hook patch keeps what it actually rolled against.
         @Nullable
         final FishingPoolResolver.SessionSnapshot snapshot;
+        // Non-null only when one school member was reserved into this session. Its slot is committed
+        // before its reward reaches awardTargets, and every abort path returns the member to recovery.
+        @Nullable
+        final FishSchoolManager.SessionBinding schoolBinding;
 
         ActiveSession(int sessionId, UUID playerId, List<ServerFishingTarget> targets, long startTime,
                 FishingPoolResolver.EnvironmentContext environment, boolean baitWillBeSaved,
-                @Nullable ResourceLocation hookBaitId, @Nullable FishingPoolResolver.SessionSnapshot snapshot) {
+                @Nullable ResourceLocation hookBaitId, @Nullable FishingPoolResolver.SessionSnapshot snapshot,
+                @Nullable FishSchoolManager.SessionBinding schoolBinding) {
             this.sessionId = sessionId;
             this.playerId = playerId;
             this.targets = targets;
@@ -1248,6 +1368,7 @@ public class FishingMinigameManager {
             this.baitWillBeSaved = baitWillBeSaved;
             this.hookBaitId = hookBaitId;
             this.snapshot = snapshot;
+            this.schoolBinding = schoolBinding;
         }
     }
 

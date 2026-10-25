@@ -57,7 +57,42 @@ public record Shelter(OrientedBox hull, OrientedBox interior, List<Mouth> mouths
      *                    {@code equals}, so a value the host rebuilds identically keeps its
      *                    identity across a shelter list rebuild
      */
-    public record Trigger(float meanSeconds, float holdSeconds, Object key) {}
+    public record Trigger(float meanSeconds, float holdSeconds, Object key) {
+
+        /**
+         * A trigger with no clock of its own: only the host sends a fish to it
+         * ({@code FlockEngine.sendToTrigger}), as an interactive school sends its reserved member to
+         * a bobber. Unlike a clock's errand, the host's survives the shelter list changing round it.
+         */
+        public static Trigger hostSent(float holdSeconds, Object key) {
+            return new Trigger(Float.POSITIVE_INFINITY, holdSeconds, key);
+        }
+
+        /** Whether only the host sends fish here: see {@link #hostSent}. */
+        public boolean isHostSent() {
+            return meanSeconds == Float.POSITIVE_INFINITY;
+        }
+    }
+
+    /** Half-size of a {@link #noseAnchor}'s face, blocks: the clams' anchors are the same size. */
+    public static final float NOSE_ANCHOR_HALF = 0.05f;
+
+    /**
+     * A {@link Kind#TRIGGER} at a bare point in open water — nothing round it, nothing to sit on —
+     * approached travelling along {@code (approachL, approachD)}: the fish stages behind the point
+     * on that line, swims up to it nose first and holds there. The direction is horizontal (any
+     * vertical part is dropped, as a trigger's mouth must face sideways) and need not be unit.
+     */
+    public static Shelter noseAnchor(float l, float y, float d, float approachL, float approachD,
+                                     float holdSeconds, Object key) {
+        float len = (float) Math.sqrt(approachL * approachL + approachD * approachD);
+        float nL = len > 1e-6f ? approachL / len : 1f, nD = len > 1e-6f ? approachD / len : 0f;
+        float h = NOSE_ANCHOR_HALF;
+        // The anchor sits just past the face along the approach, as a clam's sits just inside its lip.
+        OrientedBox anchor = new OrientedBox(l + nL * h * 0.5f, y, d + nD * h * 0.5f, h * 0.5f, h, h, nL, nD);
+        Mouth face = new Mouth(l, y, d, nL, 0f, nD, -nD, 0f, nL, h, h);
+        return new Shelter(anchor, anchor, List.of(face), 1, h, Kind.TRIGGER, 0f, Trigger.hostSent(holdSeconds, key));
+    }
 
     /** A {@link Kind#HOLLOW} — every shelter before §12.4's gates. */
     public Shelter(OrientedBox hull, OrientedBox interior, List<Mouth> mouths, int capacity, float interiorRun) {

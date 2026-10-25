@@ -3,6 +3,7 @@ package grill24.fishtastic.client.ambient;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import grill24.fishtastic.client.FishtasticClientConfig;
@@ -32,6 +33,46 @@ public final class AmbientClientCommands {
                                     feedback.accept(ctx.getSource(), "Ambient fish density: " + density + "%.");
                                     return 1;
                                 })))
+                .then(LiteralArgumentBuilder.<S>literal("schools")
+                        .then(LiteralArgumentBuilder.<S>literal("visible")
+                                .then(RequiredArgumentBuilder.<S, Boolean>argument("visible", BoolArgumentType.bool())
+                                        .executes(ctx -> {
+                                            boolean visible = BoolArgumentType.getBool(ctx, "visible");
+                                            FishtasticClientConfig.setFishSchoolsVisible(visible);
+                                            feedback.accept(ctx.getSource(), "Interactive fish schools "
+                                                    + (visible ? "shown" : "hidden") + ". This changes only your display.");
+                                            return 1;
+                                        })))
+                        // Dev: recolour new trail motes, e.g. "tint FFC850 FF78B4"; "tint reset" restores the cyans.
+                        .then(LiteralArgumentBuilder.<S>literal("tint")
+                                .then(LiteralArgumentBuilder.<S>literal("reset").executes(ctx -> {
+                                    grill24.fishtastic.client.FishSchoolClientRuntime.setMoteTintOverride(null);
+                                    feedback.accept(ctx.getSource(), "School mote tints reset to the default cyans.");
+                                    return 1;
+                                }))
+                                .then(RequiredArgumentBuilder.<S, String>argument("colors", StringArgumentType.greedyString())
+                                        .executes(ctx -> {
+                                            String[] parts = StringArgumentType.getString(ctx, "colors").trim().split("[\\s,]+");
+                                            int[] tints = new int[parts.length];
+                                            for (int i = 0; i < parts.length; i++) {
+                                                String hex = parts[i].startsWith("#") ? parts[i].substring(1) : parts[i];
+                                                if (!hex.matches("[0-9a-fA-F]{6}")) {
+                                                    feedback.accept(ctx.getSource(), "Not an RRGGBB colour: " + parts[i]
+                                                            + ". Try: tint FFC850 FF78B4");
+                                                    return 0;
+                                                }
+                                                tints[i] = Integer.parseInt(hex, 16);
+                                            }
+                                            grill24.fishtastic.client.FishSchoolClientRuntime.setMoteTintOverride(tints);
+                                            feedback.accept(ctx.getSource(), "New school motes now use " + tints.length
+                                                    + " tint(s). 'tint reset' restores the defaults.");
+                                            return 1;
+                                        })))
+                        // This client's lockstep copies: step against target, replays, fingerprint mismatches.
+                        .then(LiteralArgumentBuilder.<S>literal("debug").executes(ctx -> {
+                            feedback.accept(ctx.getSource(), grill24.fishtastic.client.FishSchoolClientRuntime.debugState());
+                            return 1;
+                        })))
                 .then(LiteralArgumentBuilder.<S>literal("debug").executes(ctx -> {
                     feedback.accept(ctx.getSource(), ClientAmbientFish.natural().diagnostics().debugState());
                     feedback.accept(ctx.getSource(), AmbientContextClient.debugState());

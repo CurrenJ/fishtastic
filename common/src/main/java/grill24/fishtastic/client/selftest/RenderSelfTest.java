@@ -8,6 +8,10 @@ import static grill24.fishtastic.client.selftest.AmbientScenes.queueAmbientLifec
 import static grill24.fishtastic.client.selftest.AmbientScenes.queueAmbientParityScene;
 import static grill24.fishtastic.client.selftest.AmbientScenes.queueAmbientPopulationScene;
 import static grill24.fishtastic.client.selftest.AmbientScenes.queueAmbientWalkScene;
+import static grill24.fishtastic.client.selftest.FishSchoolScenes.queueFishSchoolBiteScene;
+import static grill24.fishtastic.client.selftest.FishSchoolScenes.queueFishSchoolGifScene;
+import static grill24.fishtastic.client.selftest.FishSchoolScenes.queueFishSchoolPerfScene;
+import static grill24.fishtastic.client.selftest.FishSchoolScenes.queueFishSchoolReachScene;
 import static grill24.fishtastic.client.selftest.AmbientScenes.queueAmbientWaterScene;
 import static grill24.fishtastic.client.selftest.BenchmarkScenes.queueBakeBenchScene;
 import static grill24.fishtastic.client.selftest.CompanionScenes.queueCompanionBondScene;
@@ -146,7 +150,7 @@ public final class RenderSelfTest {
     /** Scenes that run only when the marker names them (they need something the default run lacks). */
     // PORT-ONLY: 26.1.2's cool-cam and MCP-bridge scenes (matte, matteclip, fourwaters, cathedral,
     // mcpsession, cosmeticpreview) are not ported - neither mod side exists on this branch (D4).
-    private static final List<String> OPT_IN_SCENES = List.of("columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench", "leaderboard", "tutorial", "companiontutorial", "companionbond", "companionsim", "companionparty", "companioneel", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld", "companionparticles", "companionworldcost", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk", "celebrationoverlap", "partyseed", "partyobserver", "partyreturn");
+    private static final List<String> OPT_IN_SCENES = List.of("columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench", "leaderboard", "tutorial", "companiontutorial", "companionbond", "companionsim", "companionparty", "companioneel", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld", "companionparticles", "companionworldcost", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk", "fishschoolgif", "fishschoolbite", "fishschoolreach", "fishschoolperf", "celebrationoverlap", "partyseed", "partyobserver", "partyreturn");
 
 
     static Boolean armed;
@@ -377,6 +381,10 @@ public final class RenderSelfTest {
             case "ambientisland" -> queueAmbientIslandScene();
             case "ambientfloor" -> queueAmbientFloorScene();
             case "ambientwalk" -> queueAmbientWalkScene();
+            case "fishschoolgif" -> queueFishSchoolGifScene();
+            case "fishschoolbite" -> queueFishSchoolBiteScene();
+            case "fishschoolreach" -> queueFishSchoolReachScene();
+            case "fishschoolperf" -> queueFishSchoolPerfScene();
             default -> throw new IllegalArgumentException(scene);
         }
     }

@@ -9,6 +9,7 @@ import grill24.fishsim.core.FlockEngine;
 import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.core.Tunables;
 import grill24.fishsim.domain.WaterDomain;
+import grill24.fishtastic.client.renderer.GroupFishDraw;
 import grill24.fishtastic.client.renderer.FishVisuals;
 import grill24.fishtastic.client.renderer.GroupFishPose;
 import grill24.fishtastic.data.FishAnimationConfig;
@@ -1395,51 +1396,20 @@ public final class AmbientFishRuntime {
                         + (st.originY() + (frozen == null ? st.engine.renderY[i] : frozen.m31()) - cam.y) * forward.y()
                         + (st.originZ() + (frozen == null ? st.engine.renderZ[i] : frozen.m32()) - cam.z) * forward.z());
             }
-            for (int k = 1; k < n; k++) {
-                int i = orderScratch[k], at = k;
-                while (at > 0 && depthScratch[orderScratch[at - 1]] < depthScratch[i]) {
-                    orderScratch[at] = orderScratch[at - 1];
-                    at--;
-                }
-                orderScratch[at] = i;
-            }
+            GroupFishDraw.backToFront(depthScratch, orderScratch, n);
             for (int k = 0; k < n; k++) {
                 int i = orderScratch[k];
                 Member m = st.members.get(i);
-                double x = st.originX() + st.engine.renderX[i], y = st.originY() + st.engine.renderY[i],
-                        z = st.originZ() + st.engine.renderZ[i];
-                if (m.retirementPose != null) {
-                    x = st.originX() + m.retirementPose.m30();
-                    y = st.originY() + m.retirementPose.m31();
-                    z = st.originZ() + m.retirementPose.m32();
+                if (m.retiring() && m.retirementPose == null) {
+                    PoseStack frozen = new PoseStack();
+                    GroupFishPose.apply(frozen, st.engine, m.anim, i, t, 0f, 0f, 0f, poseRandom);
+                    m.retirementPose = new Matrix4f(frozen.last().pose());
                 }
-                double radius = Math.max(1.0, st.engine.lengths[i] * 2.0);
-                if (!level.hasChunkAt(BlockPos.containing(x, y, z))) continue;
-                if (!frustum.isVisible(new AABB(x - radius, y - radius, z - radius,
-                        x + radius, y + radius, z + radius))) continue;
-                poses.pushPose();
-                poses.translate(st.originX() - cam.x, st.originY() - cam.y, st.originZ() - cam.z);
-                if (m.retiring()) {
-                    if (m.retirementPose == null) {
-                        PoseStack frozen = new PoseStack();
-                        GroupFishPose.apply(frozen, st.engine, m.anim, i, t, 0f, 0f, 0f, poseRandom);
-                        m.retirementPose = new Matrix4f(frozen.last().pose());
-                    }
-                    // 1.20.1 has no PoseStack.mulPose(Matrix4f): apply the frozen pose and its normal matrix by hand.
-                    poses.last().pose().mul(m.retirementPose);
-                    poses.last().normal().mul(m.retirementPose.normal(new org.joml.Matrix3f()));
-                } else {
-                    GroupFishPose.apply(poses, st.engine, m.anim, i, t, 0f, 0f, 0f, poseRandom);
+                if (GroupFishDraw.submit(poses, buffers, frustum, level, camera, st.originX(), st.originY(),
+                        st.originZ(), st.engine, i, m.anim, m.stack, m.fade,
+                        m.retiring() ? m.retirementPose : null, t, poseRandom)) {
+                    worldSubmitsThisFrame++;
                 }
-                if (m.fade < 1f) {
-                    if (m.bounds == null) m.bounds = AmbientModelBounds.of(m.stack, level);
-                    AmbientFishFade.apply(poses, m.fade, m.anim, m.bounds);
-                }
-                int light = LevelRenderer.getLightColor(level, BlockPos.containing(x, y, z));
-                mc.getItemRenderer().renderStatic(m.stack, ItemDisplayContext.FIXED, light, OverlayTexture.NO_OVERLAY,
-                        poses, buffers, level, 0);
-                poses.popPose();
-                worldSubmitsThisFrame++;
             }
         }
         double millis = (System.nanoTime() - submitStarted) / 1_000_000.0;
