@@ -11,5 +11,6 @@
     "mode": "upright_sit",
     "pivot_fraction": 0.3438,
     "diagonal_texture": false
-  }
+  },
+  "world_encounter": { "shape": "solitary" }
 }

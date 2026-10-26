@@ -15,7 +15,9 @@ import grill24.fishtastic.school.FishSchoolWire;
 import grill24.fishtastic.network.NetworkApiSided;
 import grill24.fishtastic.client.renderer.FishVisuals;
 import grill24.fishtastic.school.FishSchoolSim;
+import grill24.fishtastic.school.VisitShape;
 import grill24.fishsim.core.FishSpec;
+import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.domain.WaterDomain;
 import grill24.fishtastic.util.IFishingHookExtension;
 import grill24.fishtastic.util.IServerLevelSchools;
@@ -29,6 +31,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.FluidTags;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.projectile.FishingHook;
 import net.minecraft.world.item.Item;
@@ -40,6 +43,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -94,6 +98,18 @@ public final class FishSchoolManager {
      */
     private static final int REGION_SAFETY_RESCAN_TICKS = 1200, REGION_SAFETY_SPREAD_TICKS = 200;
     private static final long NOT_DIRTY = Long.MIN_VALUE;
+    /**
+     * Locomotion classes whose approach to a bobber is finished and accepted in game; a species of
+     * any other class appears only through the allow override (encounter spec §4, §5.1).
+     */
+    private static final Set<Locomotion> READY_LOCOMOTIONS = EnumSet.of(Locomotion.FREE_SWIM, Locomotion.BENTHIC,
+            Locomotion.DRIFT, Locomotion.ANCHORED);
+    /** How often eel visits are told whether someone is rushing them, ticks. */
+    private static final int WATCHER_TICKS = 5;
+    /** A sprinting player this close to an eel visit's anchor is rushing it, blocks. */
+    private static final double RUSH_RADIUS = 8.0;
+    /** A rushing player's watcher point is resent once they have moved this far, blocks. */
+    private static final float WATCHER_RESEND = 0.5f;
 
     /**
      * A school's water, rescanned only when a block in its search box changed, a chunk it met
@@ -161,6 +177,9 @@ public final class FishSchoolManager {
         long lastAdvancedAt = Long.MIN_VALUE;
         /** Why the last approach ended without a bite, for {@link #debugState}. */
         String lastFailure = "none";
+        /** The last {@link FishSchoolSim.Watcher} sent (eel visits only): whether someone was rushing, and where. */
+        boolean watcherNear;
+        float watcherL, watcherY, watcherD;
 
         SchoolRuntime(FishSchoolSim sim, FishSchoolSim.Setup setup, int epoch, Set<BlockPos> water,
                       java.util.function.Consumer<FishSchoolSim.Stamped> onInput) {
@@ -200,6 +219,22 @@ public final class FishSchoolManager {
     /** A hook the engine just refused a fish for is not offered another this soon (ticks). */
     private final Map<UUID, Long> approachRetryAt = new HashMap<>();
     private int nextEpoch;
+    /** Test/self-test only: visits whose water is judged without their species' habitat. */
+    private final Set<UUID> habitatFreeForTest = new HashSet<>();
+
+    /**
+     * Test/self-test only: judges {@code school}'s water without its species' habitat, so an ocean
+     * creature can be exercised in a test world's plains. Behaviour is otherwise unchanged.
+     */
+    public void ignoreHabitatForTest(UUID school) {
+        habitatFreeForTest.add(school);
+        RegionCache cached = waterRegions.get(school);
+        if (cached != null) cached.markDirty(level.getGameTime());
+    }
+
+    /** Per species: whether its profile allows in-world visits ({@link #readyByProfile}). */
+    private final Map<Item, Boolean> profileReady = new HashMap<>();
+
     /** Each live school's motion, by school id. Not saved: a reload starts a new epoch. */
     private final Map<UUID, SchoolRuntime> sims = new HashMap<>();
     private int playerCursor;
@@ -259,6 +294,7 @@ public final class FishSchoolManager {
         FishSchoolPerf.end(FishSchoolPerf.Phase.ADVANCE, t);
         t = FishSchoolPerf.start();
         tickVisitsAndMembers(now);
+        if (now % WATCHER_TICKS == 0) feedWatchers();
         FishSchoolPerf.end(FishSchoolPerf.Phase.VISITS, t);
         t = FishSchoolPerf.start();
         if (now % 5 == 0) reserveNearbyHooks(now);
@@ -326,9 +362,10 @@ public final class FishSchoolManager {
             if (inWater(member.state())) placements.add(placement(member, origin, water));
         }
         FishSchoolSim.Setup setup = new FishSchoolSim.Setup(origin, columns(water), spec,
-                school.id().getMostSignificantBits() ^ now, placements);
+                school.id().getMostSignificantBits() ^ now, placements, school.shape());
         FishSchoolSim sim = FishSchoolSim.create(setup);
-        if (sim == null) return null;
+        // Water too small for the species would leave it a frozen display: the visit departs instead.
+        if (sim == null || !sim.hostsSpecies()) return null;
         UUID id = school.id();
         int epoch = nextEpoch++ & Integer.MAX_VALUE;
         SchoolRuntime created = new SchoolRuntime(sim, setup, epoch, water, stamped -> broadcastInput(id, stamped));
@@ -356,6 +393,37 @@ public final class FishSchoolManager {
         }
         return new FishSchoolSim.Placement(member.id(), (float) (at.x - origin.getX()),
                 (float) (at.y - origin.getY()), (float) (at.z - origin.getZ()));
+    }
+
+    /**
+     * Whether a species may appear as an interactive visit (encounter spec §5.1): a Fishtastic
+     * fish, not denied, and either of a locomotion class whose in-world approach is finished or in
+     * the allow override. Nether-only species are caught in lava, which visits cannot use yet
+     * (§5.3). Habitat is otherwise judged separately, by the natural pool.
+     */
+    public boolean encounterEligible(Holder<Item> item) {
+        if (!(item.value() instanceof FishtasticFishItem) || item.is(FishtasticItemTags.FISH_ENCOUNTER_DISABLED)) {
+            return false;
+        }
+        return item.is(FishtasticItemTags.FISH_SCHOOL_ENABLED) || readyByProfile(item.value());
+    }
+
+    /**
+     * The profile half of {@link #encounterEligible}: a ready locomotion class and a water habitat.
+     * Profiles are fixed for the server's life, so it is cached; tags are not, so they are read live.
+     */
+    private boolean readyByProfile(Item item) {
+        Boolean known = profileReady.get(item);
+        if (known != null) return known;
+        ResourceLocation species = BuiltInRegistries.ITEM.getKey(item);
+        FishSpec spec = speciesSpec(species);
+        boolean waterHabitat = level.registryAccess().registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY)
+                .getOptional(ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, species))
+                .map(profile -> profile.zones().stream().anyMatch(zone -> zone != FishProfile.Zone.NETHER))
+                .orElse(false);
+        boolean ready = spec != null && READY_LOCOMOTIONS.contains(spec.locomotion()) && waterHabitat;
+        profileReady.put(item, ready);
+        return ready;
     }
 
     /** The engine descriptor for a school of {@code species} at its mean size, or null if unknown. */
@@ -471,25 +539,32 @@ public final class FishSchoolManager {
         return spawnForDebug(near, species, null);
     }
 
-    /** {@link #spawnForDebug(BlockPos, ResourceLocation)}, member {@code i} given {@code qualities[i % length]} if set. */
+    /** {@link #spawnForDebug(BlockPos, ResourceLocation)}, member {@code i} gets {@code qualities[i % length]} if set. */
     public String spawnForDebug(BlockPos near, @Nullable ResourceLocation species, FishQuality.Quality @Nullable [] qualities) {
+        return spawnForDebug(near, species, qualities, null);
+    }
+
+    /** As above, with the visit shape forced to {@code shape} if set (still limited by its class). */
+    public String spawnForDebug(BlockPos near, @Nullable ResourceLocation species, FishQuality.Quality @Nullable [] qualities,
+                                @Nullable VisitShape shape) {
         BlockPos water = nearestWater(near, 12, 5, 2);
         if (water == null) return "No valid source water within 12 blocks.";
         Holder<Item> forced = null;
         if (species != null) {
             Item item = BuiltInRegistries.ITEM.getOptional(species).orElse(null);
-            if (item == null || !item.builtInRegistryHolder().is(FishtasticItemTags.FISH_SCHOOL_ENABLED)) {
-                return species + " is not a school-enabled species.";
+            if (item == null || !encounterEligible(item.builtInRegistryHolder())) {
+                return species + " cannot appear in the world: not a Fishtastic fish, denied by"
+                        + " #fishtastic:fish_encounter_disabled, or its movement class has no in-world approach yet.";
             }
             forced = item.builtInRegistryHolder();
         }
-        FishSchoolSavedData.School school = tryCreateSchool(water, level.getGameTime(), forced, qualities);
+        FishSchoolSavedData.School school = tryCreateSchool(water, level.getGameTime(), forced, qualities, shape);
         if (school == null) {
-            return "No school formed at " + water.toShortString() + ": no school-enabled species fits this water,"
-                    + " the water is too small, or the member budget is spent.";
+            return "No visit formed at " + water.toShortString() + ": no eligible species lives in this water,"
+                    + " the water is too small for it, or the member budget is spent.";
         }
-        return "Spawned " + school.members().size() + " " + school.species() + " at " + school.anchor().toShortString()
-                + " (school " + school.id() + ").";
+        return "Spawned " + school.members().size() + " " + school.species() + " as " + school.shape().getSerializedName()
+                + " at " + school.anchor().toShortString() + " (school " + school.id() + ").";
     }
 
     /** Debug: the nearest school's species, state and {@link #debugState}, or a line saying there is none. */
@@ -705,17 +780,19 @@ public final class FishSchoolManager {
     }
 
     private @Nullable FishSchoolSavedData.School tryCreateSchool(BlockPos seed, long now) {
-        return tryCreateSchool(seed, now, null, null);
+        return tryCreateSchool(seed, now, null, null, null);
     }
 
     /**
      * @param forced    a species to use instead of drawing one from the natural pool (debug only): it
-     *                  must still be school-enabled, but this water's habitat is not checked for it
+     *                  must still be {@link #encounterEligible}, but this water's habitat is not checked for it
      * @param qualities debug only: member {@code i} gets {@code qualities[i % length]} (its reward
      *                  seed is re-drawn until {@link FishSchoolSavedData#qualityOf} says so), or null
+     * @param forcedShape debug only: the visit's shape instead of the species' own, or null
      */
     private @Nullable FishSchoolSavedData.School tryCreateSchool(BlockPos seed, long now, @Nullable Holder<Item> forced,
-                                                                FishQuality.Quality @Nullable [] qualities) {
+                                                                FishQuality.Quality @Nullable [] qualities,
+                                                                @Nullable VisitShape forcedShape) {
         WaterScan waterScan = scanConnectedWater(seed, null, null);
         Set<BlockPos> water = waterScan.cells();
         if (water.size() < MIN_WATER_CELLS) return null;
@@ -727,8 +804,7 @@ public final class FishSchoolManager {
                 FishingPoolResolver.Inputs.of(BaitEffect.NO_BAIT, null,
                         FishingPoolResolver.PersonalEquipment.NEUTRAL));
         List<FishingPoolResolver.WeightedFish> candidates = naturalPool.candidates().stream()
-                .filter(candidate -> candidate.item().is(FishtasticItemTags.FISH_SCHOOL_ENABLED))
-                .filter(candidate -> candidate.item().value() instanceof FishtasticFishItem)
+                .filter(candidate -> encounterEligible(candidate.item()))
                 .toList();
         FishingPoolResolver.WeightedFish selected = forced != null ? new FishingPoolResolver.WeightedFish(forced, 1)
                 : weightedChoice(candidates);
@@ -740,17 +816,27 @@ public final class FishSchoolManager {
         WaterScan speciesScan = forced != null ? null : scanConnectedWater(seed, selected.item(), zoneEligible);
         Set<BlockPos> speciesWater = forced != null ? water : speciesScan.cells();
         if (speciesWater.size() < MIN_WATER_CELLS) return null;
+        FishProfile profile = FishtasticFishItem.getProfile(selected.item(), profiles).orElse(null);
+        FishSpec spec = speciesSpec(species);
+        if (spec == null) return null;
+        VisitShape shape = VisitShape.allowedFor(forcedShape != null ? forcedShape
+                : profile != null ? profile.visitShape() : VisitShape.fallback(FishProfile.DEFAULT_BASE_WEIGHT),
+                spec.locomotion());
         int remaining = FishtasticServerConfig.fishSchoolMaxMembersPerDimension() - activeMembers();
         int maxMembers = Math.min(FishtasticServerConfig.fishSchoolMaxMembersPerSchool(), remaining);
-        int members = chooseSchoolSize(selected, profiles, maxMembers);
-        if (members < 2) return null;
+        MemberPlan plan = planMembers(shape, profile, maxMembers);
+        if (plan == null) return null;
+        // A species too big for this water would be a frozen display (encounter spec §4.1).
+        if (!FishSchoolSim.hosts(seed, columns(speciesWater), spec, shape)) return null;
 
         List<BlockPos> cells = speciesWater.stream()
                 .filter(pos -> Math.abs(pos.getX() - seed.getX()) <= SCHOOL_FORMATION_RADIUS
                         && Math.abs(pos.getZ() - seed.getZ()) <= SCHOOL_FORMATION_RADIUS
                         && Math.abs(pos.getY() - seed.getY()) <= 2)
                 .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
-        if (cells.size() < 2) return null;
+        if (cells.size() < plan.min()) return null;
+        int members = plan.count();
+        double spacingSqr = (double) shape.spacing() * shape.spacing();
         List<FishSchoolSavedData.Member> schoolMembers = new ArrayList<>(members);
         RandomSource random = level.getRandom();
         for (int i = cells.size() - 1; i > 0; i--) {
@@ -759,7 +845,7 @@ public final class FishSchoolManager {
         for (BlockPos pos : cells) {
             if (schoolMembers.size() >= members) break;
             Vec3 candidate = new Vec3(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
-            boolean clear = schoolMembers.stream().allMatch(member -> distanceSqr(member.position(), candidate) >= 1.0);
+            boolean clear = schoolMembers.stream().allMatch(member -> distanceSqr(member.position(), candidate) >= spacingSqr);
             if (!clear) continue;
             float yaw = random.nextFloat() * 360f;
             FishSchoolSavedData.Position position = new FishSchoolSavedData.Position(
@@ -773,11 +859,13 @@ public final class FishSchoolManager {
             }
             schoolMembers.add(FishSchoolSavedData.newMember(rewardSeed, position));
         }
-        if (schoolMembers.size() < 2) return null;
+        if (schoolMembers.size() < plan.min()) return null;
 
-        FishSchoolSavedData.School school = FishSchoolSavedData.newSchool(species, seed, now,
-                now + FishtasticServerConfig.fishSchoolActiveLifetimeTicks(),
-                FishSchoolSavedData.snapshot(env), schoolMembers);
+        float lifetimeScale = profile == null ? 1f
+                : profile.worldEncounter().map(FishProfile.WorldEncounter::lifetimeScale).orElse(1f);
+        long lifetime = Math.round(FishtasticServerConfig.fishSchoolActiveLifetimeTicks() * (double) lifetimeScale);
+        FishSchoolSavedData.School school = FishSchoolSavedData.newSchool(species, seed, now, now + lifetime,
+                FishSchoolSavedData.snapshot(env), shape, schoolMembers);
         data.addSchool(school);
         RegionCache region = new RegionCache(speciesScan != null ? speciesScan : waterScan, now);
         region.zoneEligible.putAll(zoneEligible);
@@ -785,8 +873,8 @@ public final class FishSchoolManager {
         // as the next rescan always did.
         if (forced != null) region.markDirty(now);
         waterRegions.put(school.id(), region);
-        Fishtastic.LOGGER.debug("Created fish school {} ({}) with {} members near {} in {}",
-                school.id(), species, schoolMembers.size(), seed, level.dimension().location());
+        Fishtastic.LOGGER.debug("Created fish school {} ({}, {}) with {} members near {} in {}",
+                school.id(), species, shape.getSerializedName(), schoolMembers.size(), seed, level.dimension().location());
         return school;
     }
 
@@ -801,13 +889,25 @@ public final class FishSchoolManager {
         return null;
     }
 
-    private int chooseSchoolSize(FishingPoolResolver.WeightedFish fish, Registry<FishProfile> profiles, int max) {
-        if (max < 2) return 0;
-        int rarity = FishtasticFishItem.getProfile(fish.item(), profiles)
-                .map(FishProfile::baseWeight).orElse(FishProfile.DEFAULT_BASE_WEIGHT);
-        int minimum = rarity <= 10 ? 2 : rarity <= 25 ? 2 : 3;
-        minimum = Math.min(minimum, max);
-        return minimum + level.getRandom().nextInt(max - minimum + 1);
+    /** How many fish a visit needs at least, and how many it was drawn to hold. */
+    private record MemberPlan(int min, int count) {}
+
+    /**
+     * The visit's member count: the shape's range, narrowed by the species' authored range, capped
+     * by {@code max} (the per-visit and per-dimension budgets). Null when the budget cannot fit
+     * even the smallest visit of this shape.
+     */
+    private @Nullable MemberPlan planMembers(VisitShape shape, @Nullable FishProfile profile, int max) {
+        int min = shape.minMembers(), most = shape.maxMembers();
+        var authored = profile == null ? java.util.Optional.<FishProfile.WorldEncounter.MemberRange>empty()
+                : profile.worldEncounter().flatMap(FishProfile.WorldEncounter::members);
+        if (authored.isPresent()) {
+            min = Mth.clamp(authored.get().min(), shape.minMembers(), shape.maxMembers());
+            most = Mth.clamp(authored.get().max(), min, shape.maxMembers());
+        }
+        most = Math.min(most, max);
+        if (most < min) return null;
+        return new MemberPlan(min, min + level.getRandom().nextInt(most - min + 1));
     }
 
     private boolean overlapsExisting(BlockPos point, double radius) {
@@ -871,11 +971,12 @@ public final class FishSchoolManager {
                     // The water changed shape under the visit: every copy rebuilds its domain.
                     runtime.apply(new FishSchoolSim.Water(columns(cells)));
                     FishSchoolPerf.waterInputs++;
+                    // Shrunk below what the species needs: leave rather than freeze in place.
+                    if (!runtime.sim.hostsSpecies()) dirty |= beginDeparture(school, now);
                 }
             }
             Item item = BuiltInRegistries.ITEM.getOptional(school.species()).orElse(null);
-            if (cells.size() < MIN_WATER_CELLS || item == null
-                    || !item.builtInRegistryHolder().is(FishtasticItemTags.FISH_SCHOOL_ENABLED)) {
+            if (cells.size() < MIN_WATER_CELLS || item == null || !encounterEligible(item.builtInRegistryHolder())) {
                 dirty |= beginDeparture(school, now);
             }
             if (!FishtasticServerConfig.fishSchoolsEnabled()) {
@@ -936,7 +1037,7 @@ public final class FishSchoolManager {
         RegionCache cached = waterRegions.get(school.id());
         if (cached != null && !cached.due(now, school.id())) return cached.cells;
         Item item = BuiltInRegistries.ITEM.getOptional(school.species()).orElse(null);
-        Holder<Item> holder = item == null ? null : item.builtInRegistryHolder();
+        Holder<Item> holder = item == null || habitatFreeForTest.contains(school.id()) ? null : item.builtInRegistryHolder();
         if (cached == null) {
             cached = new RegionCache(new WaterScan(Set.of(), false), now);
             waterRegions.put(school.id(), cached);
@@ -995,7 +1096,7 @@ public final class FishSchoolManager {
                 : anchorPoint == null ? "no anchor"
                 : horizontalDistanceSqr(hook.position(), anchorPoint) > ANCHOR_DRIFT * ANCHOR_DRIFT ? "bobber drifted"
                 : !touched && !runtime.sim.errandActive(anchor) ? "fish gave up"
-                : now - reservation.startedAt() > FishtasticServerConfig.fishSchoolApproachMaxTicks() ? "too slow"
+                : now - reservation.startedAt() > approachLimitTicks(runtime) ? "too slow"
                 : null;
         if (failure != null) {
             if (runtime != null) runtime.lastFailure = failure + " @" + now;
@@ -1020,6 +1121,61 @@ public final class FishSchoolManager {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Tells each garden-eel visit whether a player is rushing it: the nearest sprinting player
+     * within {@link #RUSH_RADIUS}, or nobody (encounter spec §4.3). Sent only on a change, or once
+     * the rusher has moved {@link #WATCHER_RESEND}, so a calm visit adds no inputs.
+     */
+    private void feedWatchers() {
+        for (FishSchoolSavedData.School school : data.schools()) {
+            SchoolRuntime runtime = sims.get(school.id());
+            if (runtime == null || runtime.sim.spec().locomotion() != Locomotion.ANCHORED) continue;
+            Vec3 anchor = Vec3.atCenterOf(school.anchor());
+            ServerPlayer rusher = null;
+            double best = RUSH_RADIUS * RUSH_RADIUS;
+            for (ServerPlayer player : level.players()) {
+                if (!player.isSprinting() || player.isSpectator()) continue;
+                double distance = player.position().distanceToSqr(anchor);
+                if (distance < best) {
+                    best = distance;
+                    rusher = player;
+                }
+            }
+            BlockPos o = runtime.sim.origin();
+            if (rusher == null) {
+                if (runtime.watcherNear) {
+                    runtime.watcherNear = false;
+                    runtime.apply(new FishSchoolSim.Watcher(false, 0f, 0f, 0f));
+                }
+                continue;
+            }
+            float l = (float) (rusher.getX() - o.getX()), y = (float) (rusher.getY() - o.getY()),
+                    d = (float) (rusher.getZ() - o.getZ());
+            float dl = l - runtime.watcherL, dy = y - runtime.watcherY, dd = d - runtime.watcherD;
+            if (!runtime.watcherNear || dl * dl + dy * dy + dd * dd > WATCHER_RESEND * WATCHER_RESEND) {
+                runtime.watcherNear = true;
+                runtime.watcherL = l;
+                runtime.watcherY = y;
+                runtime.watcherD = d;
+                runtime.apply(new FishSchoolSim.Watcher(true, l, y, d));
+            }
+        }
+    }
+
+    /**
+     * How long a member of {@code school} may take to reach a bobber, ticks: the configured limit,
+     * longer for the slow classes (a crawler walking the floor, a drifter carried over).
+     */
+    private long approachLimitTicks(@Nullable SchoolRuntime runtime) {
+        long base = FishtasticServerConfig.fishSchoolApproachMaxTicks();
+        if (runtime == null) return base;
+        return switch (runtime.sim.spec().locomotion()) {
+            case BENTHIC -> base * 2;
+            case DRIFT -> base * 3;
+            default -> base;
+        };
     }
 
     private static double horizontalDistanceSqr(Vec3 a, Vec3 b) {
@@ -1083,7 +1239,7 @@ public final class FishSchoolManager {
             runtime.touched.remove(hook.getUUID());
             chosenMember.setState(FishSchoolSavedData.MemberState.APPROACHING);
             chosenMember.setReservation(new FishSchoolSavedData.Reservation(player.getUUID(), hook.getUUID(), now,
-                    now + FishtasticServerConfig.fishSchoolApproachMaxTicks() + FishtasticServerConfig.fishSchoolBiteWindowTicks(),
+                    now + approachLimitTicks(runtime) + FishtasticServerConfig.fishSchoolBiteWindowTicks(),
                     0, -1));
             data.markDirtyNow();
         }
@@ -1120,46 +1276,60 @@ public final class FishSchoolManager {
 
         FishSchoolSavedData.School chosenSchool = null;
         FishSchoolSavedData.Member chosenMember = null;
+        float[] chosenGoal = null;
         double bestDistance = Double.MAX_VALUE;
-        double radius = FishtasticServerConfig.fishSchoolInterestRadius();
         double nearestAvailable = Double.MAX_VALUE;
-        int schoolsHere = 0, unreachable = 0;
+        int schoolsHere = 0, unreachable = 0, noGoal = 0;
+        String noGoalWhy = null;
         for (FishSchoolSavedData.School school : data.schools()) {
-            if (school.state() != FishSchoolSavedData.SchoolState.ACTIVE || !sims.containsKey(school.id())) continue;
+            SchoolRuntime runtime = sims.get(school.id());
+            if (school.state() != FishSchoolSavedData.SchoolState.ACTIVE || runtime == null) continue;
             Set<BlockPos> cells = currentWaterRegion(school, now);
             if (!cells.contains(hookPos)) continue;
             schoolsHere++;
+            // An eel never travels: it takes only a bobber over its own burrow (encounter spec §4).
+            boolean eel = runtime.sim.spec().locomotion() == Locomotion.ANCHORED;
+            double radius = eel ? FishSchoolSim.EEL_REACH : FishtasticServerConfig.fishSchoolInterestRadius();
+            BlockPos o = runtime.sim.origin();
+            float hl = (float) (hook.getX() - o.getX()), hy = (float) (hook.getY() - o.getY()),
+                    hd = (float) (hook.getZ() - o.getZ());
             for (FishSchoolSavedData.Member member : school.members()) {
                 if (member.state() != FishSchoolSavedData.MemberState.AVAILABLE) continue;
-                double distance = vec(member.position()).distanceToSqr(hook.position());
+                double distance = eel ? horizontalDistanceSqr(vec(member.position()), hook.position())
+                        : vec(member.position()).distanceToSqr(hook.position());
                 nearestAvailable = Math.min(nearestAvailable, distance);
                 if (distance > radius * radius || distance >= bestDistance) continue;
                 // Reachability only: the swim itself is the engine's.
-                if (!withinPath(blockPos(member.position()), hookPos, cells, (int) Math.floor(radius + 3))) {
+                if (!eel && !withinPath(blockPos(member.position()), hookPos, cells, (int) Math.floor(radius + 3))) {
                     unreachable++;
+                    continue;
+                }
+                float[] goal = runtime.sim.goalFor(member.id(), hl, hy, hd);
+                if (goal == null) {
+                    noGoal++;
+                    noGoalWhy = switch (runtime.sim.spec().locomotion()) {
+                        case BENTHIC -> "no floor within " + (int) FishSchoolSim.BOTTOM_BITE_DEPTH + " blocks under the bobber";
+                        case ANCHORED -> "the eel is hiding in its burrow";
+                        default -> String.format(java.util.Locale.ROOT, "no room for a fish's nose under the bobber (bobber y %.2f)",
+                                hook.getY());
+                    };
                     continue;
                 }
                 chosenSchool = school;
                 chosenMember = member;
+                chosenGoal = goal;
                 bestDistance = distance;
             }
         }
         if (chosenSchool == null) {
             if (schoolsHere == 0) return HookChoice.no("bobber is not in any active school's water");
             if (nearestAvailable == Double.MAX_VALUE) return HookChoice.no("no school fish is free right now");
+            if (noGoal > 0) return HookChoice.no(noGoalWhy);
             if (unreachable > 0) return HookChoice.no(unreachable + " fish in range but no water path to the bobber");
-            return HookChoice.no(String.format(java.util.Locale.ROOT, "nearest free fish is %.1f blocks away (radius %d)",
-                    Math.sqrt(nearestAvailable), (int) radius));
+            return HookChoice.no(String.format(java.util.Locale.ROOT, "nearest free fish is %.1f blocks away",
+                    Math.sqrt(nearestAvailable)));
         }
-        SchoolRuntime runtime = sims.get(chosenSchool.id());
-        BlockPos o = runtime.sim.origin();
-        float[] at = runtime.sim.anchorPoint((float) (hook.getX() - o.getX()), (float) (hook.getY() - o.getY()),
-                (float) (hook.getZ() - o.getZ()));
-        if (at == null) {
-            return HookChoice.no(String.format(java.util.Locale.ROOT, "no room for a fish's nose under the bobber (bobber y %.2f)",
-                    hook.getY()));
-        }
-        return new HookChoice(null, hook, chosenSchool, chosenMember, at);
+        return new HookChoice(null, hook, chosenSchool, chosenMember, chosenGoal);
     }
 
     /** How far under a bobber's centre its water is judged, blocks: where the hook hangs. */
@@ -1327,7 +1497,8 @@ public final class FishSchoolManager {
                     NetworkApiSided.sendToPlayer(player, new FishSchoolSetupPacket(dimension, school.id(),
                             runtime.epoch, school.species(), runtime.setup, List.copyOf(runtime.inputs),
                             runtime.sim.steps(), school.members().stream()
-                                    .map(m -> new FishSchoolSetupPacket.MemberQuality(m.id(), m.quality())).toList()),
+                                    .map(m -> new FishSchoolSetupPacket.MemberQuality(m.id(), m.quality())).toList(),
+                            (int) Math.min(Integer.MAX_VALUE, Math.max(0L, now - school.createdAt()))),
                             FishSchoolSetupPacket.STREAM_CODEC);
                     mine.put(school.id(), runtime.epoch);
                 }

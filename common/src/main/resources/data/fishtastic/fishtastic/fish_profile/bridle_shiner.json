@@ -16,5 +16,6 @@
   },
   "time_weights": [
     { "time": "day", "multiplier": 1.5 }
-  ]
+  ],
+  "world_encounter": { "shape": "school" }
 }

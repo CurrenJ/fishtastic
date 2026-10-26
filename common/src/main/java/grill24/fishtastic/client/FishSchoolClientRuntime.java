@@ -205,6 +205,8 @@ public final class FishSchoolClientRuntime {
         final Map<UUID, Vec3> lastPositions = new HashMap<>();
         /** Each member's distance swum since its last mote, blocks. */
         final Map<UUID, Double> sinceMote = new HashMap<>();
+        /** Ticks each near-motionless member has gone since its last stationary glint. */
+        final Map<UUID, Integer> stillTicks = new HashMap<>();
         final List<TrailMote> trail = new ArrayList<>();
         final Random trailRandom;
         float fadeTicks = -1f;
@@ -269,6 +271,55 @@ public final class FishSchoolClientRuntime {
         Copy copy = new Copy(replica, stack, anim);
         for (FishSchoolSetupPacket.MemberQuality q : packet.qualities()) copy.qualities.put(q.member(), q.quality());
         COPIES.put(packet.school(), copy);
+        if (packet.ageTicks() <= ARRIVAL_WINDOW_TICKS && FishtasticClientConfig.isFishSchoolArrivalsShown()
+                && FishtasticClientConfig.isFishSchoolsVisible()) {
+            arrivalRipples(copy, packet.setup());
+        }
+    }
+
+    /** Self-test counters: arrivals shown and stationary glints given off since the last reset. */
+    private static int arrivalsShown, stillGlints;
+
+    public static void resetSelfTestCounters() {
+        arrivalsShown = 0;
+        stillGlints = 0;
+    }
+
+    public static int arrivalsForSelfTest() { return arrivalsShown; }
+
+    public static int stillGlintsForSelfTest() { return stillGlints; }
+
+    /** A visit this young when its setup arrives has only just come: its arrival is shown, ticks. */
+    private static final int ARRIVAL_WINDOW_TICKS = 100;
+
+    /**
+     * The arrival cue (encounter spec §6.3): rings spreading on the surface over each fish and a
+     * little splash, so a player busy with something else notices that something came. Silent by
+     * design, as automatic effects are; the rings take each fish's quality tint like its sparkle.
+     */
+    private static void arrivalRipples(Copy copy, FishSchoolSim.Setup setup) {
+        arrivalsShown++;
+        ClientLevel level = Minecraft.getInstance().level;
+        BlockPos o = setup.origin();
+        Random random = copy.trailRandom;
+        for (FishSchoolSim.Placement p : setup.members()) {
+            double x = o.getX() + p.l(), y = o.getY() + p.y(), z = o.getZ() + p.d();
+            double surface = waterSurfaceAbove(x, y, z);
+            int[] tints = tints(copy, p.member());
+            for (int ring = 0; ring < 3; ring++) {
+                TrailMote mote = addMote(copy, x + (random.nextDouble() - 0.5) * 0.4, surface + 0.015,
+                        z + (random.nextDouble() - 0.5) * 0.4, 0, 0, 0, 0.35f + ring * 0.25f, 18 + ring * 10,
+                        RIPPLE_SPRITE, tints);
+                mote.flat = true;
+            }
+            if (level != null) {
+                for (int i = 0; i < 6; i++) {
+                    level.addParticle(ParticleTypes.SPLASH, x + (random.nextDouble() - 0.5) * 0.8, surface + 0.05,
+                            z + (random.nextDouble() - 0.5) * 0.8, 0, 0.05, 0);
+                }
+            }
+        }
+        while (copy.trail.size() > MAX_TRAIL_MOTES) copy.trail.remove(0);
     }
 
     public static void onInputs(FishSchoolInputPacket packet) {
@@ -390,6 +441,7 @@ public final class FishSchoolClientRuntime {
             if (moved && before != null
                     && copy.visual.getOrDefault(id, FishSchoolStatePacket.AVAILABLE) != FishSchoolStatePacket.DEPARTING) {
                 spawnMotes(copy, id, before, at, drawn.subtract(at), engine.lengths[i]);
+                stillGlint(copy, id, before, at, drawn);
                 int state = engine.shelterState(i);
                 if (state == FlockEngine.SHELTER_APPROACH || state == FlockEngine.SHELTER_ENTER) {
                     sprintBubbles(copy, before, at, drawn.subtract(at), engine.lengths[i]);
@@ -438,6 +490,31 @@ public final class FishSchoolClientRuntime {
                     size, MOTE_LIFETIME + random.nextInt(MOTE_LIFETIME_SPREAD), tints);
         }
         copy.sinceMote.put(member, distance - (next - MOTE_SPACING));
+    }
+
+    /** A fish moving less than this a tick lays almost no trail (an eel, a resting crab), blocks. */
+    private static final double STILL_SPEED = 0.02;
+    /** Such a fish gives off one rising glint this often instead, ticks, so it stays marked. */
+    private static final int STILL_GLINT_TICKS = 12;
+
+    /**
+     * The stationary sparkle (encounter spec §6.2): a creature that barely moves leaves no swim
+     * trail, so it glints in place now and then, in its quality's tint like the trail.
+     */
+    private static void stillGlint(Copy copy, UUID member, Vec3 before, Vec3 at, Vec3 drawn) {
+        if (before.distanceToSqr(at) >= STILL_SPEED * STILL_SPEED) {
+            copy.stillTicks.remove(member);
+            return;
+        }
+        int ticks = copy.stillTicks.merge(member, 1, Integer::sum);
+        if (ticks < STILL_GLINT_TICKS) return;
+        copy.stillTicks.put(member, 0);
+        stillGlints++;
+        Random random = copy.trailRandom;
+        addMote(copy, drawn.x + (random.nextDouble() - 0.5) * 0.12, drawn.y + 0.05 + random.nextDouble() * 0.08,
+                drawn.z + (random.nextDouble() - 0.5) * 0.12, 0, 0.0025 + random.nextDouble() * 0.0015, 0,
+                0.034f + random.nextFloat() * 0.02f, MOTE_LIFETIME + random.nextInt(MOTE_LIFETIME_SPREAD),
+                tints(copy, member));
     }
 
     /** One bubble per this many blocks a fish sprints for a bobber, on average. */
@@ -782,7 +859,7 @@ public final class FishSchoolClientRuntime {
             }
             long created = System.nanoTime();
             FishSchoolSim sim = FishSchoolSim.create(new FishSchoolSim.Setup(setup.origin(), setup.columns(),
-                    setup.spec(), setup.seed(), placements));
+                    setup.spec(), setup.seed(), placements, setup.shape()));
             if (sim == null) return "setup did not build";
             long start = System.nanoTime();
             long chunkStart = start, worstChunk = 0L;

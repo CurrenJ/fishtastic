@@ -716,7 +716,7 @@ public class FishingMinigameManager {
             float difficultyModifier) {
         Item item = BuiltInRegistries.ITEM.getOptional(binding.species()).orElse(null);
         if (!(item instanceof FishtasticFishItem)
-                || !item.builtInRegistryHolder().is(FishtasticItemTags.FISH_SCHOOL_ENABLED)) return null;
+                || !FishSchoolManager.get(level).encounterEligible(item.builtInRegistryHolder())) return null;
 
         FishQuality.Quality forcedQuality = getForcedQuality(player.getUUID()).orElse(null);
         long seed = binding.rewardSeed()

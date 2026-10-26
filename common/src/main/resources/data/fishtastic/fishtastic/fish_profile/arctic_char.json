@@ -15,5 +15,6 @@
     { "time": "dawn", "multiplier": 1.5 },
     { "time": "dusk", "multiplier": 1.5 }
   ],
-  "temperament": "fishtastic:wily"
+  "temperament": "fishtastic:wily",
+  "world_encounter": { "shape": "loose_group" }
 }

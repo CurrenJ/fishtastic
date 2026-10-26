@@ -19,8 +19,10 @@ public final class FishtasticClientConfig {
     private static final String FILE_NAME = "fishtastic-client.properties";
     public static final String AMBIENT_FISH_ENABLED_KEY = "ambientFishEnabled";
     private static final String FISH_SCHOOLS_VISIBLE_KEY = "fishSchoolsVisible";
+    private static final String FISH_SCHOOL_ARRIVALS_KEY = "fishSchoolArrivals";
     private static Boolean ambientFishEnabled;
     private static Boolean fishSchoolsVisible;
+    private static Boolean fishSchoolArrivals;
     private static Integer ambientFishDensity;
     private static Integer ambientDensityTestOverride;
     private static final String TANK_WATER_FILL_KEY = "tankWaterFillEnabled";
@@ -51,6 +53,10 @@ public final class FishtasticClientConfig {
             # preference; hiding them does not change the server's fish or catch opportunities.
             # /fishtasticambient schools visible <true|false>
             fishSchoolsVisible=true
+
+            # A silent burst of ripples where an interactive visit arrives near you.
+            # /fishtasticambient schools arrivals <true|false>
+            fishSchoolArrivals=true
 
             # Draws an animated water fill behind fish tank glass. Toggled via
             # "/fishtastic tank waterfill <true|false>" in-game, which also rewrites this file.
@@ -168,6 +174,18 @@ public final class FishtasticClientConfig {
         persist();
     }
 
+    public static boolean isFishSchoolArrivalsShown() {
+        if (fishSchoolArrivals == null) {
+            fishSchoolArrivals = Boolean.parseBoolean(load().getProperty(FISH_SCHOOL_ARRIVALS_KEY, "true"));
+        }
+        return fishSchoolArrivals;
+    }
+
+    public static void setFishSchoolArrivalsShown(boolean shown) {
+        fishSchoolArrivals = shown;
+        persist();
+    }
+
     private FishtasticClientConfig() {}
 
     @ExpectPlatform
@@ -187,6 +205,7 @@ public final class FishtasticClientConfig {
         ambientFishEnabled = null;
         ambientFishDensity = null;
         fishSchoolsVisible = null;
+        fishSchoolArrivals = null;
         tankWaterFillEnabled = null;
         tankInteriorLight = null;
         notificationVolume = null;
@@ -358,6 +377,7 @@ public final class FishtasticClientConfig {
         props.setProperty(AMBIENT_FISH_ENABLED_KEY, String.valueOf(storedAmbientFishEnabled()));
         props.setProperty("ambientFishDensity", String.valueOf(storedAmbientFishDensity()));
         props.setProperty(FISH_SCHOOLS_VISIBLE_KEY, String.valueOf(isFishSchoolsVisible()));
+        props.setProperty(FISH_SCHOOL_ARRIVALS_KEY, String.valueOf(isFishSchoolArrivalsShown()));
         props.setProperty(NOTIFICATION_VOLUME_KEY, String.valueOf(getNotificationVolume()));
         props.setProperty(TANK_WATER_FILL_KEY, String.valueOf(isTankWaterFillEnabled()));
         props.setProperty(TANK_INTERIOR_LIGHT_KEY, String.valueOf(getTankInteriorLight()));

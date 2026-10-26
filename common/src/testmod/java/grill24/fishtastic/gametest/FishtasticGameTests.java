@@ -1262,6 +1262,36 @@ public class FishtasticGameTests {
         FishingMinigameManagerGameTests.handleMinigameCompleteDropsRewardWhenInventoryIsFullAndAutoPileFishIsActive(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
+    @GameTest(template = "fishtastic_empty")
+    public void encounterEligibilityFollowsTheRule(GameTestHelper helper) {
+        FishSchoolGameTests.encounterEligibilityFollowsTheRule(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void spawnedVisitsTakeTheirShape(GameTestHelper helper) {
+        FishSchoolGameTests.spawnedVisitsTakeTheirShape(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void schoolsSavedBeforeShapesLoadAsSchools(GameTestHelper helper) {
+        FishSchoolGameTests.schoolsSavedBeforeShapesLoadAsSchools(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty", timeoutTicks = 900, batch = "in_world_fish_visits")
+    public void crawlerTakesABottomBite(GameTestHelper helper) {
+        FishSchoolGameTests.crawlerTakesABottomBite(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty", timeoutTicks = 1100, batch = "in_world_fish_visits")
+    public void drifterIsCarriedToTheBait(GameTestHelper helper) {
+        FishSchoolGameTests.drifterIsCarriedToTheBait(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty", timeoutTicks = 500, batch = "in_world_fish_visits")
+    public void eelTakesABobberOverItsBurrow(GameTestHelper helper) {
+        FishSchoolGameTests.eelTakesABobberOverItsBurrow(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
     // -------------------------------------------------------------------------
     // ShopEntry tests  (pure registry-only logic, no player needed)
     // -------------------------------------------------------------------------
@@ -2054,7 +2084,7 @@ public class FishtasticGameTests {
         FishSchoolGameTests.missedTargetRecoversAndRetryKeepsReward(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(template = "fishtastic_empty", timeoutTicks = 360)
+    @GameTest(template = "fishtastic_empty", timeoutTicks = 360, batch = "in_world_fish_visits")
     public void liveSchoolApproachesAndTriggersOwnedBite(GameTestHelper helper) {
         FishSchoolGameTests.liveSchoolApproachesAndTriggersOwnedBite(helper, FishtasticTestSupport.playerSupplier(helper));
     }

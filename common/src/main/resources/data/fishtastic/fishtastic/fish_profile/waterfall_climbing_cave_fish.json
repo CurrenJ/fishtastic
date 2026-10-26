@@ -12,5 +12,6 @@
     { "weather": "rain", "multiplier": 1.4 }
   ],
   "temperament": "fishtastic:sprinter",
-  "swarm": { "shelter": "visitor" }
+  "swarm": { "shelter": "visitor" },
+  "world_encounter": { "shape": "loose_group" }
 }

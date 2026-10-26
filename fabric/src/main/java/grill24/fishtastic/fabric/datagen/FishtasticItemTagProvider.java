@@ -80,11 +80,12 @@ public class FishtasticItemTagProvider extends FabricTagProvider.ItemTagProvider
 
         // Interactive schools are deliberately opt-in. The small first-release set avoids
         // automatically making every future fish catchable in the world population.
-        getOrCreateTagBuilder(FishtasticItemTags.FISH_SCHOOL_ENABLED)
-                .add(FishtasticItems.BLUEGILL.value())
-                .add(FishtasticItems.NEON_TETRA.value())
-                .add(FishtasticItems.BRIDLE_SHINER.value())
-                .add(FishtasticItems.YELLOWSTRIPE_GRUNT.value());
+        // Interactive visits qualify by rule; this allow override stays empty until a class
+        // needs staged testing (docs/in-world-fish-encounters-design-spec.md §5.1).
+        getOrCreateTagBuilder(FishtasticItemTags.FISH_SCHOOL_ENABLED);
+        getOrCreateTagBuilder(FishtasticItemTags.FISH_ENCOUNTER_DISABLED)
+                .add(FishtasticItems.SHRIMP.value())
+                .add(FishtasticItems.FRIED_SHRIMP.value());
 
         // Fishing bait
         getOrCreateTagBuilder(FishtasticItemTags.FISHING_BAIT)

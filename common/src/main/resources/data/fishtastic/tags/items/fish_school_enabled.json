@@ -1,9 +1,4 @@
 {
   "replace": false,
-  "values": [
-    "fishtastic:bluegill",
-    "fishtastic:neon_tetra",
-    "fishtastic:bridle_shiner",
-    "fishtastic:yellowstripe_grunt"
-  ]
+  "values": []
 }

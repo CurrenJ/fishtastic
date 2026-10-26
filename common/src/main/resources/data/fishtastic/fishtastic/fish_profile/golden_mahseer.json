@@ -9,5 +9,6 @@
     { "biome": "#fishtastic:is_snowy_peaks", "multiplier": 1.4 }
   ],
   "temperament": "fishtastic:aggressive",
-  "swarm": { "shelter": "lurker" }
+  "swarm": { "shelter": "lurker" },
+  "world_encounter": { "shape": "pair" }
 }

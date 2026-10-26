@@ -9,5 +9,6 @@
   "time_weights": [
     { "time": "night", "multiplier": 1.5 }
   ],
-  "swarm": { "shelter": "visitor" }
+  "swarm": { "shelter": "visitor" },
+  "world_encounter": { "shape": "pair" }
 }

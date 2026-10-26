@@ -47,7 +47,7 @@ class FishSchoolReplicaTest {
                         new FishSchoolSim.Placement(A, 1.5f, -0.5f, 1.5f),
                         new FishSchoolSim.Placement(B, 5.5f, -0.5f, 1.5f),
                         new FishSchoolSim.Placement(C, 1.5f, -0.5f, 5.5f),
-                        new FishSchoolSim.Placement(D, 5.5f, -0.5f, 5.5f)));
+                        new FishSchoolSim.Placement(D, 5.5f, -0.5f, 5.5f)), VisitShape.SCHOOL);
     }
 
     /** The server side of the visit: its sim, its input log, and its fingerprint after every step. */

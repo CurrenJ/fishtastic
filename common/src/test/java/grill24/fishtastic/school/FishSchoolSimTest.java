@@ -45,7 +45,7 @@ class FishSchoolSimTest {
                 FishSchoolSim.spec(LENGTH, Locomotion.FREE_SWIM, ShelterUse.VISITOR), seed, List.of(
                         new FishSchoolSim.Placement(A, 2.5f, 0.5f, 0.5f),
                         new FishSchoolSim.Placement(B, -1.5f, 0.5f, 0.5f),
-                        new FishSchoolSim.Placement(C, 0.5f, 0.5f, 3.5f))));
+                        new FishSchoolSim.Placement(C, 0.5f, 0.5f, 3.5f)), VisitShape.SCHOOL));
         assertNotNull(sim);
         return sim;
     }

@@ -12,5 +12,6 @@
     "mode": "floor_sit",
     "diagonal_texture": true,
     "ripple": 6.0
-  }
+  },
+  "world_encounter": { "shape": "solitary" }
 }

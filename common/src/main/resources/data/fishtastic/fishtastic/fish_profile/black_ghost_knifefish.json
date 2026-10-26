@@ -18,5 +18,6 @@
   "animation": {
     "mode": "horizontal_swim"
   },
-  "swarm": { "shelter": "lurker" }
+  "swarm": { "shelter": "lurker" },
+  "world_encounter": { "shape": "solitary" }
 }

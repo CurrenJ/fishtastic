@@ -6,6 +6,7 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticBiomeTags;
+import grill24.fishtastic.school.VisitShape;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
@@ -45,7 +46,8 @@ public record FishProfile(
         float renderCalibration,
         Optional<CompanionGroupConfig> companionGroup,
         CompanionGait companionGait,
-        CompanionDrift companionDrift
+        CompanionDrift companionDrift,
+        Optional<WorldEncounter> worldEncounter
 ) {
     public static final int DEFAULT_BASE_WEIGHT = 10;
     public static final float DEFAULT_MEAN_SIZE = 50.0f;
@@ -81,8 +83,100 @@ public record FishProfile(
             Codec.FLOAT.optionalFieldOf("render_calibration", DEFAULT_RENDER_CALIBRATION).forGetter(FishProfile::renderCalibration),
             CompanionGroupConfig.CODEC.optionalFieldOf("companion_group").forGetter(FishProfile::companionGroup),
             CompanionGait.CODEC.optionalFieldOf("companion_gait", CompanionGait.CRAWL).forGetter(FishProfile::companionGait),
-            CompanionDrift.CODEC.optionalFieldOf("companion_drift", CompanionDrift.BELL).forGetter(FishProfile::companionDrift)
+            CompanionDrift.CODEC.optionalFieldOf("companion_drift", CompanionDrift.BELL).forGetter(FishProfile::companionDrift),
+            WorldEncounter.CODEC.optionalFieldOf("world_encounter").forGetter(FishProfile::worldEncounter)
     ).apply(i, FishProfile::new));
+
+    /**
+     * How this species arrives as an interactive in-world visit
+     * (docs/in-world-fish-encounters-design-spec.md §8). Ecology stays in the weight tables above;
+     * this only describes the encounter. A missing shape falls back to {@link VisitShape#fallback}.
+     *
+     * @param members       how many fish a visit holds, clamped to the shape's own range
+     * @param lifetimeScale multiplies the configured visit lifetime
+     */
+    public record WorldEncounter(Optional<VisitShape> shape, Optional<MemberRange> members, float lifetimeScale) {
+        public static final float MIN_LIFETIME_SCALE = 0.25f;
+        public static final float MAX_LIFETIME_SCALE = 2.0f;
+
+        public static final Codec<WorldEncounter> CODEC = RecordCodecBuilder.create(i -> i.group(
+                strictOptionalFieldOf("shape", VisitShape.CODEC).forGetter(WorldEncounter::shape),
+                strictOptionalFieldOf("members", MemberRange.CODEC).forGetter(WorldEncounter::members),
+                strictDefaultFieldOf("lifetime_scale",
+                        Codec.floatRange(MIN_LIFETIME_SCALE, MAX_LIFETIME_SCALE), 1.0f)
+                        .forGetter(WorldEncounter::lifetimeScale)
+        ).apply(i, WorldEncounter::new));
+
+        /** 1.20.1's OptionalFieldCodec treats a malformed present value as absent; keep schema errors strict. */
+        private static <A> com.mojang.serialization.MapCodec<Optional<A>> strictOptionalFieldOf(
+                String name, Codec<A> codec) {
+            return new com.mojang.serialization.MapCodec<Optional<A>>() {
+                @Override
+                public <T> java.util.stream.Stream<T> keys(com.mojang.serialization.DynamicOps<T> ops) {
+                    return java.util.stream.Stream.of(ops.createString(name));
+                }
+
+                @Override
+                public <T> com.mojang.serialization.DataResult<Optional<A>> decode(
+                        com.mojang.serialization.DynamicOps<T> ops, com.mojang.serialization.MapLike<T> input) {
+                    T value = input.get(name);
+                    return value == null ? com.mojang.serialization.DataResult.success(Optional.empty())
+                            : codec.parse(ops, value).map(Optional::of);
+                }
+
+                @Override
+                public <T> com.mojang.serialization.RecordBuilder<T> encode(
+                        Optional<A> value, com.mojang.serialization.DynamicOps<T> ops,
+                        com.mojang.serialization.RecordBuilder<T> prefix) {
+                    return value.map(present -> prefix.add(name, codec.encodeStart(ops, present))).orElse(prefix);
+                }
+            };
+        }
+
+        private static <A> com.mojang.serialization.MapCodec<A> strictDefaultFieldOf(
+                String name, Codec<A> codec, A defaultValue) {
+            return new com.mojang.serialization.MapCodec<A>() {
+                @Override
+                public <T> java.util.stream.Stream<T> keys(com.mojang.serialization.DynamicOps<T> ops) {
+                    return java.util.stream.Stream.of(ops.createString(name));
+                }
+
+                @Override
+                public <T> com.mojang.serialization.DataResult<A> decode(
+                        com.mojang.serialization.DynamicOps<T> ops, com.mojang.serialization.MapLike<T> input) {
+                    T value = input.get(name);
+                    return value == null ? com.mojang.serialization.DataResult.success(defaultValue)
+                            : codec.parse(ops, value);
+                }
+
+                @Override
+                public <T> com.mojang.serialization.RecordBuilder<T> encode(
+                        A value, com.mojang.serialization.DynamicOps<T> ops,
+                        com.mojang.serialization.RecordBuilder<T> prefix) {
+                    return java.util.Objects.equals(value, defaultValue) ? prefix
+                            : prefix.add(name, codec.encodeStart(ops, value));
+                }
+            };
+        }
+
+        public record MemberRange(int min, int max) {
+            public static final Codec<MemberRange> CODEC = RecordCodecBuilder.<MemberRange>create(i -> i.group(
+                    Codec.intRange(1, 64).fieldOf("min").forGetter(MemberRange::min),
+                    Codec.intRange(1, 64).fieldOf("max").forGetter(MemberRange::max)
+            ).apply(i, MemberRange::new)).flatXmap(MemberRange::validated, MemberRange::validated);
+
+            private static com.mojang.serialization.DataResult<MemberRange> validated(MemberRange range) {
+                return range.min() <= range.max()
+                        ? com.mojang.serialization.DataResult.success(range)
+                        : com.mojang.serialization.DataResult.error(() -> "members.min must not exceed members.max");
+            }
+        }
+    }
+
+    /** The authored visit shape, or the rarity fallback when none is authored. */
+    public VisitShape visitShape() {
+        return worldEncounter.flatMap(WorldEncounter::shape).orElseGet(() -> VisitShape.fallback(baseWeight));
+    }
 
     /**
      * How a benthic companion gets about on land (docs/fish-companions.md): the

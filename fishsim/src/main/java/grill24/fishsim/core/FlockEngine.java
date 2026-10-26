@@ -201,6 +201,35 @@ public final class FlockEngine {
         watcherD = d;
     }
 
+    // Seek goals: a point a crawler or drifter heads for, for a host that sends one to a bait (an
+    // interactive in-world visit, docs/in-world-fish-encounters-design-spec.md §4). Off for every
+    // fish unless the host sets one, so nothing that never seeks (every tank) steps differently.
+    // Indexed by slot and not carried across a rebuild: the host clears and re-sets them after one.
+    private boolean[] seekActive = new boolean[0];
+    private float[] seekL = new float[0], seekY = new float[0], seekD = new float[0], seekSpeed = new float[0];
+
+    /**
+     * Sends crawler or drifter #{@code i} toward {@code (l, y, d)} at {@code speed} blocks a
+     * second. A crawler walks the floor to beneath it and stops; a drifter is carried to it and
+     * keeps pulsing there. Ignored for other classes.
+     */
+    public void seek(int i, float l, float y, float d, float speed) {
+        if (i < 0 || i >= count) return;
+        seekActive[i] = true;
+        seekL[i] = l;
+        seekY[i] = y;
+        seekD[i] = d;
+        seekSpeed[i] = speed;
+    }
+
+    /** Clears every seek goal. */
+    public void clearSeeks() {
+        Arrays.fill(seekActive, false);
+    }
+
+    /** Fish #{@code i}'s silhouette envelope: for an anchored eel, 0 fully out of its burrow and 1 fully withdrawn. */
+    public float shapeDrive(int i) { return shapeDrive[i]; }
+
     /**
      * Maps a model-space offset — the frame the render scratch is written in, see
      * {@link #interpolate} — back into sim-local coordinates. The inverse of the rotation
@@ -328,6 +357,12 @@ public final class FlockEngine {
 
     /** Crawl speed at full drive, blocks/s — an order of magnitude under a swimmer's cruise. */
     private static final float CRAWL_SPEED = 0.035f;
+    /** A seeking crawler stops this close to its goal, blocks. */
+    private static final float SEEK_CRAWL_ARRIVE = 0.12f;
+    /** A seeking crawler turns toward its goal at up to this, degrees a tick — twice its wander. */
+    private static final float SEEK_CRAWL_TURN_RATE = 9f;
+    /** How hard a seeking drifter is pulled to its goal's level, per second per block of error. */
+    private static final float SEEK_DRIFT_VERTICAL_GAIN = 1.0f;
     /** Max crawl turn, degrees per tick. A crawler pivots on the spot; it does not bank. */
     private static final float CRAWL_TURN_RATE = 4.5f;
     /** Period of one scuttle-and-pause cycle, seconds (± BURST_PERIOD_JITTER per fish). */
@@ -1751,6 +1786,8 @@ public final class FlockEngine {
         startled = new boolean[n];
         shelterClaim = new int[n];
         Arrays.fill(shelterClaim, -1);
+        seekActive = new boolean[n];
+        seekL = new float[n]; seekY = new float[n]; seekD = new float[n]; seekSpeed = new float[n];
     }
 
     /** The shelter lurker #{@code i} calls home, or −1. */
@@ -4340,9 +4377,19 @@ public final class FlockEngine {
     private void stepBenthic(int i) {
         float dt = t.dt();
 
+        // A seek (a host-sent walk to a bait) replaces the wander: no pauses on the way, then a stop
+        // once there. Unset for every crawler that was never sent, which steps exactly as before.
+        boolean seeking = seekActive[i];
+        float seekDist = 0f, seekYaw = 0f;
+        if (seeking) {
+            float gl = seekL[i] - posL[i], gd = seekD[i] - posD[i];
+            seekDist = (float) Math.sqrt(gl * gl + gd * gd);
+            seekYaw = (float) Math.toDegrees(StrictMath.atan2(-gd, gl));
+        }
+
         // Scuttle-and-pause. Same integrated-envelope shape as the swimmers' burst-and-coast, and
         // for the same reason: a stepped target reads as a twitch, an integrated one as a start.
-        boolean moving = dwellPhase(i) < CRAWL_DUTY;
+        boolean moving = seeking ? seekDist > SEEK_CRAWL_ARRIVE : dwellPhase(i) < CRAWL_DUTY;
         float target = moving ? 1f : 0f;
         float rate = moving ? CRAWL_ATTACK_RATE : CRAWL_STOP_RATE;
         burstDrive[i] += (target - burstDrive[i]) * rate * dt;
@@ -4354,7 +4401,8 @@ public final class FlockEngine {
         wanderState[i] = SimMath.clamp(wanderState[i], -WANDER_CLAMP, WANDER_CLAMP);
 
         float yaw = yawDeg[i];
-        float turn = wanderState[i] * CRAWL_TURN_RATE * turnScale[i];
+        float turn = seeking ? SimMath.clamp(wrapDeg(seekYaw - yaw), -SEEK_CRAWL_TURN_RATE, SEEK_CRAWL_TURN_RATE)
+                : wanderState[i] * CRAWL_TURN_RATE * turnScale[i];
         if (!clearAhead(i, yaw)) {
             boolean left = clearAhead(i, yaw + CRAWL_PROBE_SPREAD);
             boolean right = clearAhead(i, yaw - CRAWL_PROBE_SPREAD);
@@ -4375,6 +4423,13 @@ public final class FlockEngine {
         float dirD = -(float) StrictMath.sin(yr);
 
         float drive = CRAWL_SPEED * burstDrive[i] * speedScale[i];
+        if (seeking) {
+            // Walk only roughly toward the goal (a crab turning on the spot does not stride off
+            // sideways), and never past it in one step.
+            float off = (float) Math.toRadians(wrapDeg(seekYaw - yaw));
+            drive = seekSpeed[i] * burstDrive[i] * Math.max(0f, (float) StrictMath.cos(off));
+            drive = Math.min(drive, seekDist / dt);
+        }
         float vl = dirL * drive;
         float vd = dirD * drive;
 
@@ -4843,6 +4898,18 @@ public final class FlockEngine {
         float vl = wanderState[i] * drive;
         float vd = wanderStateY[i] * drive;
         float vy = (DRIFT_PULSE_SPEED * burstDrive[i] - DRIFT_SINK_SPEED) * speedScale[i];
+        if (seekActive[i]) {
+            // Carried to a bait: a steady set across, and a level held around it, with the pulse
+            // still riding on top so the bell keeps beating while it arrives.
+            float gl = seekL[i] - posL[i], gy = seekY[i] - posY[i], gd = seekD[i] - posD[i];
+            float h = (float) Math.sqrt(gl * gl + gd * gd);
+            if (h > 1e-4f) {
+                float s = Math.min(seekSpeed[i], h / dt);
+                vl += gl / h * s;
+                vd += gd / h * s;
+            }
+            vy += SimMath.clamp(gy * SEEK_DRIFT_VERTICAL_GAIN, -seekSpeed[i], seekSpeed[i]);
+        }
 
         // Bell separation and weak same-species cohesion, in one pass. Drifters interact only with
         // each other here; every other class already sees them through the swimmers' separation

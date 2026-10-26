@@ -7,6 +7,7 @@ import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.data.FishMoonPhase;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.item.FishtasticFishItem;
+import grill24.fishtastic.school.VisitShape;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.resources.ResourceLocation;
@@ -118,13 +119,15 @@ public final class FishSchoolSavedData extends SavedData {
         private final BlockPos anchor;
         private final long createdAt;
         private final FormationSnapshot formation;
+        private final VisitShape shape;
         private final List<Member> members;
         private long activeUntil;
         private long departureUntil;
         private SchoolState state;
 
         private School(UUID id, ResourceLocation species, BlockPos anchor, long createdAt, long activeUntil,
-                       long departureUntil, SchoolState state, FormationSnapshot formation, List<Member> members) {
+                       long departureUntil, SchoolState state, FormationSnapshot formation, VisitShape shape,
+                       List<Member> members) {
             this.id = id;
             this.species = species;
             this.anchor = anchor;
@@ -133,6 +136,7 @@ public final class FishSchoolSavedData extends SavedData {
             this.departureUntil = departureUntil;
             this.state = state;
             this.formation = formation;
+            this.shape = shape;
             this.members = new ArrayList<>(members);
         }
 
@@ -144,6 +148,8 @@ public final class FishSchoolSavedData extends SavedData {
         public long departureUntil() { return departureUntil; }
         public SchoolState state() { return state; }
         public FormationSnapshot formation() { return formation; }
+        /** How the visit arrived: alone, a pair, a loose group or a school. */
+        public VisitShape shape() { return shape; }
         public List<Member> members() { return members; }
 
         void setState(SchoolState value) { state = value; }
@@ -181,6 +187,8 @@ public final class FishSchoolSavedData extends SavedData {
             Codec.LONG.optionalFieldOf("departure_until", 0L).forGetter(School::departureUntil),
             SchoolState.CODEC.optionalFieldOf("state", SchoolState.ACTIVE).forGetter(School::state),
             FormationSnapshot.CODEC.fieldOf("formation").forGetter(School::formation),
+            // Visits saved before shapes existed were all schools.
+            VisitShape.CODEC.optionalFieldOf("shape", VisitShape.SCHOOL).forGetter(School::shape),
             MEMBER_CODEC.listOf().fieldOf("members").forGetter(School::members)
     ).apply(i, School::new));
 
@@ -240,7 +248,7 @@ public final class FishSchoolSavedData extends SavedData {
             members.add(new Member(UUID.randomUUID(), fixture.rewardSeed(), fixture.position(),
                     0L, fixture.state(), Optional.ofNullable(fixture.reservation())));
         }
-        School school = newSchool(species, anchor, createdAt, activeUntil, formation, members);
+        School school = newSchool(species, anchor, createdAt, activeUntil, formation, VisitShape.SCHOOL, members);
         addSchool(school);
         return school;
     }
@@ -318,9 +326,9 @@ public final class FishSchoolSavedData extends SavedData {
     }
 
     static School newSchool(ResourceLocation species, BlockPos anchor, long createdAt, long activeUntil,
-                            FormationSnapshot formation, List<Member> members) {
+                            FormationSnapshot formation, VisitShape shape, List<Member> members) {
         return new School(UUID.randomUUID(), species, anchor, createdAt, activeUntil, 0L,
-                SchoolState.ACTIVE, formation, members);
+                SchoolState.ACTIVE, formation, shape, members);
     }
 
     public static FormationSnapshot snapshot(FishingPoolResolver.EnvironmentContext env) {

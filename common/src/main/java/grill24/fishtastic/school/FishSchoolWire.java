@@ -28,6 +28,7 @@ public final class FishSchoolWire {
 
     private static final Locomotion[] LOCOMOTIONS = Locomotion.values();
     private static final ShelterUse[] SHELTER_USES = ShelterUse.values();
+    private static final VisitShape[] SHAPES = VisitShape.values();
 
     public static final BufCodec<WaterDomain.Column> COLUMN = BufCodec.of(
             (buf, c) -> {
@@ -73,11 +74,13 @@ public final class FishSchoolWire {
                 SPEC.encode(buf, s.spec());
                 buf.writeLong(s.seed());
                 writeList(buf, s.members(), PLACEMENT);
+                BufCodecs.VAR_INT.encode(buf, s.shape().ordinal());
             },
             buf -> new FishSchoolSim.Setup(BufCodecs.BLOCK_POS.decode(buf), readList(buf, COLUMN, MAX_COLUMNS),
-                    SPEC.decode(buf), buf.readLong(), readList(buf, PLACEMENT, MAX_MEMBERS)));
+                    SPEC.decode(buf), buf.readLong(), readList(buf, PLACEMENT, MAX_MEMBERS),
+                    SHAPES[bounded(BufCodecs.VAR_INT.decode(buf), SHAPES.length - 1, "visit shape")]));
 
-    private static final int LEAVE = 0, REJOIN = 1, APPROACH = 2, WITHDRAW = 3, WATER = 4;
+    private static final int LEAVE = 0, REJOIN = 1, APPROACH = 2, WITHDRAW = 3, WATER = 4, WATCHER = 5;
 
     public static final BufCodec<FishSchoolSim.Input> INPUT = BufCodec.of(
             (buf, input) -> {
@@ -105,6 +108,12 @@ public final class FishSchoolWire {
                 } else if (input instanceof FishSchoolSim.Water water) {
                     buf.writeByte(WATER);
                     writeList(buf, water.columns(), COLUMN);
+                } else if (input instanceof FishSchoolSim.Watcher watcher) {
+                    buf.writeByte(WATCHER);
+                    buf.writeBoolean(watcher.near());
+                    buf.writeFloat(watcher.l());
+                    buf.writeFloat(watcher.y());
+                    buf.writeFloat(watcher.d());
                 } else {
                     throw new IllegalArgumentException("Unknown fish school input " + input.getClass().getName());
                 }
@@ -119,6 +128,7 @@ public final class FishSchoolWire {
                     buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat(), buf.readFloat());
             case WITHDRAW: return new FishSchoolSim.Withdraw(BufCodecs.UUID.decode(buf));
             case WATER: return new FishSchoolSim.Water(readList(buf, COLUMN, MAX_COLUMNS));
+            case WATCHER: return new FishSchoolSim.Watcher(buf.readBoolean(), buf.readFloat(), buf.readFloat(), buf.readFloat());
             default: throw new DecoderException("Unknown fish school input");
         }
     }

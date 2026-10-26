@@ -16,11 +16,12 @@ import java.util.UUID;
  * input applied since, and the server's step when this was sent. Sent when a player starts
  * tracking the school and whenever a new epoch begins (docs/interactive-fish-schools-motion-plan.md).
  * {@code qualities} covers every member of the visit, in the water or not, so a fish that gets away
- * and rejoins keeps its trail colour.
+ * and rejoins keeps its trail colour. {@code ageTicks} is how long ago the visit arrived, so a client
+ * that sees it arrive can show the arrival (encounter spec §6.3).
  */
 public record FishSchoolSetupPacket(ResourceLocation dimension, UUID school, int epoch, ResourceLocation species,
                                     FishSchoolSim.Setup setup, List<FishSchoolSim.Stamped> inputs, long serverStep,
-                                    List<MemberQuality> qualities)
+                                    List<MemberQuality> qualities, int ageTicks)
         implements FishtasticPayload {
     /** A member's quality, which its sparkle trail is drawn in. */
     public record MemberQuality(UUID member, FishQuality.Quality quality) {}
@@ -50,6 +51,7 @@ public record FishSchoolSetupPacket(ResourceLocation dimension, UUID school, int
             FishSchoolWire.STAMPED.apply(BufCodecs.list(FishSchoolWire.MAX_INPUTS)), FishSchoolSetupPacket::inputs,
             BufCodecs.VAR_LONG, FishSchoolSetupPacket::serverStep,
             MEMBER_QUALITY.apply(BufCodecs.list(FishSchoolWire.MAX_MEMBERS)), FishSchoolSetupPacket::qualities,
+            BufCodecs.VAR_INT, FishSchoolSetupPacket::ageTicks,
             FishSchoolSetupPacket::new);
 
     @Override public FishtasticPayload.PayloadType<?> type() { return TYPE; }
