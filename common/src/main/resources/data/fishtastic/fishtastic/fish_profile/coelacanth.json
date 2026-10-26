@@ -16,5 +16,6 @@
     { "phase": "new_moon", "multiplier": 1.2, "tier": "secondary" }
   ],
   "temperament": "fishtastic:ghost",
-  "swarm": { "shelter": "lurker" }
+  "swarm": { "shelter": "lurker" },
+  "world_encounter": { "shape": "solitary" }
 }

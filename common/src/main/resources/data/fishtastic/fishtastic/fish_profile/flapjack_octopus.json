@@ -17,5 +17,6 @@
   "animation": {
     "mode": "upright_float",
     "diagonal_texture": false
-  }
+  },
+  "world_encounter": { "shape": "solitary" }
 }

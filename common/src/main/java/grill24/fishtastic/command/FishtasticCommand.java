@@ -22,21 +22,39 @@ public class FishtasticCommand {
 
     private static int spawnSchool(CommandContext<CommandSourceStack> context, net.minecraft.resources.Identifier species,
                                    @org.jetbrains.annotations.Nullable String quality) {
+        return spawnSchool(context, species, quality, null);
+    }
+
+    private static int spawnSchool(CommandContext<CommandSourceStack> context, net.minecraft.resources.Identifier species,
+                                   @org.jetbrains.annotations.Nullable String quality,
+                                   @org.jetbrains.annotations.Nullable String shapeName) {
+        grill24.fishtastic.school.VisitShape shape = null;
+        if (shapeName != null) {
+            for (var s : grill24.fishtastic.school.VisitShape.values()) {
+                if (s.getSerializedName().equals(shapeName)) shape = s;
+            }
+            if (shape == null) {
+                context.getSource().sendFailure(Component.literal("Unknown shape " + shapeName
+                        + ": solitary, pair, loose_group or school."));
+                return 0;
+            }
+        }
         grill24.fishtastic.component.FishQuality.Quality[] qualities = null;
         if ("mixed".equals(quality)) {
             qualities = grill24.fishtastic.component.FishQuality.Quality.values();
-        } else if (quality != null) {
+        } else if (quality != null && !"any".equals(quality)) {
             for (var q : grill24.fishtastic.component.FishQuality.Quality.values()) {
                 if (q.getSerializedName().equals(quality)) qualities = new grill24.fishtastic.component.FishQuality.Quality[]{q};
             }
             if (qualities == null) {
                 context.getSource().sendFailure(Component.literal("Unknown quality " + quality
-                        + ": common, uncommon, rare, epic, legendary or mixed."));
+                        + ": common, uncommon, rare, epic, legendary, mixed or any."));
                 return 0;
             }
         }
         String result = grill24.fishtastic.server.FishSchoolManager.get(context.getSource().getLevel())
-                .spawnForDebug(net.minecraft.core.BlockPos.containing(context.getSource().getPosition()), species, qualities);
+                .spawnForDebug(net.minecraft.core.BlockPos.containing(context.getSource().getPosition()), species,
+                        qualities, shape);
         context.getSource().sendSuccess(() -> Component.literal(result), false);
         return 1;
     }
@@ -57,13 +75,22 @@ public class FishtasticCommand {
                                 .then(Commands.argument("species", net.minecraft.commands.arguments.IdentifierArgument.id())
                                         .executes(context -> spawnSchool(context,
                                                 net.minecraft.commands.arguments.IdentifierArgument.getId(context, "species"), null))
-                                        // Every member that quality, or "mixed" for one of each in turn: the trail colours.
+                                        // Every member that quality, "mixed" for one of each in turn (the trail
+                                        // colours), or "any" for ordinary rolls.
                                         .then(Commands.argument("quality", com.mojang.brigadier.arguments.StringArgumentType.word())
                                                 .suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(
-                                                        java.util.List.of("common", "uncommon", "rare", "epic", "legendary", "mixed"), b))
+                                                        java.util.List.of("any", "common", "uncommon", "rare", "epic", "legendary", "mixed"), b))
                                                 .executes(context -> spawnSchool(context,
                                                         net.minecraft.commands.arguments.IdentifierArgument.getId(context, "species"),
-                                                        com.mojang.brigadier.arguments.StringArgumentType.getString(context, "quality"))))))
+                                                        com.mojang.brigadier.arguments.StringArgumentType.getString(context, "quality")))
+                                                // The visit's shape instead of the species' own (a non-swimmer cannot school).
+                                                .then(Commands.argument("shape", com.mojang.brigadier.arguments.StringArgumentType.word())
+                                                        .suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(
+                                                                java.util.List.of("solitary", "pair", "loose_group", "school"), b))
+                                                        .executes(context -> spawnSchool(context,
+                                                                net.minecraft.commands.arguments.IdentifierArgument.getId(context, "species"),
+                                                                com.mojang.brigadier.arguments.StringArgumentType.getString(context, "quality"),
+                                                                com.mojang.brigadier.arguments.StringArgumentType.getString(context, "shape")))))))
                         .then(Commands.literal("debug").requires(FishtasticPermissions.gamemaster()).executes(context -> {
                             var schools = grill24.fishtastic.server.FishSchoolManager.get(context.getSource().getLevel());
                             String result = schools.debugNearest(context.getSource().getPosition());

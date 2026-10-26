@@ -11,5 +11,6 @@
     { "phase": "waxing_crescent", "multiplier": 1.3 }
   ],
   "temperament": "fishtastic:wily",
-  "swarm": { "shelter": "lurker" }
+  "swarm": { "shelter": "lurker" },
+  "world_encounter": { "shape": "solitary" }
 }

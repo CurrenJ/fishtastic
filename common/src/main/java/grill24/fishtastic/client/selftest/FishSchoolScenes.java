@@ -101,6 +101,121 @@ final class FishSchoolScenes {
         });
     }
 
+    // ------------------------------------------------------------------ shapes
+
+    /**
+     * One visit of each shape in one pool (docs/in-world-fish-encounters-design-spec.md §3): a
+     * lone pike, a bluegill pair, a loose group of clown loaches and a bluegill school. Each copy
+     * must stay in lockstep with the server under its shape's flocking parameters; the frames are
+     * for judging whether the shapes read differently in the water.
+     */
+    static void queueFishSchoolShapesScene() {
+        int x = origin.getX();
+        int y = origin.getY();
+        int z = origin.getZ();
+
+        queuePool(x, y, z);
+        record Visit(String species, @org.jetbrains.annotations.Nullable grill24.fishtastic.school.VisitShape shape,
+                     String expect, int dx, int dz) {}
+        List<Visit> visits = List.of(
+                new Visit("northern_pike", null, "solitary", -3, -9),
+                new Visit("bluegill", grill24.fishtastic.school.VisitShape.PAIR, "pair", 3, -9),
+                new Visit("clown_loach", null, "loose_group", -3, -3),
+                new Visit("bluegill", null, "school", 3, -3));
+        queue(5, mc -> server(mc, s -> {
+            FishSchoolManager schools = FishSchoolManager.get(s.getLevel(mc.level.dimension()));
+            for (Visit visit : visits) {
+                String result = schools.spawnForDebug(new BlockPos(x + visit.dx(), y, z + visit.dz()),
+                        Fishtastic.id(visit.species()), null, visit.shape());
+                check("fishschoolshapes.spawn." + visit.expect(),
+                        result.startsWith("Spawned") && result.contains(" as " + visit.expect() + " "), result);
+            }
+        }));
+        queue(40, mc -> {
+            mc.options.hideGui = true;
+            check("fishschoolshapes.copies", FishSchoolClientRuntime.debugState().split("\n").length >= visits.size(),
+                    FishSchoolClientRuntime.debugState());
+        });
+
+        queue(1, mc -> camera(mc, x, y + 6.5, z - 5.5, 0f, 89f));
+        queue(60, mc -> {});
+        for (int i = 0; i < 6; i++) {
+            String shot = String.format(java.util.Locale.ROOT, "overhead-%02d", i);
+            queue(20, mc -> screenshot(mc, "fishschoolshapes", shot));
+        }
+        queue(1, mc -> camera(mc, x + 4.1, y + 2.8, z - 0.2, 141f, 22f));
+        queue(30, mc -> screenshot(mc, "fishschoolshapes", "surface"));
+
+        queue(1, mc -> {
+            // Every copy must have matched every server fingerprint it reached, whatever its shape.
+            check("fishschoolshapes.lockstep", !FishSchoolClientRuntime.debugState().matches("(?s).*mismatches=[1-9].*"),
+                    FishSchoolClientRuntime.debugState());
+            mc.options.hideGui = false;
+        });
+    }
+
+    /** The visit id at the end of a {@code spawnForDebug} result, "... (school <uuid>)." */
+    private static java.util.UUID spawnedId(String result) {
+        return java.util.UUID.fromString(result.substring(result.lastIndexOf("(school ") + 8, result.length() - 2));
+    }
+
+    // ------------------------------------------------------------------ classes
+
+    /**
+     * The non-swimming classes in one pool (encounter spec §4, §6): a garden eel colony, a
+     * Portuguese man o' war group and a Japanese spider crab. Checks the arrival ripples showed, the
+     * motionless eels still sparkle, and every copy holds lockstep; frames for judging the look.
+     */
+    static void queueFishSchoolClassesScene() {
+        int x = origin.getX();
+        int y = origin.getY();
+        int z = origin.getZ();
+
+        queuePool(x, y, z);
+        record Visit(String species, int dx, int dz) {}
+        List<Visit> visits = List.of(new Visit("garden_eel", -3, -9), new Visit("portuguese_man_o_war", 3, -9),
+                new Visit("japanese_spider_crab", 0, -3));
+        queue(5, mc -> {
+            FishSchoolClientRuntime.resetSelfTestCounters();
+            server(mc, s -> {
+                FishSchoolManager schools = FishSchoolManager.get(s.getLevel(mc.level.dimension()));
+                for (Visit visit : visits) {
+                    String result = schools.spawnForDebug(new BlockPos(x + visit.dx(), y, z + visit.dz()),
+                            Fishtastic.id(visit.species()));
+                    check("fishschoolclasses.spawn." + visit.species(), result.startsWith("Spawned"), result);
+                    if (result.startsWith("Spawned")) schools.ignoreHabitatForTest(spawnedId(result));
+                }
+            });
+        });
+        // Overhead, early enough to catch the arrival rings spreading on the surface.
+        queue(1, mc -> {
+            mc.options.hideGui = true;
+            camera(mc, x, y + 6.5, z - 5.5, 0f, 89f);
+        });
+        for (int i = 0; i < 4; i++) {
+            String shot = String.format(java.util.Locale.ROOT, "arrival-%02d", i);
+            queue(5, mc -> screenshot(mc, "fishschoolclasses", shot));
+        }
+        queue(20, mc -> check("fishschoolclasses.arrivals", FishSchoolClientRuntime.arrivalsForSelfTest() >= visits.size(),
+                FishSchoolClientRuntime.arrivalsForSelfTest() + " arrivals shown for " + visits.size() + " visits"));
+        queue(120, mc -> {});
+        queue(1, mc -> check("fishschoolclasses.stillglints", FishSchoolClientRuntime.stillGlintsForSelfTest() > 0,
+                FishSchoolClientRuntime.stillGlintsForSelfTest() + " stationary glints"));
+        queue(1, mc -> camera(mc, x - 3.5, y + 0.9, z - 5.2, 180f, 35f));
+        queue(30, mc -> screenshot(mc, "fishschoolclasses", "eels"));
+        queue(1, mc -> camera(mc, x + 3.5, y + 0.9, z - 5.2, 180f, 10f));
+        queue(30, mc -> screenshot(mc, "fishschoolclasses", "drifters"));
+        queue(1, mc -> camera(mc, x, y + 0.9, z + 0.3, 180f, 35f));
+        queue(30, mc -> screenshot(mc, "fishschoolclasses", "crab"));
+        queue(1, mc -> {
+            check("fishschoolclasses.copies", FishSchoolClientRuntime.debugState().split("\n").length >= visits.size(),
+                    FishSchoolClientRuntime.debugState());
+            check("fishschoolclasses.lockstep", !FishSchoolClientRuntime.debugState().matches("(?s).*mismatches=[1-9].*"),
+                    FishSchoolClientRuntime.debugState());
+            mc.options.hideGui = false;
+        });
+    }
+
     // ------------------------------------------------------------------ bite
 
     /** Frames kept after the bite, one every {@link #CLOSE_UP_TICKS} ticks. */
@@ -119,6 +234,25 @@ final class FishSchoolScenes {
      * and the bite burst, all from the server's engine and the client's copy.
      */
     static void queueFishSchoolBiteScene() {
+        queueBiteScene("fishschoolbite", "bluegill", false);
+    }
+
+    /**
+     * The bottom bite (encounter spec §4.4): a Japanese spider crab walks the pool's floor to
+     * beneath a real bobber, which dips. Filmed by the same probe as {@code fishschoolbite}.
+     */
+    static void queueFishSchoolCrabScene() {
+        queueBiteScene("fishschoolcrab", "japanese_spider_crab", true);
+    }
+
+    /** The scene {@link #filmBite} is filming for: its checks and frames are named after it. */
+    private static String biteScene = "fishschoolbite";
+
+    /**
+     * @param ocean the species lives in the ocean, so its visit is judged without habitat: the
+     *              self-test world is plains, and the approach is what is being filmed
+     */
+    private static void queueBiteScene(String scene, String species, boolean ocean) {
         int x = origin.getX();
         int y = origin.getY();
         int z = origin.getZ();
@@ -126,18 +260,22 @@ final class FishSchoolScenes {
 
         queuePool(x, y, z);
         queue(5, mc -> server(mc, s -> {
-            String result = FishSchoolManager.get(s.getLevel(mc.level.dimension()))
-                    .spawnForDebug(new BlockPos(x, y, z - 6), Fishtastic.id("bluegill"));
-            check("fishschoolbite.spawn", result.startsWith("Spawned"), result);
+            FishSchoolManager schools = FishSchoolManager.get(s.getLevel(mc.level.dimension()));
+            // Every approach's start, bite and failure (with why) in the log, for reading a failed run.
+            FishSchoolManager.logApproaches = true;
+            String result = schools.spawnForDebug(new BlockPos(x, y, z - 6), Fishtastic.id(species));
+            check(scene + ".spawn", result.startsWith("Spawned"), result);
+            if (ocean && result.startsWith("Spawned")) schools.ignoreHabitatForTest(spawnedId(result));
         }));
         queue(40, mc -> {
             mc.options.hideGui = true;
             // view=above: where a fishing player stands, eyes ~2 blocks over the water, looking down
-            // at the bobber. Default: just under the surface, beside the hook.
+            // at the bobber. Default: just under the surface, beside the hook (tilted down to the
+            // floor for a crawler, whose bite happens there).
             if ("above".equals(RenderSelfTest.param("view", "under"))) {
                 camera(mc, hookX, y + 3.9, hookZ + 3.2, 180f, 32f);
             } else {
-                camera(mc, hookX, y + 1.35, hookZ + 2.4, 180f, -6f);
+                camera(mc, hookX, y + 1.35, hookZ + 2.4, 180f, ocean ? 28f : -6f);
             }
         });
         queue(10, mc -> server(mc, s -> {
@@ -158,6 +296,7 @@ final class FishSchoolScenes {
             player.fishing = hook;
         }));
         queue(1, mc -> {
+            biteScene = scene;
             biteFrame = -1;
             framesTaken = 0;
             afterBite = 0;
@@ -169,8 +308,8 @@ final class FishSchoolScenes {
         queue(BITE_TIMEOUT_TICKS, mc -> {});
         queue(1, mc -> {
             RenderSelfTest.tickProbe = null;
-            check("fishschoolbite.approach", framesTaken > 0, "frames filmed: " + framesTaken);
-            check("fishschoolbite.bite", biteFrame >= 0, "bite at frame " + biteFrame + "; " + SERVER_SCHOOL.get());
+            check(scene + ".approach", framesTaken > 0, "frames filmed: " + framesTaken);
+            check(scene + ".bite", biteFrame >= 0, "bite at frame " + biteFrame + "; " + SERVER_SCHOOL.get());
             mc.options.hideGui = false;
         });
     }
@@ -187,7 +326,7 @@ final class FishSchoolScenes {
         if (!filming && school.contains("APPROACHING")) filming = true;
         if (!filming || afterBite >= AFTER_BITE_FRAMES || probeTicks % CLOSE_UP_TICKS != 0) return;
         if (biteFrame < 0 && school.contains("BITE_READY")) biteFrame = framesTaken;
-        screenshot(mc, "fishschoolbite", String.format(java.util.Locale.ROOT, "bite-%03d", framesTaken++));
+        screenshot(mc, biteScene, String.format(java.util.Locale.ROOT, "bite-%03d", framesTaken++));
         if (biteFrame >= 0) afterBite++;
     }
 

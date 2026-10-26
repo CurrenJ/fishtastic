@@ -16,5 +16,6 @@
     { "time": "night", "multiplier": 0.5 }
   ],
   "temperament": "fishtastic:erratic",
-  "swarm": { "shelter": "visitor" }
+  "swarm": { "shelter": "visitor" },
+  "world_encounter": { "shape": "solitary" }
 }

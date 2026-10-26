@@ -11,5 +11,6 @@
     { "time": "dawn", "multiplier": 1.5 }
   ],
   "temperament": "fishtastic:aggressive",
-  "swarm": { "shelter": "lurker" }
+  "swarm": { "shelter": "lurker" },
+  "world_encounter": { "shape": "loose_group" }
 }

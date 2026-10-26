@@ -1388,6 +1388,36 @@ public class FishtasticFabricGameTests {
         FishSchoolGameTests.transientReservationsRecoverAcrossSaveReload(helper);
     }
 
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void encounterEligibilityFollowsTheRule(GameTestHelper helper) {
+        FishSchoolGameTests.encounterEligibilityFollowsTheRule(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void spawnedVisitsTakeTheirShape(GameTestHelper helper) {
+        FishSchoolGameTests.spawnedVisitsTakeTheirShape(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void schoolsSavedBeforeShapesLoadAsSchools(GameTestHelper helper) {
+        FishSchoolGameTests.schoolsSavedBeforeShapesLoadAsSchools(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 900)
+    public void crawlerTakesABottomBite(GameTestHelper helper) {
+        FishSchoolGameTests.crawlerTakesABottomBite(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 1100)
+    public void drifterIsCarriedToTheBait(GameTestHelper helper) {
+        FishSchoolGameTests.drifterIsCarriedToTheBait(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 500)
+    public void eelTakesABobberOverItsBurrow(GameTestHelper helper) {
+        FishSchoolGameTests.eelTakesABobberOverItsBurrow(helper, helper::makeMockServerPlayerInLevel);
+    }
+
     // -------------------------------------------------------------------------
     // ShopEntry tests  (pure registry-only logic, no player needed)
     // -------------------------------------------------------------------------

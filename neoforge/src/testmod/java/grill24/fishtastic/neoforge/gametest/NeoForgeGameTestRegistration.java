@@ -654,6 +654,18 @@ public class NeoForgeGameTestRegistration {
             FishSchoolGameTests::schoolStaysInItsWaterAndStepsOncePerTick);
         register(event, env, "school_transient_reservations_recover_across_save_reload", 200,
             FishSchoolGameTests::transientReservationsRecoverAcrossSaveReload);
+        register(event, env, "encounter_eligibility_follows_the_rule", 200,
+            FishSchoolGameTests::encounterEligibilityFollowsTheRule);
+        register(event, env, "spawned_visits_take_their_shape", 200,
+            FishSchoolGameTests::spawnedVisitsTakeTheirShape);
+        register(event, env, "schools_saved_before_shapes_load_as_schools", 200,
+            FishSchoolGameTests::schoolsSavedBeforeShapesLoadAsSchools);
+        register(event, env, "crawler_takes_a_bottom_bite", 900,
+            helper -> FishSchoolGameTests.crawlerTakesABottomBite(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "drifter_is_carried_to_the_bait", 1100,
+            helper -> FishSchoolGameTests.drifterIsCarriedToTheBait(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "eel_takes_a_bobber_over_its_burrow", 500,
+            helper -> FishSchoolGameTests.eelTakesABobberOverItsBurrow(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
 
         // ----- ShopEntry tests -----
         register(event, env, "get_active_daily_shop_is_stable_per_day", 200,

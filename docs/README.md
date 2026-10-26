@@ -9,7 +9,7 @@ reproducible verification. [Product direction and backlog](backlog.md) holds uns
 
 - [Companions](fish-companions.md) and [drifter movement](fish-companions-drift.md).
 - [Ambient fish](fish-in-world.md).
-- [Interactive fish schools](interactive-fish-schools-design-spec.md) (Phase A implementation and tuning contract); [school motion plan and progress](interactive-fish-schools-motion-plan.md); [school performance plan](interactive-fish-schools-performance-plan.md).
+- [Interactive fish schools](interactive-fish-schools-design-spec.md) (Phase A implementation and tuning contract); [school motion plan and progress](interactive-fish-schools-motion-plan.md); [school performance plan](interactive-fish-schools-performance-plan.md); [in-world fish encounters](in-world-fish-encounters-design-spec.md) (Phases 1–4 built: all-species eligibility, visit shapes, cues, eel/drifter/bottom-bite approaches).
 - [Tanks and content authoring](fish-tanks.md), [tank rendering](fish-tank-rendering.md),
   [group budgets](fish-tank-group-scaling.md), and [bubbles](fish-tank-bubbles.md).
 - [Simulation architecture](fish-sim-engine-plan.md), [locomotion](fish-sim-locomotion.md),

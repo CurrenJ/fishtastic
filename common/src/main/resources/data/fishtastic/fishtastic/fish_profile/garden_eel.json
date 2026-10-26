@@ -20,5 +20,6 @@
     "xz_spread": 0.28,
     "y_range": 0,
     "rotation_jitter": 0
-  }
+  },
+  "world_encounter": { "shape": "loose_group" }
 }

@@ -50,9 +50,10 @@ public final class FishSchoolSim {
      *                re-derived, so a client never builds the school from different numbers
      * @param seed    the engine's base seed
      * @param members every member present at step 0, in order
+     * @param shape   the visit's shape, which picks the engine's flocking parameters
      */
     public record Setup(BlockPos origin, List<WaterDomain.Column> columns, FishSpec spec, long seed,
-                        List<Placement> members) {
+                        List<Placement> members, VisitShape shape) {
         public Setup {
             columns = List.copyOf(columns);
             members = List.copyOf(members);
@@ -60,7 +61,14 @@ public final class FishSchoolSim {
     }
 
     /** A change the server makes to the school, applied on every copy at the same step count. */
-    public sealed interface Input permits Leave, Rejoin, Approach, Withdraw, Water {}
+    public sealed interface Input permits Leave, Rejoin, Approach, Withdraw, Water, Watcher {}
+
+    /**
+     * Someone rushing the visit at {@code (l, y, d)} ({@code near}), or nobody ({@code !near}).
+     * Only garden eels read it: they duck from a player who comes at them fast (encounter spec
+     * §4.3). Shared like every input, so each copy ducks at the same step.
+     */
+    public record Watcher(boolean near, float l, float y, float d) implements Input {}
 
     /** The member leaves the water: hooked into a fight, caught, or gone with its visit. */
     public record Leave(UUID member) implements Input {}
@@ -97,13 +105,49 @@ public final class FishSchoolSim {
     private final FishSpec spec;
     private final long seed;
     private final WaterDomain.BodyBox body;
-    private final FlockEngine engine = new FlockEngine(Tunables.GROUP);
+    private final FlockEngine engine;
     private final List<UUID> order = new ArrayList<>();
     private final Map<UUID, Shelter> anchors = new LinkedHashMap<>();
+    /** Non-swimmers' errands, by bobber: they reach a bait by seeking it, not by the swimmers' nose errand. */
+    private final Map<UUID, Seek> seeks = new LinkedHashMap<>();
     private WaterDomain domain;
     private long steps;
 
-    private FishSchoolSim(BlockPos origin, FishSpec spec, long seed, WaterDomain domain) {
+    /** A crawler's, drifter's or eel's errand: who, where, how long it holds once there, and when it got there. */
+    private static final class Seek {
+        final UUID member;
+        final float l, y, d;
+        final int holdSteps;
+        long touchedAt = -1;
+
+        Seek(UUID member, float l, float y, float d, int holdSteps) {
+            this.member = member;
+            this.l = l;
+            this.y = y;
+            this.d = d;
+            this.holdSteps = holdSteps;
+        }
+    }
+
+    /** How fast a crawler walks to a bait, blocks a second: about ten times its idle scuttle. */
+    static final float CRAWL_SEEK_SPEED = 0.35f;
+    /** How fast a drifter is carried to a bait, blocks a second. */
+    static final float DRIFT_SEEK_SPEED = 0.2f;
+    /** A crawler is at the bait when its centre is this close beneath it, blocks (horizontal). */
+    static final float CRAWL_ARRIVED = 0.3f;
+    /** A drifter is at the bait when this close to it, blocks. */
+    static final float DRIFT_ARRIVED = 0.45f;
+    /** An eel takes a bobber that lands within this of its burrow, blocks (horizontal). */
+    public static final float EEL_REACH = 1.5f;
+    /** An eel this far withdrawn or less counts as out of its burrow. */
+    static final float EEL_EMERGED = 0.3f;
+    /** How far above the floor a bobber may be for a crawler to take it from the bottom, blocks (spec §4.4). */
+    public static final float BOTTOM_BITE_DEPTH = 8f;
+    /** Where the eels' watcher sits when nobody is rushing them: present (so they re-arm) but far away. */
+    private static final float WATCHER_AWAY = 1.0e5f;
+
+    private FishSchoolSim(BlockPos origin, FishSpec spec, long seed, WaterDomain domain, Tunables tunables) {
+        this.engine = new FlockEngine(tunables);
         this.origin = origin;
         this.spec = spec;
         this.seed = seed;
@@ -116,14 +160,101 @@ public final class FishSchoolSim {
         WaterDomain.BodyBox body = WaterDomain.BodyBox.of(setup.spec().locomotion(), setup.spec().length());
         WaterDomain domain = buildDomain(setup.origin(), setup.columns(), body);
         if (domain == null) return null;
-        FishSchoolSim sim = new FishSchoolSim(setup.origin(), setup.spec(), setup.seed(), domain);
+        FishSchoolSim sim = new FishSchoolSim(setup.origin(), setup.spec(), setup.seed(), domain,
+                setup.shape().tunables());
         for (Placement p : setup.members()) sim.order.add(p.member());
         sim.engine.rebuild(sim.specs(), setup.seed(), 0f, ROTATION_JITTER, domain);
         for (int i = 0; i < setup.members().size(); i++) {
             Placement p = setup.members().get(i);
-            sim.engine.placeFish(i, p.l(), p.y(), p.d());
+            sim.place(i, p.l(), p.y(), p.d());
+        }
+        // Eels re-arm their startle only while a watcher is declared and away from them.
+        if (setup.spec().locomotion() == Locomotion.ANCHORED) {
+            sim.engine.setWatcher(true, WATCHER_AWAY, 0f, WATCHER_AWAY);
         }
         return sim;
+    }
+
+    /**
+     * Puts member #{@code i} at {@code (l, y, d)}; a floor creature goes onto the floor under that
+     * point instead, or keeps the engine's own floor spot when there is none there.
+     */
+    private void place(int i, float l, float y, float d) {
+        Locomotion locomotion = spec.locomotion();
+        if (locomotion == Locomotion.BENTHIC || locomotion == Locomotion.ANCHORED) {
+            float floor = domain.floor().heightAt(l, d);
+            if (Float.isFinite(floor)) engine.placeFish(i, l, floor, d);
+            return;
+        }
+        float[] fit = nearestFit(l, y, d);
+        if (fit != null) engine.placeFish(i, fit[0], fit[1], fit[2]);
+        else engine.placeFish(i, l, y, d);
+    }
+
+    /** How far a placement is moved to find room for the body: vertically, then sideways, blocks. */
+    private static final float FIT_REACH_VERTICAL = 3f, FIT_REACH_SIDEWAYS = 2f;
+    private static final float FIT_STEP_VERTICAL = 0.1f, FIT_STEP_SIDEWAYS = 0.5f;
+
+    /**
+     * The point nearest {@code (l, y, d)} where the whole body fits, or null when there is none
+     * close by. A swimmer placed where its body pokes out of the water (a big fish on a block
+     * centre in the top layer) never moves: the engine refuses every step from a spot that does not
+     * fit, so it would swim in place forever and never reach a bobber. Deterministic, so every copy
+     * moves it to the same point.
+     */
+    private float @Nullable [] nearestFit(float l, float y, float d) {
+        if (bodyFits(l, y, d)) return new float[]{l, y, d};
+        // Straight down (or up) first: the usual fix for a fish too near the surface.
+        for (float dy = FIT_STEP_VERTICAL; dy <= FIT_REACH_VERTICAL; dy += FIT_STEP_VERTICAL) {
+            if (bodyFits(l, y - dy, d)) return new float[]{l, y - dy, d};
+            if (bodyFits(l, y + dy, d)) return new float[]{l, y + dy, d};
+        }
+        float[] best = null;
+        float bestD2 = Float.MAX_VALUE;
+        for (float dl = -FIT_REACH_SIDEWAYS; dl <= FIT_REACH_SIDEWAYS; dl += FIT_STEP_SIDEWAYS) {
+            for (float dd = -FIT_REACH_SIDEWAYS; dd <= FIT_REACH_SIDEWAYS; dd += FIT_STEP_SIDEWAYS) {
+                for (float dy = -FIT_REACH_VERTICAL; dy <= FIT_REACH_VERTICAL; dy += FIT_STEP_VERTICAL) {
+                    float d2 = dl * dl + dd * dd + dy * dy;
+                    if (d2 < bestD2 && bodyFits(l + dl, y + dy, d + dd)) {
+                        bestD2 = d2;
+                        best = new float[]{l + dl, y + dy, d + dd};
+                    }
+                }
+            }
+        }
+        return best;
+    }
+
+    /**
+     * Whether a visit's water can host its species: the engine's own size gate for the species'
+     * class, the same one a tank applies, and somewhere deep enough for the whole body. A fish that
+     * failed either would be frozen in place in the world, so such a visit must not form
+     * (encounter spec §4.1).
+     */
+    public static boolean hosts(BlockPos origin, List<WaterDomain.Column> columns, FishSpec spec, VisitShape shape) {
+        FishSchoolSim sim = create(new Setup(origin, columns, spec, 0L, List.of(), shape));
+        return sim != null && sim.hostsSpecies() && sim.roomForBody(columns);
+    }
+
+    /** Whether any column of {@code columns} has a point where the whole body fits. */
+    private boolean roomForBody(List<WaterDomain.Column> columns) {
+        Locomotion locomotion = spec.locomotion();
+        if (locomotion == Locomotion.BENTHIC || locomotion == Locomotion.ANCHORED) return true; // on the floor
+        for (WaterDomain.Column column : columns) {
+            float l = column.worldX() - origin.getX() + 0.5f, d = column.worldZ() - origin.getZ() + 0.5f;
+            float[] spans = column.spans();
+            for (int k = 0; k + 1 < spans.length; k += 2) {
+                for (float y = spans[k]; y <= spans[k + 1]; y += FIT_STEP_VERTICAL) {
+                    if (bodyFits(l, y - origin.getY(), d)) return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /** Whether this copy's current water still passes its species' size gate. */
+    public boolean hostsSpecies() {
+        return engine.passesGate(spec.locomotion(), spec.length());
     }
 
     private static @Nullable WaterDomain buildDomain(BlockPos origin, List<WaterDomain.Column> columns,
@@ -165,6 +296,63 @@ public final class FishSchoolSim {
         engine.drainTriggerEvents(e -> {
             if (events != null && e.key() instanceof UUID anchor) events.accept(new Event(anchor, e.start()));
         });
+        if (!seeks.isEmpty()) advanceSeeks(events);
+    }
+
+    /**
+     * Each seek's touch and let-go, judged from engine state every copy shares, so every copy
+     * fires them at the same step: a touch when the creature reaches its bait, a let-go once it has
+     * held there its time, as a swimmer's errand does.
+     */
+    private void advanceSeeks(@Nullable Consumer<Event> events) {
+        boolean changed = false;
+        var it = seeks.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<UUID, Seek> entry = it.next();
+            Seek seek = entry.getValue();
+            int i = order.indexOf(seek.member);
+            if (i < 0) {
+                it.remove();
+                changed = true;
+                continue;
+            }
+            if (seek.touchedAt < 0) {
+                if (arrived(i, seek)) {
+                    seek.touchedAt = steps;
+                    if (events != null) events.accept(new Event(entry.getKey(), true));
+                }
+            } else if (steps - seek.touchedAt >= seek.holdSteps) {
+                it.remove();
+                changed = true;
+                if (events != null) events.accept(new Event(entry.getKey(), false));
+            }
+        }
+        if (changed) syncSeeks();
+    }
+
+    private boolean arrived(int i, Seek seek) {
+        float dl = engine.posL()[i] - seek.l, dy = engine.posY()[i] - seek.y, dd = engine.posD()[i] - seek.d;
+        return switch (spec.locomotion()) {
+            case BENTHIC -> dl * dl + dd * dd <= CRAWL_ARRIVED * CRAWL_ARRIVED;
+            case DRIFT -> dl * dl + dy * dy + dd * dd <= DRIFT_ARRIVED * DRIFT_ARRIVED;
+            case ANCHORED -> engine.shapeDrive(i) <= EEL_EMERGED;
+            default -> false;
+        };
+    }
+
+    /** Re-declares every seek to the engine, whose slots a rebuild renumbers. */
+    private void syncSeeks() {
+        engine.clearSeeks();
+        float speed = switch (spec.locomotion()) {
+            case BENTHIC -> CRAWL_SEEK_SPEED;
+            case DRIFT -> DRIFT_SEEK_SPEED;
+            default -> 0f;
+        };
+        if (speed <= 0f) return; // an eel never moves to its bait
+        for (Seek seek : seeks.values()) {
+            int i = order.indexOf(seek.member);
+            if (i >= 0) engine.seek(i, seek.l, seek.y, seek.d, speed);
+        }
     }
 
     /** Applies {@code input} before the next step. False when it changed nothing. */
@@ -175,6 +363,11 @@ public final class FishSchoolSim {
             case Approach approach -> approach(approach);
             case Withdraw withdraw -> withdraw(withdraw.anchor());
             case Water water -> water(water.columns());
+            case Watcher watcher -> {
+                if (watcher.near()) engine.setWatcher(true, watcher.l(), watcher.y(), watcher.d());
+                else engine.setWatcher(true, WATCHER_AWAY, 0f, WATCHER_AWAY);
+                yield true;
+            }
         };
     }
 
@@ -187,6 +380,8 @@ public final class FishSchoolSim {
         }
         order.remove(gone);
         engine.rebuildPreserving(specs(), carry, seed, 0f, ROTATION_JITTER, domain);
+        seeks.values().removeIf(seek -> seek.member.equals(member));
+        syncSeeks();
         return true;
     }
 
@@ -197,13 +392,24 @@ public final class FishSchoolSim {
         carry[order.size()] = -1;
         order.add(rejoin.member());
         engine.rebuildPreserving(specs(), carry, seed, 0f, ROTATION_JITTER, domain);
-        engine.placeFish(order.size() - 1, rejoin.l(), rejoin.y(), rejoin.d());
+        place(order.size() - 1, rejoin.l(), rejoin.y(), rejoin.d());
+        syncSeeks();
         return true;
     }
 
     private boolean approach(Approach approach) {
         int fish = order.indexOf(approach.member());
-        if (fish < 0 || anchors.containsKey(approach.anchor())) return false;
+        if (fish < 0 || anchors.containsKey(approach.anchor()) || seeks.containsKey(approach.anchor())) return false;
+        if (spec.locomotion() != Locomotion.FREE_SWIM) {
+            // A non-swimmer seeks its bait instead (encounter spec §4); one errand per creature.
+            for (Seek seek : seeks.values()) {
+                if (seek.member.equals(approach.member())) return false;
+            }
+            int hold = Math.max(1, Math.round(approach.holdSeconds() * 20f));
+            seeks.put(approach.anchor(), new Seek(approach.member(), approach.l(), approach.y(), approach.d(), hold));
+            syncSeeks();
+            return true;
+        }
         // Nose first along the line it comes from: the fish's own side of the bobber.
         float dl = approach.l() - engine.posL()[fish], dd = approach.d() - engine.posD()[fish];
         anchors.put(approach.anchor(), Shelter.noseAnchor(approach.l(), approach.y(), approach.d(), dl, dd,
@@ -216,6 +422,10 @@ public final class FishSchoolSim {
     }
 
     private boolean withdraw(UUID anchor) {
+        if (seeks.remove(anchor) != null) {
+            syncSeeks();
+            return true;
+        }
         if (anchors.remove(anchor) == null) return false;
         domain.rebuildShelters(List.copyOf(anchors.values()));
         return true;
@@ -229,6 +439,7 @@ public final class FishSchoolSim {
         int[] carry = new int[order.size()];
         for (int i = 0; i < carry.length; i++) carry[i] = i;
         engine.rebuildPreserving(specs(), carry, seed, 0f, ROTATION_JITTER, domain);
+        syncSeeks();
         return true;
     }
 
@@ -243,23 +454,28 @@ public final class FishSchoolSim {
 
     /** Whether the fish sent to {@code anchor} is still on its way there or holding at it. */
     public boolean errandActive(UUID anchor) {
+        if (seeks.containsKey(anchor)) return true;
         int s = anchorIndex(anchor);
         return s >= 0 && engine.triggerFish(s) >= 0;
     }
 
     /** The member on its way to, or holding at, {@code anchor}, or null. */
     public @Nullable UUID errandMember(UUID anchor) {
+        Seek seek = seeks.get(anchor);
+        if (seek != null) return seek.member;
         int s = anchorIndex(anchor);
         int fish = s < 0 ? -1 : engine.triggerFish(s);
         return fish >= 0 && fish < order.size() ? order.get(fish) : null;
     }
 
     public boolean hasAnchor(UUID anchor) {
-        return anchors.containsKey(anchor);
+        return anchors.containsKey(anchor) || seeks.containsKey(anchor);
     }
 
     /** Where {@code anchor}'s fish puts its nose, in the school's frame, or null if there is no such anchor. */
     public float @Nullable [] anchorAt(UUID anchor) {
+        Seek seek = seeks.get(anchor);
+        if (seek != null) return new float[]{seek.l, seek.y, seek.d};
         Shelter shelter = anchors.get(anchor);
         if (shelter == null) return null;
         Shelter.Mouth face = shelter.mouths().get(0);
@@ -289,6 +505,32 @@ public final class FishSchoolSim {
             }
         }
         return null;
+    }
+
+    /**
+     * Where {@code member} goes to take a bobber at {@code (l, y, d)}, by its class (encounter spec
+     * §4), or null when it cannot: a swimmer or drifter to {@link #anchorPoint} under it; a crawler
+     * to the floor straight beneath it, at most {@link #BOTTOM_BITE_DEPTH} down (the bottom bite);
+     * an eel only when the bobber is within {@link #EEL_REACH} of its burrow and it is out, to its
+     * own spot. Server-side, like {@link #anchorPoint}; the answer ships in the {@link Approach}.
+     */
+    public float @Nullable [] goalFor(UUID member, float l, float y, float d) {
+        int i = order.indexOf(member);
+        if (i < 0) return null;
+        return switch (spec.locomotion()) {
+            case BENTHIC -> {
+                float floor = domain.floor().heightAt(l, d);
+                float top = Math.min(y, domain.surfaceAt(l, d));
+                yield Float.isFinite(floor) && top - floor <= BOTTOM_BITE_DEPTH && domain.contains(l, floor + 0.2f, d)
+                        ? new float[]{l, floor, d} : null;
+            }
+            case ANCHORED -> {
+                float dl = engine.posL()[i] - l, dd = engine.posD()[i] - d;
+                yield dl * dl + dd * dd <= EEL_REACH * EEL_REACH && engine.shapeDrive(i) <= EEL_EMERGED
+                        ? new float[]{engine.posL()[i], engine.posY()[i], engine.posD()[i]} : null;
+            }
+            default -> anchorPoint(l, y, d);
+        };
     }
 
     /** How far below a bobber its anchor may be looked for, blocks: the hook hangs under it. */

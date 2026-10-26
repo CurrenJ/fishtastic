@@ -12,5 +12,6 @@
   "weather_weights": [
     { "weather": "snow", "multiplier": 2.0 },
     { "weather": "thunder", "multiplier": 1.5 }
-  ]
+  ],
+  "world_encounter": { "shape": "solitary" }
 }

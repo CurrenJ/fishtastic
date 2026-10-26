@@ -1352,6 +1352,36 @@ public class ForgeFishtasticGameTests {
         FishSchoolGameTests.transientReservationsRecoverAcrossSaveReload(helper);
     }
 
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void encounter_eligibility_follows_the_rule(GameTestHelper helper) {
+        FishSchoolGameTests.encounterEligibilityFollowsTheRule(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void spawned_visits_take_their_shape(GameTestHelper helper) {
+        FishSchoolGameTests.spawnedVisitsTakeTheirShape(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void schools_saved_before_shapes_load_as_schools(GameTestHelper helper) {
+        FishSchoolGameTests.schoolsSavedBeforeShapesLoadAsSchools(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea", maxTicks = 900)
+    public static void crawler_takes_a_bottom_bite(GameTestHelper helper) {
+        FishSchoolGameTests.crawlerTakesABottomBite(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea", maxTicks = 1100)
+    public static void drifter_is_carried_to_the_bait(GameTestHelper helper) {
+        FishSchoolGameTests.drifterIsCarriedToTheBait(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea", maxTicks = 500)
+    public static void eel_takes_a_bobber_over_its_burrow(GameTestHelper helper) {
+        FishSchoolGameTests.eelTakesABobberOverItsBurrow(helper, helper::makeMockServerPlayerInLevel);
+    }
+
     // -------------------------------------------------------------------------
     // ShopEntry tests  (pure registry-only logic, no player needed)
     // -------------------------------------------------------------------------

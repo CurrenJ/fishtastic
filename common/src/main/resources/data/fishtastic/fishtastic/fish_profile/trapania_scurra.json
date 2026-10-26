@@ -9,5 +9,6 @@
     "mode": "upright_sit",
     "pivot_fraction": 0.1875,
     "diagonal_texture": false
-  }
+  },
+  "world_encounter": { "shape": "pair" }
 }

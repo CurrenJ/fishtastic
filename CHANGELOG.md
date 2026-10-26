@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- Interactive in-world visits can now be almost any species, not only the four schooling fish.
+  Each species arrives in its own way: alone, as a pair, a loose group or a school. Rare and large
+  fish usually come alone, and a visit only forms in water big enough for its species.
+- Crabs and other floor dwellers take a bobber from the bottom, jellyfish drift over to it, and
+  garden eels take one cast over their burrow but duck if you sprint at them.
+- A visit arriving near you sends a few silent ripples across the surface, and creatures that
+  barely move still sparkle in their quality's colour.
+
 ## 2.1.8
 
 - Interactive fish schools now have a 50% encounter chance per region every five minutes.

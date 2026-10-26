@@ -12,8 +12,14 @@ import java.util.List;
 public class FishtasticItemTags {
     public static final TagKey<Item> FISHING_RODS = create("fishing_rods");
     public static final TagKey<Item> FISH = create("fish");
-    /** Curated opt-in for fish that may appear in authoritative interactive schools. */
+    /**
+     * Allow override for interactive in-world visits: a species here may appear even when its
+     * locomotion class has no finished in-world approach yet (staged testing). Ordinary species
+     * qualify by rule (docs/in-world-fish-encounters-design-spec.md §5.1).
+     */
     public static final TagKey<Item> FISH_SCHOOL_ENABLED = create("fish_school_enabled");
+    /** Species that never appear as interactive in-world visits, whatever the rule says. */
+    public static final TagKey<Item> FISH_ENCOUNTER_DISABLED = create("fish_encounter_disabled");
     public static final TagKey<Item> TRASH = create("trash");
     public static final TagKey<Item> TREASURE = create("treasure");
     public static final TagKey<Item> FISHING_BAIT = create("fishing_bait");

@@ -18,5 +18,6 @@
   "temperament": "fishtastic:ghost",
   "animation": {
     "mode": "upright_float"
-  }
+  },
+  "world_encounter": { "shape": "solitary" }
 }

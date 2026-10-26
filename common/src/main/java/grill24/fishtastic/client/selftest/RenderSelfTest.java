@@ -34,6 +34,9 @@ import static grill24.fishtastic.client.selftest.FishSchoolScenes.queueFishSchoo
 import static grill24.fishtastic.client.selftest.FishSchoolScenes.queueFishSchoolGifScene;
 import static grill24.fishtastic.client.selftest.FishSchoolScenes.queueFishSchoolPerfScene;
 import static grill24.fishtastic.client.selftest.FishSchoolScenes.queueFishSchoolReachScene;
+import static grill24.fishtastic.client.selftest.FishSchoolScenes.queueFishSchoolShapesScene;
+import static grill24.fishtastic.client.selftest.FishSchoolScenes.queueFishSchoolClassesScene;
+import static grill24.fishtastic.client.selftest.FishSchoolScenes.queueFishSchoolCrabScene;
 
 import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.pipeline.RenderTarget;
@@ -182,7 +185,7 @@ public final class RenderSelfTest {
 
     private static final List<String> OPT_IN_SCENES = List.of("matte", "matteclip", "fourwaters", "fishspin", "cathedral",
             "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench", "leaderboard", "encyclopedia", "portrait", "tutorial", "companiontutorial",
-            "companionbond", "companionsim", "companionparty", "companioneel", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld", "companionparticles", "companionworldcost", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk", "fishschoolgif", "fishschoolbite", "fishschoolreach", "fishschoolperf", "questbook", "celebrationoverlap", "forgereview", "partyseed", "partyobserver", "partyreturn");
+            "companionbond", "companionsim", "companionparty", "companioneel", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld", "companionparticles", "companionworldcost", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk", "fishschoolgif", "fishschoolbite", "fishschoolreach", "fishschoolperf", "fishschoolshapes", "fishschoolclasses", "fishschoolcrab", "questbook", "celebrationoverlap", "forgereview", "partyseed", "partyobserver", "partyreturn");
 
     static Boolean armed;
     /** Keep ordinary automatic features from interfering with explicitly armed fixture scenes. */
@@ -452,6 +455,9 @@ public final class RenderSelfTest {
             case "fishschoolbite" -> queueFishSchoolBiteScene();
             case "fishschoolreach" -> queueFishSchoolReachScene();
             case "fishschoolperf" -> queueFishSchoolPerfScene();
+            case "fishschoolshapes" -> queueFishSchoolShapesScene();
+            case "fishschoolclasses" -> queueFishSchoolClassesScene();
+            case "fishschoolcrab" -> queueFishSchoolCrabScene();
             default -> throw new IllegalArgumentException(scene);
         }
     }
