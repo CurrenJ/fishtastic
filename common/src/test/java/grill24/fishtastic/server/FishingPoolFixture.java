@@ -391,7 +391,7 @@ public final class FishingPoolFixture {
         return new FishProfile(baseWeight, FishProfile.SizeParams.DEFAULT, biomeWeights, timeWeights,
                 weatherWeights, moonWeights, zones, Optional.empty(), Optional.empty(), SwarmConfig.DEFAULT,
                 FishProfile.DEFAULT_RENDER_CALIBRATION, Optional.empty(), FishProfile.CompanionGait.CRAWL,
-                FishProfile.CompanionDrift.BELL);
+                FishProfile.CompanionDrift.BELL, Optional.empty());
     }
 
     /**

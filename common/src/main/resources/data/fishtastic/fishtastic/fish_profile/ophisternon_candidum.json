@@ -18,5 +18,6 @@
   "time_weights": [
     { "time": "dusk", "multiplier": 1.5 }
   ],
-  "swarm": { "shelter": "lurker" }
+  "swarm": { "shelter": "lurker" },
+  "world_encounter": { "shape": "solitary" }
 }

@@ -32,6 +32,9 @@ import static grill24.fishtastic.client.selftest.FishSchoolScenes.queueFishSchoo
 import static grill24.fishtastic.client.selftest.FishSchoolScenes.queueFishSchoolPerfScene;
 import static grill24.fishtastic.client.selftest.FishSchoolScenes.queueFishSchoolReachScene;
 import static grill24.fishtastic.client.selftest.EncyclopediaScenes.useTutorialBook;
+import static grill24.fishtastic.client.selftest.FishSchoolScenes.queueFishSchoolShapesScene;
+import static grill24.fishtastic.client.selftest.FishSchoolScenes.queueFishSchoolClassesScene;
+import static grill24.fishtastic.client.selftest.FishSchoolScenes.queueFishSchoolCrabScene;
 
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.platform.NativeImage;
@@ -147,8 +150,7 @@ public final class RenderSelfTest {
     private static final List<String> ALL_SCENES = List.of("tank", "shapes", "stress512", "items", "held", "outline", "fabulous",
             "guiscale", "fixes", "hud", "gizmos", "pertank", "highlight");
 
-    private static final List<String> OPT_IN_SCENES = List.of("cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench", "leaderboard", "tutorial", "companiontutorial", "companionbond", "companionsim", "companionparty", "companioneel", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld", "companionparticles", "companionworldcost", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk", "fishschoolgif", "fishschoolbite", "fishschoolreach", "fishschoolperf", "celebrationoverlap", "partyseed", "partyobserver", "partyreturn");
-
+    private static final List<String> OPT_IN_SCENES = List.of("cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench", "leaderboard", "tutorial", "companiontutorial", "companionbond", "companionsim", "companionparty", "companioneel", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld", "companionparticles", "companionworldcost", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk", "fishschoolgif", "fishschoolbite", "fishschoolreach", "fishschoolperf", "fishschoolshapes", "fishschoolclasses", "fishschoolcrab", "celebrationoverlap", "partyseed", "partyobserver", "partyreturn");
 
     static Boolean armed;
     /** Dev probe (§21): runs every client tick while non-null — tick-true sampling. */
@@ -402,6 +404,9 @@ public final class RenderSelfTest {
             case "fishschoolbite" -> queueFishSchoolBiteScene();
             case "fishschoolreach" -> queueFishSchoolReachScene();
             case "fishschoolperf" -> queueFishSchoolPerfScene();
+            case "fishschoolshapes" -> queueFishSchoolShapesScene();
+            case "fishschoolclasses" -> queueFishSchoolClassesScene();
+            case "fishschoolcrab" -> queueFishSchoolCrabScene();
             default -> throw new IllegalArgumentException(scene);
         }
     }

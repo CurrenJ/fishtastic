@@ -19,5 +19,6 @@
   ],
   "weather_weights": [
     { "weather": "rain", "multiplier": 2.0 }
-  ]
+  ],
+  "world_encounter": { "shape": "loose_group" }
 }

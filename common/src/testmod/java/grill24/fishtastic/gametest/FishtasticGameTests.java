@@ -1258,6 +1258,36 @@ public class FishtasticGameTests {
         FishingMinigameManagerGameTests.handleMinigameCompleteDropsRewardWhenInventoryIsFullAndAutoPileFishIsActive(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
+    @GameTest(template = "fishtastic_empty")
+    public void encounterEligibilityFollowsTheRule(GameTestHelper helper) {
+        FishSchoolGameTests.encounterEligibilityFollowsTheRule(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void spawnedVisitsTakeTheirShape(GameTestHelper helper) {
+        FishSchoolGameTests.spawnedVisitsTakeTheirShape(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void schoolsSavedBeforeShapesLoadAsSchools(GameTestHelper helper) {
+        FishSchoolGameTests.schoolsSavedBeforeShapesLoadAsSchools(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty", timeoutTicks = 900)
+    public void crawlerTakesABottomBite(GameTestHelper helper) {
+        FishSchoolGameTests.crawlerTakesABottomBite(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty", timeoutTicks = 1100)
+    public void drifterIsCarriedToTheBait(GameTestHelper helper) {
+        FishSchoolGameTests.drifterIsCarriedToTheBait(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty", timeoutTicks = 500)
+    public void eelTakesABobberOverItsBurrow(GameTestHelper helper) {
+        FishSchoolGameTests.eelTakesABobberOverItsBurrow(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
     // -------------------------------------------------------------------------
     // ShopEntry tests  (pure registry-only logic, no player needed)
     // -------------------------------------------------------------------------

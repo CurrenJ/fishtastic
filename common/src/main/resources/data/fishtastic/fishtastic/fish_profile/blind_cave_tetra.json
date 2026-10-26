@@ -13,5 +13,6 @@
     { "time": "day", "multiplier": 0.3 }
   ],
   "temperament": "fishtastic:ghost",
-  "swarm": { "shelter": "visitor" }
+  "swarm": { "shelter": "visitor" },
+  "world_encounter": { "shape": "school" }
 }

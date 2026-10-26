@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import grill24.FishtasticRegistries;
 import grill24.fishtastic.FishtasticBiomeTags;
+import grill24.fishtastic.school.VisitShape;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
@@ -41,7 +42,8 @@ public record FishProfile(
         float renderCalibration,
         Optional<CompanionGroupConfig> companionGroup,
         CompanionGait companionGait,
-        CompanionDrift companionDrift
+        CompanionDrift companionDrift,
+        Optional<WorldEncounter> worldEncounter
 ) {
     public static final int DEFAULT_BASE_WEIGHT = 10;
     public static final float DEFAULT_MEAN_SIZE = 50.0f;
@@ -77,8 +79,43 @@ public record FishProfile(
             Codec.FLOAT.optionalFieldOf("render_calibration", DEFAULT_RENDER_CALIBRATION).forGetter(FishProfile::renderCalibration),
             CompanionGroupConfig.CODEC.optionalFieldOf("companion_group").forGetter(FishProfile::companionGroup),
             CompanionGait.CODEC.optionalFieldOf("companion_gait", CompanionGait.CRAWL).forGetter(FishProfile::companionGait),
-            CompanionDrift.CODEC.optionalFieldOf("companion_drift", CompanionDrift.BELL).forGetter(FishProfile::companionDrift)
+            CompanionDrift.CODEC.optionalFieldOf("companion_drift", CompanionDrift.BELL).forGetter(FishProfile::companionDrift),
+            WorldEncounter.CODEC.optionalFieldOf("world_encounter").forGetter(FishProfile::worldEncounter)
     ).apply(i, FishProfile::new));
+
+    /**
+     * How this species arrives as an interactive in-world visit
+     * (docs/in-world-fish-encounters-design-spec.md §8). Ecology stays in the weight tables above;
+     * this only describes the encounter. A missing shape falls back to {@link VisitShape#fallback}.
+     *
+     * @param members       how many fish a visit holds, clamped to the shape's own range
+     * @param lifetimeScale multiplies the configured visit lifetime
+     */
+    public record WorldEncounter(Optional<VisitShape> shape, Optional<MemberRange> members, float lifetimeScale) {
+        public static final float MIN_LIFETIME_SCALE = 0.25f;
+        public static final float MAX_LIFETIME_SCALE = 2.0f;
+
+        public static final Codec<WorldEncounter> CODEC = RecordCodecBuilder.create(i -> i.group(
+                VisitShape.CODEC.optionalFieldOf("shape").forGetter(WorldEncounter::shape),
+                MemberRange.CODEC.optionalFieldOf("members").forGetter(WorldEncounter::members),
+                Codec.floatRange(MIN_LIFETIME_SCALE, MAX_LIFETIME_SCALE).optionalFieldOf("lifetime_scale", 1.0f)
+                        .forGetter(WorldEncounter::lifetimeScale)
+        ).apply(i, WorldEncounter::new));
+
+        public record MemberRange(int min, int max) {
+            public static final Codec<MemberRange> CODEC = RecordCodecBuilder.<MemberRange>create(i -> i.group(
+                    Codec.intRange(1, 64).fieldOf("min").forGetter(MemberRange::min),
+                    Codec.intRange(1, 64).fieldOf("max").forGetter(MemberRange::max)
+            ).apply(i, MemberRange::new)).validate(range -> range.min() <= range.max()
+                    ? com.mojang.serialization.DataResult.success(range)
+                    : com.mojang.serialization.DataResult.error(() -> "members.min must not exceed members.max"));
+        }
+    }
+
+    /** The authored visit shape, or the rarity fallback when none is authored. */
+    public VisitShape visitShape() {
+        return worldEncounter.flatMap(WorldEncounter::shape).orElseGet(() -> VisitShape.fallback(baseWeight));
+    }
 
     /**
      * How a benthic companion gets about on land (docs/fish-companions.md): the

@@ -3,6 +3,7 @@ package grill24.fishtastic.gametest;
 import com.mojang.serialization.JsonOps;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.school.VisitShape;
 import grill24.fishtastic.server.FishSchoolManager;
 import grill24.fishtastic.server.FishSchoolSavedData;
 import grill24.fishtastic.server.FishingMinigameManager;
@@ -11,11 +12,15 @@ import grill24.fishtastic.util.IFishingHookExtension;
 import grill24.fishtastic.util.FishQualityHelper;
 import grill24.fishtastic.util.ItemSizeHelper;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.projectile.FishingHook;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 
@@ -176,10 +181,80 @@ public final class FishSchoolGameTests {
         awaitOwnedBite(helper, player, hook, schools, school, 0);
     }
 
+    /**
+     * A visit of {@code species} in a 13 × 13 pond three blocks deep, its members at {@code spots}
+     * (block offsets from the bobber), a real bobber at the pond's centre: the member the server
+     * picks must reach it by its own class's way and give one owned bite within {@code limit} ticks.
+     */
+    private static void liveVisitBites(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer, String species,
+                                       int[][] spots, int limit) {
+        ServerPlayer player = mockPlayer.get();
+        player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(FishtasticItems.COPPER_FISHING_ROD.value()));
+        BlockPos testOrigin = helper.absolutePos(new BlockPos(1, 1, 1));
+        int waterY = helper.getLevel().getSeaLevel();
+        BlockPos anchor = new BlockPos(testOrigin.getX() + 2, waterY, testOrigin.getZ() + 2);
+        for (int x = -6; x <= 6; x++) {
+            for (int z = -6; z <= 6; z++) {
+                helper.getLevel().setBlock(anchor.offset(x, -3, z), Blocks.SAND.defaultBlockState(), 3);
+                for (int y = -2; y <= 0; y++) {
+                    helper.getLevel().setBlock(anchor.offset(x, y, z), Blocks.WATER.defaultBlockState(), 3);
+                }
+            }
+        }
+        player.setPos(anchor.getX() + 0.5, anchor.getY() + 1.0, anchor.getZ() + 0.5);
+        FishingHook hook = new FishingHook(player, helper.getLevel(), 0, 0);
+        hook.setPos(anchor.getX() + 0.5, anchor.getY() + 0.5, anchor.getZ() + 0.5);
+        hook.setDeltaMovement(Vec3.ZERO);
+        helper.getLevel().addFreshEntity(hook);
+        player.fishing = hook;
+
+        long now = helper.getLevel().getGameTime();
+        FishSchoolSavedData data = FishSchoolSavedData.get(helper.getLevel());
+        FishSchoolSavedData.FormationSnapshot formation = FishSchoolSavedData.snapshot(
+                FishingPoolResolver.resolveEnvironment(helper.getLevel(), anchor, null));
+        List<FishSchoolSavedData.MemberFixture> fixtures = new java.util.ArrayList<>();
+        for (int i = 0; i < spots.length; i++) {
+            fixtures.add(new FishSchoolSavedData.MemberFixture(41L + i,
+                    FishSchoolSavedData.Position.at(anchor.offset(spots[i][0], 0, spots[i][1])),
+                    FishSchoolSavedData.MemberState.AVAILABLE, null));
+        }
+        FishSchoolSavedData.School school = data.addSchoolForTest(Fishtastic.id(species), anchor, now, now + 12_000,
+                formation, fixtures);
+        FishSchoolManager schools = FishSchoolManager.get(helper.getLevel());
+        // These are ocean creatures and the test world is not ocean; the approach is what is tested.
+        schools.ignoreHabitatForTest(school.id());
+        schools.tick();
+        awaitOwnedBite(helper, player, hook, schools, school, 0, limit);
+    }
+
+    /** The bottom bite (encounter spec §4.4): a crab walks the floor to beneath the bobber, which dips. */
+    public static void crawlerTakesABottomBite(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        liveVisitBites(helper, mockPlayer, "japanese_spider_crab", new int[][]{{3, 0}, {-3, 1}}, 600);
+    }
+
+    /** A drifter is carried over to the bait (encounter spec §4). */
+    public static void drifterIsCarriedToTheBait(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        liveVisitBites(helper, mockPlayer, "portuguese_man_o_war", new int[][]{{2, 0}, {-2, 1}}, 900);
+    }
+
+    /** A garden eel never travels: a bobber landing over its burrow is taken (encounter spec §4.3). */
+    public static void eelTakesABobberOverItsBurrow(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        liveVisitBites(helper, mockPlayer, "garden_eel", new int[][]{{1, 0}, {-4, 4}}, 300);
+    }
+
     /** Waits for whichever member the school's engine brings to the bobber; which one is the swim's business. */
     private static void awaitOwnedBite(GameTestHelper helper, ServerPlayer player, FishingHook hook,
                                        FishSchoolManager schools, FishSchoolSavedData.School school,
                                        int ticksWaited) {
+        awaitOwnedBite(helper, player, hook, schools, school, ticksWaited, 300);
+    }
+
+    private static void awaitOwnedBite(GameTestHelper helper, ServerPlayer player, FishingHook hook,
+                                       FishSchoolManager schools, FishSchoolSavedData.School school,
+                                       int ticksWaited, int limit) {
+        // The mock player can drop its bobber link between ticks when many fixtures run at once;
+        // restore it every check, as the 1.20.1 port does (backport-catchup-progress).
+        player.fishing = hook;
         schools.tick();
         FishSchoolSavedData.Member member = school.members().stream()
                 .filter(m -> m.state() == FishSchoolSavedData.MemberState.BITE_READY)
@@ -203,7 +278,7 @@ public final class FishSchoolGameTests {
             return;
         }
         FishingMinigameManager fishing = FishingMinigameManager.get(helper.getLevel());
-        helper.assertTrue(ticksWaited < 300,
+        helper.assertTrue(ticksWaited < limit,
                 "A member in valid connected water must approach and start a bite; final states were "
                         + school.members().stream().map(m -> m.state().toString()).toList()
                         + ", players=" + helper.getLevel().players().size() + ", hook=" + hook.blockPosition()
@@ -215,7 +290,7 @@ public final class FishSchoolGameTests {
                         + ", activeSession=" + fishing.isPlayerInActiveSession(player.getUUID())
                         + ", ownedBite=" + schools.ownsBite(hook)
                         + ", " + schools.debugState(school.id()));
-        helper.runAfterDelay(1, () -> awaitOwnedBite(helper, player, hook, schools, school, ticksWaited + 1));
+        helper.runAfterDelay(1, () -> awaitOwnedBite(helper, player, hook, schools, school, ticksWaited + 1, limit));
     }
 
     /**
@@ -306,6 +381,99 @@ public final class FishSchoolGameTests {
         helper.assertTrue(restored.regionsForTest().size() == 1
                         && restored.regionsForTest().get(0).nextAttemptAt() == 24000L,
                 "The regional encounter deadline must survive reload");
+        helper.succeed();
+    }
+
+    private static Holder<Item> item(String path) {
+        return BuiltInRegistries.ITEM.getOptional(Fishtastic.id(path)).orElseThrow().builtInRegistryHolder();
+    }
+
+    /**
+     * Who may appear in the world (docs/in-world-fish-encounters-design-spec.md §5.1): any
+     * Fishtastic swimmer, crawler, drifter or eel, not only the old curated four; never a denied
+     * species, a glider (parked), a lava fish, or something that is not a fish.
+     */
+    public static void encounterEligibilityFollowsTheRule(GameTestHelper helper) {
+        FishSchoolManager schools = FishSchoolManager.get(helper.getLevel());
+        for (String swimmer : List.of("bluegill", "neon_tetra", "northern_pike", "lionfish", "coelacanth")) {
+            helper.assertTrue(schools.encounterEligible(item(swimmer)), swimmer + " is a free swimmer and must be eligible");
+        }
+        for (String denied : List.of("shrimp", "fried_shrimp")) {
+            helper.assertTrue(!schools.encounterEligible(item(denied)), denied + " is denied and must never appear");
+        }
+        for (String other : List.of("starfish", "japanese_spider_crab", "garden_eel", "portuguese_man_o_war")) {
+            helper.assertTrue(schools.encounterEligible(item(other)), other + " has an in-world approach and must be eligible");
+        }
+        helper.assertTrue(!schools.encounterEligible(item("giant_manta_ray")),
+                "gliders are parked and must not appear");
+        for (String lava : List.of("molten_moorish_idol", "sulphur_molly")) {
+            helper.assertTrue(!schools.encounterEligible(item(lava)), lava + " lives in lava and must not appear in water");
+        }
+        helper.assertTrue(!schools.encounterEligible(BuiltInRegistries.ITEM.wrapAsHolder(Items.STICK)),
+                "a non-fish item must never appear");
+        helper.succeed();
+    }
+
+    /**
+     * A visit takes its species' authored shape, or a forced one, and keeps it through a save:
+     * a pike arrives alone, a bluegill can be made a pair, and an ineligible species is refused.
+     */
+    public static void spawnedVisitsTakeTheirShape(GameTestHelper helper) {
+        BlockPos testOrigin = helper.absolutePos(new BlockPos(1, 1, 1));
+        int waterY = helper.getLevel().getSeaLevel();
+        BlockPos center = new BlockPos(testOrigin.getX() + 2, waterY, testOrigin.getZ() + 2);
+        for (int x = -7; x <= 7; x++) {
+            for (int z = -7; z <= 7; z++) {
+                for (int y = -2; y <= 0; y++) {
+                    helper.getLevel().setBlock(center.offset(x, y, z), Blocks.WATER.defaultBlockState(), 3);
+                }
+            }
+        }
+        FishSchoolManager schools = FishSchoolManager.get(helper.getLevel());
+        FishSchoolSavedData data = FishSchoolSavedData.get(helper.getLevel());
+
+        String refused = schools.spawnForDebug(center, Fishtastic.id("giant_manta_ray"));
+        helper.assertTrue(!refused.startsWith("Spawned"), "a glider (parked) must be refused: " + refused);
+
+        FishSchoolSavedData.School pike = spawned(helper, data, schools.spawnForDebug(center, Fishtastic.id("northern_pike")));
+        helper.assertTrue(pike.shape() == VisitShape.SOLITARY && pike.members().size() == 1,
+                "a northern pike authors solitary and must arrive alone: " + pike.shape() + " x" + pike.members().size());
+
+        FishSchoolSavedData.School pair = spawned(helper, data,
+                schools.spawnForDebug(center, Fishtastic.id("bluegill"), null, VisitShape.PAIR));
+        helper.assertTrue(pair.shape() == VisitShape.PAIR && pair.members().size() == 2,
+                "a forced pair must hold exactly two fish: " + pair.shape() + " x" + pair.members().size());
+
+        var encoded = FishSchoolSavedData.CODEC.encodeStart(JsonOps.INSTANCE, data).getOrThrow();
+        FishSchoolSavedData restored = FishSchoolSavedData.CODEC.parse(JsonOps.INSTANCE, encoded).getOrThrow();
+        for (FishSchoolSavedData.School original : List.of(pike, pair)) {
+            FishSchoolSavedData.School reloaded = restored.schoolsForTest().stream()
+                    .filter(s -> s.id().equals(original.id())).findFirst().orElseThrow();
+            helper.assertTrue(reloaded.shape() == original.shape(), "a visit's shape must survive a save: " + original.shape());
+        }
+        helper.succeed();
+    }
+
+    private static FishSchoolSavedData.School spawned(GameTestHelper helper, FishSchoolSavedData data, String result) {
+        helper.assertTrue(result.startsWith("Spawned"), "debug spawn must form a visit: " + result);
+        UUID id = UUID.fromString(result.substring(result.lastIndexOf("(school ") + 8, result.length() - 2));
+        return data.schoolsForTest().stream().filter(s -> s.id().equals(id)).findFirst().orElseThrow();
+    }
+
+    /** Visits saved before shapes existed carry no shape field; they were all schools. */
+    public static void schoolsSavedBeforeShapesLoadAsSchools(GameTestHelper helper) {
+        FishSchoolSavedData data = new FishSchoolSavedData();
+        BlockPos anchor = helper.absolutePos(new BlockPos(1, 1, 1));
+        var environment = FishingPoolResolver.resolveEnvironment(helper.getLevel(), anchor, null);
+        data.addSchoolForTest(Fishtastic.id("bluegill"), anchor, 10L, 500L, FishSchoolSavedData.snapshot(environment),
+                List.of(new FishSchoolSavedData.MemberFixture(5L, FishSchoolSavedData.Position.at(anchor),
+                        FishSchoolSavedData.MemberState.AVAILABLE, null)));
+        var encoded = FishSchoolSavedData.CODEC.encodeStart(JsonOps.INSTANCE, data).getOrThrow().getAsJsonObject();
+        // A school is the field's default, so it is not written; drop it anyway in case that changes.
+        encoded.getAsJsonArray("schools").get(0).getAsJsonObject().remove("shape");
+        FishSchoolSavedData restored = FishSchoolSavedData.CODEC.parse(JsonOps.INSTANCE, encoded).getOrThrow();
+        helper.assertTrue(restored.schoolsForTest().get(0).shape() == VisitShape.SCHOOL,
+                "a visit saved without a shape must load as a school");
         helper.succeed();
     }
 }

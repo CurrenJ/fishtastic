@@ -10,5 +10,6 @@
     { "time": "day", "multiplier": 1.5 },
     { "time": "dawn", "multiplier": 2.0 }
   ],
-  "swarm": { "shelter": "skittish" }
+  "swarm": { "shelter": "skittish" },
+  "world_encounter": { "shape": "loose_group" }
 }

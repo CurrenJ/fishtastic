@@ -20,5 +20,6 @@
     "xz_spread": 0.24,
     "y_range": 0.2,
     "rotation_jitter": 5
-  }
+  },
+  "world_encounter": { "shape": "school" }
 }

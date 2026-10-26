@@ -8,5 +8,6 @@
   "time_weights": [
     { "time": "dawn", "multiplier": 2.0 }
   ],
-  "temperament": "fishtastic:sprinter"
+  "temperament": "fishtastic:sprinter",
+  "world_encounter": { "shape": "pair" }
 }

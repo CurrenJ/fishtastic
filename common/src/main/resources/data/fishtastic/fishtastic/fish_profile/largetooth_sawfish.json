@@ -17,5 +17,6 @@
   "temperament": "fishtastic:aggressive",
   "animation": {
     "mode": "horizontal_swim"
-  }
+  },
+  "world_encounter": { "shape": "solitary" }
 }

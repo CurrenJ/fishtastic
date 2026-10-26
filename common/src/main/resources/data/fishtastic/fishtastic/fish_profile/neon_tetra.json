@@ -17,5 +17,6 @@
   "weather_weights": [
     { "weather": "rain", "multiplier": 0.5 }
   ],
-  "swarm": { "shelter": "skittish" }
+  "swarm": { "shelter": "skittish" },
+  "world_encounter": { "shape": "school" }
 }

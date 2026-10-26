@@ -22,5 +22,6 @@
     "xz_spread": 0.26,
     "y_range": 0,
     "rotation_jitter": 0
-  }
+  },
+  "world_encounter": { "shape": "pair" }
 }

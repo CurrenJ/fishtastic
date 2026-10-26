@@ -43,6 +43,15 @@ public final class AmbientClientCommands {
                                                     + (visible ? "shown" : "hidden") + ". This changes only your display.");
                                             return 1;
                                         })))
+                        .then(LiteralArgumentBuilder.<S>literal("arrivals")
+                                .then(RequiredArgumentBuilder.<S, Boolean>argument("shown", BoolArgumentType.bool())
+                                        .executes(ctx -> {
+                                            boolean shown = BoolArgumentType.getBool(ctx, "shown");
+                                            FishtasticClientConfig.setFishSchoolArrivalsShown(shown);
+                                            feedback.accept(ctx.getSource(), "Ripples where a fish visit arrives "
+                                                    + (shown ? "shown" : "hidden") + ".");
+                                            return 1;
+                                        })))
                         // Dev: recolour new trail motes, e.g. "tint FFC850 FF78B4"; "tint reset" restores the cyans.
                         .then(LiteralArgumentBuilder.<S>literal("tint")
                                 .then(LiteralArgumentBuilder.<S>literal("reset").executes(ctx -> {

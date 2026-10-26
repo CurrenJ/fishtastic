@@ -7,5 +7,6 @@
     { "time": "dusk", "multiplier": 1.5 },
     { "time": "night", "multiplier": 1.5 }
   ],
-  "temperament": "fishtastic:ghost"
+  "temperament": "fishtastic:ghost",
+  "world_encounter": { "shape": "loose_group" }
 }

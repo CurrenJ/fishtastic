@@ -16,5 +16,6 @@
   "moon_weights": [
     { "phase": "new_moon", "multiplier": 1.5 }
   ],
-  "swarm": { "shelter": "visitor" }
+  "swarm": { "shelter": "visitor" },
+  "world_encounter": { "shape": "loose_group" }
 }

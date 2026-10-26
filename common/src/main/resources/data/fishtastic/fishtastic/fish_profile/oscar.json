@@ -6,5 +6,6 @@
     "river"
   ],
   "temperament": "fishtastic:aggressive",
-  "swarm": { "shelter": "visitor" }
+  "swarm": { "shelter": "visitor" },
+  "world_encounter": { "shape": "pair" }
 }

@@ -15,5 +15,6 @@
   "animation": {
     "mode": "horizontal_swim",
     "diagonal_texture": false
-  }
+  },
+  "world_encounter": { "shape": "pair" }
 }
