@@ -153,4 +153,168 @@ class FishSchoolSimTest {
             }
         }
     }
+
+    /** A launch point just under the surface above (l, d), the way the server picks one. */
+    private static float[] launch(FishSchoolSim sim, float l, float d) {
+        float[] at = sim.anchorPoint(l, sim.domain().surfaceAt(l, d), d);
+        assertNotNull(at);
+        return at;
+    }
+
+    private static boolean sendGoal(FishSchoolSim sim, UUID goal, UUID member, float l, float d) {
+        float[] at = launch(sim, l, d);
+        return sim.apply(new FishSchoolSim.SurfaceGoal(goal, member, at[0], at[1], at[2], 64, 0.5f));
+    }
+
+    @Test
+    void aMemberSwimsUpToItsGoalThenSwimsOnIntoTheJump() {
+        for (long seed = 1; seed <= 4; seed++) {
+            FishSchoolSim sim = school(seed, shallow(3));
+            run(sim, 30, null);
+            UUID goal = UUID.randomUUID();
+            assertTrue(sendGoal(sim, goal, B, 2.5f, 2.5f), "the engine refused the goal, seed " + seed);
+            assertTrue(sim.goalActive(goal));
+            assertFalse(sim.hasSurfaceJump(B), "no jump before it has arrived");
+            int fish = sim.indexOf(B);
+            boolean[] touched = new boolean[1];
+            float[] last = drawn(sim, fish);
+            float worstStep = 0f, commitSpeed = 0f;
+            int arrivedAt = -1;
+            for (int t = 0; t < 600 && arrivedAt < 0; t++) {
+                sim.step(e -> touched[0] |= e.touch() && e.anchor().equals(goal));
+                float[] now = drawn(sim, fish);
+                worstStep = Math.max(worstStep, dist(last, now));
+                if (sim.hasSurfaceJump(B)) {
+                    arrivedAt = t;
+                    commitSpeed = dist(last, now);
+                }
+                last = now;
+            }
+            assertTrue(arrivedAt >= 0, "the member never began its jump, seed " + seed);
+            assertTrue(sim.goalStarted(goal) && sim.goalActive(goal), "the goal holds through the jump");
+            // It commits on the way in, still swimming, rather than stopping at the point first.
+            assertFalse(touched[0], "it committed before its nose reached the point, seed " + seed);
+            assertTrue(commitSpeed > 0.02f, "and was moving when it did, seed " + seed + ": " + commitSpeed);
+            float[] launch = last;
+            float apex = 0f;
+            int t = 0;
+            for (; t < 70 && sim.hasSurfaceJump(B); t++) {
+                sim.step(null);
+                apex = Math.max(apex, sim.surfaceJumpOffset(B, 1f));
+                float[] now = drawn(sim, fish);
+                worstStep = Math.max(worstStep, dist(last, now));
+                last = now;
+            }
+            assertTrue(apex > 0.4f, "the jump rose, seed " + seed + " apex " + apex);
+            assertFalse(sim.hasSurfaceJump(B), "and landed, seed " + seed);
+            assertTrue(t <= 64, "within its duration, seed " + seed + ": " + t);
+            // Landing hands the fish to the engine where it was drawn, still going, and ends the goal.
+            assertFalse(sim.goalActive(goal), "the goal ends as it lands, seed " + seed);
+            assertTrue(sim.goalCompleted(goal));
+            assertFalse(sim.hasAnchor(goal));
+            sim.step(null);
+            float[] after = drawn(sim, fish);
+            worstStep = Math.max(worstStep, dist(last, after));
+            assertTrue(worstStep < 0.3f, "the drawn fish never jumps a frame, seed " + seed + ": " + worstStep);
+            float travelled = (float) Math.hypot(after[0] - launch[0], after[2] - launch[2]);
+            assertTrue(travelled > 1.0f, "it came down ahead of where it committed, seed " + seed + ": " + travelled);
+        }
+    }
+
+    /** Where fish {@code i} is drawn at the end of this step: its engine position plus any breach pose. */
+    private static float[] drawn(FishSchoolSim sim, int i) {
+        sim.engine().interpolate(1f);
+        float[] pose = new float[7];
+        boolean jumping = sim.surfaceJumpPose(sim.members().get(i), 1f, pose);
+        return new float[]{sim.engine().renderX[i] + (jumping ? pose[0] : 0f),
+                sim.engine().renderY[i] + (jumping ? pose[1] : 0f),
+                sim.engine().renderZ[i] + (jumping ? pose[2] : 0f)};
+    }
+
+    private static float dist(float[] a, float[] b) {
+        return (float) Math.sqrt((a[0] - b[0]) * (a[0] - b[0]) + (a[1] - b[1]) * (a[1] - b[1])
+                + (a[2] - b[2]) * (a[2] - b[2]));
+    }
+
+    @Test
+    void aBobberCallsOffTheMembersGoal() {
+        FishSchoolSim sim = school(2, shallow(3));
+        run(sim, 30, null);
+        UUID goal = UUID.randomUUID(), bobber = UUID.randomUUID();
+        assertTrue(sendGoal(sim, goal, B, 3.5f, 3.5f));
+        run(sim, 5, null);
+        float[] at = sim.anchorPoint(-3.5f, 2.6f, -3.5f);
+        assertNotNull(at);
+        assertTrue(sim.apply(new FishSchoolSim.Approach(bobber, B, at[0], at[1], at[2], 2f, 8f)),
+                "a member on its way to breach can still be sent to a bobber");
+        assertFalse(sim.goalActive(goal));
+        assertFalse(sim.hasAnchor(goal));
+        assertTrue(sim.errandActive(bobber));
+    }
+
+    @Test
+    void withdrawingOrLeavingEndsAGoalAndItsJump() {
+        FishSchoolSim sim = school(3, shallow(3));
+        run(sim, 30, null);
+        UUID goal = UUID.randomUUID();
+        assertTrue(sendGoal(sim, goal, B, 1.5f, 1.5f));
+        assertTrue(sim.apply(new FishSchoolSim.Withdraw(goal)));
+        assertFalse(sim.goalActive(goal));
+        assertFalse(sim.apply(new FishSchoolSim.Withdraw(goal)), "nothing left to withdraw");
+
+        UUID second = UUID.randomUUID();
+        assertTrue(sendGoal(sim, second, A, -1.5f, -1.5f));
+        assertTrue(sim.apply(new FishSchoolSim.Leave(A)));
+        assertFalse(sim.goalActive(second));
+        assertFalse(sim.hasAnchor(second));
+    }
+
+    @Test
+    void aMemberHasOneGoalAtATimeAndNonSwimmersHaveNone() {
+        FishSchoolSim sim = school(4, shallow(3));
+        run(sim, 30, null);
+        assertTrue(sendGoal(sim, UUID.randomUUID(), B, 1.5f, 1.5f));
+        assertFalse(sendGoal(sim, UUID.randomUUID(), B, -1.5f, 1.5f), "one goal per member");
+        FishSchoolSim crawler = FishSchoolSim.create(new FishSchoolSim.Setup(ORIGIN, shallow(3),
+                FishSchoolSim.spec(LENGTH, Locomotion.BENTHIC, ShelterUse.VISITOR), 5L,
+                List.of(new FishSchoolSim.Placement(A, 2.5f, 0.1f, 0.5f)), VisitShape.SCHOOL));
+        assertNotNull(crawler);
+        run(crawler, 30, null);
+        assertFalse(crawler.apply(new FishSchoolSim.SurfaceGoal(UUID.randomUUID(), A, 0.5f, 2.5f, 0.5f, 64, 0.5f)),
+                "only free swimmers breach");
+    }
+
+    @Test
+    void aGoalSurvivesTheWire() {
+        io.netty.buffer.ByteBuf buf = io.netty.buffer.Unpooled.buffer();
+        var sent = new FishSchoolSim.SurfaceGoal(new UUID(7, 8), B, 1.25f, 2.5f, -3.75f, 64, 0.55f);
+        FishSchoolWire.INPUT.encode(buf, sent);
+        assertEquals(sent, FishSchoolWire.INPUT.decode(buf));
+
+        var direct = new FishSchoolSim.SurfaceJump(A, 48, 0.45f);
+        FishSchoolWire.INPUT.encode(buf, direct);
+        assertEquals(direct, FishSchoolWire.INPUT.decode(buf));
+    }
+
+    @Test
+    void twoCopiesAgreeThroughAGoalAndItsJump() {
+        FishSchoolSim server = school(0xB0A7L, shallow(3));
+        FishSchoolSim client = school(0xB0A7L, shallow(3));
+        UUID goal = UUID.randomUUID();
+        for (int t = 0; t < 1200; t++) {
+            if (t == 100) {
+                float[] at = launch(server, 2.5f, -2.5f);
+                var input = new FishSchoolSim.SurfaceGoal(goal, C, at[0], at[1], at[2], 64, 0.5f);
+                assertEquals(server.apply(input), client.apply(input));
+            }
+            server.step(null);
+            client.step(null);
+            assertEquals(server.checksum(), client.checksum(), "copies diverged at step " + t);
+            for (int i = 0; i < server.members().size(); i++) {
+                assertEquals(server.surfaceJumpOffset(server.members().get(i), 0.5f),
+                        client.surfaceJumpOffset(client.members().get(i), 0.5f), 0f, "step " + t);
+            }
+        }
+        assertFalse(server.goalActive(goal));
+    }
 }

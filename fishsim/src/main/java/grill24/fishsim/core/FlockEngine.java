@@ -1064,6 +1064,34 @@ public final class FlockEngine {
         velL[i] = velY[i] = velD[i] = 0f;
     }
 
+    /**
+     * Puts fish {@code i} at {@code (lateral, y, depth)} swimming at {@code (vl, vy, vd)} blocks a
+     * second and facing {@code yaw}, as if it had swum there: its previous position is one tick
+     * back along that velocity, so the render lerp carries straight on rather than pausing. For a
+     * presentation that drew the fish somewhere other than its engine position (a school fish's
+     * surface jump) handing it back where it was drawn. The caller has checked the point is water.
+     */
+    public void relocate(int i, float lateral, float y, float depth, float vl, float vy, float vd, float yaw) {
+        float dt = t.dt();
+        posL[i] = lateral;
+        posY[i] = y;
+        posD[i] = depth;
+        prevL[i] = lateral - vl * dt;
+        prevY[i] = y - vy * dt;
+        prevD[i] = depth - vd * dt;
+        velL[i] = vl;
+        velY[i] = vy;
+        velD[i] = vd;
+        yawDeg[i] = prevYawDeg[i] = yaw;
+    }
+
+    /** Fish {@code i}'s sim-local position lerped to {@code partialTick}, as {@link #interpolate} draws it. */
+    public void localAt(int i, float partialTick, float[] out) {
+        out[0] = SimMath.lerp(partialTick, prevL[i], posL[i]);
+        out[1] = SimMath.lerp(partialTick, prevY[i], posY[i]);
+        out[2] = SimMath.lerp(partialTick, prevD[i], posD[i]);
+    }
+
     /** Times the hard backstop clamp actually moved a fish (must stay 0 — soft containment does the work). */
     public long backstopEngagements() { return backstopEngagements; }
 
