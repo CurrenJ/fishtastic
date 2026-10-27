@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 2.1.11
+
+- School visits now always succeed, and wild school fish leap out of the water every 30-60 seconds.
+
 ## 2.1.10
 
 - Wild school fish now occasionally breach the surface with species-specific arcs, then return to swimming.
