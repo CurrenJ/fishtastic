@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 2.1.10
+
+- Wild school fish now occasionally breach the surface with species-specific arcs, then return to swimming.
+
 ## 2.1.9
 
 - Interactive in-world visits can now be almost any species, not only the four schooling fish.
