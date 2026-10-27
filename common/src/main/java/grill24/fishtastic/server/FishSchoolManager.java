@@ -84,8 +84,8 @@ public final class FishSchoolManager {
      * after it forms, and each roll after a roll or a completed jump this long after the last, the
      * delay being the minimum plus a spread picked per visit.
      */
-    private static final int SURFACE_JUMP_MIN_DELAY_TICKS = 1_200;
-    private static final int SURFACE_JUMP_DELAY_SPREAD_TICKS = 3_600;
+    private static final int SURFACE_JUMP_MIN_DELAY_TICKS = 600;
+    private static final int SURFACE_JUMP_DELAY_SPREAD_TICKS = 600;
     private static final int SURFACE_JUMP_RECHECK_TICKS = 40;
     /** Chance that a roll starts a goal. */
     private static final float SURFACE_JUMP_CHANCE = 0.6f;
