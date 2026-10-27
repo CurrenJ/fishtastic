@@ -52,6 +52,7 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.GOLDEN_MAHSEER.value());
                     output.accept(FishtasticItems.GOLDEN_TROUT.value());
                     output.accept(FishtasticItems.GREENSTRIPE_BARB.value());
+                    output.accept(FishtasticItems.HELLBENDER.value());
                     output.accept(FishtasticItems.GUMMY_WORMS.value());
                     output.accept(FishtasticItems.INDIAN_GLASSY_FISH.value());
                     output.accept(FishtasticItems.JAPANESE_SPIDER_CRAB.value());

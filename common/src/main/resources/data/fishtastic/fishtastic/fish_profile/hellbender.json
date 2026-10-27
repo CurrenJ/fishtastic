@@ -1,0 +1,21 @@
+{
+  "render_calibration": 1.07,
+  "base_weight": 3,
+  "size": { "mean": 50.0, "std_dev": 9.0 },
+  "zones": ["river"],
+  "time_weights": [
+    { "time": "night", "multiplier": 1.5 },
+    { "time": "day", "multiplier": 0.5 }
+  ],
+  "weather_weights": [
+    { "weather": "rain", "multiplier": 1.5 }
+  ],
+  "temperament": "fishtastic:ambusher",
+  "animation": {
+    "mode": "floor_sit",
+    "diagonal_texture": true
+  },
+  "companion_gait": "crawl",
+  "swarm": { "shelter": "lurker" },
+  "world_encounter": { "shape": "solitary" }
+}

@@ -255,7 +255,8 @@ public class FishtasticItemTagProvider extends FabricTagsProvider.ItemTagsProvid
                 .add(FishtasticItems.GREENSTRIPE_BARB.value())
                 .add(FishtasticItems.MOORISH_IDOL.value())
                 .add(FishtasticItems.ARCTIC_CHAR.value())
-                .add(FishtasticItems.COMMON_OCTOPUS.value());
+                .add(FishtasticItems.COMMON_OCTOPUS.value())
+                .add(FishtasticItems.HELLBENDER.value());
 
         // Frenzy fish: bait-affinity/encyclopedia cluster for aggressive/high-energy species.
         // Curated membership (not derivable from fish_profile), same rationale as above.
