@@ -81,7 +81,8 @@ public final class FishSchoolWire {
                     SPEC.decode(buf), buf.readLong(), readList(buf, PLACEMENT, MAX_MEMBERS),
                     SHAPES[bounded(buf.readVarInt(), SHAPES.length - 1, "visit shape")]));
 
-    private static final int LEAVE = 0, REJOIN = 1, APPROACH = 2, WITHDRAW = 3, WATER = 4, WATCHER = 5;
+    private static final int LEAVE = 0, REJOIN = 1, APPROACH = 2, WITHDRAW = 3, WATER = 4, WATCHER = 5,
+            SURFACE_JUMP = 6, SURFACE_GOAL = 7;
 
     public static final StreamCodec<RegistryFriendlyByteBuf, FishSchoolSim.Input> INPUT = StreamCodec.of(
             (buf, input) -> {
@@ -122,6 +123,22 @@ public final class FishSchoolWire {
                         buf.writeFloat(watcher.y());
                         buf.writeFloat(watcher.d());
                     }
+                    case FishSchoolSim.SurfaceJump jump -> {
+                        buf.writeByte(SURFACE_JUMP);
+                        UUIDUtil.STREAM_CODEC.encode(buf, jump.member());
+                        buf.writeVarInt(jump.durationTicks());
+                        buf.writeFloat(jump.height());
+                    }
+                    case FishSchoolSim.SurfaceGoal goal -> {
+                        buf.writeByte(SURFACE_GOAL);
+                        UUIDUtil.STREAM_CODEC.encode(buf, goal.goal());
+                        UUIDUtil.STREAM_CODEC.encode(buf, goal.member());
+                        buf.writeFloat(goal.l());
+                        buf.writeFloat(goal.y());
+                        buf.writeFloat(goal.d());
+                        buf.writeVarInt(goal.durationTicks());
+                        buf.writeFloat(goal.height());
+                    }
                 }
             },
             buf -> switch (buf.readByte()) {
@@ -134,6 +151,13 @@ public final class FishSchoolWire {
                 case WITHDRAW -> new FishSchoolSim.Withdraw(UUIDUtil.STREAM_CODEC.decode(buf));
                 case WATER -> new FishSchoolSim.Water(readList(buf, COLUMN, MAX_COLUMNS));
                 case WATCHER -> new FishSchoolSim.Watcher(buf.readBoolean(), buf.readFloat(), buf.readFloat(),
+                        buf.readFloat());
+                case SURFACE_JUMP -> new FishSchoolSim.SurfaceJump(UUIDUtil.STREAM_CODEC.decode(buf),
+                        bounded(buf.readVarInt(), FishSchoolSim.MAX_SURFACE_JUMP_TICKS, "surface jump duration"),
+                        buf.readFloat());
+                case SURFACE_GOAL -> new FishSchoolSim.SurfaceGoal(UUIDUtil.STREAM_CODEC.decode(buf),
+                        UUIDUtil.STREAM_CODEC.decode(buf), buf.readFloat(), buf.readFloat(), buf.readFloat(),
+                        bounded(buf.readVarInt(), FishSchoolSim.MAX_SURFACE_JUMP_TICKS, "surface goal duration"),
                         buf.readFloat());
                 default -> throw new DecoderException("Unknown fish school input");
             });

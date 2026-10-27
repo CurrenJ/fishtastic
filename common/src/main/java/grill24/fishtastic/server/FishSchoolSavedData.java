@@ -124,10 +124,12 @@ public final class FishSchoolSavedData extends SavedData {
         private long activeUntil;
         private long departureUntil;
         private SchoolState state;
+        /** Game time the visit may next roll a surface jump; 0 until the first roll is scheduled. */
+        private long nextSurfaceJumpAt;
 
         private School(UUID id, Identifier species, BlockPos anchor, long createdAt, long activeUntil,
                        long departureUntil, SchoolState state, FormationSnapshot formation, VisitShape shape,
-                       List<Member> members) {
+                       List<Member> members, long nextSurfaceJumpAt) {
             this.id = id;
             this.species = species;
             this.anchor = anchor;
@@ -138,6 +140,7 @@ public final class FishSchoolSavedData extends SavedData {
             this.formation = formation;
             this.shape = shape;
             this.members = new ArrayList<>(members);
+            this.nextSurfaceJumpAt = nextSurfaceJumpAt;
         }
 
         public UUID id() { return id; }
@@ -151,9 +154,11 @@ public final class FishSchoolSavedData extends SavedData {
         /** How the visit arrived: alone, a pair, a loose group or a school. */
         public VisitShape shape() { return shape; }
         public List<Member> members() { return members; }
+        public long nextSurfaceJumpAt() { return nextSurfaceJumpAt; }
 
         void setState(SchoolState value) { state = value; }
         void setDepartureUntil(long value) { departureUntil = value; }
+        void setNextSurfaceJumpAt(long value) { nextSurfaceJumpAt = value; }
     }
 
     public record RegionSchedule(int x, int z, long nextAttemptAt, long lastSeenAt) {
@@ -189,7 +194,8 @@ public final class FishSchoolSavedData extends SavedData {
             FormationSnapshot.CODEC.fieldOf("formation").forGetter(School::formation),
             // Visits saved before shapes existed were all schools.
             VisitShape.CODEC.optionalFieldOf("shape", VisitShape.SCHOOL).forGetter(School::shape),
-            MEMBER_CODEC.listOf().fieldOf("members").forGetter(School::members)
+            MEMBER_CODEC.listOf().fieldOf("members").forGetter(School::members),
+            Codec.LONG.optionalFieldOf("next_surface_jump_at", 0L).forGetter(School::nextSurfaceJumpAt)
     ).apply(i, School::new));
 
     public static final Codec<FishSchoolSavedData> CODEC = RecordCodecBuilder.create(i -> i.group(
@@ -316,7 +322,7 @@ public final class FishSchoolSavedData extends SavedData {
     static School newSchool(Identifier species, BlockPos anchor, long createdAt, long activeUntil,
                             FormationSnapshot formation, VisitShape shape, List<Member> members) {
         return new School(UUID.randomUUID(), species, anchor, createdAt, activeUntil, 0L,
-                SchoolState.ACTIVE, formation, shape, members);
+                SchoolState.ACTIVE, formation, shape, members, 0L);
     }
 
     public static FormationSnapshot snapshot(FishingPoolResolver.EnvironmentContext env) {

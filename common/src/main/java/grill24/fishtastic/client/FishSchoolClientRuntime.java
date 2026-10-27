@@ -204,6 +204,12 @@ public final class FishSchoolClientRuntime {
         final Map<UUID, FishQuality.Quality> qualities = new HashMap<>();
         /** Each member's world position after the previous tick, for its trail. */
         final Map<UUID, Vec3> lastPositions = new HashMap<>();
+        /** The copy's sim step at the previous client tick, so each jump's surface crossings splash once; -1 unset. */
+        long jumpStepSeen = -1;
+        /** Each jumping member's drawn position after the previous tick: its trail follows the arc. */
+        final Map<UUID, Vec3> lastDrawn = new HashMap<>();
+        /** Scratch for {@link FishSchoolSim#surfaceJumpPose} while drawing. */
+        final float[] jumpPose = new float[JUMP_POSE_SIZE];
         /** Each member's distance swum since its last mote, blocks. */
         final Map<UUID, Double> sinceMote = new HashMap<>();
         /** Ticks each near-motionless member has gone since its last stationary glint. */
@@ -278,13 +284,16 @@ public final class FishSchoolClientRuntime {
         }
     }
 
-    /** Self-test counters: arrivals shown and stationary glints given off since the last reset. */
-    private static int arrivalsShown, stillGlints;
+    /** Self-test counters: arrivals shown, stationary glints given off and bite bursts since the last reset. */
+    private static int arrivalsShown, stillGlints, biteBursts;
 
     public static void resetSelfTestCounters() {
         arrivalsShown = 0;
         stillGlints = 0;
+        biteBursts = 0;
     }
+
+    public static int biteBurstsForSelfTest() { return biteBursts; }
 
     public static int arrivalsForSelfTest() { return arrivalsShown; }
 
@@ -370,7 +379,12 @@ public final class FishSchoolClientRuntime {
         long replayDeadline = System.nanoTime() + REPLAY_BUDGET_NANOS;
         for (Copy copy : COPIES.values()) {
             int stepped = copy.replica.tick(event -> {
-                if (event.touch()) spawnBiteBurst(copy, event.anchor());
+                // A surface goal's arrival is a touch too (the same nose errand as a bobber's),
+                // but it starts a jump, not a bite: the jump makes its own splashes.
+                FishSchoolSim sim = copy.replica.sim();
+                if (event.touch() && (sim == null || !sim.goalActive(event.anchor()))) {
+                    spawnBiteBurst(copy, event.anchor());
+                }
             }, replayDeadline);
             if (copy.replica.mismatches() > copy.loggedMismatches) {
                 if (copy.loggedMismatches == 0) {
@@ -414,11 +428,15 @@ public final class FishSchoolClientRuntime {
         FishSchoolSim sim = copy.replica.sim();
         if (sim == null || !copy.replica.caughtUp()) {
             copy.lastPositions.clear();
+            copy.lastDrawn.clear();
+            copy.jumpStepSeen = -1;
             return;
         }
         FlockEngine engine = sim.engine();
         BlockPos o = sim.origin();
         List<UUID> members = sim.members();
+        long stepNow = sim.steps();
+        float[] jump = new float[JUMP_POSE_SIZE];
         Map<UUID, Vec3> now = new HashMap<>(members.size());
         // The drawn fish is not at the engine's position: the renderer's pose bobs and lifts it
         // (FishAnimator's yBob, about half a body height for a bluegill). Measured with the
@@ -430,17 +448,34 @@ public final class FishSchoolClientRuntime {
             UUID id = members.get(i);
             Vec3 at = new Vec3(o.getX() + engine.posL()[i], o.getY() + engine.posY()[i], o.getZ() + engine.posD()[i]);
             now.put(id, at);
-            Vec3 drawn = drawnPoint(sim, copy.anim, i, t, 0f, 0f, 0f);
+            boolean jumping = sim.surfaceJumpPose(id, 1f, jump);
+            Vec3 drawn = drawnPoint(sim, copy.anim, i, t, 0f, 0f, 0f, jumping ? jump : null);
+            if (copy.jumpStepSeen >= 0) {
+                float length = engine.lengths[i];
+                sim.surfaceJumpCrossings(id, copy.jumpStepSeen, stepNow, cross -> jumpSplash(copy, sim, cross, length));
+            }
             if (debugTrailMarkers) {
                 // Blue: the engine's centre. Green: the drawn body's centre.
                 marker(copy, at, 40, 90, 255);
                 marker(copy, drawn, 40, 255, 40);
             }
             Vec3 before = copy.lastPositions.get(id);
+            // Through a jump the engine fish is held at its launch point while the drawn body flies,
+            // and on landing the engine fish is moved to where it was drawn: so from the first tick
+            // of a jump to the tick it lands, the trail follows the drawn body's own path instead.
+            Vec3 drawnBefore = copy.lastDrawn.get(id);
+            boolean followArc = jumping || drawnBefore != null;
+            if (jumping) copy.lastDrawn.put(id, drawn);
+            else if (drawnBefore != null) copy.lastDrawn.remove(id);
             // The trail stays on for as long as the fish is in the water and not leaving: through its
             // approach, its bite and its recovery (owner decision M8). Hooked fish are out of the sim.
             if (moved && before != null
                     && copy.visual.getOrDefault(id, FishSchoolStatePacket.AVAILABLE) != FishSchoolStatePacket.DEPARTING) {
+                if (followArc) {
+                    // No glint or sprint bubbles mid-leap: the held engine fish would read as still.
+                    if (drawnBefore != null) spawnMotes(copy, id, drawnBefore, drawn, Vec3.ZERO, engine.lengths[i]);
+                    continue;
+                }
                 spawnMotes(copy, id, before, at, drawn.subtract(at), engine.lengths[i]);
                 stillGlint(copy, id, before, at, drawn);
                 int state = engine.shelterState(i);
@@ -449,6 +484,8 @@ public final class FishSchoolClientRuntime {
                 }
             }
         }
+        copy.jumpStepSeen = stepNow;
+        copy.lastDrawn.keySet().retainAll(now.keySet()); // a member caught mid-jump leaves no stale arc
         copy.lastPositions.clear();
         copy.lastPositions.putAll(now);
         while (copy.trail.size() > MAX_TRAIL_MOTES) copy.trail.remove(0);
@@ -458,7 +495,8 @@ public final class FishSchoolClientRuntime {
      * Lays motes along this tick's swim from {@code from} to {@code to}, one every
      * {@link #MOTE_SPACING} blocks of the member's path, carrying the remainder over to the next tick.
      * Spacing and direction come from the engine's path (the drawn bob would add motes to a fish
-     * hovering in place); {@code drawnOffset} moves them onto the drawn body.
+     * hovering in place); {@code drawnOffset} moves them onto the drawn body. A surface jump passes
+     * the drawn path itself with no offset, since its engine fish is held still.
      */
     private static void spawnMotes(Copy copy, UUID member, Vec3 from, Vec3 to, Vec3 drawnOffset, float length) {
         double dx = to.x - from.x, dy = to.y - from.y, dz = to.z - from.z;
@@ -563,12 +601,87 @@ public final class FishSchoolClientRuntime {
      * includes the visual bob, yaw and tilt the engine's own position does not.
      */
     private static Vec3 drawnPoint(FishSchoolSim sim, FishAnimationConfig anim, int i, float t,
-                                   float mx, float my, float mz) {
+                                   float mx, float my, float mz, float @Nullable [] jump) {
         PoseStack pose = new PoseStack();
-        grill24.fishtastic.client.renderer.GroupFishPose.apply(pose, sim.engine(), anim, i, t, 0f, 0f, 0f, POSE_RANDOM);
+        grill24.fishtastic.client.renderer.GroupFishPose.apply(
+                pose, sim.engine(), anim, i, t, 0f, 0f, 0f, jump, POSE_RANDOM);
         org.joml.Vector3f p = pose.last().pose().transformPosition(mx, my, mz, new org.joml.Vector3f());
         BlockPos o = sim.origin();
         return new Vec3(o.getX() + p.x(), o.getY() + p.y(), o.getZ() + p.z());
+    }
+
+    /** {@link FishSchoolSim#surfaceJumpPose}'s array length. */
+    private static final int JUMP_POSE_SIZE = 7;
+    /** Jump splashes are plain water, never a quality tint: the tint is the catch cue (spec §7). */
+    private static final int[] JUMP_SPLASH_TINTS = {0xF4FBFF, 0xDDEFFF, 0xC6E3F7};
+
+    /**
+     * A splash where a breaching fish's body crosses the surface ({@link FishSchoolSim#surfaceJumpCrossings}):
+     * {@code at} is {@code [l, d, forward speed, hl, hd, entry]}. Leaving, a narrow sheet of droplets
+     * drawn up and forward after the fish; going back in, a wider crown thrown out round the entry,
+     * rings, and bubbles carried down after it. Both scale with the fish. Silent, as automatic
+     * effects are.
+     */
+    private static void jumpSplash(Copy copy, FishSchoolSim sim, float[] at, float length) {
+        ClientLevel level = Minecraft.getInstance().level;
+        if (level == null) return;
+        BlockPos origin = sim.origin();
+        double x = origin.getX() + at[0], z = origin.getZ() + at[1];
+        float surfaceLocal = sim.domain().surfaceAt(at[0], at[1]);
+        if (!Float.isFinite(surfaceLocal)) return;
+        double y = waterSurfaceAbove(x, origin.getY() + surfaceLocal - 0.2, z);
+        if (!level.getFluidState(BlockPos.containing(x, y - 0.1, z)).is(FluidTags.WATER)) return;
+        boolean entry = at[5] > 0.5f;
+        double speed = at[2], hx = at[3], hz = at[4];
+        float size = Math.max(0.6f, Math.min(1.6f, length / 0.4f));
+        Random random = copy.trailRandom;
+        int rings = entry ? 3 : 1;
+        for (int ring = 0; ring < rings; ring++) {
+            TrailMote mote = addMote(copy, x, y + 0.015, z, 0, 0, 0, (0.22f + ring * 0.2f) * size,
+                    14 + ring * 8, RIPPLE_SPRITE, JUMP_SPLASH_TINTS);
+            mote.flat = true;
+        }
+        int droplets = Math.round((entry ? 18 : 10) * size);
+        for (int k = 0; k < droplets; k++) {
+            double angle = random.nextDouble() * Math.PI * 2.0;
+            double vx, vy, vz;
+            if (entry) {
+                // A crown: thrown out all round, a little more back than ahead.
+                double out = (0.03 + random.nextDouble() * 0.035) * size;
+                vx = Math.cos(angle) * out - hx * speed * 0.15;
+                vz = Math.sin(angle) * out - hz * speed * 0.15;
+                vy = (0.12 + random.nextDouble() * 0.1) * Math.sqrt(size);
+            } else {
+                // A sheet drawn up after the fish: mostly along its heading, close in.
+                double out = (0.008 + random.nextDouble() * 0.018) * size;
+                vx = Math.cos(angle) * out + hx * speed * (0.3 + random.nextDouble() * 0.4);
+                vz = Math.sin(angle) * out + hz * speed * (0.3 + random.nextDouble() * 0.4);
+                vy = (0.14 + random.nextDouble() * 0.12) * Math.sqrt(size);
+            }
+            TrailMote drop = addMote(copy, x + (random.nextDouble() - 0.5) * 0.15 * size, y + 0.04,
+                    z + (random.nextDouble() - 0.5) * 0.15 * size, vx, vy, vz,
+                    (0.03f + random.nextFloat() * 0.025f) * size, FOUNTAIN_LIFETIME,
+                    random.nextInt(RIPPLE_SPRITE), JUMP_SPLASH_TINTS);
+            drop.gravity = FOUNTAIN_GRAVITY;
+            drop.drag = 0.98f;
+            drop.surfaceY = y;
+            drop.splashes = entry;
+            drop.held = true;
+        }
+        int splashes = Math.round((entry ? 12 : 6) * size);
+        for (int k = 0; k < splashes; k++) {
+            double angle = random.nextDouble() * Math.PI * 2.0, r = random.nextDouble() * 0.3 * size;
+            level.addParticle(ParticleTypes.SPLASH, x + Math.cos(angle) * r, y + 0.02, z + Math.sin(angle) * r,
+                    Math.cos(angle) * 0.05, 0.1, Math.sin(angle) * 0.05);
+        }
+        if (entry) {
+            for (int k = 0; k < Math.round(6 * size); k++) {
+                double down = 0.1 + random.nextDouble() * 0.4;
+                level.addParticle(ParticleTypes.BUBBLE, x + hx * down * 0.6 + (random.nextDouble() - 0.5) * 0.2,
+                        y - down, z + hz * down * 0.6 + (random.nextDouble() - 0.5) * 0.2, 0, 0.02, 0);
+            }
+        }
+        while (copy.trail.size() > MAX_TRAIL_MOTES) copy.trail.remove(0);
     }
 
     /** Droplets thrown in one bite fountain, and how many of them are tall central jets. */
@@ -588,6 +701,7 @@ public final class FishSchoolClientRuntime {
         FishSchoolSim sim = copy.replica.sim();
         float[] at = sim == null ? null : sim.anchorAt(anchor);
         if (at == null) return;
+        biteBursts++;
         BlockPos o = sim.origin();
         double x = o.getX() + at[0], y = o.getY() + at[1], z = o.getZ() + at[2];
         Random random = copy.trailRandom;
@@ -734,20 +848,24 @@ public final class FishSchoolClientRuntime {
                     copy.depth = new float[n];
                     copy.order = new int[n];
                 }
+                float[] jump = copy.jumpPose;
                 for (int i = 0; i < n; i++) {
                     copy.order[i] = i;
-                    copy.depth[i] = (float) ((o.getX() + engine.renderX[i] - cam.x) * forward.x()
-                            + (o.getY() + engine.renderY[i] - cam.y) * forward.y()
-                            + (o.getZ() + engine.renderZ[i] - cam.z) * forward.z());
+                    boolean jumping = sim.surfaceJumpPose(members.get(i), partialTick, jump);
+                    copy.depth[i] = (float) ((o.getX() + engine.renderX[i] + (jumping ? jump[0] : 0f) - cam.x) * forward.x()
+                            + (o.getY() + engine.renderY[i] + (jumping ? jump[1] : 0f) - cam.y) * forward.y()
+                            + (o.getZ() + engine.renderZ[i] + (jumping ? jump[2] : 0f) - cam.z) * forward.z());
                 }
                 GroupFishDraw.backToFront(copy.depth, copy.order, n);
                 float fade = copy.fadeTicks < 0f ? 1f
                         : clamp((copy.fadeTicks - partialTick) / DEPARTURE_FADE_TICKS, 0f, 1f);
                 for (int k = 0; k < n; k++) {
                     int i = copy.order[k];
-                    ItemStackRenderState state = copy.states.computeIfAbsent(members.get(i), id -> new ItemStackRenderState());
+                    UUID member = members.get(i);
+                    ItemStackRenderState state = copy.states.computeIfAbsent(member, id -> new ItemStackRenderState());
                     GroupFishDraw.submit(poses, nodes, level, camera, o.getX(), o.getY(), o.getZ(), engine, i,
-                            copy.anim, copy.stack, state, fade, null, t, POSE_RANDOM);
+                            copy.anim, copy.stack, state, fade, null, t,
+                            sim.surfaceJumpPose(member, partialTick, jump) ? jump : null, POSE_RANDOM);
                 }
             }
             submitTrail(poses, nodes, camera, cam, copy, partialTick);
@@ -841,6 +959,48 @@ public final class FishSchoolClientRuntime {
                     o.getZ() + sim.engine().posD()[i]);
         }
         return null;
+    }
+
+    /** Self-test probe: whether a replayed school copy is currently showing a surface jump. */
+    public static boolean surfaceJumpActiveForSelfTest() {
+        for (Copy copy : COPIES.values()) {
+            FishSchoolSim sim = copy.replica.sim();
+            if (sim == null) continue;
+            for (UUID member : sim.members()) if (sim.hasSurfaceJump(member)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Self-test probe: the first jumping member's engine position (world) and leap heading,
+     * {@code [x, y, z, hx, hz]}, so a scene can watch the arc side-on; null with no jump.
+     */
+    public static double @Nullable [] surfaceJumpViewForSelfTest() {
+        float[] pose = new float[JUMP_POSE_SIZE];
+        for (Copy copy : COPIES.values()) {
+            FishSchoolSim sim = copy.replica.sim();
+            if (sim == null) continue;
+            List<UUID> members = sim.members();
+            for (int i = 0; i < members.size(); i++) {
+                if (!sim.surfaceJumpPose(members.get(i), 1f, pose)) continue;
+                double yaw = Math.toRadians(pose[4] + sim.engine().frameYawDeg());
+                BlockPos o = sim.origin();
+                return new double[]{o.getX() + sim.engine().posL()[i], o.getY() + sim.engine().posY()[i],
+                        o.getZ() + sim.engine().posD()[i], Math.cos(yaw), -Math.sin(yaw)};
+            }
+        }
+        return null;
+    }
+
+    /** Self-test probe: largest rendered jump offset among the tracked school copies. */
+    public static float maxSurfaceJumpOffsetForSelfTest(float partialTick) {
+        float max = 0f;
+        for (Copy copy : COPIES.values()) {
+            FishSchoolSim sim = copy.replica.sim();
+            if (sim == null) continue;
+            for (UUID member : sim.members()) max = Math.max(max, sim.surfaceJumpOffset(member, partialTick));
+        }
+        return max;
     }
 
     /**

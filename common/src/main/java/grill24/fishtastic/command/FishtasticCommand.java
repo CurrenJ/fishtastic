@@ -91,6 +91,13 @@ public class FishtasticCommand {
                                                                 net.minecraft.commands.arguments.IdentifierArgument.getId(context, "species"),
                                                                 com.mojang.brigadier.arguments.StringArgumentType.getString(context, "quality"),
                                                                 com.mojang.brigadier.arguments.StringArgumentType.getString(context, "shape")))))))
+                        // Sends a fish of the nearest school to breach now: it swims up, then jumps.
+                        .then(Commands.literal("jump").requires(FishtasticPermissions.gamemaster()).executes(context -> {
+                            String result = grill24.fishtastic.server.FishSchoolManager.get(context.getSource().getLevel())
+                                    .surfaceJumpNearest(context.getSource().getPosition());
+                            context.getSource().sendSuccess(() -> Component.literal(result), false);
+                            return 1;
+                        }))
                         .then(Commands.literal("debug").requires(FishtasticPermissions.gamemaster()).executes(context -> {
                             var schools = grill24.fishtastic.server.FishSchoolManager.get(context.getSource().getLevel());
                             String result = schools.debugNearest(context.getSource().getPosition());

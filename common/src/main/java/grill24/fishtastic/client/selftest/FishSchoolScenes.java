@@ -51,6 +51,22 @@ final class FishSchoolScenes {
         }));
     }
 
+    /** Three blocks of water, so a fish has to swim up to the surface to breach. */
+    private static void queueJumpPool(int x, int y, int z) {
+        queue(1, mc -> server(mc, s -> {
+            run(s, "fill " + (x - 8) + " " + (y - 2) + " " + (z - 14) + " "
+                    + (x + 8) + " " + (y + 3) + " " + (z + 3) + " minecraft:air");
+            run(s, "fill " + (x - 7) + " " + (y - 2) + " " + (z - 13) + " "
+                    + (x + 7) + " " + (y - 2) + " " + (z + 2) + " minecraft:stone");
+            run(s, "fill " + (x - 7) + " " + (y - 1) + " " + (z - 13) + " "
+                    + (x - 7) + " " + (y + 1) + " " + (z + 2) + " minecraft:stone");
+            run(s, "fill " + (x + 7) + " " + (y - 1) + " " + (z - 13) + " "
+                    + (x + 7) + " " + (y + 1) + " " + (z + 2) + " minecraft:stone");
+            run(s, "fill " + (x - 6) + " " + (y - 1) + " " + (z - 12) + " "
+                    + (x + 6) + " " + (y + 1) + " " + (z + 1) + " minecraft:water");
+        }));
+    }
+
     static void queueFishSchoolGifScene() {
         int x = origin.getX();
         int y = origin.getY();
@@ -98,6 +114,78 @@ final class FishSchoolScenes {
             mc.options.hideGui = false;
             check("fishschoolgif.fixture", true,
                     "captured " + (FRAME_COUNT * 3) + " real renderer frames from three views");
+        });
+    }
+
+    /**
+     * A server-sent surface goal: the fish swims up to its launch point and breaches, photographed
+     * from arrival through apex and landing.
+     */
+    static void queueFishSchoolJumpScene() {
+        int x = origin.getX();
+        int y = origin.getY();
+        int z = origin.getZ();
+        java.util.concurrent.atomic.AtomicReference<java.util.UUID> schoolId =
+                new java.util.concurrent.atomic.AtomicReference<>();
+
+        queueJumpPool(x, y, z);
+        queue(5, mc -> server(mc, s -> {
+            String result = FishSchoolManager.get(s.getLevel(mc.level.dimension()))
+                    .spawnForDebug(new BlockPos(x, y, z - 5), Fishtastic.id("bluegill"));
+            check("fishschooljump.spawn", result.startsWith("Spawned"), result);
+            if (result.startsWith("Spawned")) schoolId.set(spawnedId(result));
+        }));
+        queue(40, mc -> {
+            mc.options.hideGui = true;
+            check("fishschooljump.copy", !FishSchoolClientRuntime.debugState().startsWith("No tracked"),
+                    FishSchoolClientRuntime.debugState());
+        });
+        queue(1, mc -> {
+            Vec3 fish = FishSchoolClientRuntime.memberPositionForSelfTest(0);
+            check("fishschooljump.camera_target", fish != null, String.valueOf(fish));
+            // A block above the pool's surface (water fills y-1..y+1), looking across it at the fish.
+            if (fish != null) camera(mc, fish.x, y + 2.9, fish.z + 5.5, 180f, 12f);
+        });
+        queue(1, mc -> server(mc, s -> {
+            java.util.UUID id = schoolId.get();
+            String result = id == null ? "School spawn did not produce an id."
+                    : FishSchoolManager.get(s.getLevel(mc.level.dimension())).surfaceJumpForDebug(id);
+            check("fishschooljump.start", result.startsWith("Sent"), result);
+            FishSchoolClientRuntime.resetSelfTestCounters();
+        }));
+        // The fish has to swim up first; the goal is called off after 400 ticks.
+        CompanionScenes.queueUntil("fishschooljump.visible", 450,
+                mc -> FishSchoolClientRuntime.surfaceJumpActiveForSelfTest(), FishSchoolClientRuntime::debugState);
+        // The peak is tracked over every frame: the glide's offset is negative, so a single
+        // mid-jump sample can land after the flight and read nothing.
+        float[] peak = {0f};
+        // Side-on to the leap, level with the surface, centred on the flight: the lean reads here.
+        queue(1, mc -> {
+            double[] view = FishSchoolClientRuntime.surfaceJumpViewForSelfTest();
+            if (view == null) return;
+            double midX = view[0] + view[3] * 1.8, midZ = view[2] + view[4] * 1.8;
+            double sideX = -view[4], sideZ = view[3];
+            double camX = midX + sideX * 3.5, camZ = midZ + sideZ * 3.5;
+            float yaw = (float) Math.toDegrees(Math.atan2(-(midX - camX), midZ - camZ));
+            camera(mc, camX, y + 2.4, camZ, yaw, 5f);
+        });
+        for (int frame = 0; frame < 24; frame++) {
+            int shot = frame;
+            queue(2, mc -> {
+                peak[0] = Math.max(peak[0], FishSchoolClientRuntime.maxSurfaceJumpOffsetForSelfTest(1f));
+                screenshot(mc, "fishschooljump", "arc-" + String.format(java.util.Locale.ROOT, "%02d", shot));
+            });
+        }
+        queue(1, mc -> check("fishschooljump.apex", peak[0] > 0.3f, "peak rendered offset=" + peak[0]));
+        // Reaching the launch point is an engine touch, like a bobber's, but must not look like a bite.
+        queue(1, mc -> check("fishschooljump.no_bite_burst", FishSchoolClientRuntime.biteBurstsForSelfTest() == 0,
+                "bite bursts during the jump=" + FishSchoolClientRuntime.biteBurstsForSelfTest()));
+        queue(2, mc -> {
+            check("fishschooljump.landed", !FishSchoolClientRuntime.surfaceJumpActiveForSelfTest(),
+                    FishSchoolClientRuntime.debugState());
+            check("fishschooljump.lockstep", !FishSchoolClientRuntime.debugState().matches("(?s).*mismatches=[1-9].*"),
+                    FishSchoolClientRuntime.debugState());
+            mc.options.hideGui = false;
         });
     }
 
