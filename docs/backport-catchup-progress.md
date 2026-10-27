@@ -45,6 +45,244 @@ port (evidence under each worktree's `build/verification/two-client/fabric/`).
 
 ## Current parity state
 
+- **Status (2026-10-27):** every 26.1.2 source commit through `8794a541` (`Add hellbender`) is on
+  both port branches, ported or excluded as source-only docs/tooling. The commit-by-commit
+  crosswalk past the markers is in
+  [forward-port-log.md](backport-catchup/forward-port-log.md#post-marker-follow-ups-e21bc4a38794a541).
+  Tips: 26.1.2 `8794a541`, `port/1.21.1` `eba88004`, `port/1.20.1` `1e7802ad`; all three are
+  version 2.1.11 and all three worktrees are clean. The ported-through markers remain at
+  `e21bc4a3` (each scoped follow-up chose not to move them); they can advance to `8794a541`
+  without further porting. Nothing is pushed: before this docs commit 26.1.2 was 16 commits ahead of
+  `origin`, and each port was 14 ahead.
+
+- **Completed follow-up (2026-10-27): hellbender.** Source `8794a541` (`Add hellbender`, a new rare
+  river species) was cherry-picked to 1.21.1 as `eba88004` and carried to 1.20.1 as `1e7802ad`.
+  The 26.1-only client item definition `assets/fishtastic/items/hellbender.json` was dropped on
+  both ports (no ported fish has one). The item model is the Fabric datagen output (no trailing
+  newline, like the other ported models). On 1.20.1 the tag edits land in `tags/items/`.
+  Validation, per port: all loaders' `compileJava` (1.21.1 Fabric/NeoForge/Forge, 1.20.1
+  Fabric/Forge), `WorldEncounterTest` (solitary count 21 → 22), and Fabric datagen with no change
+  beyond the new model (1.21.1 copied 1, 1.20.1 copied 0; 101 authored entries preserved, none
+  pruned). Each commit hook's unit tests and Fabric GameTests passed. NeoForge/Forge GameTests and
+  an in-game look were not run on the ports. The source passed 395/395 Fabric GameTests before its
+  commit. No push.
+
+- **Release and tuning follow-ups (2026-10-27):** `Prepare Fishtastic 2.1.9 release` (source
+  `99325a8f`) maps to 1.21.1 `783dec27` and 1.20.1 `9fbc8479`. `Bump Fishtastic to 2.1.10`
+  (`cdad5be3`) maps to `6b9dbfb2` / `6735c5f1`. `Make school visits always succeed and surface
+  jumps come every 30-60s` (`091e2c58`) was cherry-picked as `88a6ce2f` / `82c3da88`. `Bump
+  Fishtastic to 2.1.11` (`21eadae1`) maps to `7bb45c3b` / `eafc4d16`.
+
+- **Completed follow-up (2026-10-27): wild-fish surface jumps.** Backport source commit
+  `603ade5a92c7ddee91fe01d5462515f7bdb2e570` (`Let wild school fish leap out of the water now and
+  then`) sequentially: apply and adapt on clean `port/1.21.1` at `783dec27`, validate and commit,
+  then carry that result to clean `port/1.20.1` at `9fbc8479`, adapt, validate and commit. Preserve
+  version-specific networking, saved-data, rendering, simulation and loader APIs. Validate common,
+  fishsim and tank-shape-gen tests; all supported loader builds, testmod compiles and GameTests;
+  Fabric datagen with an unchanged authored-resource/status diff; and the `fishschooljump` client
+  scene on each target. Record command logs, captures, snapshots and a result matrix under
+  `build/backport-catchup/2026-10-27/wild-fish-surface-jumps/`. Starting source is clean at
+  `603ade5a`; target branches are clean at the baselines above, each nine commits ahead of its
+  remote. The source commit is not in the pinned source-commit ledger; this scoped follow-up does
+  not advance historical parity markers or push either branch. **Checkpoint (2026-10-27):** the
+  `--no-commit` apply stopped on conflicts in `FishSchoolClientRuntime.java`, `GroupFishDraw.java`,
+  and `RenderSelfTest.java`, plus source `docs/README.md` modified vs port-deleted. Apply transcript:
+  `build/backport-catchup/2026-10-27/wild-fish-surface-jumps/1.21.1-apply.log`. **Next action:**
+  conflicts are resolved with the port's immediate-mode renderer and old camera API, preserving its
+  render self-test scenes and adding `fishschooljump`; the port-only README remains deleted. The
+  design spec and all gameplay/simulation/test changes are staged. Forced `:common:compileJava`
+  passed (only existing deprecation/unchecked warnings); log:
+  `build/backport-catchup/2026-10-27/wild-fish-surface-jumps/1.21.1-common-compile.log`.
+  Forced tests passed: common 914 tests (0 failures, 1 skipped), fishsim 516 passed/59 skipped,
+  and tank-shape-gen 21,955 passed. Log:
+  `build/backport-catchup/2026-10-27/wild-fish-surface-jumps/1.21.1-unit-tests.log`.
+  Forced Fabric, NeoForge and Forge `build` tasks and all three `compileTestmodJava` tasks passed;
+  log: `build/backport-catchup/2026-10-27/wild-fish-surface-jumps/1.21.1-build-testmod.log`.
+  GameTests passed 389/389 on Fabric, NeoForge and Forge; logs:
+  `1.21.1-{fabric,neoforge,forge}-gametests.log` in the same evidence directory. **Next action:**
+  Fabric datagen passed: copied 0, preserved 101 authored entries, 5,513 unchanged, none pruned;
+  pre/post Git status snapshots match. Log and snapshots are in
+  `build/backport-catchup/2026-10-27/wild-fish-surface-jumps/`. **Next action:** run the Fabric
+  `fishschooljump` client scene, then review and commit the 1.21.1 port. **Checkpoint (2026-10-27):**
+  the first scene attempt failed 2 of 10 checks: the school copy disappeared before the surface
+  goal was visible, leaving the apex offset at zero; the other 8 checks passed. The target log and
+  all 24 captures are under `build/verification/two-client/fabric/c237f0198e0d42179990283f15ffbbfc/`
+  in the 1.21.1 worktree. Diagnosis found `queueJumpPool` omitted the river-biome fill already used
+  by the neighboring Bluegill scene fixture. Added the matching river-biome setup to the target
+  `queueJumpPool` self-test fixture; the retry passed all 10/10 `fishschooljump` checks. Runner log
+  `1.21.1-fishschooljump-retry.log`, with 24 arc captures under
+  `D:\GitHub\fishtastic-worktrees\port-1.21.1\build\verification\two-client\fabric\7bc54818740a472e8fce3c39db8370e6\solo\screenshots\`.
+  **Checkpoint (2026-10-27):** the forced final Fabric, NeoForge and Forge build/testmod matrix
+  passed (48 tasks); log `1.21.1-build-testmod-final.log`. Final review found only the backport and
+  the jump-scene fixture update. `git diff --check HEAD` initially caught one trailing blank line
+  at the design spec EOF; it was removed and the check now passes. The validated changes were
+  committed as 1.21.1 `785ba2c8c9ec7de6c1e3b56dd42c1c4eb8fcb359`; its worktree is clean. The
+  repository commit hook's common tests and Fabric GameTests passed (NeoForge GameTests were skipped
+  by that hook; the explicit 389/389 NeoForge run above passed). Carried
+  `785ba2c8c9ec7de6c1e3b56dd42c1c4eb8fcb359` to `port/1.20.1` from clean baseline `9fbc8479`.
+  Apply/build/test/game-test/datagen/scene logs and snapshots are under
+  `build/backport-catchup/2026-10-27/wild-fish-surface-jumps/` with the `1.20.1-` prefix. The
+  apply is recorded in `1.20.1-apply.log`; it stopped with conflicts in
+  `GroupFishDraw.java`, `RenderSelfTest.java`, `FishSchoolSim.java`, and `FishSchoolWire.java`.
+  Those conflicts are now resolved: the renderer retains 1.20.1's matrix/normal handling, the
+  scene registry retains its port-only entries and adds `fishschooljump`, simulation dispatch uses
+  Java 17-compatible `instanceof`, and packet encoding/decoding uses the existing `BufCodec` API.
+  `git diff --check HEAD` passes. Forced `:common:compileJava --rerun-tasks` passed with only
+  existing deprecation/unchecked warnings; log `1.20.1-common-compile.log`. Forced
+  `:common:test :fishsim:test :tools:tank-shape-gen:test --rerun-tasks` exposed a test compile error:
+  the new wire test uses 1.21's unavailable `RegistryFriendlyByteBuf`, while this port's `BufCodec`
+  takes a Netty `ByteBuf`. That command completed with `:fishsim:test` passing 516 tests (59
+  skipped) and `:tools:tank-shape-gen:test` passing 21,955; common tests did not compile. Adapted
+  the wire test to encode/decode directly on `Unpooled.buffer()`. The failed first attempt remains
+  in `1.20.1-unit-tests.log`; the successful retry is `1.20.1-unit-tests-retry.log`.
+  **Checkpoint (2026-10-27):** retry
+  passed common 927 tests (0 failures/errors, 1 skipped), fishsim 516 passed/59 skipped, and
+  tank-shape-gen 21,955 passed. JUnit XML confirms the counts; retry transcript is
+  `1.20.1-unit-tests-retry.log`. Forced Fabric and Forge builds plus both testmod compiles passed
+  (35 tasks); log `1.20.1-build-testmod.log`. Fabric GameTests passed 389/389 and Forge passed
+  390/390; logs `1.20.1-fabric-gametests.log` and `1.20.1-forge-gametests.log`. Fabric datagen
+  passed: copied 0, preserved 101 authored entries, 5,511 unchanged, none pruned; pre/post status
+  snapshots match (`1.20.1-pre-datagen-status.txt`, `1.20.1-post-datagen-status.txt`; log
+  `1.20.1-datagen.log`). **Next action:** run
+  `python scripts/run_render_checks.py fabric --solo --scenes fishschooljump --timeout 600` on the
+  1.20.1 worktree, logging output to `1.20.1-fishschooljump-runner.log` and retaining its captures.
+  **Checkpoint (2026-10-27):** the 1.20.1 scene passed 10/10 checks; runner log above and 24
+  screenshots under
+  `D:\GitHub\fishtastic-worktrees\mc-1.20.1\build\verification\two-client\fabric\a5ebfd5a59c745fe831123663efabce3\solo\screenshots\`.
+  Final review also found the copied `GroupFishDraw` Javadoc named the 1.21.1 renderer, and the new
+  packet roundtrip covered only `SurfaceGoal`. Updated the comment and added direct `SurfaceJump`
+  roundtrip coverage; final forced `:common:test --rerun-tasks` passed (927 tests, 0 failures/errors,
+  1 skipped), log `1.20.1-common-test-final.log`. Final `git diff --check HEAD` passes, no conflict
+  markers remain, all 24 scene captures exist, and the reviewed diff contains only the backport.
+  Committed as 1.20.1 `7e19cfa499e435c5b29b44d1683afa7e642157eb`; both target worktrees are clean
+  and each branch is 10 commits ahead of its remote. Final matrix:
+  `build/backport-catchup/2026-10-27/wild-fish-surface-jumps/result-matrix.md`. No push was made and
+  historical parity markers remain unchanged. No pending work remains for this follow-up.
+
+- **Completed follow-up (2026-10-26): in-world fish visit shapes and locomotion.** Port source
+  commit `ed3dbfd61e84eb2deffbc9996911a5c8cb1cd12f` (`Open interactive in-world visits to most
+  species with authored shapes`) in order `26.1.2 → port/1.21.1 → port/1.20.1`. Carry the full
+  gameplay, saved-data and packet changes; profile schema and authored encounter data; tags and
+  datagen; client cues/config/commands; fishsim; unit and GameTest coverage; and the encounter
+  design documentation, adapting target APIs and loader registration. Baselines are clean
+  1.21.1 `f30329a5` and 1.20.1 `e1788e7f`; both branches are eight commits ahead of their remotes after these local commits.
+  Keep the historical source/port parity markers at `e21bc4a3` / `0c35f75c` / `861c251f`.
+  Validate both targets with uncached common, fishsim and tank-shape-gen tests; every supported
+  loader's main/testmod compile and GameTests; Fabric datagen with a clean authored-resource diff;
+  and the applicable in-world encounter client scenes. Record logs, captures and a result matrix
+  under `build/backport-catchup/2026-10-26/in-world-fish-visits/`. **Starting state:** source
+  `ed3dbfd6` is clean; both target worktrees are clean at the baselines above. No push or marker
+  advancement is included in this operation. **Checkpoint (2026-10-26):** the source change is
+  applied to 1.21.1 with `git cherry-pick --no-commit`; 9 paths need manual resolution:
+  `RenderSelfTest.java`, `FishtasticCommand.java`, `FishSchoolManager.java`,
+  `FishSchoolSavedData.java`, `fish_school_enabled.json`, `FishtasticItemTagProvider.java`,
+  `NeoForgeGameTestRegistration.java`, and the two source paths deleted by the port
+  (`docs/README.md`, `ForgeFishtasticGameTests.java`). The target-specific portions are recorded
+  in `build/backport-catchup/2026-10-26/in-world-fish-visits/1.21.1-apply.log`.
+  All 9 conflicts are resolved: the command/manager/data classes use `ResourceLocation`, Fabric
+  datagen uses `getOrCreateTagBuilder`, the derived-eligibility override is empty, the port's
+  shared NeoForge test registration is retained, and deleted source-only docs/Forge harness files
+  remain deleted. New GameTest wrappers are present in the shared harness. The first compile found
+  a malformed shape-command chain; after matching the source builder nesting, the forced rerun
+  reached two target API errors: `FishSchoolManager.readyByProfile` used `RegistryLookup` where the
+  target API requires `Registry`, and `FishingMinigameManager.createSchoolTarget` passed a generic
+  `Level` where its manager already holds the `ServerLevel`. The independent fishsim suite passed
+  516 tests with 59 skipped. Log:
+  `build/backport-catchup/2026-10-26/in-world-fish-visits/1.21.1-common-compile.log`.
+  The profile lookup now uses the target `Registry` API, and the minigame reuses its existing
+  `ServerLevel`. The clean `:common:compileJava` rerun passed. In the full sequential run,
+  fishsim passed 516 tests (59 skipped) and tank-shape-gen passed 21,955; `:common:test` completed
+  without a failure. Fabric main compilation passed, but `:fabric:compileTestmodJava` found six new
+  wrappers using the 26.1 `@GameTest(structure, maxTicks)` attributes, which 1.21.1 lacks. Full
+  log: `build/backport-catchup/2026-10-26/in-world-fish-visits/1.21.1-build-tests.log`.
+  The wrappers now use `template="fishtastic_empty"` and `timeoutTicks`. The clean sequential
+  rerun passed: `:common:test` 900 tests (0 failures, 1 skipped); `:fishsim:test` 516 passed/59
+  skipped; `:tools:tank-shape-gen:test` 21,955 passed; Fabric, NeoForge and Forge builds and all
+  three testmod compiles passed. Detailed log:
+  `build/backport-catchup/2026-10-26/in-world-fish-visits/1.21.1-build-tests-final.log`; the
+  pre-datagen status snapshot is `1.21.1-pre-datagen-status.txt`. The initial annotation failure
+  remains recorded in `1.21.1-build-tests.log` and is superseded by the successful rerun.
+  Fabric datagen passed: 0 files copied, 101 authored entries preserved, 5,513 unchanged, no files
+  pruned; it wrote 2 files to generated output. The target `git status` is byte-for-byte unchanged
+  from the pre-datagen snapshot, and the encounter tags match the empty allow override plus shrimp
+  and fried-shrimp deny list. Log and snapshots:
+  `build/backport-catchup/2026-10-26/in-world-fish-visits/1.21.1-datagen.log` and
+  `1.21.1-{pre,post}-datagen-status.txt`. Fabric GameTests passed 389/389. NeoForge ran all 389 but
+  failed the three new player-driven approach cases because their wrappers used vanilla's mock
+  player supplier; its connection had not registered `fishtastic:quest_sync` yet. The failure was
+  consistent across eel, drifter and crawler and not a behavior assertion. Log:
+  `build/backport-catchup/2026-10-26/in-world-fish-visits/1.21.1-gametests.log`. The three wrappers
+  now use `FishtasticTestSupport.playerSupplier(helper)`, which installs each loader's supported
+  mock-player factory before test execution. The forced retry passed all three suites: Fabric,
+  NeoForge and Forge each completed 389/389. Full retry log:
+  `build/backport-catchup/2026-10-26/in-world-fish-visits/1.21.1-gametests-final.log`. The initial
+  NeoForge failures remain documented and are superseded by this corrected run. **Next action:** run
+  the three 1.21.1 fishschool render scenes, then port to 1.20.1. A combined shapes/classes/crab
+  launch passed every shapes and classes assertion but failed the crab approach/bite probes because
+  the shared pool retained the earlier class-scene crab. The encounter spec explicitly requires
+  `fishschoolcrab` to run in its own launch. Reran it alone; all 4 checks passed. Combined diagnostic
+  log: `1.21.1-render-scenes.log`; isolated crab log:
+  `1.21.1-render-fishschoolcrab.log`. Captures are under target
+  `build/verification/two-client/fabric/1711422abd9f4665ac6ea2302ee02271/solo/screenshots/`.
+  The shapes and classes scene assertions and captures are in target
+  `build/verification/two-client/fabric/427fb046dd3a417894ade499ec875ee6/solo/`. **Next action:**
+  inspect and commit the validated 1.21.1 diff, then port it to 1.20.1. Review found only the
+  intended target adaptations and a one-line command-builder correction; `git diff --check` passed.
+  Commit hooks passed their uncached unit-test gate and Fabric GameTests 389/389 (the hook's
+  documented NeoForge skip is covered by the separate manual Fabric/NeoForge/Forge 389/389 run).
+  Commit: `5ffca717` (`Backport in-world fish visits to 1.21.1`). No other changes were committed.
+  **1.20.1 operation (recorded before start):** verify `port/1.20.1` is clean at baseline
+  `e1788e7f`, then apply validated port commit `5ffca717` with `git cherry-pick --no-commit` and
+  adapt/test Minecraft 1.20.1 APIs. Evidence path:
+  `build/backport-catchup/2026-10-26/in-world-fish-visits/`. Baseline was clean. The apply stopped
+  on 8 target seams: `RenderSelfTest.java`, `FishSchoolSetupPacket.java`, `FishSchoolSim.java`,
+  `FishSchoolWire.java`, `FishSchoolManager.java`, the `fish_encounter_disabled` tag path, the
+  existing `fish_school_enabled` tag, and `FishSchoolGameTests.java`. Git correctly reports that
+  the singular 1.21.1 tag directory must be moved to 1.20.1's plural `tags/items/`. Apply transcript:
+  `1.20.1-apply.log`. Resolutions use the 1.20.1 BufCodec/FishtasticPayload network layer, Java 17-
+  compatible `instanceof` dispatch and plural item-tag location. The first forced common compile
+  found two target API differences: `Codec.validate` is unavailable and the raw `ByteBuf` has no
+  `writeVarInt`. Member-range checks now use 1.20.1 `Codec.flatXmap`, and shape ordinals use
+  `BufCodecs.VAR_INT`. The forced `:common:compileJava` rerun passed (two existing JEI deprecation
+  warnings only); logs: `1.20.1-common-compile.log` and `1.20.1-common-compile-final.log`.
+  The first broad run also passed `:common:test`, `:fishsim:test` (516 passed/59 skipped) and
+  `:tools:tank-shape-gen:test` (21,955 passed), then found four no-argument `DataResult.getOrThrow`
+  calls in new GameTest coverage. They now use the 1.20.1 `(allowPartial, errorConsumer)` API. Both
+  `:fabric:compileTestmodJava` and `:forge:compileTestmodJava` now pass; log:
+  `1.20.1-testmod-compile-final.log`. Earlier logs retain the schema and compile diagnostics.
+  The final forced matrix passed: common 913 tests (0 failures, 1 skipped), fishsim 516 passed/59
+  skipped, tank-shape-gen 21,955 passed, Fabric and Forge builds and both testmod compiles. Log:
+  `1.20.1-build-tests-final2.log`; the first broad failure remains in `1.20.1-build-tests-final.log`.
+  Fabric GameTests passed 389/389. Forge completed 390 tests with one failure in
+  `liveSchoolApproachesAndTriggersOwnedBite`: the fixture's two members were `DEPARTED` by the
+  300-tick assertion while 128 mock players were active in the shared GameTest batch. Failure log:
+  `1.20.1-gametests.log`. **Next action:** isolate the four player-driven fish approach/bite tests in
+  their own GameTest batch, then rerun both loader suites to determine whether this is batch pressure
+  or a behavior regression. Fabric again passed 389/389. Forge's dedicated batch did not reduce the
+  fixture population because completed tests retain their mock players, and Forge exposed a second
+  failure: `schoolStaysInItsWaterAndStepsOncePerTick` had `water=1`; the live-approach test again
+  departed. Both use synthetic bluegill ponds but did not bypass habitat eligibility, so the test
+  world biome can reduce the scan to the anchor alone. With habitat bypassed in the two synthetic
+  fixtures and the four approach/bite cases grouped in `in_world_fish_visits`, both loaders passed:
+  Fabric 389/389 and Forge 390/390. Final log:
+  `1.20.1-gametests-habitat-fixed.log`; earlier diagnostics are retained. Fabric datagen passed:
+  copied 2, preserved 101 authored entries, 5,509 unchanged, pruned none. The pre/post status
+  snapshots differ only in two expected generated tags: `fish_encounter_disabled` gained
+  `replace: false`, and `fish_school_enabled` is empty because eligibility is now rule-derived.
+  Evidence: `1.20.1-datagen.log`, `1.20.1-pre-datagen-status.txt`,
+  `1.20.1-post-datagen-status.txt`. The combined `fishschoolshapes` and `fishschoolclasses` render
+  run passed all 14 checks. Isolated `fishschoolcrab` passed 4/4. Logs: `1.20.1-render-scenes.log`,
+  `1.20.1-render-fishschoolcrab.log`; captures are under target
+  `build/verification/two-client/fabric/072153d6026b448bb0d46a76a8da682d/` and
+  `build/verification/two-client/fabric/dc610ad76def4587a751a3c081210eef/`. Final diff review and
+  `git diff --check` passed. The 1.20.1 commit hook passed uncached unit tests and Fabric GameTests
+  389/389; NeoForge is skipped by hook policy, and Forge passed 390/390 in the separate run.
+  Commit: `bbfe1fed573033f8ec149814b718f5ebbb590be3` (`Backport in-world fish visits to 1.20.1`).
+  Final heads are 1.21.1 `5ffca717c3c448fb80fcab47312e5082520f209a` and 1.20.1 `bbfe1fed...`;
+  both worktrees are clean, eight commits ahead of their remotes. Neither branch was pushed; historical
+  parity markers remain `e21bc4a3` / `0c35f75c` / `861c251f`. **Next action:** none for this operation;
+  both ports, validation suites and evidence records are complete.
+
 - **Completed follow-up (2026-10-25): fish-school bite/trail polish.** Source commit `e21bc4a3`
   (`Polish fish school bites; colour trails by quality`) is backported in order
   `26.1.2 → port/1.21.1 → port/1.20.1`, with version-specific packet/rendering APIs preserved.

@@ -34,6 +34,28 @@ The following target-local documentation commits are also present after the prev
 1.20.1 `77c0f5fd` update the supported-loader matrix. They do not represent additional source
 feature commits.
 
+## Post-marker follow-ups: `e21bc4a3..8794a541`
+
+Updated: 2026-10-27. These source commits landed after the markers and were carried as scoped
+follow-ups. The markers stay at `e21bc4a3`. Every commit in the range is accounted for, so the
+markers can advance to `8794a541` without further porting. Per-follow-up validation is in
+`docs/backport-catchup-progress.md`.
+
+| 26.1.2 source commit | Disposition | `port/1.21.1` | `port/1.20.1` |
+|---|---|---|---|
+| `626cb00f` docs(backport): reconcile catch-up ledger through e21bc4a3 | Excluded: source progress tracker only | — | — |
+| `074659af` Bump Fishtastic to 2.1.7 | Ported | `341e6453` | `73fe6fe6` |
+| `ef84f32d` docs(release): record Fishtastic 2.1.7 | Excluded: source release notes only | — | — |
+| `056bec03` Balance interactive fish school encounter odds | Ported | `f30329a5` | `e1788e7f` |
+| `30c8549b` docs(backport): record school odds commits | Excluded: source progress tracker only | — | — |
+| `ed3dbfd6` Open interactive in-world visits to most species with authored shapes | Ported | `5ffca717` | `bbfe1fed` |
+| `99325a8f` Prepare Fishtastic 2.1.9 release | Ported | `783dec27` | `9fbc8479` |
+| `603ade5a` Let wild school fish leap out of the water now and then | Ported | `785ba2c8` | `7e19cfa4` |
+| `cdad5be3` Bump Fishtastic to 2.1.10 | Ported | `6b9dbfb2` | `6735c5f1` |
+| `091e2c58` Make school visits always succeed and surface jumps come every 30-60s | Ported | `88a6ce2f` | `82c3da88` |
+| `21eadae1` Bump Fishtastic to 2.1.11 | Ported | `7bb45c3b` | `eafc4d16` |
+| `8794a541` Add hellbender | Ported (26.1-only `items/hellbender.json` dropped) | `eba88004` | `1e7802ad` |
+
 ## Current validation evidence
 
 - 1.21.1 head `d8a09e1e`: common 878 tests (0 failures, 1 skipped), fishsim 516 passed/59
