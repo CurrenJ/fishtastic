@@ -123,6 +123,6 @@ class WorldEncounterTest {
         assertEquals(8, counts.getOrDefault(VisitShape.SCHOOL, 0));
         assertEquals(14, counts.getOrDefault(VisitShape.LOOSE_GROUP, 0));
         assertEquals(9, counts.getOrDefault(VisitShape.PAIR, 0));
-        assertEquals(21, counts.getOrDefault(VisitShape.SOLITARY, 0));
+        assertEquals(22, counts.getOrDefault(VisitShape.SOLITARY, 0));
     }
 }
