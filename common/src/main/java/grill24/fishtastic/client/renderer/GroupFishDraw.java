@@ -39,17 +39,28 @@ public final class GroupFishDraw {
                                  ClientLevel level, Camera camera, double originX, double originY, double originZ,
                                  FlockEngine engine, int i, FishAnimationConfig anim, ItemStack stack,
                                  float fade, @Nullable Matrix4f frozen, float time, java.util.Random poseRandom) {
+        return submit(poses, buffers, frustum, level, camera, originX, originY, originZ, engine, i,
+                anim, stack, fade, frozen, time, null, poseRandom);
+    }
+
+    /** Renders a fish with an optional surface-jump pose, keeping 1.21.1's immediate-mode item path. */
+    public static boolean submit(PoseStack poses, MultiBufferSource buffers, Frustum frustum,
+                                 ClientLevel level, Camera camera, double originX, double originY, double originZ,
+                                 FlockEngine engine, int i, FishAnimationConfig anim, ItemStack stack,
+                                 float fade, @Nullable Matrix4f frozen, float time, float @Nullable [] jump,
+                                 java.util.Random poseRandom) {
         Vec3 cam = camera.getPosition();
-        double x = originX + (frozen == null ? engine.renderX[i] : frozen.m30());
-        double y = originY + (frozen == null ? engine.renderY[i] : frozen.m31());
-        double z = originZ + (frozen == null ? engine.renderZ[i] : frozen.m32());
+        boolean jumping = frozen == null && jump != null;
+        double x = originX + (frozen == null ? engine.renderX[i] + (jumping ? jump[0] : 0f) : frozen.m30());
+        double y = originY + (frozen == null ? engine.renderY[i] + (jumping ? jump[1] : 0f) : frozen.m31());
+        double z = originZ + (frozen == null ? engine.renderZ[i] + (jumping ? jump[2] : 0f) : frozen.m32());
         double radius = Math.max(1.0, engine.lengths[i] * 2.0);
         if (!level.hasChunkAt(BlockPos.containing(x, y, z))) return false;
         if (!frustum.isVisible(new AABB(x - radius, y - radius, z - radius,
                 x + radius, y + radius, z + radius))) return false;
         poses.pushPose();
         poses.translate(originX - cam.x, originY - cam.y, originZ - cam.z);
-        if (frozen == null) GroupFishPose.apply(poses, engine, anim, i, time, 0f, 0f, 0f, poseRandom);
+        if (frozen == null) GroupFishPose.apply(poses, engine, anim, i, time, 0f, 0f, 0f, jump, poseRandom);
         else poses.mulPose(frozen);
         if (fade < 1f) AmbientFishFade.apply(poses, fade, anim, AmbientModelBounds.of(stack, level));
         int light = LevelRenderer.getLightColor(level, BlockPos.containing(x, y, z));

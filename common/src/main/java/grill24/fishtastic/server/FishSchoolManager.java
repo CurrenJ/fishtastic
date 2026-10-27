@@ -15,6 +15,7 @@ import grill24.fishtastic.school.FishSchoolWire;
 import grill24.fishtastic.network.FishtasticTransport;
 import grill24.fishtastic.client.renderer.FishVisuals;
 import grill24.fishtastic.school.FishSchoolSim;
+import grill24.fishtastic.school.SurfaceJumpArc;
 import grill24.fishtastic.school.VisitShape;
 import grill24.fishsim.core.FishSpec;
 import grill24.fishsim.core.Locomotion;
@@ -37,11 +38,13 @@ import net.minecraft.world.entity.projectile.FishingHook;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -76,6 +79,29 @@ public final class FishSchoolManager {
     private static final int WATER_UP = 4;
     private static final int SCHOOL_FORMATION_RADIUS = 4;
     private static final int SCHOOL_MEMBER_SYNC_TICKS = 10;
+    /**
+     * Surface jumps (wild-fish-surface-jumps-design-spec §12.5): a visit's first roll comes this long
+     * after it forms, and each roll after a roll or a completed jump this long after the last, the
+     * delay being the minimum plus a spread picked per visit.
+     */
+    private static final int SURFACE_JUMP_MIN_DELAY_TICKS = 1_200;
+    private static final int SURFACE_JUMP_DELAY_SPREAD_TICKS = 3_600;
+    private static final int SURFACE_JUMP_RECHECK_TICKS = 40;
+    /** Chance that a roll starts a goal. */
+    private static final float SURFACE_JUMP_CHANCE = 0.6f;
+    /** Only a member at most this far below the surface is sent to breach, blocks. */
+    private static final float SURFACE_JUMP_MAX_DEPTH = 4f;
+    /** A goal not reached in this long is called off, ticks: a four-block climb at {@link FishSchoolSim#GOAL_SPEED_SCALE} takes about 300. */
+    private static final int SURFACE_JUMP_GOAL_TIMEOUT_TICKS = 400;
+    /** After a goal was called off, or none could be started, the visit waits this long to try again, ticks. */
+    private static final int SURFACE_JUMP_RETRY_TICKS = 200;
+    /** How far from the member a launch point is looked for, blocks, and how many are tried per member. */
+    private static final float SURFACE_JUMP_LAUNCH_REACH = 3f;
+    private static final int SURFACE_JUMP_LAUNCH_ATTEMPTS = 8;
+    /** The breach's apex above the surface, blocks; the sim raises it for a long fish (SurfaceJumpArc.apexFor). */
+    private static final float SURFACE_JUMP_BREACH_HEIGHT = 0.5f;
+    /** The most ticks the wind-up, burst, flight and glide may take together; a 0.5-block breach takes about 45. */
+    private static final int SURFACE_JUMP_DURATION_TICKS = 64;
     /** A departing visit fades out over this long, then its members are gone (design decision). */
     private static final int DEPARTURE_TICKS = 60;
     private static final double INTEREST_DISTANCE_SQR = 1024.0;
@@ -180,6 +206,11 @@ public final class FishSchoolManager {
         /** The last {@link FishSchoolSim.Watcher} sent (eel visits only): whether someone was rushing, and where. */
         boolean watcherNear;
         float watcherL, watcherY, watcherD;
+        /** The surface goal this epoch has running (one per visit at a time), and when it was sent. */
+        @Nullable UUID jumpGoal;
+        long jumpGoalSentAt;
+        /** When the running goal's fish reached its launch point, or -1 while it is still on its way. */
+        long jumpGoalArrivedAt = -1;
 
         SchoolRuntime(FishSchoolSim sim, FishSchoolSim.Setup setup, int epoch, Set<BlockPos> water,
                       java.util.function.Consumer<FishSchoolSim.Stamped> onInput) {
@@ -334,6 +365,7 @@ public final class FishSchoolManager {
             });
             runtime.checksum = runtime.sim.checksum();
             syncPositions(school, runtime);
+            tickSurfaceJump(school, runtime, now);
         }
     }
 
@@ -368,9 +400,175 @@ public final class FishSchoolManager {
         if (sim == null || !sim.hostsSpecies()) return null;
         UUID id = school.id();
         int epoch = nextEpoch++ & Integer.MAX_VALUE;
-        SchoolRuntime created = new SchoolRuntime(sim, setup, epoch, water, stamped -> broadcastInput(id, stamped));
+        SchoolRuntime created = new SchoolRuntime(sim, setup, epoch, water,
+                stamped -> broadcastInput(id, stamped));
         sims.put(id, created);
         return created;
+    }
+
+    /**
+     * Surface jumps for a visit of free swimmers (wild-fish-surface-jumps-design-spec §12.5). The
+     * visit rolls now and then; a roll that succeeds picks a member near enough to the surface and
+     * a launch point under open sky, and sends it there as a {@link FishSchoolSim.SurfaceGoal}. The
+     * swim, the jump on arrival and the hold are the sim's; this only starts the goal, calls it
+     * off if the fish is too slow, and schedules the next roll. The engine position stays in the
+     * water: catch approach, bite checks and saved member positions are untouched.
+     */
+    private void tickSurfaceJump(FishSchoolSavedData.School school, SchoolRuntime runtime, long now) {
+        FishSchoolSim sim = runtime.sim;
+        if (runtime.jumpGoal != null) {
+            followSurfaceGoal(school, runtime, now);
+            return;
+        }
+        if (school.state() != FishSchoolSavedData.SchoolState.ACTIVE || runtime.trackers.isEmpty()
+                || sim.spec().locomotion() != Locomotion.FREE_SWIM
+                || Math.floorMod(now + school.id().hashCode(), SURFACE_JUMP_RECHECK_TICKS) != 0) return;
+        long due = school.nextSurfaceJumpAt() > 0 ? school.nextSurfaceJumpAt()
+                : school.createdAt() + SURFACE_JUMP_MIN_DELAY_TICKS
+                + Math.floorMod(school.id().hashCode(), SURFACE_JUMP_DELAY_SPREAD_TICKS);
+        if (now < due) return;
+
+        RandomSource random = RandomSource.create(school.id().getMostSignificantBits()
+                ^ Long.rotateLeft(school.id().getLeastSignificantBits(), 17) ^ (now * 0x9E3779B97F4A7C15L));
+        if (random.nextFloat() >= SURFACE_JUMP_CHANCE) {
+            school.setNextSurfaceJumpAt(now + surfaceJumpCooldown(random));
+            data.markDirtyNow();
+            return;
+        }
+        // A roll that finds nobody to send does not use up the visit's turn: it waits a short while.
+        if (startSurfaceGoal(school, runtime, now, random) == null) {
+            school.setNextSurfaceJumpAt(now + SURFACE_JUMP_RETRY_TICKS);
+        }
+    }
+
+    private static int surfaceJumpCooldown(RandomSource random) {
+        return SURFACE_JUMP_MIN_DELAY_TICKS + random.nextInt(SURFACE_JUMP_DELAY_SPREAD_TICKS);
+    }
+
+    /**
+     * Watches the running goal. When the sim has ended it, a jump that ran its course counts: the
+     * next roll waits a cooldown. One that was called off (a bobber took the fish, it never got
+     * there) does not count; the visit tries again after a short wait.
+     */
+    private void followSurfaceGoal(FishSchoolSavedData.School school, SchoolRuntime runtime, long now) {
+        UUID goal = runtime.jumpGoal;
+        FishSchoolSim sim = runtime.sim;
+        if (sim.goalActive(goal)) {
+            // A fish that committed to its leap on the way in is as good as arrived.
+            if (runtime.jumpGoalArrivedAt < 0 && (runtime.touched.contains(goal) || sim.goalStarted(goal))) {
+                runtime.jumpGoalArrivedAt = now;
+            }
+            if (runtime.jumpGoalArrivedAt < 0 && now - runtime.jumpGoalSentAt > SURFACE_JUMP_GOAL_TIMEOUT_TICKS) {
+                runtime.apply(new FishSchoolSim.Withdraw(goal)); // ends it; counted as called off next tick
+            }
+            return;
+        }
+        boolean completed = runtime.jumpGoalArrivedAt >= 0 && sim.goalCompleted(goal);
+        runtime.touched.remove(goal);
+        runtime.jumpGoal = null;
+        runtime.jumpGoalArrivedAt = -1;
+        if (completed) {
+            RandomSource random = RandomSource.create(goal.getLeastSignificantBits() ^ now);
+            school.setNextSurfaceJumpAt(now + surfaceJumpCooldown(random));
+            data.markDirtyNow();
+        } else {
+            school.setNextSurfaceJumpAt(now + SURFACE_JUMP_RETRY_TICKS);
+        }
+    }
+
+    /**
+     * Picks an available member within {@link #SURFACE_JUMP_MAX_DEPTH} of the surface and a launch
+     * point near it with open sky, and stamps its goal. The member that was sent, or null if no
+     * member could be, in which case nothing was stamped.
+     */
+    private FishSchoolSavedData.@Nullable Member startSurfaceGoal(FishSchoolSavedData.School school,
+                                                                 SchoolRuntime runtime, long now, RandomSource random) {
+        FishSchoolSim sim = runtime.sim;
+        List<FishSchoolSavedData.Member> candidates = new ArrayList<>();
+        for (FishSchoolSavedData.Member member : school.members()) {
+            if (member.state() != FishSchoolSavedData.MemberState.AVAILABLE) continue;
+            int i = sim.indexOf(member.id());
+            if (i < 0 || sim.hasGoal(member.id()) || sim.hasSurfaceJump(member.id())) continue;
+            float surface = sim.domain().surfaceAt(sim.engine().posL()[i], sim.engine().posD()[i]);
+            float depth = surface - sim.engine().posY()[i];
+            if (Float.isFinite(surface) && depth <= SURFACE_JUMP_MAX_DEPTH) candidates.add(member);
+        }
+        for (int k = candidates.size() - 1; k > 0; k--) { // shuffle
+            Collections.swap(candidates, k, random.nextInt(k + 1));
+        }
+        for (FishSchoolSavedData.Member member : candidates) {
+            int i = sim.indexOf(member.id());
+            for (int attempt = 0; attempt < SURFACE_JUMP_LAUNCH_ATTEMPTS; attempt++) {
+                // The first try is straight above the fish; the rest are scattered round it.
+                float angle = random.nextFloat() * Mth.TWO_PI;
+                float reach = attempt == 0 ? 0f : random.nextFloat() * SURFACE_JUMP_LAUNCH_REACH;
+                float l = sim.engine().posL()[i] + Mth.cos(angle) * reach;
+                float d = sim.engine().posD()[i] + Mth.sin(angle) * reach;
+                float[] at = launchPoint(sim, member.id(), l, d);
+                if (at == null) continue;
+                UUID goal = new UUID(random.nextLong(), random.nextLong());
+                float height = Math.max(0f, sim.domain().surfaceAt(at[0], at[2]) - at[1]) + SURFACE_JUMP_BREACH_HEIGHT;
+                boolean sent = runtime.apply(new FishSchoolSim.SurfaceGoal(goal, member.id(), at[0], at[1], at[2],
+                        SURFACE_JUMP_DURATION_TICKS, height));
+                runtime.checksum = sim.checksum();
+                if (!sent) return null; // the engine refused; the input is replayed and refused alike everywhere
+                runtime.jumpGoal = goal;
+                runtime.jumpGoalSentAt = now;
+                runtime.jumpGoalArrivedAt = -1;
+                return member;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Where {@code member} can breach near column {@code (l, d)}: just under its surface, with the
+     * whole body clear of blocks above along the arc it would fly (forward along the heading it
+     * swims in on, SurfaceJumpArc.airReach), in loaded chunks only. Null if there is none. The sim
+     * may still fit a shorter arc than this; never a longer one.
+     */
+    private float @Nullable [] launchPoint(FishSchoolSim sim, UUID member, float l, float d) {
+        float surface = sim.domain().surfaceAt(l, d);
+        if (!Float.isFinite(surface)) return null;
+        float[] at = sim.anchorPoint(l, surface, d);
+        if (at == null) return null;
+        float[] heading = sim.goalHeading(member, at[0], at[2]);
+        int i = sim.indexOf(member);
+        if (heading == null || i < 0) return null;
+        double apex = SurfaceJumpArc.apexFor(Math.max(0f, surface - at[1]) + SURFACE_JUMP_BREACH_HEIGHT,
+                surface - at[1], sim.engine().lengths[i], FishSchoolSim.MAX_SURFACE_JUMP_HEIGHT);
+        double reach = SurfaceJumpArc.airReach(apex);
+        WaterDomain.BodyBox body = sim.body();
+        BlockPos o = sim.origin();
+        double top = o.getY() + surface + apex + body.above();
+        // Body-sized boxes every half block along the flight, launch to re-entry.
+        int samples = Math.max(1, (int) Math.ceil(reach / 0.5));
+        for (int k = 0; k <= samples; k++) {
+            double s = reach * k / samples;
+            double x = o.getX() + at[0] + heading[0] * s, z = o.getZ() + at[2] + heading[1] * s;
+            AABB clearance = new AABB(x - body.half(), o.getY() + surface, z - body.half(),
+                    x + body.half(), top, z + body.half());
+            if (!hasJumpClearance(clearance)) return null;
+        }
+        return at;
+    }
+
+    /** Conservative clearance over the whole rendered body; never touches an unloaded chunk. */
+    private boolean hasJumpClearance(AABB box) {
+        int minX = Mth.floor(box.minX), maxX = Mth.floor(box.maxX - 1.0e-4);
+        int minY = Mth.floor(box.minY), maxY = Mth.floor(box.maxY - 1.0e-4);
+        int minZ = Mth.floor(box.minZ), maxZ = Mth.floor(box.maxZ - 1.0e-4);
+        for (int x = minX; x <= maxX; x++) {
+            for (int z = minZ; z <= maxZ; z++) {
+                if (!level.hasChunkAt(new BlockPos(x, minY, z))) return false;
+                for (int y = minY; y <= maxY; y++) {
+                    BlockPos pos = new BlockPos(x, y, z);
+                    BlockState state = level.getBlockState(pos);
+                    if (!state.getCollisionShape(level, pos).isEmpty()) return false;
+                }
+            }
+        }
+        return true;
     }
 
     /** States in which a member is a fish in the water, and so in its school's sim. */
@@ -567,6 +765,25 @@ public final class FishSchoolManager {
                 + " at " + school.anchor().toShortString() + " (school " + school.id() + ").";
     }
 
+    /**
+     * Test seam: skips the roll and the schedule and sends a member to breach now, so the render
+     * self-test need not wait for ecology. The goal itself (swim up, jump on arrival) is the real one.
+     */
+    public String surfaceJumpForDebug(UUID schoolId) {
+        FishSchoolSavedData.School school = findSchool(schoolId);
+        SchoolRuntime runtime = sims.get(schoolId);
+        if (school == null || runtime == null || school.state() != FishSchoolSavedData.SchoolState.ACTIVE
+                || runtime.sim.spec().locomotion() != Locomotion.FREE_SWIM) {
+            return "School is not an active free-swimming visit.";
+        }
+        if (runtime.jumpGoal != null) return "School already has a surface goal running.";
+        long now = level.getGameTime();
+        FishSchoolSavedData.Member chosen = startSurfaceGoal(school, runtime, now,
+                RandomSource.create(schoolId.getLeastSignificantBits() ^ now));
+        if (chosen == null) return "School has no available fish within reach of an open launch point.";
+        return "Sent " + chosen.id() + " in school " + schoolId + " to breach.";
+    }
+
     /** Debug: the nearest school's species, state and {@link #debugState}, or a line saying there is none. */
     public String debugNearest(Vec3 near) {
         FishSchoolSavedData.School nearest = data.schools().stream()
@@ -574,6 +791,18 @@ public final class FishSchoolManager {
         if (nearest == null) return "No fish schools in this dimension.";
         return nearest.species() + " " + nearest.state() + " at " + nearest.anchor().toShortString()
                 + " (" + (int) Math.sqrt(nearest.anchor().distToCenterSqr(near)) + " blocks): " + debugState(nearest.id());
+    }
+
+    /**
+     * Debug: sends a fish of the nearest school to breach now ({@link #surfaceJumpForDebug}),
+     * skipping the roll and the cooldown; the swim up and the jump are the real ones.
+     */
+    public String surfaceJumpNearest(Vec3 near) {
+        FishSchoolSavedData.School nearest = data.schools().stream()
+                .min(Comparator.comparingDouble(school -> school.anchor().distToCenterSqr(near))).orElse(null);
+        if (nearest == null) return "No fish schools in this dimension.";
+        return nearest.species() + " (" + (int) Math.sqrt(nearest.anchor().distToCenterSqr(near)) + " blocks): "
+                + surfaceJumpForDebug(nearest.id());
     }
 
     /** Test seam: where each AVAILABLE member of the nearest school is, and the size of its water region. */
