@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.1.9
+
 - Interactive in-world visits can now be almost any species, not only the four schooling fish.
   Each species arrives in its own way: alone, as a pair, a loose group or a school. Rare and large
   fish usually come alone, and a visit only forms in water big enough for its species.
