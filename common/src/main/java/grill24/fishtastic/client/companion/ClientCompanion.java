@@ -535,7 +535,8 @@ public final class ClientCompanion {
         // Members breathe out of step: each idles on its own offset clock.
         perchPoses[i].submit(poseStack, nodes, light, gameTime(partialTick) + i * MEMBER_IDLE_OFFSET, extraYawDeg,
                 watch ? 0 : render.hintPitch(partialTick),
-                render.retract(partialTick));
+                render.retract(partialTick),
+                render.wetAt(i, member(i).position(), gameTime(partialTick)));
         poseStack.popPose();
     }
 

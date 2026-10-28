@@ -55,7 +55,6 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.AbstractFurnaceBlock;
@@ -416,7 +415,7 @@ public class FishTankBlockEntityRenderer
             poseStack.scale(scale, scale, scale);
 
             ItemStackRenderState fishRender = flock.itemRenderStates[i];
-            resolver.updateForTopItem(fishRender, flock.stacks[i], ItemDisplayContext.FIXED, null, null, 0);
+            FishRenderMedium.resolve(resolver, fishRender, flock.stacks[i], true);
 
             FishtasticWorldOutlineRenderer.capture(fishRender, flock.stacks[i]);
             FishtasticWorldOutlineRenderer.submitOutline(poseStack, nodes, fishRender, true);
@@ -473,7 +472,7 @@ public class FishTankBlockEntityRenderer
                     groupOffsetX, groupOffsetY, groupOffsetZ, fishRandom);
 
             ItemStackRenderState fishRender = group.renderStates[i];
-            resolver.updateForTopItem(fishRender, group.stacks[i], ItemDisplayContext.FIXED, null, null, 0);
+            FishRenderMedium.resolve(resolver, fishRender, group.stacks[i], true);
 
             FishtasticWorldOutlineRenderer.capture(fishRender, group.stacks[i]);
             FishtasticWorldOutlineRenderer.submitOutline(poseStack, nodes, fishRender, true);

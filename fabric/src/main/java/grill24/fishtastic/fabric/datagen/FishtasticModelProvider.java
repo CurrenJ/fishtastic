@@ -133,7 +133,7 @@ public class FishtasticModelProvider extends FabricModelProvider {
         generateFishItemModel(itemModelGenerators, FishtasticItems.GOLDEN_MAHSEER.value(), "golden_mahseer");
         generateFishItemModel(itemModelGenerators, FishtasticItems.GOLDEN_TROUT.value(), "golden_trout");
         generateFishItemModel(itemModelGenerators, FishtasticItems.GREENSTRIPE_BARB.value(), "greenstripe_barb");
-        generateFishItemModel(itemModelGenerators, FishtasticItems.HELLBENDER.value(), "hellbender");
+        generateWetDryFishItemModel(itemModelGenerators, FishtasticItems.HELLBENDER.value(), "hellbender");
         generateFishItemModel(itemModelGenerators, FishtasticItems.INDIAN_GLASSY_FISH.value(), "indian_glassy_fish");
         generateFishItemModel(itemModelGenerators, FishtasticItems.JAPANESE_SPIDER_CRAB.value(), "japanese_spider_crab");
         generateFishItemModel(itemModelGenerators, FishtasticItems.LARGETOOTH_SAWFISH.value(), "largetooth_sawfish");
@@ -214,6 +214,29 @@ public class FishtasticModelProvider extends FabricModelProvider {
      */
     private static void generateFishItemModel(ItemModelGenerators itemModelGenerators, Item item, String textureName) {
         generateFlatItemWithCustomTexture(itemModelGenerators, item, Fishtastic.id("item/fish/" + textureName));
+    }
+
+    /**
+     * A fish with a wet and a dry texture: {@code item/fish/<name>} when drawn in water (tank,
+     * school, swimming companion), {@code item/fish/<name>_sheen} everywhere else, switched on
+     * {@code fishtastic:submerged} (docs/hellbender-wet-dry-texture.md).
+     */
+    private static void generateWetDryFishItemModel(ItemModelGenerators itemModelGenerators, Item item, String textureName) {
+        grill24.fishtastic.client.FishtasticClientSetup.registerConditionalProperties();
+        Identifier wetModel = ModelTemplates.FLAT_ITEM.create(
+                ModelLocationUtils.getModelLocation(item),
+                TextureMapping.layer0(new Material(Fishtastic.id("item/fish/" + textureName))),
+                itemModelGenerators.modelOutput);
+        Identifier dryModel = ModelTemplates.FLAT_ITEM.create(
+                ModelLocationUtils.getModelLocation(item, "_sheen"),
+                TextureMapping.layer0(new Material(Fishtastic.id("item/fish/" + textureName + "_sheen"))),
+                itemModelGenerators.modelOutput);
+
+        itemModelGenerators.itemModelOutput.accept(item, ItemModelUtils.conditional(
+                new grill24.fishtastic.client.renderer.FishRenderMedium.Submerged(),
+                ItemModelUtils.plainModel(wetModel),
+                ItemModelUtils.plainModel(dryModel)
+        ));
     }
 
     /**

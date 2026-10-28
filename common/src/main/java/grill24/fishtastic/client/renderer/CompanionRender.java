@@ -9,11 +9,12 @@ import grill24.fishsim.companion.Vec;
 import grill24.fishsim.core.Locomotion;
 import grill24.fishtastic.data.FishAnimationConfig;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
-import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
@@ -79,6 +80,16 @@ public final class CompanionRender {
     /** Each fish's unwrapped tail clock in ticks, and the tail phase it was last advanced from. */
     private final float[] tailClock = new float[3];
     private final float[] lastPhase = {Float.NaN, Float.NaN, Float.NaN};
+    /**
+     * Each fish's drawn medium (wet or dry texture), the game time the water under it began to
+     * disagree, and whether it has been sampled yet. The hold keeps a fish at the waterline from
+     * flickering between textures.
+     */
+    private final boolean[] wet = new boolean[3];
+    private final float[] mediumFlipSince = {Float.NaN, Float.NaN, Float.NaN};
+    private final boolean[] mediumSampled = new boolean[3];
+    /** Ticks the water must disagree before a fish's texture follows. */
+    private static final float MEDIUM_HOLD_TICKS = 4f;
 
     private float tilt, prevTilt, hintPitch, prevHintPitch, retract, prevRetract, shiver, prevShiver;
     private float reactionClock;
@@ -235,11 +246,32 @@ public final class CompanionRender {
         }
         poseStack.scale(scale, scale, scale);
         ItemStackRenderState state = states[index];
-        Minecraft.getInstance().getItemModelResolver()
-                .updateForTopItem(state, stack, ItemDisplayContext.FIXED, null, null, 0);
+        FishRenderMedium.resolve(Minecraft.getInstance().getItemModelResolver(), state, stack,
+                wetAt(index, new Vec(pos.x(), pos.y() + lift, pos.z()), gameTime));
         state.submit(poseStack, nodes, light, OverlayTexture.NO_OVERLAY, 0);
         poseStack.popPose();
         return true;
+    }
+
+    /**
+     * Whether fish {@code index} at {@code pos} (world space) draws wet: water at its body, held
+     * {@link #MEDIUM_HOLD_TICKS} before a change shows (docs/hellbender-wet-dry-texture.md).
+     */
+    public boolean wetAt(int index, Vec pos, float gameTime) {
+        var level = Minecraft.getInstance().level;
+        boolean water = level != null
+                && level.getFluidState(BlockPos.containing(pos.x(), pos.y(), pos.z())).is(FluidTags.WATER);
+        if (!mediumSampled[index] || water == wet[index]) {
+            mediumSampled[index] = true;
+            wet[index] = water;
+            mediumFlipSince[index] = Float.NaN;
+        } else if (Float.isNaN(mediumFlipSince[index]) || gameTime < mediumFlipSince[index]) {
+            mediumFlipSince[index] = gameTime;
+        } else if (gameTime - mediumFlipSince[index] >= MEDIUM_HOLD_TICKS) {
+            wet[index] = water;
+            mediumFlipSince[index] = Float.NaN;
+        }
+        return wet[index];
     }
 
     /**

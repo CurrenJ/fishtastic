@@ -8,7 +8,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
@@ -64,9 +63,10 @@ public final class CompanionFishPose {
      *                     wants the sprite to have in its space
      * @param tiltDeg      an extra lean about X (a reaction head-tilt)
      * @param retract      the anchored class's retract envelope in [0, 1]; 0 for everything else
+     * @param wet          drawn in water: the species' wet texture, if it has one (FishRenderMedium)
      */
     public void submit(PoseStack poseStack, SubmitNodeCollector nodes, int light, float gameTimeTicks,
-                       float extraYawDeg, float tiltDeg, float retract) {
+                       float extraYawDeg, float tiltDeg, float retract, boolean wet) {
         float scale = Math.max(length, 1e-3f);
         random.setSeed(seed);
         poseStack.pushPose();
@@ -86,8 +86,7 @@ public final class CompanionFishPose {
             FishAnimator.apply(poseStack, anim, random, t, 0f, scale, false);
         }
         poseStack.scale(scale, scale, scale);
-        Minecraft.getInstance().getItemModelResolver()
-                .updateForTopItem(renderState, stack, ItemDisplayContext.FIXED, null, null, 0);
+        FishRenderMedium.resolve(Minecraft.getInstance().getItemModelResolver(), renderState, stack, wet);
         renderState.submit(poseStack, nodes, light, OverlayTexture.NO_OVERLAY, 0);
         poseStack.popPose();
     }

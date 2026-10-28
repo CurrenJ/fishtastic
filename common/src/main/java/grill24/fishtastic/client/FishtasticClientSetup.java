@@ -5,12 +5,15 @@ import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticMenuTypes;
 import grill24.fishtastic.client.renderer.CosmeticStructureItemModel;
 import grill24.fishtastic.client.renderer.FishPileBlockItemModel;
+import grill24.fishtastic.client.renderer.FishRenderMedium;
 import grill24.fishtastic.client.renderer.PileOfFishItemModel;
 import grill24.fishtastic.menu.ElectricFishOrganizerMenu;
 import grill24.fishtastic.menu.FishTankAssemblyMenu;
 import grill24.fishtastic.menu.FishTankBrowserMenu;
 import net.minecraft.client.renderer.item.ItemModel;
 import net.minecraft.client.renderer.item.ItemModels;
+import net.minecraft.client.renderer.item.properties.conditional.ConditionalItemModelProperties;
+import net.minecraft.client.renderer.item.properties.conditional.ConditionalItemModelProperty;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.inventory.MenuType;
@@ -68,6 +71,27 @@ public final class FishtasticClientSetup {
             Fishtastic.LOGGER.info("Registered pile_of_fish_layers, cosmetic_structure and fish_pile_block item model types.");
         } catch (ReflectiveOperationException e) {
             Fishtastic.LOGGER.error("Failed to register pile_of_fish_layers item model type!", e);
+        }
+        registerConditionalProperties();
+    }
+
+    private static boolean conditionalPropertiesRegistered;
+
+    /**
+     * {@code fishtastic:submerged} (FishRenderMedium): picks a fish's wet or dry texture. Datagen
+     * also calls this, since writing a {@code minecraft:condition} encodes the property's id.
+     */
+    @SuppressWarnings("unchecked")
+    public static void registerConditionalProperties() {
+        if (conditionalPropertiesRegistered) return;
+        try {
+            Field field = ConditionalItemModelProperties.class.getDeclaredField("ID_MAPPER");
+            field.setAccessible(true);
+            ((ExtraCodecs.LateBoundIdMapper<Identifier, MapCodec<? extends ConditionalItemModelProperty>>) field.get(null))
+                    .put(Fishtastic.id("submerged"), FishRenderMedium.Submerged.MAP_CODEC);
+            conditionalPropertiesRegistered = true;
+        } catch (ReflectiveOperationException e) {
+            Fishtastic.LOGGER.error("Failed to register the fishtastic:submerged item model property!", e);
         }
     }
 }

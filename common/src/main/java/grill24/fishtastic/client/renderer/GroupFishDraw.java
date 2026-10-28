@@ -12,7 +12,6 @@ import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -83,8 +82,8 @@ public final class GroupFishDraw {
         } else {
             GroupFishPose.apply(poses, engine, anim, i, time, 0f, 0f, 0f, jump, poseRandom);
         }
-        Minecraft.getInstance().getItemModelResolver().updateForTopItem(state, stack, ItemDisplayContext.FIXED,
-                null, null, 0);
+        // Always wet: a school only leaves the water mid-jump, and a jump keeps the wet look.
+        FishRenderMedium.resolve(Minecraft.getInstance().getItemModelResolver(), state, stack, true);
         if (fade < 1f) AmbientFishFade.apply(poses, fade, anim, state.getModelBoundingBox());
         int light = LevelRenderer.getLightCoords(level, BlockPos.containing(x, y, z));
         state.submit(poses, nodes, light, OverlayTexture.NO_OVERLAY, 0);
