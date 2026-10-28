@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 2.1.12
+
+- Added the hellbender, a rare river fish.
+
 ## 2.1.11
 
 - School visits now always succeed, and wild school fish leap out of the water every 30-60 seconds.
