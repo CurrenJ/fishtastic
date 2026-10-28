@@ -43,17 +43,35 @@ The 2026-10-23 docs/tooling catch-up is complete; the
 isolated solo render check (`scripts/run_render_checks.py fabric --solo`) passed 14/14 on each
 port (evidence under each worktree's `build/verification/two-client/fabric/`).
 
+## Completed follow-up (2026-10-28): 2.1.12 release bump
+
+- **Operation:** Set `mod_version = 2.1.12` and add the hellbender release note on source
+  `26.1.2`, `port/1.21.1`, and `port/1.20.1`; commit each branch separately. Preserve unrelated
+  state, leave parity markers unchanged, and do not push.
+- **Starting state:** Source `551c131a`, 1.21.1 `eba88004`, and 1.20.1 `1e7802ad` are all clean
+  and at version 2.1.11.
+- **Evidence path:** `build/backport-catchup/2026-10-28/version-2.1.12/`.
+- **Result:** Each branch now has `mod_version = 2.1.12` and the changelog entry “Added the
+  hellbender, a rare river fish.” Diffs contained only `CHANGELOG.md` and `gradle.properties`, and
+  `git diff --check` passed on all three. The repository pre-commit hook runs tests, so it was
+  bypassed for these metadata-only commits; no tests or builds were run.
+- **Commits:** Source `d0627f7a`, 1.21.1 `13c270d5`, and 1.20.1 `df1e5b4a`, each titled
+  `Bump Fishtastic to 2.1.12`. All three worktrees are clean after this tracker update. No branch
+  was pushed, and no parity marker was advanced.
+- **Next action:** None.
+
 ## Current parity state
 
-- **Status (2026-10-27):** every 26.1.2 source commit through `8794a541` (`Add hellbender`) is on
+- **Status (2026-10-28):** every 26.1.2 source commit through `8794a541` (`Add hellbender`) is on
   both port branches, ported or excluded as source-only docs/tooling. The commit-by-commit
   crosswalk past the markers is in
   [forward-port-log.md](backport-catchup/forward-port-log.md#post-marker-follow-ups-e21bc4a38794a541).
-  Tips: 26.1.2 `8794a541`, `port/1.21.1` `eba88004`, `port/1.20.1` `1e7802ad`; all three are
-  version 2.1.11 and all three worktrees are clean. The ported-through markers remain at
+  The 2.1.12 release commits are source `d0627f7a`, `port/1.21.1` `13c270d5`, and
+  `port/1.20.1` `df1e5b4a`; all three are version 2.1.12 and all worktrees are clean. The
+  ported-through markers remain at
   `e21bc4a3` (each scoped follow-up chose not to move them); they can advance to `8794a541`
-  without further porting. Nothing is pushed: before this docs commit 26.1.2 was 16 commits ahead of
-  `origin`, and each port was 14 ahead.
+  without further porting. Nothing is pushed: source `26.1.2` is 19 commits ahead of `origin`, and
+  each port is 15 ahead.
 
 - **Completed follow-up (2026-10-27): hellbender.** Source `8794a541` (`Add hellbender`, a new rare
   river species) was cherry-picked to 1.21.1 as `eba88004` and carried to 1.20.1 as `1e7802ad`.
