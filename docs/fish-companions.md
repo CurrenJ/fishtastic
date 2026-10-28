@@ -85,6 +85,14 @@ cohesion without alignment. Plaice use a flat ripple glide rather than a walking
   keeps only the shiver. Before this, the centre-pivot pitch buried a hellbender's head up to
   ~0.11 blocks on a dip. Swimming and perched poses are unchanged. Owner look pending
   (`/fishtastic companion mood glum|sleepy|moon|glee`).
+- Look-down hand visits (2026-10-28): building, every glance at the feet (>50° for 0.75 s)
+  called a benthic up to the hand, with no clock: ~7 visits and ~14.5 place changes a
+  minute, 42% of the time on the hand (`PositionSplitProbe`). Now a ground fish its owner
+  sees during the look stays down and turns to face them (`GroundMind.faceOwner`). Out of
+  view, a look calls it up only after 1.5 s, and not within 30 s of its last hand landing.
+  Probe A/B, building: ground 46→89%, hand 42→9%, changes 14.5→3.0/min. Fishing and
+  exploring are unchanged; the suite moves by under 0.1 hand visits/min. Switches
+  `lookDownFaceOnGround`, `lookDownGapSeconds`, `lookDownSeconds`. Owner look pending.
 
 ## World reactions and social scenes
 

@@ -340,6 +340,15 @@ public final class CompanionTunables {
     /** Ground beats (overtake, roadside) come this many times as soon, and as often, with hand visits rare. */
     public double groundBeatSooner = 2.0;
 
+    // Look-down hand visits (owner feedback 2026-10-28: building, every glance at the feet called a
+    // benthic up to the hand, ~7 a minute, 42% of the time on the hand; PositionSplitProbe).
+    /** A benthic on the ground its owner can see when they look down stays there and turns to face them; false hops up as before. */
+    public boolean lookDownFaceOnGround = true;
+    /** After any landing on a hand, a look down can't call a fish there again for this long; 0 = no wait (as before). */
+    public float lookDownGapSeconds = 30f;
+    /** How long the owner must look down before a fish comes to the hand (0.75 before). */
+    public float lookDownSeconds = 1.5f;
+
     /**
      * A perched anchored fish ducks only this long at a predator fish in its owner's hand, then
      * comes back up and watches it (owner feedback 2026-10-14: a lionfish in hand kept a garden eel
@@ -352,7 +361,8 @@ public final class CompanionTunables {
      * the order it lists them. Each is a public field of this class.
      */
     public static final java.util.List<String> DEV_SWITCHES = java.util.List.of(
-            "partySwimSeparation", "otherPlayerClearance", "anchoredPredatorDuckSeconds", "bobCalm");
+            "partySwimSeparation", "otherPlayerClearance", "anchoredPredatorDuckSeconds", "bobCalm",
+            "lookDownFaceOnGround", "lookDownGapSeconds", "lookDownSeconds");
 
     public static CompanionTunables defaults() {
         return new CompanionTunables();
