@@ -79,6 +79,12 @@ cohesion without alignment. Plaice use a flat ripple glide rather than a walking
 - Any nearby player's feet may scatter walkers. Inspect, hide, guard, nuzzle and hand
   visits use ground targets; occasional overtakes, roadside stops and turn reveals keep
   them visible. Gait drives shape; idle and perched members retain a slow breath.
+- Mood poses on the ground (2026-10-28): a walker on the floor only lifts its head, hinged at
+  the tail's floor contact (`CompanionRender.applyGroundHinge`). Nose-down moods (dip, droop,
+  sleepy, dance's down half) leave it flat. A `floor_sit` fish also drops the mood roll and
+  keeps only the shiver. Before this, the centre-pivot pitch buried a hellbender's head up to
+  ~0.11 blocks on a dip. Swimming and perched poses are unchanged. Owner look pending
+  (`/fishtastic companion mood glum|sleepy|moon|glee`).
 
 ## World reactions and social scenes
 

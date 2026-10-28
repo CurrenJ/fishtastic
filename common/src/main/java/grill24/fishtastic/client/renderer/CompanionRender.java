@@ -212,7 +212,15 @@ public final class CompanionRender {
         // A drifter's pitch is its bell axis (upright is −90); the pose is drawn upright, so tilt by the difference.
         float tiltDeg = locomotion == Locomotion.DRIFT ? pitchDeg + 90f : pitchDeg;
         boolean sourceLean = riding && watching && watchDirection != null;
-        poseStack.mulPose(Axis.XP.rotationDegrees(tiltDeg + (sourceLean ? 0 : hintPitch(partial))));
+        float moodPitch = sourceLean ? 0 : hintPitch(partial);
+        if (onFloor) {
+            // On the ground the body can't dip into the floor: the slope pitch turns it about its
+            // centre as before, but a mood pose only lifts the head, hinged at the tail.
+            poseStack.mulPose(Axis.XP.rotationDegrees(tiltDeg));
+            applyGroundHinge(poseStack, moodPitch, scale * 0.5f, (float) lift);
+        } else {
+            poseStack.mulPose(Axis.XP.rotationDegrees(tiltDeg + moodPitch));
+        }
         if (sourceLean) {
             var lean = CompanionFeatureLean.toward(poseStack.last().pose(), watchDirection);
             poseStack.mulPose(Axis.XP.rotationDegrees(lean.pitch()));
@@ -220,7 +228,9 @@ public final class CompanionRender {
         }
         float tremor = shiverYaw(partial, gameTime, index);
         if (tremor != 0f) poseStack.mulPose(Axis.YP.rotationDegrees(tremor));
-        float roll = (sourceLean ? 0 : hintTilt(partial)) + shiverRoll(partial, gameTime, index);
+        // A fish lying flat on the floor would sink a flank into it, so it keeps only the shiver.
+        boolean lyingFlat = onFloor && anim instanceof FishAnimationConfig.FloorSit;
+        float roll = (sourceLean || lyingFlat ? 0 : hintTilt(partial)) + shiverRoll(partial, gameTime, index);
         if (roll != 0f) poseStack.mulPose(Axis.ZP.rotationDegrees(roll));
         // Lean toward the heading, but face the art its own way: upright, this is just the facing.
         if (locomotion == Locomotion.DRIFT) poseStack.mulPose(Axis.YP.rotationDegrees(Mth.wrapDegrees(yawDeg - faceDeg)));
@@ -251,6 +261,19 @@ public final class CompanionRender {
         state.submit(poseStack, nodes, light, OverlayTexture.NO_OVERLAY, 0);
         poseStack.popPose();
         return true;
+    }
+
+    /**
+     * A ground walker's mood pitch: nose-up only (positive, nose-down, is dropped), turned about
+     * its tail's floor contact so the tail stays put and the head lifts. The stack is at the pose
+     * centre, {@code lift} above the floor, with local +z the heading.
+     */
+    static void applyGroundHinge(PoseStack poseStack, float pitchDeg, float halfLength, float lift) {
+        float raise = Math.min(pitchDeg, 0f);
+        if (raise == 0f) return;
+        poseStack.translate(0f, -lift, -halfLength);
+        poseStack.mulPose(Axis.XP.rotationDegrees(raise));
+        poseStack.translate(0f, lift, halfLength);
     }
 
     /**
