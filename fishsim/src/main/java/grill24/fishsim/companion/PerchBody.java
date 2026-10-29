@@ -98,6 +98,12 @@ public final class PerchBody extends Motor {
     private int handTicks, wanderTicks, lookDownTicks, wetTicks, dryTicks, steadyTicks;
     private Vec lastOwnerVel = Vec.ZERO;
     int hops;
+    /**
+     * Look-down visits (owner, 2026-10-28): ticks before a look down may call it to the hand
+     * again, and whether its owner has seen it during the look down they're in now.
+     */
+    private int lookDownWait;
+    private boolean seenInLook;
 
     // The ground (BENTHIC only; null for an anchored percher).
     final GroundBody ground;
@@ -342,6 +348,8 @@ public final class PerchBody extends Motor {
         boolean beating = gmind != null && (gmind.beat != null || gmind.sinceBeat < GroundMind.BEAT_AFTERMATH);
         unseenTicks = seen && !beating ? 0 : unseenTicks + 1;
         lookDownTicks = o.pitchDeg() > LOOK_DOWN_PITCH ? lookDownTicks + 1 : 0;
+        seenInLook = lookDownTicks > 0 && (seenInLook || seen);
+        if (lookDownWait > 0) lookDownWait--;
         // Steady: not climbing or falling, and not speeding up, slowing or turning. A hop is aimed
         // at where the owner will be, assuming they keep going as they are.
         Vec dv = o.velocity().horizontal().sub(lastOwnerVel.horizontal());
@@ -404,8 +412,9 @@ public final class PerchBody extends Motor {
         }
         // In a group only the leader shows itself on the hand, as from the ground: a follower's
         // hand is another member's (the right shoulder's and the head's are both the right hand).
-        if (!groupFollower && (lookingDown || heldInterest)) {
-            handWhy = lookingDown ? HandWhy.LOOK_DOWN : HandWhy.HELD_ITEM;
+        boolean lookCall = lookDownCall();
+        if (!groupFollower && (lookCall || heldInterest)) {
+            handWhy = lookCall ? HandWhy.LOOK_DOWN : HandWhy.HELD_ITEM;
             return hand();
         }
         // Unseen a while with the hand not due: it peeks into view from where it rides (a ground
@@ -507,6 +516,15 @@ public final class PerchBody extends Motor {
     /** The hand on the side it perches: a short step down, not a leap across the owner's face. */
     private Slot hand() {
         return home == Slot.LEFT_SHOULDER ? Slot.LEFT_HAND : Slot.RIGHT_HAND;
+    }
+
+    /**
+     * Whether its owner's look down calls it to the hand now: held {@link CompanionTunables#lookDownSeconds},
+     * and {@link CompanionTunables#lookDownGapSeconds} since it last landed on a hand. Building, a
+     * glance at the feet every few seconds called it up every time (owner, 2026-10-28).
+     */
+    private boolean lookDownCall() {
+        return lookDownTicks >= Math.max(1, Math.round(t.lookDownSeconds * TPS)) && lookDownWait == 0;
     }
 
     /** How long to sit on the hand once there, drawn once per visit. */
@@ -662,6 +680,7 @@ public final class PerchBody extends Motor {
                     unseenTicks = 0;
                     sinceHand = 0;
                     handClock.wait = drawTicks(t.handGapMinSeconds, t.handGapMaxSeconds);
+                    lookDownWait = Math.round(t.lookDownGapSeconds * TPS);
                     handVisits[handWhy.ordinal()]++;
                     handWhy = HandWhy.OTHER;
                 }
@@ -741,7 +760,11 @@ public final class PerchBody extends Motor {
         }
         if (ready && o.velocity().y() > -0.5) {
             Slot cover = drives.threat == Drives.Threat.HOSTILE ? null : coverSlot(o);
-            boolean lookingDown = lookDownTicks >= LOOK_DOWN_TICKS;
+            // Seen down here as they look down: it stays on the ground and turns to face them
+            // rather than hopping up (owner, 2026-10-28). Out of view, the look calls it up.
+            boolean faceInstead = t.lookDownFaceOnGround && lookDownTicks >= LOOK_DOWN_TICKS && seenInLook;
+            if (faceInstead) gmind.faceOwner = FACE_OWNER_HOLD;
+            boolean lookingDown = !faceInstead && lookDownCall();
             Drives.Interest it = drives.target;
             boolean heldInterest = it != null && it.isHeld() && drives.curiosity >= HAND_CURIOSITY;
             boolean climbWant = (drives.resting || devClimb) && allowGroupClimb && o.horizontalSpeed() < 0.3
@@ -783,6 +806,9 @@ public final class PerchBody extends Motor {
         if (gmind.wantsFade) wantsFade = true;
         copyFromGround();
     }
+
+    /** Ticks it keeps facing its owner after they stop looking down at it. */
+    private static final int FACE_OWNER_HOLD = 30;
 
     /** How close to a slot it starts a hop up to it from the ground: within a hop, with room to spare for a moving owner. */
     private static final double CLOSE_RANGE = 2.6;

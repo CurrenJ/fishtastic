@@ -7,6 +7,8 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import grill24.fishtastic.client.FishtasticClientConfig;
+import grill24.fishtastic.client.renderer.FishRenderMedium;
+import java.util.Locale;
 import java.util.function.BiConsumer;
 
 /** Local commands: preferences never round-trip to, or change, the server. */
@@ -78,7 +80,8 @@ public final class AmbientClientCommands {
                                             return 1;
                                         })))
                         // This client's lockstep copies: step against target, replays, fingerprint mismatches.
-                        .then(LiteralArgumentBuilder.<S>literal("debug").executes(ctx -> {
+                        .then(fishMedium(feedback))
+                .then(LiteralArgumentBuilder.<S>literal("debug").executes(ctx -> {
                             feedback.accept(ctx.getSource(), grill24.fishtastic.client.FishSchoolClientRuntime.debugState());
                             return 1;
                         })))
@@ -87,5 +90,29 @@ public final class AmbientClientCommands {
                     feedback.accept(ctx.getSource(), AmbientContextClient.debugState());
                     return 1;
                 })));
+    }
+
+    private static <S> LiteralArgumentBuilder<S> fishMedium(BiConsumer<S, String> feedback) {
+        LiteralArgumentBuilder<S> node = LiteralArgumentBuilder.<S>literal("fishmedium").executes(ctx -> {
+            feedback.accept(ctx.getSource(), "Fish textures: " + describe(FishRenderMedium.forced())
+                    + ". Use 'fishmedium wet', 'dry' or 'auto'.");
+            return 1;
+        });
+        for (FishRenderMedium.Forced value : FishRenderMedium.Forced.values()) {
+            node.then(LiteralArgumentBuilder.<S>literal(value.name().toLowerCase(Locale.ROOT)).executes(ctx -> {
+                FishRenderMedium.setForced(value);
+                feedback.accept(ctx.getSource(), "Fish textures: " + describe(value) + ".");
+                return 1;
+            }));
+        }
+        return node;
+    }
+
+    private static String describe(FishRenderMedium.Forced value) {
+        return switch (value) {
+            case AUTO -> "wet in water, dry out of it";
+            case WET -> "forced wet everywhere";
+            case DRY -> "forced dry everywhere";
+        };
     }
 }

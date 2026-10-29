@@ -30,6 +30,7 @@ import static grill24.fishtastic.client.selftest.CompanionScenes.queueTwoClientS
 import static grill24.fishtastic.client.selftest.FishSchoolScenes.queueFishSchoolBiteScene;
 import static grill24.fishtastic.client.selftest.FishSchoolScenes.queueFishSchoolGifScene;
 import static grill24.fishtastic.client.selftest.FishSchoolScenes.queueFishSchoolJumpScene;
+import static grill24.fishtastic.client.selftest.FishSchoolScenes.queueLegendaryBreachScene;
 import static grill24.fishtastic.client.selftest.FishSchoolScenes.queueFishSchoolPerfScene;
 import static grill24.fishtastic.client.selftest.FishSchoolScenes.queueFishSchoolReachScene;
 import static grill24.fishtastic.client.selftest.EncyclopediaScenes.useTutorialBook;
@@ -156,8 +157,8 @@ public final class RenderSelfTest {
             "leaderboard", "encyclopedia", "portrait", "tutorial", "companiontutorial", "companionbond", "companionsim",
             "companionparty", "companioneel", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld",
             "companionparticles", "companionworldcost", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation",
-            "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk", "fishschoolgif", "fishschooljump", "fishschoolbite",
-            "fishschoolreach", "fishschoolperf", "fishschoolshapes", "fishschoolclasses", "fishschoolcrab", "questbook",
+            "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk", "fishschoolgif", "fishschooljump", "legendarybreach",
+            "fishschoolbite", "fishschoolreach", "fishschoolperf", "fishschoolshapes", "fishschoolclasses", "fishschoolcrab", "questbook",
             "celebrationoverlap", "forgereview", "partyseed", "partyobserver", "partyreturn");
 
     static Boolean armed;
@@ -410,6 +411,7 @@ public final class RenderSelfTest {
             case "ambientwalk" -> queueAmbientWalkScene();
             case "fishschoolgif" -> queueFishSchoolGifScene();
             case "fishschooljump" -> queueFishSchoolJumpScene();
+            case "legendarybreach" -> queueLegendaryBreachScene();
             case "fishschoolbite" -> queueFishSchoolBiteScene();
             case "fishschoolreach" -> queueFishSchoolReachScene();
             case "fishschoolperf" -> queueFishSchoolPerfScene();

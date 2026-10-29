@@ -14,6 +14,7 @@ import java.util.function.Consumer;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -162,8 +163,122 @@ class FishSchoolSimTest {
     }
 
     private static boolean sendGoal(FishSchoolSim sim, UUID goal, UUID member, float l, float d) {
+        return sendGoal(sim, goal, member, l, d, SurfaceJumpPlaybackProfile.NORMAL);
+    }
+
+    private static boolean sendGoal(FishSchoolSim sim, UUID goal, UUID member, float l, float d,
+                                    SurfaceJumpPlaybackProfile profile) {
         float[] at = launch(sim, l, d);
-        return sim.apply(new FishSchoolSim.SurfaceGoal(goal, member, at[0], at[1], at[2], 64, 0.5f));
+        return sim.apply(new FishSchoolSim.SurfaceGoal(goal, member, at[0], at[1], at[2], 64, 0.5f, profile));
+    }
+
+    @Test
+    void legendaryProfileFliesABiggerSlowerArcAndRetainsItsMilestones() {
+        FishSchoolSim normal = school(0x51A7L, shallow(3));
+        FishSchoolSim cinematic = school(0x51A7L, shallow(3));
+        run(normal, 30, null);
+        run(cinematic, 30, null);
+        UUID normalGoal = UUID.randomUUID(), cinematicGoal = normalGoal;
+        float[] at = launch(normal, 2.5f, -2.5f);
+        var normalInput = new FishSchoolSim.SurfaceGoal(normalGoal, B, at[0], at[1], at[2], 64, 0.5f,
+                SurfaceJumpPlaybackProfile.NORMAL);
+        // As the server sends them: the legendary goal asks for its own higher apex and a longer budget.
+        float lift = normal.domain().surfaceAt(at[0], at[2]) - at[1];
+        var cinematicInput = new FishSchoolSim.SurfaceGoal(cinematicGoal, B, at[0], at[1], at[2],
+                FishSchoolSim.MAX_SURFACE_JUMP_TICKS,
+                lift + (float) SurfaceJumpPlaybackProfile.LEGENDARY_BREACH_HEIGHT,
+                SurfaceJumpPlaybackProfile.LEGENDARY_CINEMATIC);
+        assertTrue(normal.apply(normalInput));
+        assertTrue(cinematic.apply(cinematicInput));
+        assertNotEquals(normal.checksum(), cinematic.checksum(), "the authoritative profile is checksummed");
+
+        List<FishSchoolSim.SurfaceJumpCrossing> crossings = new ArrayList<>(), normalCrossings = new ArrayList<>();
+        int normalFlightTicks = -1, cinematicFlightTicks = -1;
+        double slowestCinematicRate = 1.0;
+        double normalApex = Double.NaN, cinematicApex = Double.NaN;
+        for (int t = 0; t < 900 && (normal.hasSurfaceJump(B) || cinematic.hasSurfaceJump(B)
+                || normal.goalActive(normalGoal) || cinematic.goalActive(cinematicGoal)); t++) {
+            long normalBefore = normal.steps(), cinematicBefore = cinematic.steps();
+            normal.step(null);
+            cinematic.step(null);
+            normal.surfaceJumpCrossings(B, normalBefore, normal.steps(), normalCrossings::add);
+            cinematic.surfaceJumpCrossings(B, cinematicBefore, cinematic.steps(), crossings::add);
+            FishSchoolSim.SurfaceJumpClock n = normal.surfaceJumpClock(B);
+            FishSchoolSim.SurfaceJumpClock c = cinematic.surfaceJumpClock(B);
+            if (normalFlightTicks < 0 && n != null) normalFlightTicks = n.presentationDurationTicks();
+            if (cinematicFlightTicks < 0 && c != null) cinematicFlightTicks = c.presentationDurationTicks();
+            if (c != null && c.sourceTime() >= c.exitSourceTime() && c.sourceTime() <= c.entrySourceTime()) {
+                slowestCinematicRate = Math.min(slowestCinematicRate, c.sourceTime() - c.previousSourceTime());
+            }
+            double[] point = new double[7];
+            if (n != null && Double.isNaN(normalApex) && normal.surfaceJumpArcSample(B, n.apexSourceTime(), point)) {
+                normalApex = point[1];
+            }
+            if (c != null && Double.isNaN(cinematicApex)
+                    && cinematic.surfaceJumpArcSample(B, c.apexSourceTime(), point)) {
+                cinematicApex = point[1];
+            }
+        }
+        assertTrue(cinematicApex > normalApex + 0.5,
+                "the legendary arc peaks higher: " + cinematicApex + " vs " + normalApex);
+        assertEquals(2, normalCrossings.size());
+        assertTrue(flight(crossings) > 1.3 * flight(normalCrossings),
+                "the legendary arc flies farther: " + flight(crossings) + " vs " + flight(normalCrossings));
+        assertTrue(normalFlightTicks > 0 && cinematicFlightTicks > normalFlightTicks);
+        assertTrue(cinematicFlightTicks <= FishSchoolSim.MAX_SURFACE_JUMP_PRESENTATION_TICKS);
+        assertEquals(SurfaceJumpPlaybackProfile.LEGENDARY_MIN_RATE, slowestCinematicRate, 1e-9,
+                "source time slows in the apex band without stopping");
+        assertEquals(2, crossings.size());
+        assertFalse(crossings.get(0).entry());
+        assertTrue(crossings.get(1).entry());
+        assertTrue(crossings.stream().allMatch(event ->
+                event.profile() == SurfaceJumpPlaybackProfile.LEGENDARY_CINEMATIC));
+        assertFalse(cinematic.goalActive(cinematicGoal), "the held nose errand outlasts the full cinematic arc");
+
+        run(cinematic, FishSchoolSim.SURFACE_JUMP_CROSSING_RETENTION_STEPS + 1, null);
+        List<FishSchoolSim.SurfaceJumpCrossing> stale = new ArrayList<>();
+        cinematic.surfaceJumpCrossings(B, crossings.get(0).presentationStep() - 1,
+                crossings.get(0).presentationStep(), stale::add);
+        assertTrue(stale.isEmpty(), "one-shot crossings expire even when no other jump is active");
+    }
+
+    /** Horizontal distance between a jump's outward and re-entry surface crossings, blocks. */
+    private static double flight(List<FishSchoolSim.SurfaceJumpCrossing> crossings) {
+        FishSchoolSim.SurfaceJumpCrossing out = crossings.get(0), in = crossings.get(1);
+        return Math.hypot(in.l() - out.l(), in.d() - out.d());
+    }
+
+    @Test
+    void normalPlaybackKeepsTheOriginalFirstFrameInterpolation() {
+        FishSchoolSim sim = school(0x1A7L, shallow(3));
+        run(sim, 30, null);
+        assertTrue(sim.apply(new FishSchoolSim.SurfaceJump(B, 64, 0.5f,
+                SurfaceJumpPlaybackProfile.NORMAL)), "the direct debug jump should fit");
+        FishSchoolSim.SurfaceJumpClock clock = sim.surfaceJumpClock(B);
+        assertNotNull(clock);
+        assertEquals(-1.0, clock.previousSourceTime(), 0.0);
+        assertEquals(0.0, clock.sourceTime(), 0.0);
+
+        int index = sim.indexOf(B);
+        double[] source = new double[7];
+        float[] local = new float[3], expected = new float[3], pose = new float[7];
+        assertTrue(sim.surfaceJumpArcSample(B, -1.0, source));
+        sim.engine().localAt(index, 0f, local);
+        sim.engine().toRender((float) source[0] - local[0], (float) source[1] - local[1],
+                (float) source[2] - local[2], expected);
+        assertTrue(sim.surfaceJumpPose(B, 0f, pose));
+        assertEquals(expected[0], pose[0], 0f);
+        assertEquals(expected[1], pose[1], 0f);
+        assertEquals(expected[2], pose[2], 0f);
+
+        assertTrue(sim.surfaceJumpArcSample(B, 0.0, source));
+        sim.engine().localAt(index, 1f, local);
+        sim.engine().toRender((float) source[0] - local[0], (float) source[1] - local[1],
+                (float) source[2] - local[2], expected);
+        assertTrue(sim.surfaceJumpPose(B, 1f, pose));
+        assertEquals(expected[0], pose[0], 0f);
+        assertEquals(expected[1], pose[1], 0f);
+        assertEquals(expected[2], pose[2], 0f);
     }
 
     @Test
@@ -292,6 +407,28 @@ class FishSchoolSimTest {
         var sent = new FishSchoolSim.SurfaceGoal(new UUID(7, 8), B, 1.25f, 2.5f, -3.75f, 64, 0.55f);
         FishSchoolWire.INPUT.encode(buf, sent);
         assertEquals(sent, FishSchoolWire.INPUT.decode(buf));
+    }
+
+    @Test
+    void bothPlaybackProfilesSurviveTheWireAndUnknownProfilesAreRejected() {
+        io.netty.buffer.ByteBuf raw = io.netty.buffer.Unpooled.buffer();
+        net.minecraft.network.RegistryFriendlyByteBuf buf =
+                new net.minecraft.network.RegistryFriendlyByteBuf(raw, net.minecraft.core.RegistryAccess.EMPTY);
+        var sent = new FishSchoolSim.SurfaceGoal(new UUID(7, 9), B, 1.25f, 2.5f, -3.75f, 64, 0.55f,
+                SurfaceJumpPlaybackProfile.LEGENDARY_CINEMATIC);
+        FishSchoolWire.INPUT.encode(buf, sent);
+        assertEquals(sent, FishSchoolWire.INPUT.decode(buf));
+
+        buf.clear();
+        var direct = new FishSchoolSim.SurfaceJump(B, 64, 0.5f, SurfaceJumpPlaybackProfile.LEGENDARY_CINEMATIC);
+        FishSchoolWire.INPUT.encode(buf, direct);
+        assertEquals(direct, FishSchoolWire.INPUT.decode(buf));
+
+        buf.clear();
+        FishSchoolWire.INPUT.encode(buf, direct);
+        raw.setByte(raw.writerIndex() - 1, 0x7F);
+        org.junit.jupiter.api.Assertions.assertThrows(io.netty.handler.codec.DecoderException.class,
+                () -> FishSchoolWire.INPUT.decode(buf));
     }
 
     @Test

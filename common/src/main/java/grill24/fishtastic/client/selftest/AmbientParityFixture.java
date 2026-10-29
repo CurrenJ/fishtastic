@@ -7,6 +7,7 @@ import grill24.fishsim.core.FishSpec;
 import grill24.fishsim.core.FlockEngine;
 import grill24.fishsim.core.Tunables;
 import grill24.fishsim.domain.VoxelDomain;
+import grill24.fishtastic.client.renderer.FishRenderMedium;
 import grill24.fishtastic.client.renderer.FishVisuals;
 import grill24.fishtastic.client.renderer.GroupFishPose;
 import grill24.fishtastic.util.Ids;
@@ -114,8 +115,13 @@ final class AmbientParityFixture implements ClientAmbientFish.DevelopmentView {
             poses.translate(f.center.x-cam.x, f.center.y-cam.y, f.center.z-cam.z);
             GroupFishPose.apply(poses, f.engine, f.anims[i], i, t, 0f, 0f, 0f, f.random);
             int light = LevelRenderer.getLightColor(f.level, BlockPos.containing(x,y,z));
-            mc.getItemRenderer().renderStatic(f.stacks[i], ItemDisplayContext.FIXED, light, OverlayTexture.NO_OVERLAY,
-                    poses, buffers, f.level, 0);
+            boolean previousMedium = FishRenderMedium.set(true);
+            try {
+                mc.getItemRenderer().renderStatic(f.stacks[i], ItemDisplayContext.FIXED, light, OverlayTexture.NO_OVERLAY,
+                        poses, buffers, f.level, 0);
+            } finally {
+                FishRenderMedium.set(previousMedium);
+            }
             poses.popPose();
             worldSubmitsThisFrame++;
         }

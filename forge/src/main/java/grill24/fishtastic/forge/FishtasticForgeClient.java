@@ -203,6 +203,9 @@ public final class FishtasticForgeClient {
 
     /** Forge 52 HUD layers replace NeoForge's RegisterGuiOverlaysEvent. */
     public static void registerGuiLayers(AddGuiOverlayLayersEvent event) {
+        event.getLayeredDraw().add(Fishtastic.id("legendary_breach"), (graphics, delta) ->
+                grill24.fishtastic.client.FishSchoolClientRuntime.renderHud(
+                        graphics, delta.getGameTimeDeltaPartialTick(false)));
         event.getLayeredDraw().add(Fishtastic.id("companion_dev"), (graphics, delta) ->
                 ClientCompanionsDev.renderHud(graphics, delta.getGameTimeDeltaPartialTick(false)));
         event.getLayeredDraw().add(Fishtastic.id("tutorial"), (graphics, delta) -> {

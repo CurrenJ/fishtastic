@@ -334,6 +334,8 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         // quest notifications on top. That relative order is what those registrations existed for.
         // With no screen open they're drawn after vanilla's toasts instead (FishtasticHudLayers).
         HudRenderCallback.EVENT.register((graphics, deltaTracker) -> {
+            grill24.fishtastic.client.FishSchoolClientRuntime.renderHud(
+                    graphics, deltaTracker.getGameTimeDeltaPartialTick(false));
             grill24.fishtastic.client.companion.ClientCompanionsDev.renderHud(graphics, deltaTracker.getGameTimeDeltaPartialTick(false));
             if (FishtasticHudLayers.drawnInHudPass()) {
                 FishtasticHudLayers.render(graphics, deltaTracker.getGameTimeDeltaPartialTick(false));

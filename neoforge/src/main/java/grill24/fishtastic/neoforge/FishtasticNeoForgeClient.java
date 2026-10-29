@@ -338,6 +338,8 @@ public final class FishtasticNeoForgeClient {
     }
 
     public static void onRenderGuiPre(RenderGuiEvent.Pre event) {
+        grill24.fishtastic.client.FishSchoolClientRuntime.renderHud(event.getGuiGraphics(),
+                event.getPartialTick().getGameTimeDeltaPartialTick(false));
         // PORT-ONLY: with no screen open, drawn after vanilla's toasts instead (FishtasticHudLayers).
         if (!FishtasticHudLayers.drawnInHudPass()) return;
         FishtasticHudLayers.renderTutorial(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));

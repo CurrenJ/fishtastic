@@ -133,7 +133,7 @@ public class FishtasticModelProvider extends FabricModelProvider {
         generateFishItemModel(itemModelGenerators, FishtasticItems.GOLDEN_MAHSEER.value(), "golden_mahseer");
         generateFishItemModel(itemModelGenerators, FishtasticItems.GOLDEN_TROUT.value(), "golden_trout");
         generateFishItemModel(itemModelGenerators, FishtasticItems.GREENSTRIPE_BARB.value(), "greenstripe_barb");
-        generateFishItemModel(itemModelGenerators, FishtasticItems.HELLBENDER.value(), "hellbender");
+        generateWetDryFishItemModel(itemModelGenerators, FishtasticItems.HELLBENDER.value(), "hellbender");
         generateFishItemModel(itemModelGenerators, FishtasticItems.INDIAN_GLASSY_FISH.value(), "indian_glassy_fish");
         generateFishItemModel(itemModelGenerators, FishtasticItems.JAPANESE_SPIDER_CRAB.value(), "japanese_spider_crab");
         generateFishItemModel(itemModelGenerators, FishtasticItems.LARGETOOTH_SAWFISH.value(), "largetooth_sawfish");
@@ -285,6 +285,16 @@ public class FishtasticModelProvider extends FabricModelProvider {
      */
     private static void generateFishItemModel(ItemModelGenerators itemModelGenerators, Item item, String textureName) {
         generateFlatItemWithCustomTexture(itemModelGenerators, item, Fishtastic.id("item/fish/" + textureName));
+    }
+
+    /** Dry sheen by default; the wet fish art is selected by the render-scoped submerged predicate. */
+    private static void generateWetDryFishItemModel(ItemModelGenerators generators, Item item, String textureName) {
+        ResourceLocation wetModel = ModelTemplates.FLAT_ITEM.create(
+                ModelLocationUtils.getModelLocation(item, "_wet"),
+                TextureMapping.layer0(Fishtastic.id("item/fish/" + textureName)), generators.output);
+        createWithOverride(generators, ModelTemplates.FLAT_ITEM, ModelLocationUtils.getModelLocation(item),
+                TextureMapping.layer0(Fishtastic.id("item/fish/" + textureName + "_sheen")),
+                Fishtastic.id("submerged"), wetModel);
     }
 
     /**

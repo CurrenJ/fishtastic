@@ -41,6 +41,10 @@ public final class FishtasticItemProperties {
                 FishtasticItemData.has(stack, FishtasticDataComponents.HAS_ALERT) ? 1.0F : 0.0F;
         registrar.register(FishtasticItems.FISHOPEDIA.value(), hasAlert, alert);
         registrar.register(FishtasticItems.QUEST_BOOK.value(), hasAlert, alert);
+
+        ResourceLocation submerged = Ids.of(Fishtastic.MOD_ID, "submerged");
+        registrar.register(FishtasticItems.HELLBENDER.value(), submerged,
+                (stack, level, entity, seed) -> grill24.fishtastic.client.renderer.FishRenderMedium.wet() ? 1.0F : 0.0F);
     }
 
     /** Vanilla's {@code minecraft:cast} function for {@code Items.FISHING_ROD} (1.21.1 {@code ItemProperties}). */

@@ -9,9 +9,11 @@ import grill24.fishsim.companion.Vec;
 import grill24.fishsim.core.Locomotion;
 import grill24.fishtastic.data.FishAnimationConfig;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.util.Mth;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -77,6 +79,10 @@ public final class CompanionRender {
     /** Each fish's unwrapped tail clock in ticks, and the tail phase it was last advanced from. */
     private final float[] tailClock = new float[3];
     private final float[] lastPhase = {Float.NaN, Float.NaN, Float.NaN};
+    private final boolean[] wet = new boolean[3];
+    private final boolean[] mediumSampled = new boolean[3];
+    private final float[] mediumFlipSince = {Float.NaN, Float.NaN, Float.NaN};
+    private static final float MEDIUM_HOLD_TICKS = 4f;
 
     private float tilt, prevTilt, hintPitch, prevHintPitch, retract, prevRetract, shiver, prevShiver;
     private float reactionClock;
@@ -198,7 +204,13 @@ public final class CompanionRender {
         // A drifter's pitch is its bell axis (upright is −90); the pose is drawn upright, so tilt by the difference.
         float tiltDeg = locomotion == Locomotion.DRIFT ? pitchDeg + 90f : pitchDeg;
         boolean sourceLean = riding && watching && watchDirection != null;
-        poseStack.mulPose(Axis.XP.rotationDegrees(tiltDeg + (sourceLean ? 0 : hintPitch(partial))));
+        float moodPitch = sourceLean ? 0 : hintPitch(partial);
+        if (onFloor) {
+            poseStack.mulPose(Axis.XP.rotationDegrees(tiltDeg));
+            applyGroundHinge(poseStack, moodPitch, scale * 0.5f, (float) lift);
+        } else {
+            poseStack.mulPose(Axis.XP.rotationDegrees(tiltDeg + moodPitch));
+        }
         if (sourceLean) {
             var lean = CompanionFeatureLean.toward(poseStack.last().pose(), watchDirection);
             poseStack.mulPose(Axis.XP.rotationDegrees(lean.pitch()));
@@ -206,7 +218,8 @@ public final class CompanionRender {
         }
         float tremor = shiverYaw(partial, gameTime, index);
         if (tremor != 0f) poseStack.mulPose(Axis.YP.rotationDegrees(tremor));
-        float roll = (sourceLean ? 0 : hintTilt(partial)) + shiverRoll(partial, gameTime, index);
+        boolean lyingFlat = onFloor && anim instanceof FishAnimationConfig.FloorSit;
+        float roll = (sourceLean || lyingFlat ? 0 : hintTilt(partial)) + shiverRoll(partial, gameTime, index);
         if (roll != 0f) poseStack.mulPose(Axis.ZP.rotationDegrees(roll));
         // Lean toward the heading, but face the art its own way: upright, this is just the facing.
         if (locomotion == Locomotion.DRIFT) poseStack.mulPose(Axis.YP.rotationDegrees(Mth.wrapDegrees(yawDeg - faceDeg)));
@@ -233,10 +246,43 @@ public final class CompanionRender {
         poseStack.scale(scale, scale, scale);
         // 1.21.1: no ItemStackRenderState / submit queue; draw through the item renderer directly.
         Minecraft mc = Minecraft.getInstance();
-        mc.getItemRenderer().renderStatic(stack, ItemDisplayContext.FIXED, light, OverlayTexture.NO_OVERLAY,
-                poseStack, buffers, mc.level, 0);
+        boolean previousMedium = FishRenderMedium.set(wetAt(index, pos.x(), pos.y() + lift, pos.z(), gameTime));
+        try {
+            mc.getItemRenderer().renderStatic(stack, ItemDisplayContext.FIXED, light, OverlayTexture.NO_OVERLAY,
+                    poseStack, buffers, mc.level, 0);
+        } finally {
+            FishRenderMedium.set(previousMedium);
+        }
         poseStack.popPose();
         return true;
+    }
+
+    /**
+     * Hinge a ground walker's mood pitch at its tail contact; discard nose-down pitch.
+     */
+    static void applyGroundHinge(PoseStack poseStack, float pitchDeg, float halfLength, float lift) {
+        float raise = Math.min(pitchDeg, 0f);
+        if (raise == 0f) return;
+        poseStack.translate(0f, -lift, -halfLength);
+        poseStack.mulPose(Axis.XP.rotationDegrees(raise));
+        poseStack.translate(0f, lift, halfLength);
+    }
+
+    /** Hold waterline changes for four ticks so companions do not flicker at the surface. */
+    private boolean wetAt(int index, double x, double y, double z, float gameTime) {
+        var level = Minecraft.getInstance().level;
+        boolean water = level != null && level.getFluidState(BlockPos.containing(x, y, z)).is(FluidTags.WATER);
+        if (!mediumSampled[index] || water == wet[index]) {
+            mediumSampled[index] = true;
+            wet[index] = water;
+            mediumFlipSince[index] = Float.NaN;
+        } else if (Float.isNaN(mediumFlipSince[index]) || gameTime < mediumFlipSince[index]) {
+            mediumFlipSince[index] = gameTime;
+        } else if (gameTime - mediumFlipSince[index] >= MEDIUM_HOLD_TICKS) {
+            wet[index] = water;
+            mediumFlipSince[index] = Float.NaN;
+        }
+        return wet[index];
     }
 
     /**

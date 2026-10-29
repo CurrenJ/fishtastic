@@ -1,6 +1,14 @@
 {
   "parent": "minecraft:item/generated",
+  "overrides": [
+    {
+      "model": "fishtastic:item/hellbender_wet",
+      "predicate": {
+        "fishtastic:submerged": 1
+      }
+    }
+  ],
   "textures": {
-    "layer0": "fishtastic:item/fish/hellbender"
+    "layer0": "fishtastic:item/fish/hellbender_sheen"
   }
 }

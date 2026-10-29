@@ -124,3 +124,9 @@ Open owner checks:
 Useful ground commands: `/fishtastic companion ground|climb|tumble|drowsy|hurt`,
 `/fishtastic companion swell <gain>`, and `/fishtastic companion debug <bool>`.
 `drowsy` is visible only while the owner stands still.
+
+
+## 2026-10-28 companion behavior follow-ups
+
+- A ground walker now hinges nose-up mood pitch at its tail contact and drops nose-down pitch, so the fish stays above the floor. Flat floor-sitters suppress mood roll while retaining shiver. Swimming and perched poses keep their existing behavior.
+- A benthic companion visible while its owner looks down stays on the ground and turns toward them. If it is out of view, it comes to hand only after a sustained 1.5-second look and a 30-second gap since its last hand landing. The three tunables `lookDownFaceOnGround`, `lookDownGapSeconds`, and `lookDownSeconds` are available for development tuning.
