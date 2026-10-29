@@ -34,9 +34,9 @@ public final class FishtasticRenderPipelines {
     public static final RenderPipeline TANK_WATER_FILL = buildTankWaterFillPipeline();
 
     /**
-     * Vanilla's {@code GUI_TEXTURED} with glow blending ({@link BlendFunction#LIGHTNING}: source
-     * alpha, one), so the legendary breach's sunburst and screen sparkles brighten what is under
-     * them instead of greying it over. Cloned like {@link #TANK_WATER_FILL}.
+     * Vanilla's {@code GUI_TEXTURED} with standard source-alpha blending, matching the legacy GUI
+     * blit path on 1.21.1 and 1.20.1 so the soft sunburst and screen sparkles stay translucent.
+     * Cloned like {@link #TANK_WATER_FILL}.
      */
     public static final RenderPipeline GUI_TEXTURED_GLOW = buildGuiTexturedGlowPipeline();
 
@@ -57,7 +57,7 @@ public final class FishtasticRenderPipelines {
         );
         return RenderPipeline.builder(snippet)
                 .withLocation(Ids.of("fishtastic", "pipeline/gui_textured_glow"))
-                .withColorTargetState(new ColorTargetState(BlendFunction.LIGHTNING))
+                .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
                 .build();
     }
 

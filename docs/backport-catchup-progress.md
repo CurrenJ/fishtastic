@@ -1,5 +1,98 @@
 # Backport parity progress
 
+## In progress (2026-10-29): commit validated display parity changes
+
+- **Pending operation:** stage and commit the seven reviewed source files in `26.1.2` (including
+  this final progress result) using `Fix legendary breach glow and ray transparency`; verify commit
+  and clean status. Do not push or advance parity markers.
+- **Evidence path:** `build/backport-catchup/2026-10-29/post-hellbender-parity/visual-follow-up/`;
+  validation logs and final screenshots are already recorded there.
+- **Verified checkpoint:** target `port/1.21.1` display commit `1cf6071a`; target `port/1.20.1`
+  display commit `0e489e8a`. Both hooks passed unit and Fabric GameTests and explicitly skipped
+  NeoForge GameTests because that loader's run can hang. Both target worktrees are clean.
+- **Next action:** commit the source display change; after all three display commits land, record a
+  new pending operation and bump `mod_version` from the verified shared `2.1.12` to `2.1.13` in all
+  three worktrees, with one separate local commit per worktree.
+
+## Completed (2026-10-29): three-version display parity and loader validation
+
+- **Operation:** Fix the square fish backplate and opaque ray appearance, apply every real display
+  change to 26.1.2, 1.21.1, and 1.20.1, then build every supported loader affected by the shared
+  renderer. No parity marker advance, commit, or push.
+- **Verified state:** source `26.1.2` at `30ef5408`; target `port/1.21.1` at `5e825fe6`; target
+  `port/1.20.1` at `775d776d`. Expected display edits are uncommitted in all three worktrees, with
+  no unrelated source/target edits. Roots are `D:\GitHub\fishtastic`,
+  `D:\GitHub\fishtastic-worktrees\port-1.21.1`, and
+  `D:\GitHub\fishtastic-worktrees\mc-1.20.1`.
+- **Implementation parity:** the shared breach presentation replaces the enlarged plankton sprite
+  backplates with the same 64×64 radial-alpha glow texture on all three versions. The two legacy
+  RenderType ports blur that soft texture; their screen-ray blits use source-alpha blending. The
+  26.1.2 pipeline uses the equivalent translucent blend state. These are API-specific paths for
+  the same display behavior. The glow PNG and metadata SHA-256 hashes match across all three trees;
+  ray texture hashes also match.
+- **Pixel checks:** `legendary_glow.png` is 64×64 with 1,472 fully transparent and 2,624 partially
+  transparent pixels (all four corners alpha 0). `legendary_sunburst.png` is 256×256 with 43,458
+  fully transparent and 22,078 partially transparent pixels; it has no fully opaque pixels.
+- **Build validation:** Fabric builds and `legendarybreach` scene runs passed earlier on all three
+  versions (10/10 checks and 24 screenshots each; see the completed visual audit below). The
+  remaining loader matrix also passed: 26.1.2 NeoForge + Forge build and testmod compile with JDK
+  25 (`BUILD SUCCESSFUL`, 1m36s); 1.21.1 NeoForge + Forge build and testmod compile with JDK 21
+  (`BUILD SUCCESSFUL`, 1m52s); 1.20.1 Forge build and testmod compile with JDK 21 (`BUILD
+  SUCCESSFUL`, 44s). Logs are `visual-follow-up/26.1.2-nonfabric-build-verified.log`,
+  `visual-follow-up/1.21.1-nonfabric-build-verified.log`, and
+  `visual-follow-up/1.20.1-forge-build-verified.log`.
+- **Ledger and marker audit:** all 91 ledger entries have explicit outcomes (56 ported, 12
+  superseded, 23 excluded). Every mapped target commit reference (388 for each target) resolves
+  uniquely to a commit reachable from the current branch. The only source commit after marker
+  `73560a7e` changes backport documentation; both target checklists still record `73560a7e`.
+- **Screenshot inspection:** re-opened the final 24-frame contact sheets for all three versions
+  and full-resolution apex/cleanup frames. The fish backplate has a soft circular falloff rather
+  than a square edge, and the rays are visibly translucent in both backport clients and source.
+  The rectangular water patch in cleanup frames is also visible in the pre-fix 1.20.1 capture and
+  is separate from the fish backplate.
+- **Final checks:** `git diff --check` passed in all three worktrees. Branch heads, status, and
+  resource hashes were rechecked; changes remain uncommitted, parity markers remain unchanged, and
+  nothing was pushed.
+- **Next action:** no automated display/build operation remains. The manual owner checks listed
+  below remain open. The target plans also retain optional/recommended S1b/S1c rows, the A7.2
+  build-helper row, and the separate G3 lockstep/release milestone; none was advanced here.
+
+## Completed (2026-10-29): final breach-scene rendering parity audit
+
+- **Operation:** Replace the enlarged 16×16 plankton-orb backplates behind the legendary-breach
+  fish with a smooth radial-alpha glow; preserve soft, source-alpha screen rays; build and rerun the
+  isolated Fabric `legendarybreach` scene on 26.1.2, 1.21.1, and 1.20.1. No parity marker advance
+  or push.
+- **Verified starting state:** source branch `26.1.2` at `30ef5408`; target branches
+  `port/1.21.1` at `5e825fe6` and `port/1.20.1` at `775d776d`. Final edits remain uncommitted in
+  those three worktrees.
+- **Implementation:** all three versions now draw two smooth 64×64 radial-alpha quads behind the
+  fish instead of magnifying the 16×16 plankton sprite. Both legacy RenderType ports enable texture
+  blur for the soft glows. The 256×256 ray texture has 43,458 fully transparent pixels and 22,078
+  partially transparent pixels (no fully opaque pixels). GUI rays use standard source-alpha
+  blending in all versions: `TRANSLUCENT` on 26.1.2 and `RenderSystem.defaultBlendFunc()` on the
+  1.21.1/1.20.1 legacy blit path. The generated glow PNG and metadata are present in all three
+  worktrees.
+- **Builds and scene checks:** Fabric builds passed on all three versions. The 26.1.2 build log is
+  `visual-follow-up/26.1.2-fabric-build.log`; its scene run
+  `25939f33aa644782b11f0e7e86328ea2` passed 10/10 with 24 screenshots. The 1.21.1 build and scene
+  logs are `visual-follow-up/1.21.1-fabric-build-verified.log` and
+  `visual-follow-up/1.21.1-legendarybreach-run-verified.log`; run
+  `f6660ee8ecf747b8a64d0f9f2f71bd5a` passed 10/10 with 24 screenshots. The 1.20.1 build and scene
+  logs are `visual-follow-up/1.20.1-fabric-build-verified.log` and
+  `visual-follow-up/1.20.1-legendarybreach-run-verified.log`; run
+  `bb847e5d265647ea9224c6a266300191` passed 10/10 with 24 screenshots. 1.20.1's pinned Loom
+  dependency requires Java 21 for Gradle; its project compilation toolchain remains Java 17.
+- **Visual audit:** reviewed every frame in the three final contact sheets
+  (`visual-follow-up/26.1.2-final.png`, `visual-follow-up/1.21.1-final.png`, and
+  `visual-follow-up/1.20.1-final.png`) plus full-resolution apex and cleanup frames. The fish's
+  glow now has a soft circular falloff with no square sprite boundary, and the rays show visible
+  transparency in both backport clients. A faint rectangular patch over the water in cleanup frames
+  is also present in the pre-change screenshots; it is separate from the removed fish backplate.
+- **Checks and next action:** `git diff --check` passed in all three worktrees. The source and both
+  target branches retain their starting refs; no marker advanced and nothing was pushed. No further
+  action is pending for this visual follow-up.
+
 ## Completed (2026-10-29): post-hellbender parity audit and catch-up
 
 - **Operation:** Account for every source commit in `8794a541..73560a7e`; adapt the four product
