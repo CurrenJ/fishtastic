@@ -34,8 +34,10 @@ public final class LegendaryBreachPresentation {
     private static final int REDUCED_PARTICLE_CAP = 32;
     /** Soft textures from tools/legendary-breach-gen: white, shape in alpha, so the tint sets the hue. */
     private static final ResourceLocation SUNBURST_TEXTURE = Fishtastic.id("textures/particle/legendary_sunburst.png");
+    private static final ResourceLocation GLOW_TEXTURE = Fishtastic.id("textures/particle/legendary_glow.png");
     private static final ResourceLocation SPARKLE_TEXTURE = Fishtastic.id("textures/particle/legendary_sparkle.png");
     private static final ResourceLocation SPARKLE8_TEXTURE = Fishtastic.id("textures/particle/legendary_sparkle8.png");
+    private static final RenderType GLOW_TYPE = sparkleType("legendary_glow", GLOW_TEXTURE);
     private static final RenderType SPARKLE_TYPE = sparkleType("legendary_sparkle", SPARKLE_TEXTURE);
     private static final RenderType SPARKLE8_TYPE = sparkleType("legendary_sparkle8", SPARKLE8_TEXTURE);
     private static final int SUNBURST_SIZE = 256, SPARKLE_SIZE = 64;
@@ -385,14 +387,12 @@ public final class LegendaryBreachPresentation {
                     Vec3 center = world(origin, pose);
                     org.joml.Vector3fc forward = camera.getLookVector();
                     Vec3 backdrop = center.add(forward.x() * 0.18, forward.y() * 0.18, forward.z() * 0.18);
-                    // A soft pink/gold radial core plus a sharp white-gold cross reads as a
-                    // celebratory lens flare behind the fish without introducing new art assets.
-                    submitBillboard(poses, buffers, camera, cameraPosition, backdrop,
-                            (float) (0.78 + apexWeight * 0.48), (float) (apexWeight * 0.62),
-                            0xF58BDE, FishSchoolClientRuntime.PLANKTON_ORB_SPRITE, 0f);
-                    submitBillboard(poses, buffers, camera, cameraPosition, backdrop,
-                            (float) (0.52 + apexWeight * 0.38), (float) (apexWeight * 0.48),
-                            0xFFD982, FishSchoolClientRuntime.PLANKTON_ORB_SPRITE, 0f);
+                    // A soft pink/gold radial core sits behind the fish; the higher-resolution
+                    // texture stays smooth at this billboard scale instead of exposing sprite pixels.
+                    submitGlow(poses, buffers, camera, cameraPosition, backdrop,
+                            (float) (0.78 + apexWeight * 0.48), (float) (apexWeight * 0.62), 0xF58BDE);
+                    submitGlow(poses, buffers, camera, cameraPosition, backdrop,
+                            (float) (0.52 + apexWeight * 0.38), (float) (apexWeight * 0.48), 0xFFD982);
                     // The hero star: an eight-pointer that breathes and turns slowly on the fish.
                     float pulse = 1f + 0.08f * (float) Math.sin(renderSource * 0.9);
                     submitSparkle(poses, buffers, camera, cameraPosition, center,
@@ -519,6 +519,16 @@ public final class LegendaryBreachPresentation {
     private static float smoothstep(float value) {
         float t = Math.max(0f, Math.min(1f, value));
         return t * t * (3f - 2f * t);
+    }
+
+    private static void submitGlow(PoseStack poses, MultiBufferSource buffers, Camera camera, Vec3 cameraPosition,
+                                   Vec3 point, float size, float alpha, int color) {
+        if (size <= 0.001f || alpha <= 0.01f) return;
+        poses.pushPose();
+        poses.translate(point.x - cameraPosition.x, point.y - cameraPosition.y, point.z - cameraPosition.z);
+        poses.mulPose(camera.rotation());
+        fullQuad(buffers.getBuffer(GLOW_TYPE), poses.last(), size, alpha, color);
+        poses.popPose();
     }
 
     /**

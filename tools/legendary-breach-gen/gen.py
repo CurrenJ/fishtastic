@@ -7,10 +7,12 @@ Deterministic: a fixed seed, so re-running reproduces the committed PNGs byte fo
 
 Writes into common/src/main/resources/assets/fishtastic/textures/particle/:
   legendary_sunburst.png  256x256  soft tapered rays of seeded length/width, a hole round the fish
+  legendary_glow.png       64x64   smooth radial halo for the pink/gold apex backplate
   legendary_sparkle.png    64x64   four-point star with concave arms, bright core and soft halo
   legendary_sparkle8.png   64x64   the hero star: four long arms plus four short diagonals
 Each gets a .mcmeta with blur on, so they stay smooth when drawn far larger than their pixels.
 """
+import io
 import json
 import math
 import os
@@ -19,8 +21,8 @@ import random
 import numpy as np
 from PIL import Image
 
-OUT = os.path.join(os.path.dirname(__file__), "..", "..", "common", "src", "main", "resources",
-                   "assets", "fishtastic", "textures", "particle")
+OUT = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "common", "src", "main", "resources",
+                                    "assets", "fishtastic", "textures", "particle"))
 
 
 def save(name, alpha):
@@ -29,10 +31,19 @@ def save(name, alpha):
     rgba = np.zeros(a.shape + (4,), dtype=np.uint8)
     rgba[..., 0:3] = 255
     rgba[..., 3] = a
-    Image.fromarray(rgba, "RGBA").save(os.path.join(OUT, name + ".png"), optimize=True)
-    with open(os.path.join(OUT, name + ".png.mcmeta"), "w", newline="\n") as f:
-        json.dump({"texture": {"blur": True, "clamp": True}}, f, indent=2)
-        f.write("\n")
+    with io.BytesIO() as buffer:
+        Image.fromarray(rgba, "RGBA").save(buffer, format="PNG", optimize=True)
+        png = buffer.getvalue()
+    png_path = os.path.join(OUT, name + ".png")
+    if not os.path.exists(png_path) or open(png_path, "rb").read() != png:
+        with open(png_path, "wb") as f:
+            f.write(png)
+
+    metadata = json.dumps({"texture": {"blur": True, "clamp": True}}, indent=2) + "\n"
+    metadata_path = os.path.join(OUT, name + ".png.mcmeta")
+    if not os.path.exists(metadata_path) or open(metadata_path, encoding="utf-8").read() != metadata:
+        with open(metadata_path, "w", newline="\n", encoding="utf-8") as f:
+            f.write(metadata)
 
 
 def grid(size):
@@ -65,6 +76,13 @@ def sunburst(size=256, rays=22, seed=0x5EB0B57):
     return np.maximum(out, halo)
 
 
+def radial_glow(size=64):
+    _, _, r, _ = grid(size)
+    fade = np.clip((0.92 - r) / 0.25, 0.0, 1.0)
+    fade = fade * fade * (3.0 - 2.0 * fade)
+    return 0.68 * np.exp(-((r / 0.72) ** 2)) * fade
+
+
 def star(size=64, diagonals=False):
     x, y, r, _ = grid(size)
     ax, ay = np.abs(x), np.abs(y)
@@ -86,6 +104,7 @@ def star(size=64, diagonals=False):
 
 if __name__ == "__main__":
     save("legendary_sunburst", sunburst())
+    save("legendary_glow", radial_glow())
     save("legendary_sparkle", star())
     save("legendary_sparkle8", star(diagonals=True))
-    print("wrote legendary_sunburst, legendary_sparkle, legendary_sparkle8 to", os.path.normpath(OUT))
+    print("wrote legendary_sunburst, legendary_glow, legendary_sparkle, legendary_sparkle8 to", os.path.normpath(OUT))
