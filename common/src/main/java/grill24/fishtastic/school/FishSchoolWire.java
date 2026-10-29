@@ -29,6 +29,7 @@ public final class FishSchoolWire {
     private static final Locomotion[] LOCOMOTIONS = Locomotion.values();
     private static final ShelterUse[] SHELTER_USES = ShelterUse.values();
     private static final VisitShape[] SHAPES = VisitShape.values();
+    private static final SurfaceJumpPlaybackProfile[] PLAYBACK_PROFILES = SurfaceJumpPlaybackProfile.values();
 
     public static final StreamCodec<RegistryFriendlyByteBuf, WaterDomain.Column> COLUMN = StreamCodec.of(
             (buf, c) -> {
@@ -128,6 +129,7 @@ public final class FishSchoolWire {
                         UUIDUtil.STREAM_CODEC.encode(buf, jump.member());
                         buf.writeVarInt(jump.durationTicks());
                         buf.writeFloat(jump.height());
+                        buf.writeByte(jump.playbackProfile().ordinal());
                     }
                     case FishSchoolSim.SurfaceGoal goal -> {
                         buf.writeByte(SURFACE_GOAL);
@@ -138,6 +140,7 @@ public final class FishSchoolWire {
                         buf.writeFloat(goal.d());
                         buf.writeVarInt(goal.durationTicks());
                         buf.writeFloat(goal.height());
+                        buf.writeByte(goal.playbackProfile().ordinal());
                     }
                 }
             },
@@ -154,11 +157,13 @@ public final class FishSchoolWire {
                         buf.readFloat());
                 case SURFACE_JUMP -> new FishSchoolSim.SurfaceJump(UUIDUtil.STREAM_CODEC.decode(buf),
                         bounded(buf.readVarInt(), FishSchoolSim.MAX_SURFACE_JUMP_TICKS, "surface jump duration"),
-                        buf.readFloat());
+                        buf.readFloat(), PLAYBACK_PROFILES[bounded(buf.readUnsignedByte(),
+                                PLAYBACK_PROFILES.length - 1, "surface jump playback profile")]);
                 case SURFACE_GOAL -> new FishSchoolSim.SurfaceGoal(UUIDUtil.STREAM_CODEC.decode(buf),
                         UUIDUtil.STREAM_CODEC.decode(buf), buf.readFloat(), buf.readFloat(), buf.readFloat(),
                         bounded(buf.readVarInt(), FishSchoolSim.MAX_SURFACE_JUMP_TICKS, "surface goal duration"),
-                        buf.readFloat());
+                        buf.readFloat(), PLAYBACK_PROFILES[bounded(buf.readUnsignedByte(),
+                                PLAYBACK_PROFILES.length - 1, "surface goal playback profile")]);
                 default -> throw new DecoderException("Unknown fish school input");
             });
 

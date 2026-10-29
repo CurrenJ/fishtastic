@@ -33,6 +33,68 @@ public final class FishtasticRenderPipelines {
      */
     public static final RenderPipeline TANK_WATER_FILL = buildTankWaterFillPipeline();
 
+    /**
+     * Vanilla's {@code GUI_TEXTURED} with glow blending ({@link BlendFunction#LIGHTNING}: source
+     * alpha, one), so the legendary breach's sunburst and screen sparkles brighten what is under
+     * them instead of greying it over. Cloned like {@link #TANK_WATER_FILL}.
+     */
+    public static final RenderPipeline GUI_TEXTURED_GLOW = buildGuiTexturedGlowPipeline();
+
+    private static RenderPipeline buildGuiTexturedGlowPipeline() {
+        RenderPipeline base = RenderPipelines.GUI_TEXTURED;
+        Snippet snippet = new Snippet(
+                Optional.of(base.getVertexShader()),
+                Optional.of(base.getFragmentShader()),
+                Optional.of(base.getShaderDefines()),
+                Optional.of(base.getSamplers()),
+                Optional.of(base.getUniforms()),
+                Optional.empty(), // colour target: overridden below with glow blending
+                Optional.ofNullable(base.getDepthStencilState()), // GUI pipelines may have none
+                Optional.of(base.getPolygonMode()),
+                Optional.of(base.isCull()),
+                Optional.of(base.getVertexFormat()),
+                Optional.of(base.getVertexFormatMode())
+        );
+        return RenderPipeline.builder(snippet)
+                .withLocation(Ids.of("fishtastic", "pipeline/gui_textured_glow"))
+                .withColorTargetState(new ColorTargetState(BlendFunction.LIGHTNING))
+                .build();
+    }
+
+    /**
+     * Vanilla's {@code ENTITY_TRANSLUCENT_EMISSIVE} with glow blending and no depth write: the
+     * legendary breach's world sparkles add light to the sky behind them instead of laying a tinted
+     * film over it (which read as dull, muddy stars on a bright day), and overlapping sparkles never
+     * clip each other's soft edges. Vanilla's own additive type ({@code eyes}) ignores alpha, which
+     * would draw these white-RGB, shape-in-alpha textures as solid squares.
+     */
+    public static final RenderPipeline WORLD_SPARKLE_GLOW = buildWorldSparkleGlowPipeline();
+
+    private static RenderPipeline buildWorldSparkleGlowPipeline() {
+        RenderPipeline base = RenderPipelines.ENTITY_TRANSLUCENT_EMISSIVE;
+        Snippet snippet = new Snippet(
+                Optional.of(base.getVertexShader()),
+                Optional.of(base.getFragmentShader()),
+                Optional.of(base.getShaderDefines()),
+                Optional.of(base.getSamplers()),
+                Optional.of(base.getUniforms()),
+                Optional.empty(), // colour target: overridden below with glow blending
+                Optional.empty(), // depth-stencil state: overridden below with write disabled
+                Optional.of(base.getPolygonMode()),
+                Optional.of(base.isCull()),
+                Optional.of(base.getVertexFormat()),
+                Optional.of(base.getVertexFormatMode())
+        );
+        RenderPipeline pipeline = RenderPipeline.builder(snippet)
+                .withLocation(Ids.of("fishtastic", "pipeline/world_sparkle_glow"))
+                .withColorTargetState(new ColorTargetState(BlendFunction.LIGHTNING))
+                .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
+                .build();
+        // As for the tank water fill: unassigned, the quads vanish under a shaderpack.
+        IrisCompat.assignPipeline(pipeline, "ENTITIES_TRANSLUCENT", "SHADOW_TRANSLUCENT");
+        return pipeline;
+    }
+
     private static RenderPipeline buildTankWaterFillPipeline() {
         RenderPipeline base = RenderPipelines.ENTITY_TRANSLUCENT;
         Snippet snippet = new Snippet(

@@ -104,6 +104,34 @@ class SurfaceJumpArcTest {
         assertEquals(SurfaceJumpArc.airReach(APEX), full.crossing(true)[0], 1e-9);
     }
 
+    @Test
+    void legendaryPlaybackSlowsAroundTheApexAndReturnsToNormalAtBothCrossings() {
+        SurfaceJumpArc arc = arc(1.0);
+        double exit = arc.exitTick(), flight = arc.entryTick() - exit;
+        SurfaceJumpPlaybackProfile profile = SurfaceJumpPlaybackProfile.LEGENDARY_CINEMATIC;
+        assertEquals(1.0, SurfaceJumpPlaybackProfile.NORMAL.rate(arc, exit + flight * 0.5), 0.0);
+        assertEquals(1.0, profile.rate(arc, exit), 0.0);
+        assertEquals(SurfaceJumpPlaybackProfile.LEGENDARY_MIN_RATE, profile.rate(arc, exit + flight * 0.38), 1e-12);
+        assertEquals(SurfaceJumpPlaybackProfile.LEGENDARY_MIN_RATE, profile.rate(arc, exit + flight * 0.5), 1e-12);
+        assertEquals(SurfaceJumpPlaybackProfile.LEGENDARY_MIN_RATE, profile.rate(arc, exit + flight * 0.62), 1e-12);
+        assertEquals(1.0, profile.rate(arc, arc.entryTick()), 0.0);
+
+        double previous = 1.0;
+        for (int i = 0; i <= 100; i++) {
+            double source = exit + flight * (i / 100.0);
+            double rate = profile.rate(arc, source);
+            assertTrue(rate > 0.0 && rate <= 1.0, "positive bounded rate at " + source);
+            assertTrue(rate <= previous + 1e-12 || i > 62, "smooth slowdown shoulder at phase " + i);
+            previous = rate;
+            assertTrue(source + rate > source, "source clock always advances");
+        }
+        int normalTicks = SurfaceJumpPlaybackProfile.NORMAL.presentationTicks(arc, 160);
+        int cinematicTicks = profile.presentationTicks(arc, 160);
+        assertEquals((int) Math.ceil(arc.durationTicks()), normalTicks);
+        assertTrue(cinematicTicks > normalTicks && cinematicTicks <= 160,
+                "bounded cinematic presentation duration: " + cinematicTicks);
+    }
+
     private static double speed(SurfaceJumpArc arc, double tau) {
         double[] a = at(arc, tau - 0.005), b = at(arc, tau + 0.005);
         return Math.sqrt((b[0] - a[0]) * (b[0] - a[0]) + (b[1] - a[1]) * (b[1] - a[1])

@@ -76,7 +76,8 @@ public final class SurfaceJumpArc {
      * An arc for a fish at {@code (pl, py, pd)} moving {@code (vl, vy, vd)} blocks a tick that leaves
      * the water at {@code (el, surface, ed)} along unit heading {@code (hl, hd)}, its body centre
      * peaking {@code apex} above the surface. {@code reach} scales the flight's horizontal speed (1 is
-     * the full 60° launch; less is steeper and shorter); {@code runInScale} shortens the run-in.
+     * the full 60° launch; less is steeper and shorter, more is flatter and longer); {@code runInScale}
+     * shortens the run-in.
      */
     public static SurfaceJumpArc of(double pl, double py, double pd, double vl, double vy, double vd,
                                     double el, double surface, double ed, double hl, double hd,

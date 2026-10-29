@@ -189,6 +189,82 @@ final class FishSchoolScenes {
         });
     }
 
+    /** The same real server-goal fixture with the Legendary presentation profile forced deterministically. */
+    static void queueLegendaryBreachScene() {
+        int x = origin.getX();
+        int y = origin.getY();
+        int z = origin.getZ();
+        java.util.concurrent.atomic.AtomicReference<java.util.UUID> schoolId =
+                new java.util.concurrent.atomic.AtomicReference<>();
+
+        queueJumpPool(x, y, z);
+        queue(5, mc -> server(mc, s -> {
+            String result = FishSchoolManager.get(s.getLevel(mc.level.dimension()))
+                    .spawnForDebug(new BlockPos(x, y, z - 5), Fishtastic.id("bluegill"),
+                            new grill24.fishtastic.component.FishQuality.Quality[]{
+                                    grill24.fishtastic.component.FishQuality.Quality.LEGENDARY});
+            check("legendarybreach.spawn", result.startsWith("Spawned"), result);
+            if (result.startsWith("Spawned")) schoolId.set(spawnedId(result));
+        }));
+        queue(40, mc -> {
+            mc.options.hideGui = true;
+            check("legendarybreach.copy", !FishSchoolClientRuntime.debugState().startsWith("No tracked"),
+                    FishSchoolClientRuntime.debugState());
+        });
+        // Let the first-join recipe toast expire before capturing the deliberately visible HUD layers.
+        queue(110, mc -> {});
+        queue(1, mc -> {
+            Vec3 fish = FishSchoolClientRuntime.memberPositionForSelfTest(0);
+            check("legendarybreach.camera_target", fish != null, String.valueOf(fish));
+            if (fish != null) camera(mc, fish.x, y + 2.9, fish.z + 5.5, 180f, 12f);
+        });
+        queue(1, mc -> server(mc, s -> {
+            java.util.UUID id = schoolId.get();
+            String result = id == null ? "School spawn did not produce an id."
+                    : FishSchoolManager.get(s.getLevel(mc.level.dimension()))
+                    .surfaceJumpForDebug(id);
+            check("legendarybreach.start", result.startsWith("Sent"), result);
+            FishSchoolClientRuntime.resetSelfTestCounters();
+        }));
+        CompanionScenes.queueUntil("legendarybreach.visible", 450,
+                mc -> FishSchoolClientRuntime.surfaceJumpActiveForSelfTest(), FishSchoolClientRuntime::debugState);
+        queue(1, mc -> mc.options.hideGui = false);
+        float[] peak = {0f};
+        int[] particlePeak = {0};
+        boolean[] presentationSeen = {false};
+        queue(1, mc -> {
+            double[] view = FishSchoolClientRuntime.surfaceJumpViewForSelfTest();
+            if (view == null) return;
+            double midX = view[0] + view[3] * 1.8, midZ = view[2] + view[4] * 1.8;
+            double sideX = -view[4], sideZ = view[3];
+            double camX = midX + sideX * 3.5, camZ = midZ + sideZ * 3.5;
+            float yaw = (float) Math.toDegrees(Math.atan2(-(midX - camX), midZ - camZ));
+            camera(mc, camX, y + 2.4, camZ, yaw, 5f);
+        });
+        for (int frame = 0; frame < FRAME_COUNT; frame++) {
+            int shot = frame;
+            queue(2, mc -> {
+                peak[0] = Math.max(peak[0], FishSchoolClientRuntime.maxSurfaceJumpOffsetForSelfTest(1f));
+                particlePeak[0] = Math.max(particlePeak[0],
+                        FishSchoolClientRuntime.legendaryBreachParticleCountForSelfTest());
+                presentationSeen[0] |= FishSchoolClientRuntime.legendaryBreachActiveForSelfTest();
+                screenshot(mc, "legendarybreach", "arc-" + String.format(java.util.Locale.ROOT, "%02d", shot));
+            });
+        }
+        queue(1, mc -> {
+            check("legendarybreach.apex", peak[0] > 0.3f, "peak rendered offset=" + peak[0]);
+            check("legendarybreach.presentation", presentationSeen[0],
+                    "live cinematic controller appeared in at least one capture=" + presentationSeen[0]);
+            check("legendarybreach.particles", particlePeak[0] > 0,
+                    "peak custom particles=" + particlePeak[0]);
+        });
+        queue(2, mc -> {
+            check("legendarybreach.lockstep", !FishSchoolClientRuntime.debugState().matches("(?s).*mismatches=[1-9].*"),
+                    FishSchoolClientRuntime.debugState());
+            mc.options.hideGui = false;
+        });
+    }
+
     // ------------------------------------------------------------------ shapes
 
     /**

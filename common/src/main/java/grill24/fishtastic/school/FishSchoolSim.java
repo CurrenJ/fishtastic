@@ -64,7 +64,12 @@ public final class FishSchoolSim {
     public sealed interface Input permits Leave, Rejoin, Approach, Withdraw, Water, Watcher, SurfaceJump, SurfaceGoal {}
 
     /** A cosmetic breach. It never changes the member's underwater engine position. */
-    public record SurfaceJump(UUID member, int durationTicks, float height) implements Input {}
+    public record SurfaceJump(UUID member, int durationTicks, float height,
+                              SurfaceJumpPlaybackProfile playbackProfile) implements Input {
+        public SurfaceJump(UUID member, int durationTicks, float height) {
+            this(member, durationTicks, height, SurfaceJumpPlaybackProfile.NORMAL);
+        }
+    }
 
     /**
      * A member's goal of breaching: it swims to the launch point {@code (l, y, d)} just under the
@@ -75,7 +80,22 @@ public final class FishSchoolSim {
      * the member, or the member leaving; it also ends if the fish cannot line up at the point.
      */
     public record SurfaceGoal(UUID goal, UUID member, float l, float y, float d, int durationTicks,
-                              float height) implements Input {}
+                              float height, SurfaceJumpPlaybackProfile playbackProfile) implements Input {
+        public SurfaceGoal(UUID goal, UUID member, float l, float y, float d, int durationTicks, float height) {
+            this(goal, member, l, y, d, durationTicks, height, SurfaceJumpPlaybackProfile.NORMAL);
+        }
+    }
+
+    /** Read-only presentation clock and phase thresholds for a live jump. */
+    public record SurfaceJumpClock(SurfaceJumpPlaybackProfile profile, double previousSourceTime,
+                                   double sourceTime, double playbackRate, double exitSourceTime,
+                                   double apexSourceTime, double entrySourceTime, double endSourceTime,
+                                   long startStep, int presentationDurationTicks, boolean cancelled) {}
+
+    /** A one-shot crossing retained briefly so a catching-up client can observe it exactly once. */
+    public record SurfaceJumpCrossing(UUID member, long presentationStep, double sourceTime,
+                                      float l, float d, float forwardSpeed, float headingL, float headingD,
+                                      boolean entry, SurfaceJumpPlaybackProfile profile) {}
 
     /**
      * Someone rushing the visit at {@code (l, y, d)} ({@code near}), or nobody ({@code !near}).
@@ -124,6 +144,7 @@ public final class FishSchoolSim {
     private final Map<UUID, Shelter> anchors = new LinkedHashMap<>();
     /** Transient, deterministic presentation phases keyed by stable member identity. */
     private final Map<UUID, JumpPhase> surfaceJumps = new LinkedHashMap<>();
+    private final List<SurfaceJumpCrossing> recentSurfaceCrossings = new ArrayList<>();
     /** Non-swimmers' errands, by bobber: they reach a bait by seeking it, not by the swimmers' nose errand. */
     private final Map<UUID, Seek> seeks = new LinkedHashMap<>();
     /** Members swimming up to breach, by goal id; the goal's nose anchor is in {@link #anchors} under the same key. */
@@ -132,6 +153,10 @@ public final class FishSchoolSim {
     private long steps;
 
     public static final int MAX_SURFACE_JUMP_TICKS = 80;
+    /** Hard wall-clock bound for any one synchronized jump. */
+    public static final int MAX_SURFACE_JUMP_PRESENTATION_TICKS = 160;
+    /** Crossing events are read on the next replica tick; four steps absorb brief client stalls. */
+    public static final int SURFACE_JUMP_CROSSING_RETENTION_STEPS = 4;
     public static final float MAX_SURFACE_JUMP_HEIGHT = 2f;
     private static final int JUMP_CANCEL_TICKS = 4;
 
@@ -145,16 +170,61 @@ public final class FishSchoolSim {
     private static final class JumpPhase {
         final long startStep;
         final SurfaceJumpArc arc;
+        final SurfaceJumpPlaybackProfile profile;
+        final int presentationDurationTicks;
+        final long exitPresentationStep;
+        final long entryPresentationStep;
+        double previousSourceTime = -1.0;
+        double sourceTime;
+        double playbackRate = 1.0;
+        long lastAdvancedStep;
         long cancelStep = -1;
 
-        JumpPhase(long startStep, SurfaceJumpArc arc) {
+        JumpPhase(long startStep, SurfaceJumpArc arc, SurfaceJumpPlaybackProfile profile) {
             this.startStep = startStep;
             this.arc = arc;
+            this.profile = profile;
+            this.presentationDurationTicks = profile.presentationTicks(arc, MAX_SURFACE_JUMP_PRESENTATION_TICKS);
+            this.exitPresentationStep = startStep + stepsToSource(arc, profile, arc.exitTick());
+            this.entryPresentationStep = startStep + stepsToSource(arc, profile, arc.entryTick());
+            this.lastAdvancedStep = startStep;
         }
 
         long endStep() {
-            return cancelStep >= 0 ? cancelStep + JUMP_CANCEL_TICKS
-                    : startStep + (long) StrictMath.ceil(arc.durationTicks());
+            return cancelStep >= 0 ? cancelStep + JUMP_CANCEL_TICKS : startStep + presentationDurationTicks;
+        }
+
+        private static int stepsToSource(SurfaceJumpArc arc, SurfaceJumpPlaybackProfile profile, double target) {
+            double source = 0.0;
+            int ticks = 0;
+            while (source < target && ticks < MAX_SURFACE_JUMP_PRESENTATION_TICKS) {
+                source = StrictMath.min(arc.durationTicks(), source + profile.rate(arc, source));
+                ticks++;
+            }
+            return ticks;
+        }
+
+        void advance(long step, UUID member, List<SurfaceJumpCrossing> events) {
+            if (step <= lastAdvancedStep) return;
+            lastAdvancedStep = step;
+            if (cancelStep >= 0) {
+                previousSourceTime = sourceTime;
+                playbackRate = 0.0;
+                return;
+            }
+            previousSourceTime = sourceTime;
+            playbackRate = profile.rate(arc, sourceTime);
+            sourceTime = StrictMath.min(arc.durationTicks(), sourceTime + playbackRate);
+            addCrossing(events, member, step, arc.exitTick(), false);
+            addCrossing(events, member, step, arc.entryTick(), true);
+        }
+
+        private void addCrossing(List<SurfaceJumpCrossing> events, UUID member, long step,
+                                 double threshold, boolean entry) {
+            if (previousSourceTime >= threshold || sourceTime < threshold) return;
+            double[] where = arc.crossing(entry);
+            events.add(new SurfaceJumpCrossing(member, step, threshold, (float) where[0], (float) where[1],
+                    (float) arc.surfaceSpeed(), (float) arc.headingL(), (float) arc.headingD(), entry, profile));
         }
 
         /** How much of the arc's pose shows at {@code step}: 1, or less while a cancel folds it away. */
@@ -164,14 +234,19 @@ public final class FishSchoolSim {
         }
 
         /** The arc's sample at {@code step} ({@link SurfaceJumpArc#sample}); a cancelled one holds its cancel pose. */
-        double[] sampleAt(double step, double[] out) {
-            double at = cancelStep >= 0 ? Math.min(step, cancelStep) : step;
-            return arc.sample(at - startStep, out);
+        double[] sampleAt(float partialTick, double[] out) {
+            double source = previousSourceTime + (sourceTime - previousSourceTime) * partialTick;
+            return arc.sample(source, out);
         }
 
         int fingerprint() {
             int h = Long.hashCode(startStep);
             h = 31 * h + arc.fingerprint();
+            h = 31 * h + profile.ordinal();
+            h = 31 * h + Double.hashCode(previousSourceTime);
+            h = 31 * h + Double.hashCode(sourceTime);
+            h = 31 * h + Double.hashCode(playbackRate);
+            h = 31 * h + presentationDurationTicks;
             h = 31 * h + Long.hashCode(cancelStep);
             return h;
         }
@@ -187,22 +262,28 @@ public final class FishSchoolSim {
         final float l, y, d;
         final int durationTicks;
         final float height;
+        final SurfaceJumpPlaybackProfile playbackProfile;
         final float hl, hd;
         boolean arrived, failed;
 
-        Goal(UUID member, float l, float y, float d, int durationTicks, float height, float hl, float hd) {
+        Goal(UUID member, float l, float y, float d, int durationTicks, float height,
+             SurfaceJumpPlaybackProfile playbackProfile, float hl, float hd) {
             this.member = member;
             this.l = l;
             this.y = y;
             this.d = d;
             this.durationTicks = durationTicks;
             this.height = height;
+            this.playbackProfile = playbackProfile;
             this.hl = hl;
             this.hd = hd;
         }
     }
 
-    /** Horizontal reach scales tried, longest first, when fitting an arc into the water around a launch. */
+    /**
+     * Horizontal reach scales tried, longest first, when fitting an arc into the water around a
+     * launch; each is multiplied by the jump's {@link SurfaceJumpPlaybackProfile#reachScale}.
+     */
     private static final double[] ARC_REACHES = {1.0, 0.6, 0.3};
     /** Run-in scales tried for each reach: a briefer run-in dips less on its way up. */
     private static final double[] ARC_RUN_INS = {1.0, 0.7};
@@ -407,6 +488,7 @@ public final class FishSchoolSim {
     public void step(@Nullable Consumer<Event> events) {
         engine.step();
         steps++;
+        pruneRecentSurfaceCrossings();
         engine.drainTriggerEvents(e -> {
             if (!(e.key() instanceof UUID anchor)) return;
             Goal goal = goals.get(anchor);
@@ -456,11 +538,17 @@ public final class FishSchoolSim {
      * state and the domain every copy shares.
      */
     private @Nullable JumpPhase fitJump(int i, Goal goal) {
-        return fitJump(i, goal.height, goal.durationTicks, goal.l, goal.y, goal.d, goal.hl, goal.hd);
+        return fitJump(i, goal.height, goal.durationTicks, goal.l, goal.y, goal.d, goal.hl, goal.hd,
+                goal.playbackProfile);
     }
 
     private @Nullable JumpPhase fitJump(int i, float height, int maxTicks, float exitL, float exitY, float exitD,
                                         float hl, float hd) {
+        return fitJump(i, height, maxTicks, exitL, exitY, exitD, hl, hd, SurfaceJumpPlaybackProfile.NORMAL);
+    }
+
+    private @Nullable JumpPhase fitJump(int i, float height, int maxTicks, float exitL, float exitY, float exitD,
+                                        float hl, float hd, SurfaceJumpPlaybackProfile profile) {
         float surface = domain.surfaceAt(exitL, exitD);
         if (!Float.isFinite(surface)) return null;
         float dt = engine.tunables().dt(); // engine velocities are blocks a second; the arc's are a tick
@@ -472,9 +560,11 @@ public final class FishSchoolSim {
             for (double reach : ARC_REACHES) {
                 for (double runIn : ARC_RUN_INS) {
                     SurfaceJumpArc arc = SurfaceJumpArc.of(l, y, d, vl, vy, vd, exitL, surface, exitD, hl, hd,
-                            apex * lower, reach, runIn);
+                            apex * lower, reach * profile.reachScale(), runIn);
                     if (arc.durationTicks() > maxTicks) continue;
-                    if (arcFits(arc, surface)) return new JumpPhase(steps, arc);
+                    if (!arcFits(arc, surface)) continue;
+                    JumpPhase phase = new JumpPhase(steps, arc, profile);
+                    if (phase.presentationDurationTicks <= MAX_SURFACE_JUMP_PRESENTATION_TICKS) return phase;
                 }
             }
         }
@@ -508,6 +598,7 @@ public final class FishSchoolSim {
         while (it.hasNext()) {
             Map.Entry<UUID, JumpPhase> entry = it.next();
             JumpPhase jump = entry.getValue();
+            jump.advance(steps, entry.getKey(), recentSurfaceCrossings);
             if (steps < jump.endStep()) continue;
             it.remove();
             if (jump.cancelStep >= 0) continue;
@@ -534,6 +625,11 @@ public final class FishSchoolSim {
             changed = true;
         }
         if (changed) domain.rebuildShelters(List.copyOf(anchors.values()));
+    }
+
+    private void pruneRecentSurfaceCrossings() {
+        recentSurfaceCrossings.removeIf(crossing ->
+                steps - crossing.presentationStep() > SURFACE_JUMP_CROSSING_RETENTION_STEPS);
     }
 
     /**
@@ -645,14 +741,14 @@ public final class FishSchoolSim {
         if (!order.contains(jump.member()) || surfaceJumps.containsKey(jump.member())
                 || jump.durationTicks() < 1 || jump.durationTicks() > MAX_SURFACE_JUMP_TICKS
                 || !Float.isFinite(jump.height()) || jump.height() <= 0f
-                || jump.height() > MAX_SURFACE_JUMP_HEIGHT) return false;
+                || jump.height() > MAX_SURFACE_JUMP_HEIGHT || jump.playbackProfile() == null) return false;
         // No launch point given: the fish breaks the surface a little ahead of where it faces.
         int fish = order.indexOf(jump.member());
         float[] heading = yawHeading(fish);
         float exitL = engine.posL()[fish] + heading[0] * DIRECT_JUMP_LEAD;
         float exitD = engine.posD()[fish] + heading[1] * DIRECT_JUMP_LEAD;
         JumpPhase phase = fitJump(fish, jump.height(), jump.durationTicks(), exitL, engine.posY()[fish], exitD,
-                heading[0], heading[1]);
+                heading[0], heading[1], jump.playbackProfile());
         if (phase == null) return false;
         surfaceJumps.put(jump.member(), phase);
         return true;
@@ -691,16 +787,19 @@ public final class FishSchoolSim {
                 || anchors.containsKey(goal.goal()) || seeks.containsKey(goal.goal()) || goalOf(goal.member()) != null
                 || goal.durationTicks() < 1 || goal.durationTicks() > MAX_SURFACE_JUMP_TICKS
                 || !Float.isFinite(goal.height()) || goal.height() <= 0f || goal.height() > MAX_SURFACE_JUMP_HEIGHT
+                || goal.playbackProfile() == null
                 || !Float.isFinite(goal.l()) || !Float.isFinite(goal.y()) || !Float.isFinite(goal.d())) return false;
         // Nose first along the line it leaps along, which is the one it comes from, as for a bobber.
         float[] heading = goalHeading(goal.member(), goal.l(), goal.d());
-        float hold = (goal.durationTicks() + GOAL_HOLD_SLACK_TICKS) / 20f;
+        int presentationHoldTicks = goal.playbackProfile() == SurfaceJumpPlaybackProfile.NORMAL
+                ? goal.durationTicks() : MAX_SURFACE_JUMP_PRESENTATION_TICKS;
+        float hold = (presentationHoldTicks + GOAL_HOLD_SLACK_TICKS) / 20f;
         anchors.put(goal.goal(), Shelter.noseAnchor(goal.l(), goal.y(), goal.d(), heading[0], heading[1], hold,
                 goal.goal()));
         domain.rebuildShelters(List.copyOf(anchors.values()));
         if (engine.sendToTrigger(anchorIndex(goal.goal()), fish, GOAL_SPEED_SCALE)) {
             goals.put(goal.goal(), new Goal(goal.member(), goal.l(), goal.y(), goal.d(), goal.durationTicks(),
-                    goal.height(), heading[0], heading[1]));
+                    goal.height(), goal.playbackProfile(), heading[0], heading[1]));
             return true;
         }
         anchors.remove(goal.goal());
@@ -754,7 +853,7 @@ public final class FishSchoolSim {
         int i = order.indexOf(member);
         if (jump == null || i < 0) return false;
         double step = steps - 1d + partialTick;
-        double[] arc = jump.sampleAt(step, new double[7]);
+        double[] arc = jump.sampleAt(partialTick, new double[7]);
         float fold = (float) jump.fold(step);
         float[] live = new float[3];
         engine.localAt(i, partialTick, live);
@@ -776,16 +875,31 @@ public final class FishSchoolSim {
      * for each, {@code splash} gets {@code [l, d, forward speed (blocks a tick), hl, hd, entry ? 1 : 0]},
      * sim-local. A cancelled jump makes no crossing after its cancel.
      */
-    public void surfaceJumpCrossings(UUID member, long after, long through, Consumer<float[]> splash) {
-        JumpPhase jump = surfaceJumps.get(member);
-        if (jump == null || order.indexOf(member) < 0) return;
-        for (int entry = 0; entry < 2; entry++) {
-            double at = jump.startStep + (entry == 0 ? jump.arc.exitTick() : jump.arc.entryTick());
-            if (at <= after || at > through || (jump.cancelStep >= 0 && at > jump.cancelStep)) continue;
-            double[] where = jump.arc.crossing(entry == 1);
-            splash.accept(new float[]{(float) where[0], (float) where[1], (float) jump.arc.surfaceSpeed(),
-                    (float) jump.arc.headingL(), (float) jump.arc.headingD(), entry});
+    public void surfaceJumpCrossings(UUID member, long after, long through,
+                                     Consumer<SurfaceJumpCrossing> crossingConsumer) {
+        if (order.indexOf(member) < 0 || through <= after) return;
+        for (SurfaceJumpCrossing crossing : recentSurfaceCrossings) {
+            if (crossing.member().equals(member) && crossing.presentationStep() > after
+                    && crossing.presentationStep() <= through) crossingConsumer.accept(crossing);
         }
+    }
+
+    /** Current canonical playback clock, or null when the member has no active breach. */
+    public @Nullable SurfaceJumpClock surfaceJumpClock(UUID member) {
+        JumpPhase jump = surfaceJumps.get(member);
+        if (jump == null) return null;
+        double apex = jump.arc.exitTick() + (jump.arc.entryTick() - jump.arc.exitTick()) * 0.5;
+        return new SurfaceJumpClock(jump.profile, jump.previousSourceTime, jump.sourceTime, jump.playbackRate,
+                jump.arc.exitTick(), apex, jump.arc.entryTick(), jump.arc.durationTicks(), jump.startStep,
+                jump.presentationDurationTicks, jump.cancelStep >= 0);
+    }
+
+    /** Samples the immutable geometric arc at source time; used to reconstruct client ribbon state. */
+    public boolean surfaceJumpArcSample(UUID member, double sourceTime, double[] out) {
+        JumpPhase jump = surfaceJumps.get(member);
+        if (jump == null) return false;
+        jump.arc.sample(sourceTime, out);
+        return true;
     }
 
     /** Whether {@code goal}'s fish has begun its leap (committed on the way in, or reached the point). */
@@ -1015,6 +1129,7 @@ public final class FishSchoolSim {
             h = 31 * h + entry.getKey().hashCode();
             h = 31 * h + goal.member.hashCode();
             h = 31 * h + (goal.arrived ? 1 : 0);
+            h = 31 * h + goal.playbackProfile.ordinal();
         }
         return h;
     }

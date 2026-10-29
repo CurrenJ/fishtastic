@@ -335,6 +335,8 @@ public final class FishtasticNeoForgeClient {
     }
 
     public static void onRenderGuiPre(RenderGuiEvent.Pre event) {
+        grill24.fishtastic.client.FishSchoolClientRuntime.renderHud(event.getGuiGraphics(),
+                event.getPartialTick().getGameTimeDeltaPartialTick(false));
         TutorialClientHandler.render(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
         CompanionTutorialClientHandler.renderHud(event.getGuiGraphics(), event.getPartialTick().getGameTimeDeltaPartialTick(false));
     }

@@ -19,6 +19,8 @@ import grill24.fishtastic.school.FishSchoolReplica;
 import grill24.fishtastic.school.FishSchoolSim;
 import grill24.fishtastic.util.ItemSizeHelper;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.Camera;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
@@ -34,7 +36,9 @@ import net.minecraft.tags.FluidTags;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
@@ -62,16 +66,18 @@ public final class FishSchoolClientRuntime {
      */
     private static final String[] MOTE_SPRITES = {"school_glint", "school_pearl_bubble", "school_sea_glass",
             "school_star_twinkle", "school_plankton_orb", "school_ripple_ring"};
-    private static final RenderType[] MOTE_RENDER_TYPES = new RenderType[MOTE_SPRITES.length];
+    static final RenderType[] MOTE_RENDER_TYPES = new RenderType[MOTE_SPRITES.length];
     static {
         for (int i = 0; i < MOTE_SPRITES.length; i++) {
             MOTE_RENDER_TYPES[i] = RenderTypes.entityTranslucentEmissive(
                     Fishtastic.id("textures/particle/" + MOTE_SPRITES[i] + ".png"), false);
         }
     }
-    private static final int GLINT_SPRITE = 0;
+    static final int GLINT_SPRITE = 0;
+    static final int STAR_TWINKLE_SPRITE = 3;
+    static final int PLANKTON_ORB_SPRITE = 4;
     /** The ripple ring, last on the list: splash rings use it, airborne droplets never do. */
-    private static final int RIPPLE_SPRITE = 5;
+    static final int RIPPLE_SPRITE = 5;
     /** The pearl/sea-glass cyans the motes were drawn in before the sprites went greyscale. */
     private static final int[] DEFAULT_MOTE_TINTS = {0xB4FFF0, 0x8CF5F0, 0x5AE6DC, 0xC8FFE6};
     /**
@@ -136,13 +142,15 @@ public final class FishSchoolClientRuntime {
          */
         boolean held;
         /** Age at which the mote went under the surface and began to fade, or -1. */
-        int sinkAge = -1;
+        float sinkAge = -1f;
         final float halfSize;
         final float rotation;
         final int red, green, blue;
         final int sprite;
         final int lifetime;
-        int age;
+        float age;
+        /** Set only for the airborne motes owned by a cinematic member's gold trail. */
+        @Nullable UUID clockOwner;
 
         TrailMote(double x, double y, double z, double driftX, double rise, double driftZ,
                   float halfSize, float rotation, int red, int green, int blue, int sprite, int lifetime) {
@@ -161,18 +169,19 @@ public final class FishSchoolClientRuntime {
             this.lifetime = lifetime;
         }
 
-        void tick() {
+        void tick(double delta) {
             previousX = x;
             previousY = y;
             previousZ = z;
-            x += vx;
-            y += vy;
-            z += vz;
-            vy -= gravity;
-            vx *= drag;
-            vy *= drag;
-            vz *= drag;
-            age++;
+            x += vx * delta;
+            y += vy * delta;
+            z += vz * delta;
+            vy -= gravity * delta;
+            double dragScale = Math.pow(drag, delta);
+            vx *= dragScale;
+            vy *= dragScale;
+            vz *= dragScale;
+            age += (float) delta;
         }
 
         /** True on the tick a falling droplet first drops below its water surface. */
@@ -189,7 +198,7 @@ public final class FishSchoolClientRuntime {
         }
 
         boolean expired() {
-            return age >= lifetime || (sinkAge >= 0 && age - sinkAge >= SINK_FADE_TICKS);
+            return age >= lifetime || (sinkAge >= 0f && age - sinkAge >= SINK_FADE_TICKS);
         }
     }
 
@@ -202,6 +211,8 @@ public final class FishSchoolClientRuntime {
         final Map<UUID, Integer> visual = new HashMap<>();
         /** Each member's quality, for its trail's colour. */
         final Map<UUID, FishQuality.Quality> qualities = new HashMap<>();
+        /** Bounded per-member visual controllers; the containing copy is scoped to one school epoch. */
+        final Map<UUID, LegendaryBreachPresentation> breaches = new HashMap<>();
         /** Each member's world position after the previous tick, for its trail. */
         final Map<UUID, Vec3> lastPositions = new HashMap<>();
         /** The copy's sim step at the previous client tick, so each jump's surface crossings splash once; -1 unset. */
@@ -212,6 +223,9 @@ public final class FishSchoolClientRuntime {
         final float[] jumpPose = new float[JUMP_POSE_SIZE];
         /** Each member's distance swum since its last mote, blocks. */
         final Map<UUID, Double> sinceMote = new HashMap<>();
+        /** Last observed source time and delta for retimed airborne gold motes. */
+        final Map<UUID, Double> sourceTimes = new HashMap<>();
+        final Map<UUID, Double> sourceDeltas = new HashMap<>();
         /** Ticks each near-motionless member has gone since its last stationary glint. */
         final Map<UUID, Integer> stillTicks = new HashMap<>();
         final List<TrailMote> trail = new ArrayList<>();
@@ -394,6 +408,7 @@ public final class FishSchoolClientRuntime {
                 copy.loggedMismatches = copy.replica.mismatches();
             }
             if (copy.fadeTicks > 0f) copy.fadeTicks = Math.max(0f, copy.fadeTicks - 1f);
+            if (!FishtasticClientConfig.isFishSchoolsVisible()) copy.breaches.clear();
             tickTrail(copy, stepped > 0);
             if (Perf.enabled) {
                 Perf.steps += stepped;
@@ -415,21 +430,40 @@ public final class FishSchoolClientRuntime {
 
     /** Ages the motes, then lays new ones along each member's swim this tick, unless it is departing. */
     private static void tickTrail(Copy copy, boolean moved) {
+        FishSchoolSim sim = copy.replica.sim();
+        if (sim != null && copy.replica.caughtUp()) {
+            Set<UUID> activeClocks = new HashSet<>();
+            for (UUID member : sim.members()) {
+                FishSchoolSim.SurfaceJumpClock clock = sim.surfaceJumpClock(member);
+                if (clock == null || clock.profile()
+                        != grill24.fishtastic.school.SurfaceJumpPlaybackProfile.LEGENDARY_CINEMATIC) continue;
+                activeClocks.add(member);
+                double previous = copy.sourceTimes.getOrDefault(member, clock.sourceTime());
+                double delta = Math.max(0.0, clock.sourceTime() - previous);
+                copy.sourceTimes.put(member, clock.sourceTime());
+                copy.sourceDeltas.put(member, delta);
+            }
+            copy.sourceTimes.keySet().retainAll(activeClocks);
+            copy.sourceDeltas.keySet().retainAll(activeClocks);
+        } else {
+            copy.sourceTimes.clear();
+            copy.sourceDeltas.clear();
+        }
         // Backwards, so splashes appended while ageing are not visited until next tick.
         for (int i = copy.trail.size() - 1; i >= 0; i--) {
             TrailMote mote = copy.trail.get(i);
-            mote.tick();
+            mote.tick(mote.clockOwner == null ? 1.0 : copy.sourceDeltas.getOrDefault(mote.clockOwner, 1.0));
             if (mote.justSank()) {
                 mote.sink();
                 if (mote.splashes) splash(copy, mote);
             }
             if (mote.expired()) copy.trail.remove(i);
         }
-        FishSchoolSim sim = copy.replica.sim();
         if (sim == null || !copy.replica.caughtUp()) {
             copy.lastPositions.clear();
             copy.lastDrawn.clear();
             copy.jumpStepSeen = -1;
+            copy.breaches.clear();
             return;
         }
         FlockEngine engine = sim.engine();
@@ -444,15 +478,42 @@ public final class FishSchoolClientRuntime {
         // So each mote is moved by this tick's drawn-minus-engine offset, through the same pose.
         engine.interpolate(1f);
         float t = Minecraft.getInstance().level == null ? 0f : Minecraft.getInstance().level.getGameTime();
+        boolean reducedEffects = FishtasticClientConfig.isReducedCelebrationEffects();
+        boolean minimalParticles = Minecraft.getInstance().options.particles().get()
+                == net.minecraft.server.level.ParticleStatus.MINIMAL;
+        Set<UUID> tickedBreaches = new HashSet<>();
         for (int i = 0; i < members.size(); i++) {
             UUID id = members.get(i);
             Vec3 at = new Vec3(o.getX() + engine.posL()[i], o.getY() + engine.posY()[i], o.getZ() + engine.posD()[i]);
             now.put(id, at);
             boolean jumping = sim.surfaceJumpPose(id, 1f, jump);
+            FishSchoolSim.SurfaceJumpClock clock = sim.surfaceJumpClock(id);
             Vec3 drawn = drawnPoint(sim, copy.anim, i, t, 0f, 0f, 0f, jumping ? jump : null);
             if (copy.jumpStepSeen >= 0) {
                 float length = engine.lengths[i];
-                sim.surfaceJumpCrossings(id, copy.jumpStepSeen, stepNow, cross -> jumpSplash(copy, sim, cross, length));
+                sim.surfaceJumpCrossings(id, copy.jumpStepSeen, stepNow,
+                        cross -> jumpSplash(copy, sim, cross, length));
+            }
+            LegendaryBreachPresentation breach = copy.breaches.get(id);
+            boolean departing = copy.visual.getOrDefault(id, FishSchoolStatePacket.AVAILABLE)
+                    == FishSchoolStatePacket.DEPARTING;
+            if (clock != null && clock.profile()
+                    == grill24.fishtastic.school.SurfaceJumpPlaybackProfile.LEGENDARY_CINEMATIC
+                    && FishtasticClientConfig.isFishSchoolsVisible()) {
+                if (breach == null && clock.sourceTime() >= clock.exitSourceTime()) {
+                    breach = new LegendaryBreachPresentation(copy.replica.school(), copy.replica.epoch(), id, clock);
+                    breach.reconstruct(sim, sim.origin(), clock, reducedEffects, minimalParticles, engine.lengths[i]);
+                    copy.breaches.put(id, breach);
+                }
+                if (breach != null) {
+                    if (departing) breach.stop(true);
+                    breach.tick(sim, sim.origin(), clock, reducedEffects, minimalParticles, engine.lengths[i]);
+                    tickedBreaches.add(id);
+                }
+            } else if (breach != null) {
+                breach.stop(departing);
+                breach.tick(sim, sim.origin(), null, reducedEffects, minimalParticles, engine.lengths[i]);
+                tickedBreaches.add(id);
             }
             if (debugTrailMarkers) {
                 // Blue: the engine's centre. Green: the drawn body's centre.
@@ -473,16 +534,31 @@ public final class FishSchoolClientRuntime {
                     && copy.visual.getOrDefault(id, FishSchoolStatePacket.AVAILABLE) != FishSchoolStatePacket.DEPARTING) {
                 if (followArc) {
                     // No glint or sprint bubbles mid-leap: the held engine fish would read as still.
-                    if (drawnBefore != null) spawnMotes(copy, id, drawnBefore, drawn, Vec3.ZERO, engine.lengths[i]);
+                    if (drawnBefore != null) {
+                        UUID clockOwner = clock != null && clock.profile()
+                                == grill24.fishtastic.school.SurfaceJumpPlaybackProfile.LEGENDARY_CINEMATIC
+                                && clock.sourceTime() >= clock.exitSourceTime() ? id : null;
+                        spawnMotes(copy, id, drawnBefore, drawn, Vec3.ZERO, engine.lengths[i], clockOwner);
+                    }
                     continue;
                 }
-                spawnMotes(copy, id, before, at, drawn.subtract(at), engine.lengths[i]);
+                spawnMotes(copy, id, before, at, drawn.subtract(at), engine.lengths[i], null);
                 stillGlint(copy, id, before, at, drawn);
                 int state = engine.shelterState(i);
                 if (state == FlockEngine.SHELTER_APPROACH || state == FlockEngine.SHELTER_ENTER) {
                     sprintBubbles(copy, before, at, drawn.subtract(at), engine.lengths[i]);
                 }
             }
+        }
+        for (var iterator = copy.breaches.entrySet().iterator(); iterator.hasNext();) {
+            Map.Entry<UUID, LegendaryBreachPresentation> entry = iterator.next();
+            if (tickedBreaches.contains(entry.getKey())) {
+                if (entry.getValue().expired()) iterator.remove();
+                continue;
+            }
+            entry.getValue().stop(true);
+            entry.getValue().tick(sim, sim.origin(), null, reducedEffects, minimalParticles, sim.spec().length());
+            if (entry.getValue().expired() || !members.contains(entry.getKey())) iterator.remove();
         }
         copy.jumpStepSeen = stepNow;
         copy.lastDrawn.keySet().retainAll(now.keySet()); // a member caught mid-jump leaves no stale arc
@@ -498,7 +574,8 @@ public final class FishSchoolClientRuntime {
      * hovering in place); {@code drawnOffset} moves them onto the drawn body. A surface jump passes
      * the drawn path itself with no offset, since its engine fish is held still.
      */
-    private static void spawnMotes(Copy copy, UUID member, Vec3 from, Vec3 to, Vec3 drawnOffset, float length) {
+    private static void spawnMotes(Copy copy, UUID member, Vec3 from, Vec3 to, Vec3 drawnOffset, float length,
+                                   @Nullable UUID clockOwner) {
         double dx = to.x - from.x, dy = to.y - from.y, dz = to.z - from.z;
         double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
         if (distance < 1e-6) return;
@@ -522,11 +599,13 @@ public final class FishSchoolClientRuntime {
             float size = 0.028f + random.nextFloat() * 0.026f;
             if (random.nextFloat() < 0.13f) size *= 1.35f;
             // Slower drift than the old trail, so a mote living twice as long rises about as far.
-            addMote(copy, baseX - directionZ * lateral, baseY + vertical, baseZ + directionX * lateral,
+            TrailMote mote = addMote(copy, baseX - directionZ * lateral, baseY + vertical,
+                    baseZ + directionX * lateral,
                     (random.nextDouble() - 0.5) * 0.0012,
                     0.0008 + random.nextDouble() * 0.0012,
                     (random.nextDouble() - 0.5) * 0.0012,
                     size, MOTE_LIFETIME + random.nextInt(MOTE_LIFETIME_SPREAD), tints);
+            mote.clockOwner = clockOwner;
         }
         copy.sinceMote.put(member, distance - (next - MOTE_SPACING));
     }
@@ -622,7 +701,26 @@ public final class FishSchoolClientRuntime {
      * rings, and bubbles carried down after it. Both scale with the fish. Silent, as automatic
      * effects are.
      */
-    private static void jumpSplash(Copy copy, FishSchoolSim sim, float[] at, float length) {
+    private static void jumpSplash(Copy copy, FishSchoolSim sim,
+                                   FishSchoolSim.SurfaceJumpCrossing crossing, float length) {
+        if (crossing.profile() == grill24.fishtastic.school.SurfaceJumpPlaybackProfile.LEGENDARY_CINEMATIC) {
+            FishSchoolSim.SurfaceJumpClock clock = sim.surfaceJumpClock(crossing.member());
+            if (clock == null || !FishtasticClientConfig.isFishSchoolsVisible()) return;
+            LegendaryBreachPresentation presentation = copy.breaches.computeIfAbsent(crossing.member(), member ->
+                    new LegendaryBreachPresentation(copy.replica.school(), copy.replica.epoch(), member, clock));
+            // A rebuild or a delayed copy initializes the current look without replaying old bursts.
+            if (sim.steps() - crossing.presentationStep() <= 4) {
+                presentation.onCrossing(sim, sim.origin(), crossing, length);
+            } else if (!crossing.entry()) {
+                presentation.reconstruct(sim, sim.origin(), clock,
+                        FishtasticClientConfig.isReducedCelebrationEffects(),
+                        Minecraft.getInstance().options.particles().get()
+                                == net.minecraft.server.level.ParticleStatus.MINIMAL, length);
+            }
+            return;
+        }
+        float[] at = {crossing.l(), crossing.d(), crossing.forwardSpeed(), crossing.headingL(),
+                crossing.headingD(), crossing.entry() ? 1f : 0f};
         ClientLevel level = Minecraft.getInstance().level;
         if (level == null) return;
         BlockPos origin = sim.origin();
@@ -869,12 +967,55 @@ public final class FishSchoolClientRuntime {
                 }
             }
             submitTrail(poses, nodes, camera, cam, copy, partialTick);
+            for (LegendaryBreachPresentation breach : copy.breaches.values()) {
+                breach.submitWorld(poses, nodes, camera, cam, sim, sim.origin(), partialTick);
+            }
         }
         if (Perf.enabled) {
             long spent = System.nanoTime() - started;
             Perf.frames++;
             Perf.submitNanos += spent;
             Perf.maxSubmitNanos = Math.max(Perf.maxSubmitNanos, spent);
+        }
+    }
+
+    /** One foreground overlay at a time: the nearest visible cinematic breach owns the HUD. */
+    public static void renderHud(GuiGraphicsExtractor graphics, float partialTick) {
+        Minecraft mc = Minecraft.getInstance();
+        ClientLevel level = mc.level;
+        if (level == null || !FishtasticClientConfig.isFishSchoolsVisible()) return;
+        Camera camera = mc.gameRenderer.getMainCamera();
+        LegendaryBreachPresentation selected = null;
+        float nearest = Float.POSITIVE_INFINITY;
+        float[] selectedScreen = null;
+        for (Copy copy : COPIES.values()) {
+            for (LegendaryBreachPresentation breach : copy.breaches.values()) {
+                float priority = breach.hudPriority(camera.position());
+                if (!Float.isFinite(priority) || priority >= nearest) continue;
+                float[] screen = breach.screenPosition(mc, camera);
+                if (screen == null) continue;
+                int width = mc.getWindow().getGuiScaledWidth(), height = mc.getWindow().getGuiScaledHeight();
+                if (screen[0] < -width * 0.1f || screen[0] > width * 1.1f
+                        || screen[1] < -height * 0.1f || screen[1] > height * 1.1f) continue;
+                if (mc.player == null) continue;
+                var hit = level.clip(new ClipContext(camera.position(), breach.focusPosition(),
+                        ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, mc.player));
+                if (hit.getType() != HitResult.Type.MISS
+                        && hit.getLocation().distanceToSqr(camera.position()) + 0.35
+                        < breach.focusPosition().distanceToSqr(camera.position())) continue;
+                nearest = priority;
+                selected = breach;
+                selectedScreen = screen;
+            }
+        }
+        for (Copy copy : COPIES.values()) {
+            for (LegendaryBreachPresentation breach : copy.breaches.values()) {
+                if (breach == selected) breach.playPendingAudio(level);
+                else breach.discardPendingAudio();
+            }
+        }
+        if (selected != null && selectedScreen != null && !mc.options.hideGui) {
+            selected.renderHud(graphics, mc, partialTick, selectedScreen[0], selectedScreen[1]);
         }
     }
 
@@ -886,7 +1027,9 @@ public final class FishSchoolClientRuntime {
     private static void submitTrail(PoseStack poses, SubmitNodeCollector nodes,
                                     net.minecraft.client.Camera camera, Vec3 cam, Copy copy, float partialTick) {
         for (TrailMote mote : copy.trail) {
-            float age = mote.age + partialTick;
+            double ageDelta = mote.clockOwner == null ? 1.0
+                    : copy.sourceDeltas.getOrDefault(mote.clockOwner, 1.0);
+            float age = mote.age + (float) (partialTick * ageDelta);
             float progress = clamp(age / mote.lifetime, 0f, 1f);
             float appear = smoothstep(clamp(age / 2f, 0f, 1f));
             float sunk = mote.sinkAge < 0 ? 0f : clamp((age - mote.sinkAge) / TrailMote.SINK_FADE_TICKS, 0f, 1f);
@@ -915,7 +1058,7 @@ public final class FishSchoolClientRuntime {
         }
     }
 
-    private static void sparkleQuad(VertexConsumer buffer, PoseStack.Pose pose,
+    static void sparkleQuad(VertexConsumer buffer, PoseStack.Pose pose,
                                     float halfSize, float alpha, int red, int green, int blue,
                                     int textureFrame) {
         int a = (int) (clamp(alpha, 0f, 1f) * 255f);
@@ -969,6 +1112,27 @@ public final class FishSchoolClientRuntime {
             for (UUID member : sim.members()) if (sim.hasSurfaceJump(member)) return true;
         }
         return false;
+    }
+
+    /** Self-test probe: a live client-side Legendary breach presentation is attached to its school. */
+    public static boolean legendaryBreachActiveForSelfTest() {
+        for (Copy copy : COPIES.values()) {
+            for (LegendaryBreachPresentation breach : copy.breaches.values()) {
+                if (breach.hasLiveClock()) return true;
+            }
+        }
+        return false;
+    }
+
+    /** Self-test probe: current custom burst-particle count across tracked Legendary presentations. */
+    public static int legendaryBreachParticleCountForSelfTest() {
+        int particles = 0;
+        for (Copy copy : COPIES.values()) {
+            for (LegendaryBreachPresentation breach : copy.breaches.values()) {
+                particles += breach.activeParticleCount();
+            }
+        }
+        return particles;
     }
 
     /**

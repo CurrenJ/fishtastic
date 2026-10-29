@@ -122,6 +122,9 @@ public final class FishtasticForgeClient {
                                 () -> net.minecraft.network.chat.Component.literal(message), false)));
 
         net.minecraftforge.client.event.AddGuiOverlayLayersEvent.BUS.addListener(event -> {
+            event.getLayeredDraw().add(Ids.of("fishtastic", "legendary_breach_hud"), (graphics, delta) ->
+                    grill24.fishtastic.client.FishSchoolClientRuntime.renderHud(
+                            graphics, delta.getGameTimeDeltaPartialTick(false)));
             event.getLayeredDraw().add(Ids.of("fishtastic", "tutorial_hud"), (graphics, delta) -> {
                 float partial = delta.getGameTimeDeltaPartialTick(false);
                 grill24.fishtastic.client.TutorialClientHandler.render(graphics, partial);

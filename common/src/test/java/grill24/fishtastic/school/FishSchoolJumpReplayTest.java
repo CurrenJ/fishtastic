@@ -46,10 +46,18 @@ class FishSchoolJumpReplayTest {
 
     /** The server: its sim, input log, fingerprint after every step, and its jump's milestones. */
     private static final class Server {
-        final FishSchoolSim sim = FishSchoolSim.create(setup());
+        final SurfaceJumpPlaybackProfile profile;
+        final FishSchoolSim sim;
         final List<FishSchoolSim.Stamped> log = new ArrayList<>();
         final Map<Long, Integer> checksums = new HashMap<>();
         long committedAt = -1, landedAt = -1;
+
+        Server() { this(SurfaceJumpPlaybackProfile.NORMAL); }
+
+        Server(SurfaceJumpPlaybackProfile profile) {
+            this.profile = profile;
+            this.sim = FishSchoolSim.create(setup());
+        }
 
         List<FishSchoolSim.Stamped> tick(int t) {
             sim.step(null);
@@ -59,7 +67,8 @@ class FishSchoolJumpReplayTest {
             if (t != GOAL_AT) return List.of();
             float[] at = sim.anchorPoint(6.5f, sim.domain().surfaceAt(6.5f, 6.5f), 6.5f);
             assertNotNull(at);
-            FishSchoolSim.Input input = new FishSchoolSim.SurfaceGoal(GOAL, A, at[0], at[1], at[2], 64, 0.5f);
+            FishSchoolSim.Input input = new FishSchoolSim.SurfaceGoal(GOAL, A, at[0], at[1], at[2], 64, 0.5f,
+                    profile);
             FishSchoolSim.Stamped stamped = new FishSchoolSim.Stamped(sim.steps(), input);
             assertTrue(sim.apply(input), "the server's goal was refused");
             log.add(stamped);
@@ -69,7 +78,11 @@ class FishSchoolJumpReplayTest {
 
     /** Runs a server through the whole jump once, to learn when it commits and lands. */
     private static Server rehearse() {
-        Server server = new Server();
+        return rehearse(SurfaceJumpPlaybackProfile.NORMAL);
+    }
+
+    private static Server rehearse(SurfaceJumpPlaybackProfile profile) {
+        Server server = new Server(profile);
         for (int t = 0; t < 900 && server.landedAt < 0; t++) server.tick(t);
         assertTrue(server.committedAt > 0 && server.landedAt > server.committedAt,
                 "the jump never ran: commit " + server.committedAt + " land " + server.landedAt);
@@ -150,6 +163,45 @@ class FishSchoolJumpReplayTest {
         assertTrue(posesCompared > 5, "the replayed jump was compared only " + posesCompared + " steps");
         assertTrue(server.sim.goalCompleted(GOAL));
         assertEquals(server.checksums.get(copy.sim().steps()), copy.sim().checksum());
+    }
+
+    @Test
+    void aCopyJoiningDuringLegendaryApexSlowdownReplaysTheSameSourceClock() {
+        SurfaceJumpPlaybackProfile profile = SurfaceJumpPlaybackProfile.LEGENDARY_CINEMATIC;
+        Server normalPlan = rehearse(SurfaceJumpPlaybackProfile.NORMAL);
+        Server plan = rehearse(profile);
+        long join = (plan.committedAt + plan.landedAt) / 2;
+        Server server = new Server(profile);
+        int t = 0;
+        for (; t < join; t++) server.tick(t);
+        FishSchoolReplica copy = new FishSchoolReplica(UUID.randomUUID(), 1, setup(), List.copyOf(server.log),
+                server.sim.steps());
+        float[] serverPose = new float[7], copyPose = new float[7];
+        int compared = 0;
+        for (; t < plan.landedAt + 60; t++) {
+            copy.addInputs(server.tick(t));
+            if (t % 10 == 0) copy.observe(server.sim.steps(), server.checksums.get(server.sim.steps()));
+            copy.tick();
+            FishSchoolSim mine = copy.sim();
+            if (!copy.caughtUp() || mine == null) continue;
+            assertEquals(server.checksums.get(mine.steps()), mine.checksum(), "diverged at step " + mine.steps());
+            // The authoritative server may be several steps ahead of a delayed copy. Compare poses
+            // from the same canonical replay step, rather than sampling the server's newest state.
+            FishSchoolSim reference = replayTo(server, mine.steps());
+            boolean a = reference.surfaceJumpPose(A, 0.5f, serverPose);
+            boolean b = mine.surfaceJumpPose(A, 0.5f, copyPose);
+            assertEquals(a, b);
+            if (a) assertArrayEquals(serverPose, copyPose, 0f, "pose at step " + mine.steps());
+            compared++;
+        }
+        assertEquals(0, copy.mismatches());
+        assertTrue(compared > 50, "compared only " + compared + " replay steps");
+        long normalPresentation = normalPlan.landedAt - normalPlan.committedAt;
+        long cinematicPresentation = server.landedAt - server.committedAt;
+        assertTrue(cinematicPresentation > normalPresentation,
+                "the deterministic cinematic should occupy more presentation steps than NORMAL");
+        assertTrue(cinematicPresentation <= FishSchoolSim.MAX_SURFACE_JUMP_PRESENTATION_TICKS,
+                "the cinematic presentation must remain bounded");
     }
 
     /** A fresh sim fed the server's log on time, stepped to {@code step}. */
