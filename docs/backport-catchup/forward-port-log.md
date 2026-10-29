@@ -72,3 +72,35 @@ The markers were recorded by 1.21.1 commit `0c35f75c` and 1.20.1 commit `861c251
 checklist-link commits are 1.21.1 `bce3788c` and 1.20.1 `1ba2391b`; both hooks passed their unit
 and Fabric GameTest stages. Both target worktrees are clean of tracked changes. The pre-existing
 untracked `docs/fish-companions-twoclient/` is preserved on 1.20.1. No branch was pushed.
+
+## Post-marker follow-up: `8794a541..73560a7e`
+
+Updated: 2026-10-29. The nine source commits after `8794a541` are all accounted for. Four product
+commits were adapted together on each port; the 2.1.12 version bump was already present in the
+clean target baselines. Source progress and release-evidence commits are excluded by design. Both
+target markers now advance to `73560a7e`; the automated result matrix is
+[`2026-10-29/post-hellbender-parity/result-matrix.md`](../../build/backport-catchup/2026-10-29/post-hellbender-parity/result-matrix.md).
+
+| 26.1.2 source commit | Disposition | `port/1.21.1` | `port/1.20.1` |
+|---|---|---|---|
+| `d0627f7a` Bump Fishtastic to 2.1.12 | Ported before this follow-up; present at target baselines | `13c270d5` | `df1e5b4a` |
+| `551c131a` Record hellbender and 2.1.9-2.1.11 follow-ups | Excluded: source progress tracker | — | — |
+| `94bf3a3a` Show the hellbender's sheen texture out of water | Ported | `340f76d0` | `02702a4b` |
+| `55fecf75` Hinge ground walkers' mood pitch at the tail | Ported | `340f76d0` | `02702a4b` |
+| `04dacb24` Record wet/dry texture commit | Excluded: source progress tracker | — | — |
+| `a13eb827` Keep benthics on the ground when their owner looks down | Ported | `340f76d0` | `02702a4b` |
+| `b9586bcf` Record 2.1.12 release bump | Excluded: source progress tracker | — | — |
+| `f7d34c5f` Add legendary fish breach celebrations | Ported | `340f76d0` | `02702a4b` |
+| `73560a7e` Record published 2.1.11 backport jars | Excluded: source release evidence only | — | — |
+
+Validation: 1.21.1 common 926 tests (0 failures/errors, 1 skipped), fishsim 516 passed/63 skipped,
+all three loader builds and testmod compiles, all three GameTest suites 389/389, datagen unchanged,
+and the `legendarybreach` scene 10/10. 1.20.1 common 939 tests (0 failures/errors, 1 skipped),
+fishsim 516 passed/63 skipped, tank-shape-gen 21,955, Fabric/Forge builds and testmod compiles,
+GameTests 389/389 and 390/390, datagen unchanged, and `legendarybreach` 10/10. The first 1.21.1
+render capture found that legacy GUI blits did not enable alpha blending; the explicit blend fix
+was visually confirmed in final captures on both targets. See the result matrix for evidence paths.
+
+Checklist marker commits: 1.21.1 `5e825fe6`; 1.20.1 `775d776d`. Owner-only real-play,
+multiplayer, and tank-frame equivalence checks remain open; they are not claimed as passed by the
+automated matrix.

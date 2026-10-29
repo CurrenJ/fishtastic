@@ -1,4 +1,34 @@
 # Backport parity progress
+
+## Completed (2026-10-29): post-hellbender parity audit and catch-up
+
+- **Operation:** Account for every source commit in `8794a541..73560a7e`; adapt the four product
+  commits sequentially across `26.1.2 → port/1.21.1 → port/1.20.1`; run both target validation
+  matrices; update the forward crosswalk and target-local parity markers. Preserve owner-only
+  visual/real-play checks as open.
+- **Evidence:** `build/backport-catchup/2026-10-29/post-hellbender-parity/`; final matrix:
+  [`result-matrix.md`](build/backport-catchup/2026-10-29/post-hellbender-parity/result-matrix.md).
+- **Rechecked starting state:** source `73560a7e`; clean `port/1.21.1` `13c270d5`; clean
+  `port/1.20.1` `df1e5b4a`; both 15 commits ahead of remote. The earlier checkpoint incorrectly
+  described the registered 1.21.1 target as clean after implementation had begun; all state in this
+  entry is based on direct worktree, Git and test-result inspection.
+- **Source accounting:** `94bf3a3a`, `55fecf75`, `a13eb827`, and `f7d34c5f` are ported on both
+  targets. `d0627f7a` (2.1.12 version bump) was already present at both baselines. The four
+  documentation/release-evidence commits are explicitly excluded in
+  `docs/backport-catchup/forward-port-log.md`.
+- **Commits:** feature commits 1.21.1 `340f76d0` and 1.20.1 `02702a4b`; marker commits 1.21.1
+  `5e825fe6` and 1.20.1 `775d776d`. Both local branches are ahead by 17 commits, clean after
+  marker updates, and not pushed. The markers advance from `e21bc4a3` to `73560a7e`.
+- **Validation:** 1.21.1 common 926 (0 failures/errors, 1 skipped), fishsim 516 passed/63 skipped,
+  Fabric/NeoForge/Forge build + testmod, GameTests 389/389 on each loader, datagen clean, and
+  `legendarybreach` 10/10. 1.20.1 common 939 (0 failures/errors, 1 skipped), fishsim 516 passed/63
+  skipped, tank-shape-gen 21,955, Fabric/Forge build + testmod, GameTests 389/389 and 390/390,
+  datagen clean, and `legendarybreach` 10/10. The first 1.21.1 visual capture found opaque rays;
+  enabling standard blend on the legacy direct blit restored the transparent texture and was
+  visually confirmed on both targets. Both `git diff --check HEAD` checks passed before commit.
+- **Open owner checks:** real-play feel, multiplayer beyond the scripted scene, and tank-frame
+  equivalence remain pending; automated gates do not claim these.
+- **Next action:** none for this source range. Do not push.
 ## Completed release follow-up (2026-10-28): publish 2.1.11 backport jars
 
 - **Operation:** Build, smoke, and publish only the version-2.1.11 trees for MC 1.21.1 and
