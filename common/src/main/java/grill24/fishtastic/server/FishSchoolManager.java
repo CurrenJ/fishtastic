@@ -16,6 +16,7 @@ import grill24.fishtastic.network.NetworkApiSided;
 import grill24.fishtastic.client.renderer.FishVisuals;
 import grill24.fishtastic.school.FishSchoolSim;
 import grill24.fishtastic.school.SurfaceJumpArc;
+import grill24.fishtastic.school.SurfaceJumpPlaybackProfile;
 import grill24.fishtastic.school.VisitShape;
 import grill24.fishsim.core.FishSpec;
 import grill24.fishsim.core.Locomotion;
@@ -98,10 +99,10 @@ public final class FishSchoolManager {
     /** How far from the member a launch point is looked for, blocks, and how many are tried per member. */
     private static final float SURFACE_JUMP_LAUNCH_REACH = 3f;
     private static final int SURFACE_JUMP_LAUNCH_ATTEMPTS = 8;
-    /** The breach's apex above the surface, blocks; the sim raises it for a long fish (SurfaceJumpArc.apexFor). */
-    private static final float SURFACE_JUMP_BREACH_HEIGHT = 0.5f;
     /** The most ticks the wind-up, burst, flight and glide may take together; a 0.5-block breach takes about 45. */
     private static final int SURFACE_JUMP_DURATION_TICKS = 64;
+    /** The same budget for a legendary breach's higher, longer arc (about 60 ticks at 1.25 blocks), in source ticks. */
+    private static final int LEGENDARY_SURFACE_JUMP_DURATION_TICKS = FishSchoolSim.MAX_SURFACE_JUMP_TICKS;
     /** A departing visit fades out over this long, then its members are gone (design decision). */
     private static final int DEPARTURE_TICKS = 60;
     private static final double INTEREST_DISTANCE_SQR = 1024.0;
@@ -483,6 +484,12 @@ public final class FishSchoolManager {
      */
     private FishSchoolSavedData.@Nullable Member startSurfaceGoal(FishSchoolSavedData.School school,
                                                                  SchoolRuntime runtime, long now, RandomSource random) {
+        return startSurfaceGoal(school, runtime, now, random, null);
+    }
+
+    private FishSchoolSavedData.@Nullable Member startSurfaceGoal(FishSchoolSavedData.School school,
+                                                                 SchoolRuntime runtime, long now, RandomSource random,
+                                                                 @Nullable SurfaceJumpPlaybackProfile forcedProfile) {
         FishSchoolSim sim = runtime.sim;
         List<FishSchoolSavedData.Member> candidates = new ArrayList<>();
         for (FishSchoolSavedData.Member member : school.members()) {
@@ -498,18 +505,30 @@ public final class FishSchoolManager {
         }
         for (FishSchoolSavedData.Member member : candidates) {
             int i = sim.indexOf(member.id());
+            SurfaceJumpPlaybackProfile playbackProfile = forcedProfile != null ? forcedProfile
+                    : member.quality() == FishQuality.Quality.LEGENDARY
+                    ? SurfaceJumpPlaybackProfile.LEGENDARY_CINEMATIC : SurfaceJumpPlaybackProfile.NORMAL;
             for (int attempt = 0; attempt < SURFACE_JUMP_LAUNCH_ATTEMPTS; attempt++) {
                 // The first try is straight above the fish; the rest are scattered round it.
                 float angle = random.nextFloat() * Mth.TWO_PI;
                 float reach = attempt == 0 ? 0f : random.nextFloat() * SURFACE_JUMP_LAUNCH_REACH;
                 float l = sim.engine().posL()[i] + Mth.cos(angle) * reach;
                 float d = sim.engine().posD()[i] + Mth.sin(angle) * reach;
-                float[] at = launchPoint(sim, member.id(), l, d);
+                // A legendary breach wants its own big arc, but under a low ceiling it still leaps an
+                // ordinary-height one rather than not at all.
+                float breach = (float) playbackProfile.breachHeight();
+                float[] at = launchPoint(sim, member.id(), l, d, breach, playbackProfile.reachScale());
+                if (at == null && playbackProfile != SurfaceJumpPlaybackProfile.NORMAL) {
+                    breach = (float) SurfaceJumpPlaybackProfile.NORMAL_BREACH_HEIGHT;
+                    at = launchPoint(sim, member.id(), l, d, breach, playbackProfile.reachScale());
+                }
                 if (at == null) continue;
                 UUID goal = new UUID(random.nextLong(), random.nextLong());
-                float height = Math.max(0f, sim.domain().surfaceAt(at[0], at[2]) - at[1]) + SURFACE_JUMP_BREACH_HEIGHT;
+                float height = Math.max(0f, sim.domain().surfaceAt(at[0], at[2]) - at[1]) + breach;
+                int duration = playbackProfile == SurfaceJumpPlaybackProfile.NORMAL
+                        ? SURFACE_JUMP_DURATION_TICKS : LEGENDARY_SURFACE_JUMP_DURATION_TICKS;
                 boolean sent = runtime.apply(new FishSchoolSim.SurfaceGoal(goal, member.id(), at[0], at[1], at[2],
-                        SURFACE_JUMP_DURATION_TICKS, height));
+                        duration, height, playbackProfile));
                 runtime.checksum = sim.checksum();
                 if (!sent) return null; // the engine refused; the input is replayed and refused alike everywhere
                 runtime.jumpGoal = goal;
@@ -527,7 +546,8 @@ public final class FishSchoolManager {
      * swims in on, SurfaceJumpArc.airReach), in loaded chunks only. Null if there is none. The sim
      * may still fit a shorter arc than this; never a longer one.
      */
-    private float @Nullable [] launchPoint(FishSchoolSim sim, UUID member, float l, float d) {
+    private float @Nullable [] launchPoint(FishSchoolSim sim, UUID member, float l, float d,
+                                           float breachHeight, double reachScale) {
         float surface = sim.domain().surfaceAt(l, d);
         if (!Float.isFinite(surface)) return null;
         float[] at = sim.anchorPoint(l, surface, d);
@@ -535,9 +555,9 @@ public final class FishSchoolManager {
         float[] heading = sim.goalHeading(member, at[0], at[2]);
         int i = sim.indexOf(member);
         if (heading == null || i < 0) return null;
-        double apex = SurfaceJumpArc.apexFor(Math.max(0f, surface - at[1]) + SURFACE_JUMP_BREACH_HEIGHT,
+        double apex = SurfaceJumpArc.apexFor(Math.max(0f, surface - at[1]) + breachHeight,
                 surface - at[1], sim.engine().lengths[i], FishSchoolSim.MAX_SURFACE_JUMP_HEIGHT);
-        double reach = SurfaceJumpArc.airReach(apex);
+        double reach = SurfaceJumpArc.airReach(apex) * reachScale;
         WaterDomain.BodyBox body = sim.body();
         BlockPos o = sim.origin();
         double top = o.getY() + surface + apex + body.above();
@@ -770,6 +790,11 @@ public final class FishSchoolManager {
      * self-test need not wait for ecology. The goal itself (swim up, jump on arrival) is the real one.
      */
     public String surfaceJumpForDebug(UUID schoolId) {
+        return surfaceJumpForDebug(schoolId, null);
+    }
+
+    /** Test seam: force either canonical profile without changing the member's rolled quality. */
+    public String surfaceJumpForDebug(UUID schoolId, @Nullable SurfaceJumpPlaybackProfile profile) {
         FishSchoolSavedData.School school = findSchool(schoolId);
         SchoolRuntime runtime = sims.get(schoolId);
         if (school == null || runtime == null || school.state() != FishSchoolSavedData.SchoolState.ACTIVE
@@ -779,7 +804,7 @@ public final class FishSchoolManager {
         if (runtime.jumpGoal != null) return "School already has a surface goal running.";
         long now = level.getGameTime();
         FishSchoolSavedData.Member chosen = startSurfaceGoal(school, runtime, now,
-                RandomSource.create(schoolId.getLeastSignificantBits() ^ now));
+                RandomSource.create(schoolId.getLeastSignificantBits() ^ now), profile);
         if (chosen == null) return "School has no available fish within reach of an open launch point.";
         return "Sent " + chosen.id() + " in school " + schoolId + " to breach.";
     }

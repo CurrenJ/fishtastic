@@ -259,6 +259,8 @@ public final class FishtasticForgeClient {
      * {@code RenderGuiEvent.Pre}-then-{@code Post} order.
      */
     public static void registerGuiOverlays(RegisterGuiOverlaysEvent event) {
+        event.registerAboveAll("legendary_breach", (gui, graphics, partialTick, width, height) ->
+                grill24.fishtastic.client.FishSchoolClientRuntime.renderHud(graphics, partialTick));
         event.registerAboveAll("companion_dev", (gui, graphics, partialTick, width, height) ->
                 grill24.fishtastic.client.companion.ClientCompanionsDev.renderHud(graphics, partialTick));
         event.registerAboveAll("tutorial", (gui, graphics, partialTick, width, height) -> {

@@ -67,8 +67,13 @@ public final class GroupFishDraw {
         }
         if (fade < 1f) AmbientFishFade.apply(poses, fade, anim, AmbientModelBounds.of(stack, level));
         int light = LevelRenderer.getLightColor(level, BlockPos.containing(x, y, z));
-        Minecraft.getInstance().getItemRenderer().renderStatic(stack, ItemDisplayContext.FIXED,
-                light, OverlayTexture.NO_OVERLAY, poses, buffers, level, 0);
+        boolean previousMedium = FishRenderMedium.set(true);
+        try {
+            Minecraft.getInstance().getItemRenderer().renderStatic(stack, ItemDisplayContext.FIXED,
+                    light, OverlayTexture.NO_OVERLAY, poses, buffers, level, 0);
+        } finally {
+            FishRenderMedium.set(previousMedium);
+        }
         poses.popPose();
         return true;
     }

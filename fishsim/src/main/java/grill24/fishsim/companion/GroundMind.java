@@ -79,6 +79,14 @@ final class GroundMind {
     boolean closeCalm;
     /** Ticks it stays where it landed after a tumble, gathering itself, before it walks on. */
     int daze;
+    /**
+     * Set by the percher while its owner looks down at it (owner, 2026-10-28): ticks it stops where
+     * it is and turns to face them, rather than hopping up to the hand.
+     */
+    int faceOwner;
+    /** Diagnostic: look downs it turned to face, counted once per spell. */
+    int faceTurns;
+    private boolean facingWas;
     /** Where the owner stands, on the floor (their feet projected down when they're off it). */
     Vec ownerFloor;
     private int ownerStill;
@@ -219,6 +227,8 @@ final class GroundMind {
         GroundBody.Rhythm rhythm;
         float face = Float.NaN;
         Vec desire = null;
+        boolean facing = false;
+        if (faceOwner > 0) faceOwner--;
         if (intent != null && land != Land.CATCH_UP) {
             Vec candidate = intent.target();
             double floor = g.footprintFloorFrom(v, candidate.x(), candidate.z(), g.floorY);
@@ -243,6 +253,15 @@ final class GroundMind {
                 hopRetry = 10;
                 tryGapHop(v);
             }
+        } else if (faceOwner > 0 && beat == null && formationTarget == null && land != Land.CATCH_UP) {
+            // Its owner looked down at it: it stops and turns to face them.
+            facing = true;
+            if (!facingWas) faceTurns++;
+            target = g.standing();
+            want = 0;
+            rhythm = GroundBody.Rhythm.AMBLE;
+            Vec toOwner = ownerFloor.sub(g.pos).horizontal();
+            face = toOwner.lengthSqr() > 1e-6 ? (float) toOwner.yawDeg() : Float.NaN;
         } else if (wantClose && via < 0) {
             // Up alongside the owner on its side, a little ahead of where they'll be: in reach of
             // the hand (and, ahead of their feet, nearer the bottom of their view).
@@ -371,6 +390,7 @@ final class GroundMind {
         }
         if (!feetApproaching && formationPush != null && push != null) push = push.add(formationPush);
         if (partyPush != null && !feetApproaching && daze == 0) push = push == null ? partyPush : push.add(partyPush);
+        facingWas = facing;
         g.walk(target, want, rhythm, push, face, v);
     }
 

@@ -84,6 +84,26 @@ public final class FishtasticRenderTypes extends RenderType {
                     .setWriteMaskState(COLOR_WRITE)
                     .createCompositeState(true));
 
+    /** Additive, emissive quads for the legendary breach's soft sparkle sprites. */
+    public static RenderType legendarySparkle(ResourceLocation texture) {
+        return create(
+                "fishtastic_legendary_sparkle_" + texture.getPath().replace('/', '_'),
+                DefaultVertexFormat.NEW_ENTITY,
+                VertexFormat.Mode.QUADS,
+                TRANSIENT_BUFFER_SIZE,
+                false,
+                true,
+                CompositeState.builder()
+                        .setShaderState(RENDERTYPE_ENTITY_TRANSLUCENT_EMISSIVE_SHADER)
+                        .setTextureState(new TextureStateShard(texture, false, false))
+                        .setTransparencyState(LIGHTNING_TRANSPARENCY)
+                        .setCullState(NO_CULL)
+                        .setLightmapState(LIGHTMAP)
+                        .setOverlayState(OVERLAY)
+                        .setWriteMaskState(COLOR_WRITE)
+                        .createCompositeState(false));
+    }
+
     // Without this the outline is invisible under every shaderpack — see IrisCompat.
     // No shadow program: a translucent cosmetic overlay must not write to the shadow map.
     static {

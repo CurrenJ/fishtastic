@@ -398,8 +398,13 @@ public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTank
             poseStack.scale(scale, scale, scale);
 
             // The quality outline comes with it: the world-outline hook lives in ItemRenderer.render.
-            itemRenderer.renderStatic(flock.stacks[i], ItemDisplayContext.FIXED, state.lightCoords,
-                    OverlayTexture.NO_OVERLAY, poseStack, buffers, level, 0);
+            boolean previousMedium = FishRenderMedium.set(true);
+            try {
+                itemRenderer.renderStatic(flock.stacks[i], ItemDisplayContext.FIXED, state.lightCoords,
+                        OverlayTexture.NO_OVERLAY, poseStack, buffers, level, 0);
+            } finally {
+                FishRenderMedium.set(previousMedium);
+            }
 
             poseStack.popPose();
         }
@@ -449,8 +454,13 @@ public class FishTankBlockEntityRenderer implements BlockEntityRenderer<FishTank
             GroupFishPose.apply(poseStack, eng, group.anims[i], i, t,
                     groupOffsetX, groupOffsetY, groupOffsetZ, fishRandom);
 
-            itemRenderer.renderStatic(group.stacks[i], ItemDisplayContext.FIXED, state.lightCoords,
-                    OverlayTexture.NO_OVERLAY, poseStack, buffers, level, 0);
+            boolean previousMedium = FishRenderMedium.set(true);
+            try {
+                itemRenderer.renderStatic(group.stacks[i], ItemDisplayContext.FIXED, state.lightCoords,
+                        OverlayTexture.NO_OVERLAY, poseStack, buffers, level, 0);
+            } finally {
+                FishRenderMedium.set(previousMedium);
+            }
 
             poseStack.popPose();
         }

@@ -529,6 +529,25 @@ public final class OwnerScript {
         Random r = new Random(seed);
         double y = 64;
         List<Segment> s = new ArrayList<>();
+        if (name.startsWith("lookdown_")) {
+            // PositionSplitProbe's dose-response: "lookdown_still_N" stands, "lookdown_walk_N" walks
+            // back and forth between stops; either way about N stops a minute to look at the feet
+            // (60 deg, 1-2 s).
+            boolean walk = name.startsWith("lookdown_walk_");
+            double perMin = Double.parseDouble(name.substring(name.lastIndexOf('_') + 1));
+            int gap = perMin <= 0 ? 6000 : (int) (1200 / perMin);
+            for (int i = 0; i < 80; i++) {
+                int before = Math.max(20, gap / 2 + r.nextInt(Math.max(1, gap)) - 40);
+                double leg = Math.min(60, WALK * before / 20.0);
+                s.add(walk ? walkTo(0.5, i % 2 == 0 ? 0.5 + leg : 0.5, WALK) : hold(before));
+                if (perMin > 0) {
+                    s.add(lookBy(0f, 60f, 6));
+                    s.add(walk ? waitTicks(20 + r.nextInt(20)) : hold(20 + r.nextInt(20)));
+                    s.add(lookBy(0f, -60f, 6));
+                }
+            }
+            return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s).withTerrain();
+        }
         switch (name) {
             case "idle_fixed" -> {
                 s.add(hold(6000));
@@ -1070,6 +1089,55 @@ public final class OwnerScript {
                 s.add(teleportTo(0.5, y + 5, 8.5));
                 s.add(waitTicks(20));
                 return new OwnerScript(name, "cliff", new Vec(0.5, y + 5, 8.5), 180f, s).withTerrain();
+            }
+            // Play-like sessions for the benthic position-split probe (PositionSplitProbe): stylised
+            // guesses at ordinary play, not recordings. Run by name only; no table or fingerprint lists them.
+            case "play_fishing" -> {
+                // Walk to the bank, then fish: rod held, looking out at the bobber (15-35 down),
+                // small look adjustments, a recast now and then, a short switch off the rod every few minutes.
+                s.add(walkTo(0.5, 12.5, WALK));
+                s.add(lookBy(0f, 25f, 20));
+                for (int i = 0; i < 60; i++) {
+                    s.add(hold(80 + r.nextInt(220)));
+                    s.add(lookBy((float) ((r.nextDouble() - 0.5) * 30), (float) ((r.nextDouble() - 0.5) * 12), 15 + r.nextInt(15)));
+                }
+                int[] t = new int[8];
+                CompanionWorld.Held[] h = new CompanionWorld.Held[8];
+                for (int i = 0; i < 4; i++) {
+                    t[2 * i] = 3000 * i;
+                    h[2 * i] = CompanionWorld.Held.ROD;
+                    t[2 * i + 1] = 3000 * i + 2400 + r.nextInt(400);
+                    h[2 * i + 1] = CompanionWorld.Held.NONE;
+                }
+                return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s).withTerrain()
+                        .holding(ScriptedPoints.schedule(12000, t, h));
+            }
+            case "play_building" -> {
+                // Building: a few steps, look down at the feet (55-75) to place for 1-3 s, look up, pause.
+                for (int i = 0; i < 120; i++) {
+                    double a = r.nextDouble() * Math.PI * 2, d = 1.5 + r.nextDouble() * 3.5;
+                    s.add(walkTo(0.5 + Math.cos(a) * d, 0.5 + Math.sin(a) * d, WALK * 0.7));
+                    s.add(lookBy((float) ((r.nextDouble() - 0.5) * 90), 55f + (float) r.nextDouble() * 20f, 8));
+                    s.add(hold(20 + r.nextInt(40)));
+                    s.add(lookBy(0f, -60f, 8));
+                    s.add(hold(20 + r.nextInt(80)));
+                    s.add(lookBy(0f, -(float) (r.nextDouble() * 10), 4));
+                }
+                return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s).withTerrain();
+            }
+            case "play_exploring" -> {
+                // Wandering: walks of 8-25 blocks, a stop of 2-15 s looking about (pitch within 20 of level).
+                double x = 0.5, z = 0.5;
+                for (int i = 0; i < 60; i++) {
+                    double a = r.nextDouble() * Math.PI * 2, d = 8 + r.nextDouble() * 17;
+                    x = Math.max(-40, Math.min(40, x + Math.cos(a) * d));
+                    z = Math.max(-40, Math.min(40, z + Math.sin(a) * d));
+                    s.add(walkTo(x, z, r.nextDouble() < 0.25 ? SPRINT : WALK));
+                    s.add(lookBy((float) ((r.nextDouble() - 0.5) * 120), (float) ((r.nextDouble() - 0.5) * 30), 20));
+                    s.add(hold(40 + r.nextInt(260)));
+                    s.add(lookBy(0f, 0f, 1));
+                }
+                return new OwnerScript(name, "open", new Vec(0.5, y, 0.5), 0f, s).withTerrain();
             }
             default -> throw new IllegalArgumentException("unknown script " + name + " (have " + NAMES + " " + GROUND_NAMES + ")");
         }
