@@ -1,27 +1,27 @@
 # Backport parity progress
 
-## In progress (2026-10-29): commit validated display parity changes
+## Completed (2026-10-29): synchronized 2.1.13 version bump
 
-- **Pending operation:** stage and commit the seven reviewed source files in `26.1.2` (including
-  this final progress result) using `Fix legendary breach glow and ray transparency`; verify commit
-  and clean status. Do not push or advance parity markers.
-- **Evidence path:** `build/backport-catchup/2026-10-29/post-hellbender-parity/visual-follow-up/`;
-  validation logs and final screenshots are already recorded there.
-- **Verified checkpoint:** target `port/1.21.1` display commit `1cf6071a`; target `port/1.20.1`
-  display commit `0e489e8a`. Both hooks passed unit and Fabric GameTests and explicitly skipped
-  NeoForge GameTests because that loader's run can hang. Both target worktrees are clean.
-- **Next action:** commit the source display change; after all three display commits land, record a
-  new pending operation and bump `mod_version` from the verified shared `2.1.12` to `2.1.13` in all
-  three worktrees, with one separate local commit per worktree.
+- **Operation:** after the rendering commits landed, bump `mod_version` from `2.1.12` to `2.1.13`
+  on source `26.1.2` and both backport branches, with one local commit per worktree. No release,
+  push, or parity marker advance.
+- **Display commits:** source `83f394b6`, 1.21.1 `1cf6071a`, and 1.20.1 `0e489e8a`.
+- **Version commits:** 1.21.1 `b70a30bd`; 1.20.1 `d5e9a5a8`; source is this progress-bearing source
+  commit (`Bump Fishtastic to 2.1.13`).
+- **Validation:** all three version commits passed unit and Fabric GameTests in their pre-commit
+  hooks. The hooks skipped NeoForge GameTests because that loader's test run can hang. All three
+  worktrees are clean, and each `gradle.properties` reports `mod_version = 2.1.13`.
+- **Next action:** none for the display and version commits. Publication remains separate; the
+  project-wide owner checks listed below remain open.
 
 ## Completed (2026-10-29): three-version display parity and loader validation
 
 - **Operation:** Fix the square fish backplate and opaque ray appearance, apply every real display
   change to 26.1.2, 1.21.1, and 1.20.1, then build every supported loader affected by the shared
-  renderer. No parity marker advance, commit, or push.
-- **Verified state:** source `26.1.2` at `30ef5408`; target `port/1.21.1` at `5e825fe6`; target
-  `port/1.20.1` at `775d776d`. Expected display edits are uncommitted in all three worktrees, with
-  no unrelated source/target edits. Roots are `D:\GitHub\fishtastic`,
+  renderer. No parity marker advance or push; local commits are recorded in the entry above.
+- **Verified state at validation start:** source `26.1.2` at `30ef5408`; target `port/1.21.1` at
+  `5e825fe6`; target `port/1.20.1` at `775d776d`. The display edits were the only working-tree
+  changes; their later commits are recorded above. Roots are `D:\GitHub\fishtastic`,
   `D:\GitHub\fishtastic-worktrees\port-1.21.1`, and
   `D:\GitHub\fishtastic-worktrees\mc-1.20.1`.
 - **Implementation parity:** the shared breach presentation replaces the enlarged plankton sprite
