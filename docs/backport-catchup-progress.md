@@ -1,4 +1,22 @@
 # Backport parity progress
+## Completed release follow-up (2026-10-28): publish 2.1.11 backport jars
+
+- **Operation:** Build, smoke, and publish only the version-2.1.11 trees for MC 1.21.1 and
+  1.20.1. Preserve all port worktrees and do not advance parity markers.
+- **Pinned commits:** 1.21.1 `7bb45c3b8719c790539b04e224b0b6f3cf91fbf2`; 1.20.1
+  `eafc4d16dc42a7ea067cd1ddf170e528925a0d58`. Both are the mapped `Bump Fishtastic to 2.1.11`
+  commits for source `21eadae18a5ea30f491b19edd11acfc492ce3305`. The later 2.1.12 commits
+  `13c270d5` / `df1e5b4a` were out of scope.
+- **Loaders and result:** 1.21.1 Fabric, NeoForge, and Forge; 1.20.1 Fabric and Forge. All five
+  builds passed. Four smoke profiles passed; 1.21.1 Forge passed with the known vanilla
+  experimental-settings prompt acknowledged. All five jars were published as releases on
+  October 28, 2026, and are visible in the [CurseForge files listing](https://www.curseforge.com/minecraft/mc-mods/fishtastic/files/all).
+- **Evidence:** `build/backport-catchup/2026-10-28/release-2.1.11-ports/` contains the result
+  matrix, build and publish logs, jar SHA-256 manifests, release status, and per-profile smoke
+  summaries/transcripts. The public listing independently confirms the five 2.1.11 files.
+- **Parity:** No port branch was modified for the release operation, and no parity marker was
+  advanced. The 2.1.12 commits remained excluded.
+- **Next action:** None for this release follow-up.
 
 ## Completed follow-up (2026-10-25): interactive-school encounter odds
 
@@ -62,16 +80,16 @@ port (evidence under each worktree's `build/verification/two-client/fabric/`).
 
 ## Current parity state
 
-- **Status (2026-10-28):** every 26.1.2 source commit through `8794a541` (`Add hellbender`) is on
+- **Status (2026-10-29):** every 26.1.2 source commit through `8794a541` (`Add hellbender`) is on
   both port branches, ported or excluded as source-only docs/tooling. The commit-by-commit
   crosswalk past the markers is in
   [forward-port-log.md](backport-catchup/forward-port-log.md#post-marker-follow-ups-e21bc4a38794a541).
   The 2.1.12 release commits are source `d0627f7a`, `port/1.21.1` `13c270d5`, and
   `port/1.20.1` `df1e5b4a`; all three are version 2.1.12 and all worktrees are clean. The
-  ported-through markers remain at
-  `e21bc4a3` (each scoped follow-up chose not to move them); they can advance to `8794a541`
-  without further porting. Nothing is pushed: source `26.1.2` is 19 commits ahead of `origin`, and
-  each port is 15 ahead.
+  ported-through markers remain at `e21bc4a3` (each scoped follow-up chose not to move them); they
+  can advance to `8794a541` without further porting. The 2.1.11 backport jars for 1.21.1 and
+  1.20.1 were published on CurseForge (see the completed release follow-up above). Nothing is
+  pushed: source `26.1.2` is 24 commits ahead of `origin`, and each port is 15 ahead.
 
 - **Completed follow-up (2026-10-27): hellbender.** Source `8794a541` (`Add hellbender`, a new rare
   river species) was cherry-picked to 1.21.1 as `eba88004` and carried to 1.20.1 as `1e7802ad`.
