@@ -5,8 +5,8 @@
 - **Operation:** after the rendering commits landed, bump `mod_version` from `2.1.12` to `2.1.13`
   on source `26.1.2` and both backport branches, with one local commit per worktree. No release,
   push, or parity marker advance.
-- **Display commits:** source `83f394b6`, 1.21.1 `1cf6071a`, and 1.20.1 `0e489e8a`.
-- **Version commits:** 1.21.1 `b70a30bd`; 1.20.1 `d5e9a5a8`; source is this progress-bearing source
+- **Display commits:** source `c23199d5`, 1.21.1 `5a2b6b25`, and 1.20.1 `dd5af54b`.
+- **Version commits:** 1.21.1 `3d23b979`; 1.20.1 `67401517`; source is this progress-bearing source
   commit (`Bump Fishtastic to 2.1.13`).
 - **Validation:** all three version commits passed unit and Fabric GameTests in their pre-commit
   hooks. The hooks skipped NeoForge GameTests because that loader's test run can hang. All three
@@ -19,8 +19,8 @@
 - **Operation:** Fix the square fish backplate and opaque ray appearance, apply every real display
   change to 26.1.2, 1.21.1, and 1.20.1, then build every supported loader affected by the shared
   renderer. No parity marker advance or push; local commits are recorded in the entry above.
-- **Verified state at validation start:** source `26.1.2` at `30ef5408`; target `port/1.21.1` at
-  `5e825fe6`; target `port/1.20.1` at `775d776d`. The display edits were the only working-tree
+- **Verified state at validation start:** source `26.1.2` at `860887a0`; target `port/1.21.1` at
+  `a5c88846`; target `port/1.20.1` at `13dec3b1`. The display edits were the only working-tree
   changes; their later commits are recorded above. Roots are `D:\GitHub\fishtastic`,
   `D:\GitHub\fishtastic-worktrees\port-1.21.1`, and
   `D:\GitHub\fishtastic-worktrees\mc-1.20.1`.
@@ -44,7 +44,7 @@
 - **Ledger and marker audit:** all 91 ledger entries have explicit outcomes (56 ported, 12
   superseded, 23 excluded). Every mapped target commit reference (388 for each target) resolves
   uniquely to a commit reachable from the current branch. The only source commit after marker
-  `73560a7e` changes backport documentation; both target checklists still record `73560a7e`.
+  `00df5ff9` changes backport documentation; both target checklists still record `00df5ff9`.
 - **Screenshot inspection:** re-opened the final 24-frame contact sheets for all three versions
   and full-resolution apex/cleanup frames. The fish backplate has a soft circular falloff rather
   than a square edge, and the rays are visibly translucent in both backport clients and source.
@@ -63,8 +63,8 @@
   fish with a smooth radial-alpha glow; preserve soft, source-alpha screen rays; build and rerun the
   isolated Fabric `legendarybreach` scene on 26.1.2, 1.21.1, and 1.20.1. No parity marker advance
   or push.
-- **Verified starting state:** source branch `26.1.2` at `30ef5408`; target branches
-  `port/1.21.1` at `5e825fe6` and `port/1.20.1` at `775d776d`. Final edits remain uncommitted in
+- **Verified starting state:** source branch `26.1.2` at `860887a0`; target branches
+  `port/1.21.1` at `a5c88846` and `port/1.20.1` at `13dec3b1`. Final edits remain uncommitted in
   those three worktrees.
 - **Implementation:** all three versions now draw two smooth 64×64 radial-alpha quads behind the
   fish instead of magnifying the 16×16 plankton sprite. Both legacy RenderType ports enable texture
@@ -95,23 +95,23 @@
 
 ## Completed (2026-10-29): post-hellbender parity audit and catch-up
 
-- **Operation:** Account for every source commit in `8794a541..73560a7e`; adapt the four product
+- **Operation:** Account for every source commit in `8794a541..00df5ff9`; adapt the four product
   commits sequentially across `26.1.2 → port/1.21.1 → port/1.20.1`; run both target validation
   matrices; update the forward crosswalk and target-local parity markers. Preserve owner-only
   visual/real-play checks as open.
 - **Evidence:** `build/backport-catchup/2026-10-29/post-hellbender-parity/`; final matrix:
   [`result-matrix.md`](build/backport-catchup/2026-10-29/post-hellbender-parity/result-matrix.md).
-- **Rechecked starting state:** source `73560a7e`; clean `port/1.21.1` `13c270d5`; clean
-  `port/1.20.1` `df1e5b4a`; both 15 commits ahead of remote. The earlier checkpoint incorrectly
+- **Rechecked starting state:** source `00df5ff9`; clean `port/1.21.1` `164a2954`; clean
+  `port/1.20.1` `eceec535`; both 15 commits ahead of remote. The earlier checkpoint incorrectly
   described the registered 1.21.1 target as clean after implementation had begun; all state in this
   entry is based on direct worktree, Git and test-result inspection.
-- **Source accounting:** `94bf3a3a`, `55fecf75`, `a13eb827`, and `f7d34c5f` are ported on both
-  targets. `d0627f7a` (2.1.12 version bump) was already present at both baselines. The four
+- **Source accounting:** `328e0d2d`, `aac4f749`, `ae41c11b`, and `636b2eb1` are ported on both
+  targets. `402892eb` (2.1.12 version bump) was already present at both baselines. The four
   documentation/release-evidence commits are explicitly excluded in
   `docs/backport-catchup/forward-port-log.md`.
-- **Commits:** feature commits 1.21.1 `340f76d0` and 1.20.1 `02702a4b`; marker commits 1.21.1
-  `5e825fe6` and 1.20.1 `775d776d`. Both local branches are ahead by 17 commits, clean after
-  marker updates, and not pushed. The markers advance from `e21bc4a3` to `73560a7e`.
+- **Commits:** feature commits 1.21.1 `50899c1e` and 1.20.1 `55087776`; marker commits 1.21.1
+  `a5c88846` and 1.20.1 `13dec3b1`. Both local branches are ahead by 17 commits, clean after
+  marker updates, and not pushed. The markers advance from `e21bc4a3` to `00df5ff9`.
 - **Validation:** 1.21.1 common 926 (0 failures/errors, 1 skipped), fishsim 516 passed/63 skipped,
   Fabric/NeoForge/Forge build + testmod, GameTests 389/389 on each loader, datagen clean, and
   `legendarybreach` 10/10. 1.20.1 common 939 (0 failures/errors, 1 skipped), fishsim 516 passed/63
@@ -129,7 +129,7 @@
 - **Pinned commits:** 1.21.1 `7bb45c3b8719c790539b04e224b0b6f3cf91fbf2`; 1.20.1
   `eafc4d16dc42a7ea067cd1ddf170e528925a0d58`. Both are the mapped `Bump Fishtastic to 2.1.11`
   commits for source `21eadae18a5ea30f491b19edd11acfc492ce3305`. The later 2.1.12 commits
-  `13c270d5` / `df1e5b4a` were out of scope.
+  `164a2954` / `eceec535` were out of scope.
 - **Loaders and result:** 1.21.1 Fabric, NeoForge, and Forge; 1.20.1 Fabric and Forge. All five
   builds passed. Four smoke profiles passed; 1.21.1 Forge passed with the known vanilla
   experimental-settings prompt acknowledged. All five jars were published as releases on
@@ -196,7 +196,7 @@ port (evidence under each worktree's `build/verification/two-client/fabric/`).
   hellbender, a rare river fish.” Diffs contained only `CHANGELOG.md` and `gradle.properties`, and
   `git diff --check` passed on all three. The repository pre-commit hook runs tests, so it was
   bypassed for these metadata-only commits; no tests or builds were run.
-- **Commits:** Source `d0627f7a`, 1.21.1 `13c270d5`, and 1.20.1 `df1e5b4a`, each titled
+- **Commits:** Source `402892eb`, 1.21.1 `164a2954`, and 1.20.1 `eceec535`, each titled
   `Bump Fishtastic to 2.1.12`. All three worktrees are clean after this tracker update. No branch
   was pushed, and no parity marker was advanced.
 - **Next action:** None.
@@ -207,8 +207,8 @@ port (evidence under each worktree's `build/verification/two-client/fabric/`).
   both port branches, ported or excluded as source-only docs/tooling. The commit-by-commit
   crosswalk past the markers is in
   [forward-port-log.md](backport-catchup/forward-port-log.md#post-marker-follow-ups-e21bc4a38794a541).
-  The 2.1.12 release commits are source `d0627f7a`, `port/1.21.1` `13c270d5`, and
-  `port/1.20.1` `df1e5b4a`; all three are version 2.1.12 and all worktrees are clean. The
+  The 2.1.12 release commits are source `402892eb`, `port/1.21.1` `164a2954`, and
+  `port/1.20.1` `eceec535`; all three are version 2.1.12 and all worktrees are clean. The
   ported-through markers remain at `e21bc4a3` (each scoped follow-up chose not to move them); they
   can advance to `8794a541` without further porting. The 2.1.11 backport jars for 1.21.1 and
   1.20.1 were published on CurseForge (see the completed release follow-up above). Nothing is

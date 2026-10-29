@@ -1,6 +1,6 @@
 # Hellbender wet/dry texture — feature spec
 
-Status: implemented on 26.1.2, committed 94bf3a3a (2026-10-28). Unit tests and datagen done; owner in-game look
+Status: implemented on 26.1.2, committed 328e0d2d (2026-10-28). Unit tests and datagen done; owner in-game look
 pending. Ports (1.21.1 / 1.20.1) not started. See "Implementation notes" at the end.
 
 ## Goal

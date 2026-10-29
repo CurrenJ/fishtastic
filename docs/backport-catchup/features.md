@@ -34,14 +34,14 @@ accounted for, as described in the progress tracker.
 
 ## Post-marker feature follow-up (2026-10-29)
 
-The source changes after marker `8794a541` are complete on both ports as of source `73560a7e`:
+The source changes after marker `8794a541` are complete on both ports as of source `00df5ff9`:
 
 | Source change | `port/1.21.1` | `port/1.20.1` |
 |---|---|---|
-| Hellbender wet/dry sheen | `340f76d0` | `02702a4b` |
-| Ground-walker pitch hinge and benthic grounding | `340f76d0` | `02702a4b` |
-| Legendary fish breach celebration | `340f76d0` | `02702a4b` |
+| Hellbender wet/dry sheen | `50899c1e` | `55087776` |
+| Ground-walker pitch hinge and benthic grounding | `50899c1e` | `55087776` |
+| Legendary fish breach celebration | `50899c1e` | `55087776` |
 
 The per-commit source-only exclusions and validation evidence are recorded in
 [`forward-port-log.md`](forward-port-log.md) and the 2026-10-29 result matrix. The target-local
-ported-through markers now name `73560a7e`; manual owner checks remain open.
+ported-through markers now name `00df5ff9`; manual owner checks remain open.
