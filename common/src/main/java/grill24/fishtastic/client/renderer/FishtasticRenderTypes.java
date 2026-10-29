@@ -95,7 +95,7 @@ public final class FishtasticRenderTypes extends RenderType {
                 true,
                 CompositeState.builder()
                         .setShaderState(RENDERTYPE_ENTITY_TRANSLUCENT_EMISSIVE_SHADER)
-                        .setTextureState(new TextureStateShard(texture, false, false))
+                        .setTextureState(new TextureStateShard(texture, true, false))
                         .setTransparencyState(LIGHTNING_TRANSPARENCY)
                         .setCullState(NO_CULL)
                         .setLightmapState(LIGHTMAP)

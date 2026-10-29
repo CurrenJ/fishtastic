@@ -656,7 +656,8 @@ today and which review steps remain.
 - Fabric, NeoForge and Forge register the shared cyan/pink wash, rays and projected star glints.
   Reduced effects retain the synchronized fish motion and small world treatment while dropping the
   wash/rays and limiting particles.
-- A pink/gold radial apex flare is drawn from the existing emissive sprite sheets.
+- A pink/gold radial apex flare uses a generated 64×64 soft alpha texture, keeping the backplate smooth
+  when it is drawn larger than the existing 16×16 mote sprites.
 - Rays and stars art pass (owner request 2026-10-29): `tools/legendary-breach-gen/gen.py` generates
   three soft white-in-alpha textures (`legendary_sunburst`, `legendary_sparkle` four-point,
   `legendary_sparkle8` eight-point hero), blur on. The HUD rays are two counter-turning sunburst
