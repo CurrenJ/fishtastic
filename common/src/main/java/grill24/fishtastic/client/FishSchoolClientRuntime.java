@@ -8,6 +8,7 @@ import grill24.fishsim.core.FlockEngine;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.client.renderer.FishVisuals;
+import grill24.fishtastic.client.renderer.FishtasticRenderPipelines;
 import grill24.fishtastic.client.renderer.GroupFishDraw;
 import grill24.fishtastic.client.renderer.TankBubbleEmitter;
 import grill24.fishtastic.data.FishAnimationConfig;
@@ -25,7 +26,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.rendertype.RenderSetup;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -68,9 +69,16 @@ public final class FishSchoolClientRuntime {
             "school_star_twinkle", "school_plankton_orb", "school_ripple_ring"};
     static final RenderType[] MOTE_RENDER_TYPES = new RenderType[MOTE_SPRITES.length];
     static {
+        // Additive (glow) blending, so a mote adds light to the water behind it rather than laying
+        // a tinted film that underwater fog washes out in vanilla. This is the only line per type
+        // that touches the render API, which differs on the 1.21.1 / 1.20.1 ports.
         for (int i = 0; i < MOTE_SPRITES.length; i++) {
-            MOTE_RENDER_TYPES[i] = RenderTypes.entityTranslucentEmissive(
-                    Fishtastic.id("textures/particle/" + MOTE_SPRITES[i] + ".png"), false);
+            MOTE_RENDER_TYPES[i] = RenderType.create("fishtastic_mote_" + MOTE_SPRITES[i],
+                    RenderSetup.builder(FishtasticRenderPipelines.WORLD_SPARKLE_GLOW)
+                            .withTexture("Sampler0",
+                                    Fishtastic.id("textures/particle/" + MOTE_SPRITES[i] + ".png"))
+                            .useOverlay()
+                            .createRenderSetup());
         }
     }
     static final int GLINT_SPRITE = 0;
@@ -79,7 +87,7 @@ public final class FishSchoolClientRuntime {
     /** The ripple ring, last on the list: splash rings use it, airborne droplets never do. */
     static final int RIPPLE_SPRITE = 5;
     /** The pearl/sea-glass cyans the motes were drawn in before the sprites went greyscale. */
-    private static final int[] DEFAULT_MOTE_TINTS = {0xB4FFF0, 0x8CF5F0, 0x5AE6DC, 0xC8FFE6};
+    private static final int[] DEFAULT_MOTE_TINTS = {0x66FFEE, 0x1FFFF0, 0x00F5E0, 0x8CFFF2};
     /**
      * Each quality's mote tints, by {@link FishQuality.Quality} ordinal: a fish's trail shows what
      * catching it gives. Common keeps the original sea-glass cyans; the rest are shades round their
@@ -87,14 +95,16 @@ public final class FishSchoolClientRuntime {
      */
     private static final int[][] QUALITY_MOTE_TINTS = {
             DEFAULT_MOTE_TINTS,
-            {0x9CFF9C, 0x6EF56E, 0x55E655, 0xC8FFC8},
-            {0x8C9CFF, 0x6E7EFF, 0x5566FF, 0xB4BEFF},
-            {0xFF9CFF, 0xF06EF0, 0xE055E6, 0xFFC8FF},
-            {0xFFD966, 0xFFC233, 0xFFAA00, 0xFFE9A8},
+            {0x6BFF6B, 0x2BFF2B, 0x00F000, 0x9CFF9C},
+            {0x7FA0FF, 0x4D7DFF, 0x3366FF, 0x99B8FF},
+            {0xFF6BFF, 0xF030F0, 0xE020FF, 0xFF9CFF},
+            {0xFFD233, 0xFFBB00, 0xFFA000, 0xFFE070},
     };
     /** Dev override of every school's mote tints (RGB), or null for the defaults. */
     private static int @Nullable [] moteTintOverride;
     private static final int FULL_BRIGHT = 15728880;
+    /** Alpha a live mote fades toward before its final fade-out. */
+    private static final float ALPHA_FLOOR = 0.5f;
     private static final int GLINT_FRAME_COUNT = 8;
     /** The sheets' fullest frame, where every sprite is near its peak coverage: held motes draw it. */
     private static final int HELD_FRAME = 4;
@@ -1034,7 +1044,11 @@ public final class FishSchoolClientRuntime {
             float progress = clamp(age / mote.lifetime, 0f, 1f);
             float appear = smoothstep(clamp(age / 2f, 0f, 1f));
             float sunk = mote.sinkAge < 0 ? 0f : clamp((age - mote.sinkAge) / TrailMote.SINK_FADE_TICKS, 0f, 1f);
-            float alpha = appear * (mote.held ? 1f : 1f - smoothstep(progress)) * (1f - sunk);
+            // Fades from full to ALPHA_FLOOR over most of the life, then drops to nothing in the last
+            // fifth, so a mote stays visible instead of dimming from its first tick.
+            float lifeAlpha = (ALPHA_FLOOR + (1f - ALPHA_FLOOR) * (1f - smoothstep(progress)))
+                    * (1f - smoothstep((progress - 0.8f) / 0.2f));
+            float alpha = appear * (mote.held ? 1f : lifeAlpha) * (1f - sunk);
             if (alpha <= 0.015f) continue;
 
             double x = mote.previousX + (mote.x - mote.previousX) * partialTick;
