@@ -14,14 +14,14 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class ClaimAllEncyclopediaRewardsPacketTest {
-    private static final FishEncyclopediaEntry.UnlockThresholds COMMON = EncyclopediaTiers.Tier.COMMON.thresholds; // 2/3/8/4/30
+    private static final FishEncyclopediaEntry.UnlockThresholds COMMON = EncyclopediaTiers.Tier.COMMON.thresholds; // 1/3/8/4/30
     private static final Identifier COD = Ids.of("fishtastic", "cod_like");
     private static final Identifier EEL = Ids.of("fishtastic", "eel_like");
 
     @Test
     void claimsOnlyReachedSectionsAndPaysTheirCoins() {
         PlayerQuestState state = new PlayerQuestState();
-        // 4 catches reaches NAME (2), STATS (3), SPAWN_CONDITIONS (4); not TYPES (8) or LORE (30).
+        // 4 catches reaches NAME (1), STATS (3), SPAWN_CONDITIONS (4); not TYPES (8) or LORE (30).
         int claimed = ClaimAllEncyclopediaRewardsPacket.claimFish(state, COD, COMMON, 4);
         assertEquals(3, claimed);
         assertEquals(EncyclopediaRewardSection.NAME_REVEAL.coinReward() + EncyclopediaRewardSection.STATS.coinReward()
@@ -42,7 +42,7 @@ class ClaimAllEncyclopediaRewardsPacketTest {
         PlayerQuestState all = new PlayerQuestState();
         PlayerQuestState single = new PlayerQuestState();
         int claimed = ClaimAllEncyclopediaRewardsPacket.claimAll(all, List.of(COD, EEL), id -> COMMON,
-                id -> Map.of(COD, 30, EEL, 2).get(id));
+                id -> Map.of(COD, 30, EEL, 1).get(id));
         for (EncyclopediaRewardSection section : EncyclopediaRewardSection.values()) {
             single.claimEncyclopediaReward(COD, section);
         }

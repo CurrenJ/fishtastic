@@ -188,6 +188,12 @@ public class FishCatchSavedData extends SavedData {
     private final Map<UUID, TutorialStep> tutorialSteps = new HashMap<>();
     private final Map<UUID, EncyclopediaTutorialStep> encyclopediaTutorialSteps = new HashMap<>();
     private final Map<UUID, CompanionTutorialStep> companionTutorialSteps = new HashMap<>();
+    /**
+     * Species each player has seen through a spyglass (world fish exploration E7, E17). Kept apart
+     * from {@link PlayerCatchData} on purpose: an observation is not a catch, so it must never put a
+     * player into catch counts, leaderboards or the global best-size scan.
+     */
+    private final Map<UUID, Set<Identifier>> observed = new HashMap<>();
     private CleanupGoalState cleanupGoal = new CleanupGoalState();
 
     // -------------------------------------------------------------------------
@@ -205,8 +211,10 @@ public class FishCatchSavedData extends SavedData {
             Codec.unboundedMap(UUIDUtil.STRING_CODEC, EncyclopediaTutorialStep.CODEC)
                     .optionalFieldOf("encyclopedia_tutorial_steps", Map.of()).forGetter(d -> new HashMap<>(d.encyclopediaTutorialSteps)),
             Codec.unboundedMap(UUIDUtil.STRING_CODEC, CompanionTutorialStep.CODEC)
-                    .optionalFieldOf("companion_tutorial_steps", Map.of()).forGetter(d -> new HashMap<>(d.companionTutorialSteps))
-        ).apply(instance, (playerList, questMap, tutorialMap, cleanupGoal, encyclopediaTutorialMap, companionTutorialMap) -> {
+                    .optionalFieldOf("companion_tutorial_steps", Map.of()).forGetter(d -> new HashMap<>(d.companionTutorialSteps)),
+            Codec.unboundedMap(UUIDUtil.STRING_CODEC, Identifier.CODEC.listOf())
+                    .optionalFieldOf("observed", Map.of()).forGetter(FishCatchSavedData::observedForCodec)
+        ).apply(instance, (playerList, questMap, tutorialMap, cleanupGoal, encyclopediaTutorialMap, companionTutorialMap, observedMap) -> {
             FishCatchSavedData data = new FishCatchSavedData();
             playerList.forEach(pd -> data.playerData.put(pd.uuid, pd));
             data.questStates.putAll(questMap);
@@ -214,6 +222,7 @@ public class FishCatchSavedData extends SavedData {
             data.cleanupGoal = cleanupGoal;
             data.encyclopediaTutorialSteps.putAll(encyclopediaTutorialMap);
             data.companionTutorialSteps.putAll(companionTutorialMap);
+            observedMap.forEach((k, v) -> data.observed.put(k, new LinkedHashSet<>(v)));
             return data;
         })
     );
@@ -259,6 +268,48 @@ public class FishCatchSavedData extends SavedData {
         data.record(fishType, size, quality);
         setDirty();
         return isFirstCatch;
+    }
+
+    // -------------------------------------------------------------------------
+    // Observation API (spyglass; see ecology.ObservationRules)
+    // -------------------------------------------------------------------------
+
+    /** Sorted so the saved form, and so the backup content hash, does not depend on hash order. */
+    private Map<UUID, List<Identifier>> observedForCodec() {
+        Map<UUID, List<Identifier>> out = new HashMap<>();
+        observed.forEach((k, v) -> {
+            if (v.isEmpty()) return;
+            List<Identifier> list = new ArrayList<>(v);
+            list.sort(Comparator.comparing(Identifier::toString));
+            out.put(k, list);
+        });
+        return out;
+    }
+
+    /** @return true if this is the first time the player has observed {@code species}. */
+    public boolean recordObservation(UUID playerKey, Identifier species) {
+        boolean added = observed.computeIfAbsent(playerKey, k -> new LinkedHashSet<>()).add(species);
+        if (added) setDirty();
+        return added;
+    }
+
+    public boolean hasObserved(UUID playerKey, Identifier species) {
+        Set<Identifier> set = observed.get(playerKey);
+        return set != null && set.contains(species);
+    }
+
+    /** The player's observed species, as a copy. */
+    public Set<Identifier> getObserved(UUID playerKey) {
+        Set<Identifier> set = observed.get(playerKey);
+        return set == null ? Set.of() : new LinkedHashSet<>(set);
+    }
+
+    /** Forgets every observation of one player. @return how many were forgotten. */
+    public int clearObserved(UUID playerKey) {
+        Set<Identifier> removed = observed.remove(playerKey);
+        if (removed == null) return 0;
+        setDirty();
+        return removed.size();
     }
 
     // -------------------------------------------------------------------------
@@ -399,6 +450,7 @@ public class FishCatchSavedData extends SavedData {
     public void resetPlayerProgress(ServerPlayer player) {
         UUID key = resolvePlayerKey(player);
         questStates.remove(key);
+        observed.remove(key);
         playerData.remove(key);
         setDirty();
     }
@@ -406,6 +458,7 @@ public class FishCatchSavedData extends SavedData {
     /** Wipes quest progress and catch history for every player. */
     public void resetAllProgress() {
         questStates.clear();
+        observed.clear();
         playerData.clear();
         setDirty();
     }
@@ -631,7 +684,7 @@ public class FishCatchSavedData extends SavedData {
     public boolean hasPlayer(UUID key) {
         return playerData.containsKey(key) || questStates.containsKey(key)
                 || tutorialSteps.containsKey(key) || encyclopediaTutorialSteps.containsKey(key)
-                || companionTutorialSteps.containsKey(key)
+                || companionTutorialSteps.containsKey(key) || observed.containsKey(key)
                 || cleanupGoal.contributions.containsKey(key);
     }
 
@@ -651,6 +704,8 @@ public class FishCatchSavedData extends SavedData {
         encyclopediaTutorialSteps.putAll(source.encyclopediaTutorialSteps);
         companionTutorialSteps.clear();
         companionTutorialSteps.putAll(source.companionTutorialSteps);
+        observed.clear();
+        source.observed.forEach((k, v) -> observed.put(k, new LinkedHashSet<>(v)));
         cleanupGoal = copyOf(source.cleanupGoal);
         setDirty();
     }
@@ -677,6 +732,9 @@ public class FishCatchSavedData extends SavedData {
 
         CompanionTutorialStep cts = source.companionTutorialSteps.get(key);
         if (cts != null) companionTutorialSteps.put(key, cts); else companionTutorialSteps.remove(key);
+
+        Set<Identifier> obs = source.observed.get(key);
+        if (obs != null) observed.put(key, new LinkedHashSet<>(obs)); else observed.remove(key);
 
         Integer share = source.cleanupGoal.contributions.get(key);
         if (share != null) cleanupGoal.contributions.put(key, share); else cleanupGoal.contributions.remove(key);

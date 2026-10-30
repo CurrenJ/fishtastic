@@ -273,9 +273,7 @@ public final class FishtasticForgeClient {
                         packet.scene(), packet.first(), packet.firstSlot(), packet.second(),
                         packet.secondSlot(), packet.startTime()));
         grill24.fishtastic.network.FishEncyclopediaSyncPacket.registerClientHandler(packet ->
-                grill24.fishtastic.client.FishEncyclopediaClientCache.update(
-                        packet.personalCatchCounts(), packet.personalBestSizes(),
-                        packet.globalBestSizes(), packet.claimedRewardKeys()));
+                grill24.fishtastic.client.FishEncyclopediaClientCache.update(packet));
         grill24.fishtastic.network.CosmeticCaptureSyncPacket.registerClientHandler(
                 grill24.fishtastic.client.CosmeticCaptureClientState::apply);
         grill24.fishtastic.network.NotificationVolumeSyncPacket.registerClientHandler(packet ->
@@ -288,8 +286,6 @@ public final class FishtasticForgeClient {
                 grill24.fishtastic.client.renderer.TankInteriorLight.set(packet.level()));
         grill24.fishtastic.network.ReducedEffectsSyncPacket.registerClientHandler(packet ->
                 grill24.fishtastic.client.FishtasticClientConfig.setReducedCelebrationEffects(packet.reduced()));
-        grill24.fishtastic.network.AmbientContextResponsePacket.registerClientHandler(
-                grill24.fishtastic.client.ambient.AmbientContextClient::handle);
     }
 
     private static void bakingCompleted(ModelEvent.BakingCompleted event) {

@@ -42,6 +42,7 @@ import java.util.Set;
  * @param fishId         the species id (item id and fish profile id are the same)
  * @param stack          the fish item to draw
  * @param caught         at least one catch
+ * @param observed       seen through a spyglass (E7): name, portrait and broad habitat open without a catch
  * @param nameRevealed   the name section is open
  * @param displayName    the species name, or the "???" placeholder until revealed
  * @param catches        this player's catch count
@@ -72,6 +73,7 @@ public record FishPageModel(
         Identifier fishId,
         ItemStack stack,
         boolean caught,
+        boolean observed,
         boolean nameRevealed,
         Component displayName,
         int catches,
@@ -142,7 +144,9 @@ public record FishPageModel(
             if (!reached) complete = false;
         }
 
-        boolean nameRevealed = caught && unlocked(fishId, EncyclopediaRewardSection.NAME_REVEAL, catches, thresholds);
+        boolean observed = FishEncyclopediaClientCache.isObserved(fishId);
+        boolean nameRevealed = nameRevealed(observed, catches, thresholds.nameRevealCatches(),
+                FishEncyclopediaClientCache.isRewardClaimed(fishId, EncyclopediaRewardSection.NAME_REVEAL));
         Component displayName = nameRevealed
                 ? stack.getHoverName()
                 : Component.translatable("screen.fishtastic.encyclopedia.locked_placeholder");
@@ -162,7 +166,7 @@ public record FishPageModel(
         List<BiomeCondition> biomes = new ArrayList<>();
         for (FishProfile.BiomeWeight w : profile.biomeWeights()) biomes.add(new BiomeCondition(biomeName(w), w.multiplier(), w.tier()));
 
-        return new FishPageModel(fishId, stack, caught, nameRevealed, displayName, catches, thresholds,
+        return new FishPageModel(fishId, stack, caught, observed, nameRevealed, displayName, catches, thresholds,
                 List.copyOf(milestones), unclaimedCoins, complete,
                 rarity(access, fishId), profile.size().mean(), profile.size().stdDev(), sizeUnlocked,
                 personalBest(fishId), serverBest(fishId),
@@ -171,6 +175,19 @@ public record FishPageModel(
                 List.copyOf(biomes), times, weathers, moons,
                 FishEncyclopediaClientHelper.getEncyclopediaEntry(access, key).lore(), loreUnlocked,
                 List.copyOf(profile.zones()), profile.zones().isEmpty() ? FishProfile.Zone.RIVER : profile.zones().get(0));
+    }
+
+    /** Whether the species is known at all: caught, or seen through a spyglass. Drives the portrait silhouette. */
+    public boolean discovered() {
+        return caught || observed;
+    }
+
+    /**
+     * Whether the name is shown: always once observed (E7, E19), otherwise once the name section
+     * has opened for a species that has been caught. Pure.
+     */
+    public static boolean nameRevealed(boolean observed, int catches, int nameThreshold, boolean nameClaimed) {
+        return observed || (catches > 0 && (catches >= nameThreshold || nameClaimed));
     }
 
     /**

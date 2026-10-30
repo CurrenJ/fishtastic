@@ -80,6 +80,7 @@ public class DebugEncyclopediaCommand {
         for (var entry : profileRegistry.entrySet()) {
             data.setCatchCount(key, playerName, entry.getKey().identifier(), 0);
         }
+        data.clearObserved(key); // an entry that is "hidden" must not stay revealed by a spyglass
 
         int count = profileRegistry.size();
         FishEncyclopediaSyncPacket.sendToPlayer(target, data);

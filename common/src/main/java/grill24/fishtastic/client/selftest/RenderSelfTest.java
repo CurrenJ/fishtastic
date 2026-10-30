@@ -2,12 +2,9 @@ package grill24.fishtastic.client.selftest;
 
 import static grill24.fishtastic.client.selftest.AmbientScenes.fill;
 import static grill24.fishtastic.client.selftest.QuestBookScenes.key;
-import static grill24.fishtastic.client.selftest.AmbientScenes.queueAmbientContextScene;
 import static grill24.fishtastic.client.selftest.AmbientScenes.queueAmbientFloorScene;
 import static grill24.fishtastic.client.selftest.AmbientScenes.queueAmbientIslandScene;
-import static grill24.fishtastic.client.selftest.AmbientScenes.queueAmbientLifecycleScene;
 import static grill24.fishtastic.client.selftest.AmbientScenes.queueAmbientParityScene;
-import static grill24.fishtastic.client.selftest.AmbientScenes.queueAmbientPopulationScene;
 import static grill24.fishtastic.client.selftest.AmbientScenes.queueAmbientWalkScene;
 import static grill24.fishtastic.client.selftest.AmbientScenes.queueAmbientWaterScene;
 import static grill24.fishtastic.client.selftest.BenchmarkScenes.queueBakeBenchScene;
@@ -187,7 +184,7 @@ public final class RenderSelfTest {
 
     private static final List<String> OPT_IN_SCENES = List.of("matte", "matteclip", "fourwaters", "fishspin", "cathedral",
             "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench", "leaderboard", "encyclopedia", "portrait", "tutorial", "companiontutorial",
-            "companionbond", "companionsim", "companionparty", "companioneel", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld", "companionparticles", "companionworldcost", "ambientparity", "ambientwater", "ambientcontext", "ambientpopulation", "ambientlifecycle", "ambientisland", "ambientfloor", "ambientwalk", "fishschoolgif", "fishschooljump", "legendarybreach", "fishschoolbite", "fishschoolreach", "fishschoolperf", "fishschoolshapes", "fishschoolclasses", "fishschoolcrab", "questbook", "celebrationoverlap", "forgereview", "partyseed", "partyobserver", "partyreturn");
+            "companionbond", "companionsim", "companionparty", "companioneel", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld", "companionparticles", "companionworldcost", "ambientparity", "ambientwater", "ambientisland", "ambientfloor", "ambientwalk", "fishschoolgif", "fishschooljump", "legendarybreach", "fishschoolbite", "fishschoolreach", "fishschoolperf", "fishschoolshapes", "fishschoolclasses", "fishschoolcrab", "questbook", "celebrationoverlap", "forgereview", "partyseed", "partyobserver", "partyreturn");
 
     static Boolean armed;
     /** Keep ordinary automatic features from interfering with explicitly armed fixture scenes. */
@@ -447,9 +444,6 @@ public final class RenderSelfTest {
             case "companionworldcost" -> queueCompanionWorldCostScene();
             case "ambientparity" -> queueAmbientParityScene();
             case "ambientwater" -> queueAmbientWaterScene();
-            case "ambientcontext" -> queueAmbientContextScene();
-            case "ambientpopulation" -> queueAmbientPopulationScene();
-            case "ambientlifecycle" -> queueAmbientLifecycleScene();
             case "ambientisland" -> queueAmbientIslandScene();
             case "ambientfloor" -> queueAmbientFloorScene();
             case "ambientwalk" -> queueAmbientWalkScene();

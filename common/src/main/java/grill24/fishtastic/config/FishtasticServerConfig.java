@@ -58,11 +58,23 @@ public final class FishtasticServerConfig {
             # Shared, finite fish-school visits in validated water. Disabling this stops new
             # visits and lets existing free fish depart; minigames already in progress can finish.
             schools.enabled=true
-            # One persisted opportunity per 128x128-block region at this interval. Failed rolls
-            # also advance the deadline, so reloading or crossing a region edge cannot reroll it.
-            schools.attemptIntervalTicks=6000
-            schools.encounterChance=1.0
-            schools.activeLifetimeTicks=12000
+            # Visit windows (docs/world-fish-exploration-design-spec.md, E1-E5). Every chunk with water
+            # is a site. Each site opens a window every visits.periodTicks, at its own hashed offset,
+            # and a window hosts a visit with probability visits.chance unless a higher-ranked window
+            # within visits.suppressionRadiusChunks chunks overlaps it. Which windows host visits is a
+            # fixed function of the world seed, chunk and time: arriving, leaving, reloading or
+            # crossing chunk lines never creates or rerolls one. Only caught fish are saved.
+            # Rate-tuning candidate after the owner liked the 5-minute duration: chance 0.024, with
+            # T=7200, L=6000 and R=2 unchanged. Step 0 estimates about 2.7 starts/hour stationary.
+            # A window stays open visits.lengthTicks (a species' world_encounter.lifetime_scale
+            # multiplies it for the visit it hosts, capped at one period). Changing these changes
+            # which windows host visits in an existing world.
+            visits.periodTicks=7200
+            visits.lengthTicks=6000
+            visits.chance=0.024
+            visits.suppressionRadiusChunks=2
+            # Protection only (a window that would exceed them is skipped, and counted in
+            # "/fishtastic visits windows"); in normal play they should not bind.
             schools.maxPerDimension=6
             schools.maxMembersPerDimension=24
             schools.maxMembersPerSchool=4
@@ -114,11 +126,20 @@ public final class FishtasticServerConfig {
     }
 
     public static boolean fishSchoolsEnabled() { return bool("schools.enabled", true); }
-    public static int fishSchoolAttemptIntervalTicks() { return Math.max(300, Math.min(2_400_000, integer("schools.attemptIntervalTicks", 6000))); }
-    public static float fishSchoolEncounterChance() {
-        return (float) Math.max(0.0, Math.min(1.0, decimal("schools.encounterChance", 1.0)));
+    /** Window length L, ticks: how long a hosted visit's window stays open (before the species' lifetime scale). */
+    public static int visitLengthTicks() { return Math.max(600, Math.min(2_400_000, integer("visits.lengthTicks", 6000))); }
+    /** Window period T, ticks; never shorter than {@link #visitLengthTicks()} (windows of one site must not overlap). */
+    public static int visitPeriodTicks() {
+        return Math.max(visitLengthTicks(), Math.min(2_400_000, integer("visits.periodTicks", 7200)));
     }
-    public static int fishSchoolActiveLifetimeTicks() { return Math.max(1200, Math.min(2_400_000, integer("schools.activeLifetimeTicks", 12000))); }
+    public static double visitChance() { return Math.max(0.0, Math.min(1.0, decimal("visits.chance", 0.024))); }
+    public static int visitSuppressionRadiusChunks() { return Math.max(0, Math.min(8, integer("visits.suppressionRadiusChunks", 2))); }
+
+    /** The window model's numbers as configured: the schedule every site follows. */
+    public static grill24.fishtastic.ecology.VisitWindows.Params visitWindowParams() {
+        return new grill24.fishtastic.ecology.VisitWindows.Params(visitPeriodTicks(), visitLengthTicks(),
+                visitChance(), visitSuppressionRadiusChunks());
+    }
     public static int fishSchoolMaxPerDimension() { return Math.max(1, Math.min(16, integer("schools.maxPerDimension", 6))); }
     public static int fishSchoolMaxMembersPerDimension() { return Math.max(2, Math.min(64, integer("schools.maxMembersPerDimension", 24))); }
     public static int fishSchoolMaxMembersPerSchool() { return Math.max(2, Math.min(8, integer("schools.maxMembersPerSchool", 4))); }

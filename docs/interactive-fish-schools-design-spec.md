@@ -60,10 +60,10 @@ Relevant current code:
 |---|---|---|
 | [`FishProfile`](../common/src/main/java/grill24/fishtastic/data/FishProfile.java) | Habitat zones, environmental weights, size, temperament references, swarm and render data | Reuse its ecological and presentation definitions. |
 | [`FishingPoolResolver`](../common/src/main/java/grill24/fishtastic/server/FishingPoolResolver.java) | Shared environment, candidate filtering, species weights, and fishing context | Reuse shared natural rules while excluding personal tackle from school generation. |
-| [`FishtasticFishItem`](../common/src/main/java/grill24/fishtastic/item/FishtasticFishItem.java) | Species weights and coupled quality/size sampling | Preserve normal catch distributions for the forced species. |
+| [`FishtasticFishItem`](../common/src/main/java/grill24/fishtastic/item/FishtasticFishItem.java) | Species weights and coupled quality/size sampling | Roll each member's stable natural quality and size when the visit forms. |
 | [`FishingMinigameManager`](../common/src/main/java/grill24/fishtastic/server/FishingMinigameManager.java) | Target generation, session ownership, rewards, progression, and equipment costs | Integrate the school member into one target and use the ordinary completion path. |
 | [`FishingHookMixin`](../common/src/main/java/grill24/fishtastic/mixin/FishingHookMixin.java) | Supported rod retrieval and minigame transition | Connect the visible approach to a real bite and the existing session transition. |
-| [`BaitEffect`](../common/src/main/java/grill24/fishtastic/component/BaitEffect.java), [`FishtasticItems`](../common/src/main/java/grill24/fishtastic/FishtasticItems.java) | Pool filters, affinities, quality, target counts, and minigame tradeoffs | Bypass species selection only for the school slot; retain applicable effects. |
+| [`BaitEffect`](../common/src/main/java/grill24/fishtastic/component/BaitEffect.java), [`FishtasticItems`](../common/src/main/java/grill24/fishtastic/FishtasticItems.java) | Pool filters, affinities, quality, target counts, and minigame tradeoffs | Bypass species and quality selection for the school slot; retain applicable session and ordinary-target effects. |
 
 These are integration references, not a prescribed class layout. The implementation plan should resolve exact extension points against the checkout being implemented.
 
@@ -71,7 +71,7 @@ These are integration references, not a prescribed class layout. The implementat
 
 ### 4.1 Discovery
 
-The player encounters a small school moving through water. Its catchable members produce a restrained but readable sparkle. The effect means **this individual can be approached with a supported fishing setup**. It does not promise a successful catch, a quality tier, or bonus loot.
+The player encounters a small school moving through water. Its catchable members produce a restrained but readable sparkle. The effect means **this individual can be approached with a supported fishing setup**; its tint shows the member's fixed spawn-time quality. It does not promise a successful catch or bonus loot.
 
 Every member of an interactive school is catchable while available. Most fish in the broader ambient world remain decorative. Mixing indistinguishable decorative members into an interactive school is excluded from the first release because it would make the cue harder to interpret.
 
@@ -225,13 +225,16 @@ There is no additional school-target marker in the minigame. Normal target infor
 
 ### 8.3 Quality and size
 
-The agreed identity guarantee is that the same world individual and species become the bound reward. The proposed initial policy rolls quality and size together at session creation using the normal species distributions and applicable tackle quality bias. The school sparkle grants no quality boost.
+The same world individual, species, quality and size become the bound reward. Each member receives
+stable reward randomness when the visit forms; its quality tier and coupled size are sampled from
+the normal natural distribution at that time without tackle bias. Its trail truthfully uses that
+fixed quality tint. World rendering may use the resolved size while avoiding a UI promise of an
+exact centimetre measurement.
 
-Before binding, world rendering uses species-appropriate presentation and approximate scale. It must not advertise an exact measured size or quality that the eventual stack can contradict. Once bound, the session's reward is fixed and any relevant presentation can use its resolved attributes.
-
-To prevent repeated failures from rerolling one member until it becomes a jackpot, each member receives stable reward randomness. Retrying with equivalent reward-affecting tackle inputs produces the same quality and size outcome. Different tackle may legitimately improve that distribution; it must not generate a fresh independent reward seed on every attempt. Species, member identity, and resolved session rewards cannot be rerolled by equipment swapping after session creation.
-
-This is a proposed compromise that preserves existing bait value. Guaranteeing an exact visible centimeter size and quality at initial school spawn would require a different reward model and is deferred for explicit review.
+Failed attempts, later sessions and equipment changes never reroll or improve the member. Bait and
+hook quality bias remains valuable for ordinary targets in the same session but has no effect on
+the already-existing world fish. Debug quality overrides may deliberately replace the natural tier
+for testing, but are not part of gameplay.
 
 ### 8.4 Awarding and progression
 
@@ -251,19 +254,19 @@ Catch conditions for quests use the existing session snapshot and actual equippe
 | Bait/charm/personal species weights and rarity flattening | Do not select or reroll the bound species. | Apply normally. |
 | Bait target-count bonus/penalty | No extra school slot is added. | Normal total count is calculated first. |
 | Treasure and trash odds | One selected slot becomes the school fish regardless of its ordinary category. | Remaining slots retain normal odds. |
-| Quality bias from bait/hook | Applies through normal coupled quality/size sampling. | Applies normally. |
+| Quality bias from bait/hook | Does not change the member's spawn-time quality or size. | Applies normally. |
 | Matching group target-speed or catch-progress modifiers | Apply to the fish according to its actual tags. | Apply normally to relevant targets. |
 | Session-wide changes, such as a smaller bobber | Apply to the whole encounter. | Apply normally. |
 | Bait saving, consumption, and equipment wear | Follow normal session completion rules once. | No additional school fee or duplicate consumption. |
 | Reveal, delivery, pile, or other downstream effects | Apply where normally supported. | Apply normally. |
 
-Equipping bait does not increase school spawn rate, school size, or member attraction radius in the first release. It remains valuable for normal pool control, other target slots, quality, and session effects.
+Equipping bait does not increase school spawn rate, school size, member attraction radius, or the quality/size of an existing member. It remains valuable for normal pool control, other target slots, their quality, and session effects.
 
 Examples:
 
 - A bare supported rod can catch a sparkling mod fish even though ordinary bare-hook fishing has a different pool and category balance.
 - Blazed Grub can hook a non-exotic school member in the replaced slot. Other normal fish slots remain exotic-only, and its ordinary treasure/quality behavior still applies where relevant.
-- Gummy Worms' quality bias can help the bound fish; its species rarity flattening has no work to do for an already identified member.
+- Gummy Worms' quality bias and rarity flattening do not change the bound fish; they still apply where relevant to ordinary targets in the session.
 - Frenzy Bait's matching fish movement penalty still applies when the bound member belongs to that group.
 
 ## 10. Balance contract
@@ -348,7 +351,7 @@ The implementation may choose suitable entities or server-managed records. Regar
 |---|---|
 | Region scheduling | Stable region/dimension key, next eligible attempt, generation/visit ownership, bounded recent depletion history. |
 | School | Unique identity, species ID, region and movement bounds, creation/departure deadlines, state, formation environment, member list. |
-| Member | Unique identity, school identity, stable reward seed, movement state, availability state, recovery deadline, optional reservation. |
+| Member | Unique identity, school identity, stable reward seed determining fixed quality and size, movement state, availability state, recovery deadline, optional reservation. |
 | Reservation | Owning player, hook identity or session identity, lease/deadline, lifecycle generation. |
 | Session binding | Session/member identities and exact target index are persisted with the reservation. The active session owns the immutable target snapshot in memory; the member state persists caught/recovered/departed resolution. |
 
@@ -411,7 +414,7 @@ These are requirements for the later implementation plan, not claims of tests al
 | Two players attract the same member | Exactly one reservation succeeds. |
 | Catch succeeds | One member is consumed and its normal reward/progression occurs once. |
 | School target escapes but other targets are caught | Ordinary rewards resolve; school member recovers without a school reward. |
-| Equivalent retry after failure | Member identity and reward outcome do not reroll. |
+| Retry after failure with the same or different equipment | Member species, quality and size do not reroll or improve. |
 | Equipment changes after session creation | Bound reward, target count, and difficulty remain the session snapshot. |
 | Visit expires during a fight | Existing valid binding can finish; free fish depart and no new approach starts. |
 | Disconnect/death/session timeout | Reservation releases, no unearned school reward appears, and no permanent lock remains. |
@@ -447,7 +450,7 @@ Use evidence from server cost, player understanding, catch yield, and school fre
 
 1. **Initial species and school sizes.** The curated `fish_school_enabled` tag contains Bluegill, Bridle Shiner, Neon Tetra, and Yellowstripe Grunt. Schools contain 2–4 members, subject to the configured per-dimension capacity. Profiles with base weight above 25 use a minimum of 3; other eligible profiles use a minimum of 2. Members begin within 4 blocks horizontally and 2 blocks vertically of the selected water anchor, with at least one block between their centers. Rarer content can be added only by editing the curated tag after its visuals and habitat are reviewed.
 2. **Encounter numbers.** Each visited 128×128-block region starts with a persisted 1,200–2,399 tick delay, then gets one opportunity every 6,000 ticks with a 50% encounter roll (retuned 2026-10-25 from 24,000 ticks / 12%). Failed opportunities advance the schedule. Defaults cap active schools at 6 per dimension and 16 across loaded dimensions, with 24 members per dimension. A 64-block exclusion radius limits overlap. Visits remain active for 12,000 ticks and depart for 400 ticks. These values and all interaction timings are in `fishtastic-server.properties` under `schools.*`; loaded region history is retained up to 60 in-game days and 4,096 records per dimension.
-3. **Quality/size identity policy.** The member stores a stable reward seed. Quality and size use the normal fish profile distribution, with the equipped bait and hook quality bias captured when the minigame starts. An equivalent retry reproduces that member's quality and size. The world model uses the species' mean size and does not promise the exact eventual stack size or quality.
+3. **Quality/size identity policy.** The member stores a stable reward seed when the visit forms. That seed determines its quality tier and coupled size from the normal natural distribution without bait or hook bias. Its quality-tinted trail and world scale represent that same member, and every attempt awards the same resolved identity. Equipment can affect the surrounding session and ordinary targets but cannot improve or reroll the world fish.
 4. **Strict ecological windows.** There are no school-only time, weather, or moon gates. Candidate selection uses the server's natural environment and the existing fishing resolver with no bait, charm, or personal equipment. Existing habitat eligibility and environmental weighting keep their current meanings.
 5. **Water eligibility.** A qualifying cell is loaded, source water with an empty collision shape. Cells must connect face-to-face inside a bounded region up to 16 blocks horizontally, 6 down, and 4 up; discovery is capped at 400 columns (each kept to its full depth in that box, at most 4400 cells) and requires at least 6 cells. The cap bounds horizontal spread rather than volume: a 256-cell cap made a deep lake a blob ~4 blocks across, and bobbers cast 2-3 blocks from a fish fell outside it (2026-10-25). Small and player-built pools qualify if they meet those rules and the species' habitat zones. There is no sky-access requirement or additional dimension allowlist; a dimension can host a school only when its natural resolver and fish profiles return an eligible candidate. Frozen or obstructed cells stop qualifying; unsupported habitat causes departure. No chunk is loaded to continue a school.
 6. **Save/crash policy.** Each dimension stores schools and region deadlines in level `SavedData`. Caught members and failed attempts survive ordinary saves. In-flight hook/session ownership is cleared into recovery on reload because a live hook and client minigame cannot be restored. On successful completion, the member is marked caught before the ordinary reward pipeline runs, so duplicate reports cannot pay twice. This is duplicate-safe during normal play and orderly saves. An arbitrary process failure between the independent world and player saves can lose or duplicate a reward; stronger crash recovery would need a persistent reward ledger and recovery protocol.

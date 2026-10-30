@@ -15,12 +15,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Server→client sync of catch counts, Records panel data, and claimed encyclopedia reward slots. */
+/** Server→client sync of catch counts, Records panel data, claimed encyclopedia reward slots and spyglass-observed species. */
 public record FishEncyclopediaSyncPacket(
         Map<Identifier, Integer> personalCatchCounts,
         List<LeaderboardEntry> personalBestSizes,
         List<LeaderboardEntry> globalBestSizes,
-        List<String> claimedRewardKeys
+        List<String> claimedRewardKeys,
+        List<Identifier> observedSpecies,
+        List<Identifier> newlyObserved
 ) implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<FishEncyclopediaSyncPacket> TYPE =
@@ -36,6 +38,10 @@ public record FishEncyclopediaSyncPacket(
                     FishEncyclopediaSyncPacket::globalBestSizes,
                     ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list()),
                     FishEncyclopediaSyncPacket::claimedRewardKeys,
+                    Identifier.STREAM_CODEC.apply(ByteBufCodecs.list()),
+                    FishEncyclopediaSyncPacket::observedSpecies,
+                    Identifier.STREAM_CODEC.apply(ByteBufCodecs.list()),
+                    FishEncyclopediaSyncPacket::newlyObserved,
                     FishEncyclopediaSyncPacket::new
             );
 
@@ -45,6 +51,11 @@ public record FishEncyclopediaSyncPacket(
     }
 
     public static void sendToPlayer(ServerPlayer player, FishCatchSavedData data) {
+        sendToPlayer(player, data, List.of());
+    }
+
+    /** As above, announcing the species this sync reveals by spyglass (the client shows one toast each). */
+    public static void sendToPlayer(ServerPlayer player, FishCatchSavedData data, List<Identifier> newlyObserved) {
         java.util.UUID key = data.resolvePlayerKey(player);
         Map<Identifier, Integer> catchCounts = new HashMap<>();
         data.getPersonalCatchCounts(key, FishCatchSavedData.PERSONAL_CATCH_COUNT_DESC)
@@ -62,7 +73,8 @@ public record FishEncyclopediaSyncPacket(
 
         List<String> claimedRewardKeys = new ArrayList<>(data.getOrCreateQuestState(player).getClaimedEncyclopediaRewardsSnapshot());
 
-        FishEncyclopediaSyncPacket packet = new FishEncyclopediaSyncPacket(catchCounts, personalBest, globalBest, claimedRewardKeys);
+        FishEncyclopediaSyncPacket packet = new FishEncyclopediaSyncPacket(catchCounts, personalBest, globalBest, claimedRewardKeys,
+                new ArrayList<>(data.getObserved(key)), List.copyOf(newlyObserved));
         FishtasticTransport.sendToPlayer(player, packet);
     }
 

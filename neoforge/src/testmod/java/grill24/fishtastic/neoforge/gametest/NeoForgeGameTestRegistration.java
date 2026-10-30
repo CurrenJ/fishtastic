@@ -1,9 +1,10 @@
 package grill24.fishtastic.neoforge.gametest;
 
 import com.mojang.serialization.MapCodec;
-import grill24.fishtastic.gametest.AmbientContextGameTests;
 import grill24.fishtastic.gametest.CapstoneRewardGameTests;
 import grill24.fishtastic.gametest.CosmeticPlacementGameTests;
+import grill24.fishtastic.gametest.EcologyGameTests;
+import grill24.fishtastic.gametest.ObservationGameTests;
 import grill24.fishtastic.gametest.FishCatchBackupsGameTests;
 import grill24.fishtastic.gametest.BackupTestFixture;
 import grill24.fishtastic.gametest.CreativeTabGameTests;
@@ -17,6 +18,7 @@ import grill24.fishtastic.gametest.FishEncyclopediaEntryGameTests;
 import grill24.fishtastic.gametest.FishTankGameTests;
 import grill24.fishtastic.gametest.FishingMinigameManagerGameTests;
 import grill24.fishtastic.gametest.FishSchoolGameTests;
+import grill24.fishtastic.gametest.VisitWindowGameTests;
 import grill24.fishtastic.gametest.CatchCelebrationGameTests;
 import grill24.fishtastic.gametest.FishingTargetGameTests;
 import grill24.fishtastic.gametest.ItemComponentGameTests;
@@ -546,38 +548,34 @@ public class NeoForgeGameTestRegistration {
             PacketRoundTripGameTests::companionSlotPacketsRoundTrip);
         register(event, env, "companion_party_codecs_round_trip", 200,
             PacketRoundTripGameTests::companionPartyCodecsRoundTrip);
-        register(event, env, "ambient_context_request_packet_round_trips", 200,
-            PacketRoundTripGameTests::ambientContextRequestPacketRoundTrips);
-        register(event, env, "ambient_context_response_packet_round_trips", 200,
-            PacketRoundTripGameTests::ambientContextResponsePacketRoundTrips);
-        register(event, env, "oversized_origin_list_is_rejected_on_encode_and_decode", 200,
-            PacketRoundTripGameTests::oversizedOriginListIsRejectedOnEncodeAndDecode);
-        register(event, env, "oversized_entry_list_is_rejected_on_encode_and_decode", 200,
-            PacketRoundTripGameTests::oversizedEntryListIsRejectedOnEncodeAndDecode);
-        register(event, env, "oversized_candidate_list_is_rejected_on_encode_and_decode", 200,
-            PacketRoundTripGameTests::oversizedCandidateListIsRejectedOnEncodeAndDecode);
-        register(event, env, "unknown_status_id_decodes_to_a_rejection_not_an_error", 200,
-            PacketRoundTripGameTests::unknownStatusIdDecodesToARejectionNotAnError);
 
-        // ----- Ambient context exchange (Fish in World, Phase 4) -----
-        register(event, env, "authoritative_resolve_matches_server_state", 200,
-            helper -> AmbientContextGameTests.authoritativeResolveMatchesServerState(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "held_rod_lane_is_resolved_from_the_servers_own_inventory", 200,
-            helper -> AmbientContextGameTests.heldRodLaneIsResolvedFromTheServersOwnInventory(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "dimension_mismatch_is_rejected", 200,
-            helper -> AmbientContextGameTests.dimensionMismatchIsRejected(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "far_origin_is_rejected_before_the_unloaded_check", 200,
-            helper -> AmbientContextGameTests.farOriginIsRejectedBeforeTheUnloadedCheck(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "unloaded_origin_is_rejected_without_loading_the_chunk", 200,
-            helper -> AmbientContextGameTests.unloadedOriginIsRejectedWithoutLoadingTheChunk(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "rate_limit_drops_requests_past_the_burst", 200,
-            helper -> AmbientContextGameTests.rateLimitDropsRequestsPastTheBurst(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "session_snapshot_takes_precedence_over_a_fresh_resolve", 200,
-            helper -> AmbientContextGameTests.sessionSnapshotTakesPrecedenceOverAFreshResolve(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "a_different_pond_near_the_cast_falls_through_to_a_fresh_resolve", 200,
-            helper -> AmbientContextGameTests.aDifferentPondNearTheCastFallsThroughToAFreshResolve(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "an_empty_request_does_not_consume_a_throttle_token", 200,
-            helper -> AmbientContextGameTests.anEmptyRequestDoesNotConsumeAThrottleToken(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        // ----- World fish ecology core (exploration rework Step 1) -----
+        register(event, env, "natural_pool_matches_the_server_resolve_path", 200,
+            EcologyGameTests::naturalPoolMatchesTheServerResolvePath);
+        register(event, env, "ecology_seed_is_derived_and_survives_the_packet_codec", 200,
+            EcologyGameTests::ecologySeedIsDerivedAndSurvivesThePacketCodec);
+
+        // ----- Spyglass observation (exploration rework Step 5) -----
+        register(event, env, "a_valid_visit_observation_records_once", 200,
+            helper -> ObservationGameTests.aValidVisitObservationRecordsOnce(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "bad_visit_claims_are_rejected", 200,
+            helper -> ObservationGameTests.badVisitClaimsAreRejected(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "a_valid_ambient_observation_records", 200,
+            helper -> ObservationGameTests.aValidAmbientObservationRecords(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "bad_ambient_claims_are_rejected", 200,
+            helper -> ObservationGameTests.badAmbientClaimsAreRejected(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "observation_packets_are_rate_limited", 200,
+            helper -> ObservationGameTests.observationPacketsAreRateLimited(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "observing_grants_no_catch_count_quest_progress_or_reward", 200,
+            helper -> ObservationGameTests.observingGrantsNoCatchCountQuestProgressOrReward(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "observation_and_a_catch_open_the_same_fields", 200,
+            ObservationGameTests::observationAndACatchOpenTheSameFields);
+        register(event, env, "every_tier_reveals_the_name_on_the_first_catch", 200,
+            ObservationGameTests::everyTierRevealsTheNameOnTheFirstCatch);
+        register(event, env, "observe_packets_round_trip", 200,
+            ObservationGameTests::observePacketsRoundTrip);
+        register(event, env, "observed_set_survives_save_reload_and_backup_restore", 200,
+            helper -> unchecked(() -> BackupTestFixture.run(helper, () -> ObservationGameTests.observedSetSurvivesSaveReloadAndBackupRestore(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)))));
 
         // ----- FishEncyclopediaEntry tests -----
         register(event, env, "empty_object_decodes_to_all_defaults", 200,
@@ -658,8 +656,40 @@ public class NeoForgeGameTestRegistration {
             FishSchoolGameTests::encounterEligibilityFollowsTheRule);
         register(event, env, "spawned_visits_take_their_shape", 200,
             FishSchoolGameTests::spawnedVisitsTakeTheirShape);
-        register(event, env, "schools_saved_before_shapes_load_as_schools", 200,
-            FishSchoolGameTests::schoolsSavedBeforeShapesLoadAsSchools);
+        register(event, env, "old_school_and_region_data_is_discarded_on_load", 200,
+            VisitWindowGameTests::oldSchoolAndRegionDataIsDiscardedOnLoad);
+        register(event, env, "a_visit_revealed_at_window_start_and_by_a_late_arrival_are_the_same", 200,
+            VisitWindowGameTests::aVisitRevealedAtWindowStartAndByALateArrivalAreTheSame);
+        register(event, env, "the_scheduler_reveals_only_what_the_hash_schedules_and_never_rerolls", 200,
+            VisitWindowGameTests::theSchedulerRevealsOnlyWhatTheHashSchedulesAndNeverRerolls);
+        register(event, env, "suppression_and_scheduling_are_the_same_for_any_loaded_set", 200,
+            VisitWindowGameTests::suppressionAndSchedulingAreTheSameForAnyLoadedSet);
+        register(event, env, "depletion_survives_save_and_reload_and_omits_caught_members", 200,
+            VisitWindowGameTests::depletionSurvivesSaveAndReloadAndOmitsCaughtMembers);
+        register(event, env, "ledger_rows_are_pruned_after_their_window_and_protection_caps_are_counted", 200,
+            VisitWindowGameTests::ledgerRowsArePrunedAfterTheirWindowAndProtectionCapsAreCounted);
+        register(event, env, "the_visit_debug_commands_report_and_force_a_reveal", 200,
+            VisitWindowGameTests::theVisitDebugCommandsReportAndForceAReveal);
+        register(event, env, "a_reveal_halfway_through_the_window_matches_the_members_present_prediction", 200,
+            VisitWindowGameTests::aRevealHalfwayThroughTheWindowMatchesTheMembersPresentPrediction);
+        register(event, env, "a_window_whose_fish_all_left_or_were_caught_never_reveals_again", 200,
+            VisitWindowGameTests::aWindowWhoseFishAllLeftOrWereCaughtNeverRevealsAgain);
+        register(event, env, "members_leave_live_at_their_seeded_times", 300,
+            VisitWindowGameTests::membersLeaveLiveAtTheirSeededTimes);
+        register(event, env, "a_water_edit_that_stops_the_water_makes_a_live_visit_depart_and_stay_gone", 300,
+            VisitWindowGameTests::aWaterEditThatStopsTheWaterMakesALiveVisitDepartAndStayGone);
+        register(event, env, "a_profile_change_changes_later_derivations_but_keeps_depletion", 300,
+            VisitWindowGameTests::aProfileChangeChangesLaterDerivationsButKeepsDepletion);
+        register(event, env, "window_start_moon_phase_matches_the_environment_attribute", 200,
+            VisitWindowGameTests::windowStartMoonPhaseMatchesTheEnvironmentAttribute);
+        register(event, env, "a_window_keeps_its_start_weather_after_clearing_and_rereveal", 200,
+            VisitWindowGameTests::aWindowKeepsItsStartWeatherAfterClearingAndRereveal);
+        register(event, env, "the_weather_log_survives_save_reload_and_marks_missing_history", 200,
+            VisitWindowGameTests::theWeatherLogSurvivesSaveReloadAndMarksMissingHistory);
+        register(event, env, "the_weather_tick_prunes_old_entries_but_keeps_the_cutoff_anchor", 200,
+            VisitWindowGameTests::theWeatherTickPrunesOldEntriesButKeepsTheCutoffAnchor);
+        register(event, env, "weather_commands_are_logged_from_the_authoritative_flags", 200,
+            VisitWindowGameTests::weatherCommandsAreLoggedFromTheAuthoritativeFlags);
         register(event, env, "crawler_takes_a_bottom_bite", 900,
             helper -> FishSchoolGameTests.crawlerTakesABottomBite(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "drifter_is_carried_to_the_bait", 1100,

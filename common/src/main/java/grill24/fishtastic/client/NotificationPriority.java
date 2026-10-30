@@ -31,6 +31,10 @@ public enum NotificationPriority {
         if (questId.getPath().startsWith(QuestProgressNotificationManager.FIRST_CATCH_ID_PREFIX)) {
             return NEW_SPECIES;
         }
+        // A spyglass observation is a discovery too (E16).
+        if (questId.getPath().startsWith(QuestProgressNotificationManager.OBSERVED_ID_PREFIX)) {
+            return NEW_SPECIES;
+        }
         // A bond unlock is discovery-scale news too, and rides the same fanfare tier.
         if (questId.getPath().startsWith(QuestProgressNotificationManager.COMPANION_BOND_ID_PREFIX)) {
             return NEW_SPECIES;

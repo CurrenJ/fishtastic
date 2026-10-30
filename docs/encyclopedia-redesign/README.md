@@ -8,8 +8,9 @@ the code is authoritative if it differs.
 - The fish page uses an integer-scaled, one-screen field-guide layout. Its portrait shows the fish,
   size records, fight difficulty, and bond state; the catch guide shows whether the species can bite
   in the current environment, plus zone, biome, time, weather, moon, and bait information.
-- Uncaught fish remain silhouettes. The unlock track follows each species' actual thresholds and has
-  one claim action. The disc also offers one book-wide claim action.
+- Fish remain silhouettes until their first catch or spyglass observation. The unlock track follows
+  each species' actual thresholds and has one claim action. The disc also offers one book-wide claim
+  action.
 - Players can move between species from the page. The selected icon remains the same object during
   the disc-to-portrait transition.
 - Portraits use a static zone-themed plate and capped animation. Players can pause it globally;

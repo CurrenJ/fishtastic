@@ -218,9 +218,9 @@ public final class FishingPoolFixture {
     }
 
     /**
-     * A real rod stack carrying whatever gear the caller puts in its slots, so
-     * {@link FishingPoolResolver.Inputs#heldRodPreview} can be exercised through the same
-     * {@code CopperFishingRod.getBait}/{@code getHook}/{@code getCharm} accessors the server uses.
+     * A real rod stack carrying whatever gear the caller puts in its slots, so rod-reading code can
+     * be exercised through the same {@code CopperFishingRod.getBait}/{@code getHook}/{@code getCharm}
+     * accessors the server uses.
      */
     static ItemStack rodWith(ItemStack bait, ItemStack hook, ItemStack charm) {
         ItemStack rod = new ItemStack(items().getOrThrow(itemKey(TEST_ROD)));

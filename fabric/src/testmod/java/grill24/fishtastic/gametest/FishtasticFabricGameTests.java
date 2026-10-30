@@ -1121,84 +1121,68 @@ public class FishtasticFabricGameTests {
         PacketRoundTripGameTests.companionPartyCodecsRoundTrip(helper);
     }
 
+    // World fish ecology core (exploration rework Step 1)
+
     @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void ambientContextRequestPacketRoundTrips(GameTestHelper helper) {
-        PacketRoundTripGameTests.ambientContextRequestPacketRoundTrips(helper);
+    public void naturalPoolMatchesTheServerResolvePath(GameTestHelper helper) {
+        EcologyGameTests.naturalPoolMatchesTheServerResolvePath(helper);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void ambientContextResponsePacketRoundTrips(GameTestHelper helper) {
-        PacketRoundTripGameTests.ambientContextResponsePacketRoundTrips(helper);
+    public void ecologySeedIsDerivedAndSurvivesThePacketCodec(GameTestHelper helper) {
+        EcologyGameTests.ecologySeedIsDerivedAndSurvivesThePacketCodec(helper);
+    }
+
+    // Spyglass observation (exploration rework Step 5)
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void aValidVisitObservationRecordsOnce(GameTestHelper helper) {
+        ObservationGameTests.aValidVisitObservationRecordsOnce(helper, helper::makeMockServerPlayerInLevel);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void oversizedOriginListIsRejectedOnEncodeAndDecode(GameTestHelper helper) {
-        PacketRoundTripGameTests.oversizedOriginListIsRejectedOnEncodeAndDecode(helper);
+    public void badVisitClaimsAreRejected(GameTestHelper helper) {
+        ObservationGameTests.badVisitClaimsAreRejected(helper, helper::makeMockServerPlayerInLevel);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void oversizedEntryListIsRejectedOnEncodeAndDecode(GameTestHelper helper) {
-        PacketRoundTripGameTests.oversizedEntryListIsRejectedOnEncodeAndDecode(helper);
+    public void aValidAmbientObservationRecords(GameTestHelper helper) {
+        ObservationGameTests.aValidAmbientObservationRecords(helper, helper::makeMockServerPlayerInLevel);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void oversizedCandidateListIsRejectedOnEncodeAndDecode(GameTestHelper helper) {
-        PacketRoundTripGameTests.oversizedCandidateListIsRejectedOnEncodeAndDecode(helper);
+    public void badAmbientClaimsAreRejected(GameTestHelper helper) {
+        ObservationGameTests.badAmbientClaimsAreRejected(helper, helper::makeMockServerPlayerInLevel);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void unknownStatusIdDecodesToARejectionNotAnError(GameTestHelper helper) {
-        PacketRoundTripGameTests.unknownStatusIdDecodesToARejectionNotAnError(helper);
-    }
-
-    // -------------------------------------------------------------------------
-    // Ambient context exchange (Fish in World, Phase 4) — server-side validation, resolve
-    // equality, session-snapshot precedence and the per-player rate limit
-    // -------------------------------------------------------------------------
-
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void authoritativeResolveMatchesServerState(GameTestHelper helper) {
-        AmbientContextGameTests.authoritativeResolveMatchesServerState(helper, helper::makeMockServerPlayerInLevel);
+    public void observationPacketsAreRateLimited(GameTestHelper helper) {
+        ObservationGameTests.observationPacketsAreRateLimited(helper, helper::makeMockServerPlayerInLevel);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void heldRodLaneIsResolvedFromTheServersOwnInventory(GameTestHelper helper) {
-        AmbientContextGameTests.heldRodLaneIsResolvedFromTheServersOwnInventory(helper, helper::makeMockServerPlayerInLevel);
+    public void observingGrantsNoCatchCountQuestProgressOrReward(GameTestHelper helper) {
+        ObservationGameTests.observingGrantsNoCatchCountQuestProgressOrReward(helper, helper::makeMockServerPlayerInLevel);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void dimensionMismatchIsRejected(GameTestHelper helper) {
-        AmbientContextGameTests.dimensionMismatchIsRejected(helper, helper::makeMockServerPlayerInLevel);
+    public void observationAndACatchOpenTheSameFields(GameTestHelper helper) {
+        ObservationGameTests.observationAndACatchOpenTheSameFields(helper);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void farOriginIsRejectedBeforeTheUnloadedCheck(GameTestHelper helper) {
-        AmbientContextGameTests.farOriginIsRejectedBeforeTheUnloadedCheck(helper, helper::makeMockServerPlayerInLevel);
+    public void everyTierRevealsTheNameOnTheFirstCatch(GameTestHelper helper) {
+        ObservationGameTests.everyTierRevealsTheNameOnTheFirstCatch(helper);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void unloadedOriginIsRejectedWithoutLoadingTheChunk(GameTestHelper helper) {
-        AmbientContextGameTests.unloadedOriginIsRejectedWithoutLoadingTheChunk(helper, helper::makeMockServerPlayerInLevel);
+    public void observePacketsRoundTrip(GameTestHelper helper) {
+        ObservationGameTests.observePacketsRoundTrip(helper);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void rateLimitDropsRequestsPastTheBurst(GameTestHelper helper) {
-        AmbientContextGameTests.rateLimitDropsRequestsPastTheBurst(helper, helper::makeMockServerPlayerInLevel);
-    }
-
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void sessionSnapshotTakesPrecedenceOverAFreshResolve(GameTestHelper helper) {
-        AmbientContextGameTests.sessionSnapshotTakesPrecedenceOverAFreshResolve(helper, helper::makeMockServerPlayerInLevel);
-    }
-
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void aDifferentPondNearTheCastFallsThroughToAFreshResolve(GameTestHelper helper) {
-        AmbientContextGameTests.aDifferentPondNearTheCastFallsThroughToAFreshResolve(helper, helper::makeMockServerPlayerInLevel);
-    }
-
-    @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void anEmptyRequestDoesNotConsumeAThrottleToken(GameTestHelper helper) {
-        AmbientContextGameTests.anEmptyRequestDoesNotConsumeAThrottleToken(helper, helper::makeMockServerPlayerInLevel);
+    public void observedSetSurvivesSaveReloadAndBackupRestore(GameTestHelper helper) throws Exception {
+        BackupTestFixture.run(helper, () -> ObservationGameTests.observedSetSurvivesSaveReloadAndBackupRestore(helper, helper::makeMockServerPlayerInLevel));
     }
 
     // -------------------------------------------------------------------------
@@ -1399,8 +1383,88 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
-    public void schoolsSavedBeforeShapesLoadAsSchools(GameTestHelper helper) {
-        FishSchoolGameTests.schoolsSavedBeforeShapesLoadAsSchools(helper);
+    public void oldSchoolAndRegionDataIsDiscardedOnLoad(GameTestHelper helper) {
+        VisitWindowGameTests.oldSchoolAndRegionDataIsDiscardedOnLoad(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 200)
+    public void aVisitRevealedAtWindowStartAndByALateArrivalAreTheSame(GameTestHelper helper) {
+        VisitWindowGameTests.aVisitRevealedAtWindowStartAndByALateArrivalAreTheSame(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 200)
+    public void theSchedulerRevealsOnlyWhatTheHashSchedulesAndNeverRerolls(GameTestHelper helper) {
+        VisitWindowGameTests.theSchedulerRevealsOnlyWhatTheHashSchedulesAndNeverRerolls(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 200)
+    public void suppressionAndSchedulingAreTheSameForAnyLoadedSet(GameTestHelper helper) {
+        VisitWindowGameTests.suppressionAndSchedulingAreTheSameForAnyLoadedSet(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 200)
+    public void depletionSurvivesSaveAndReloadAndOmitsCaughtMembers(GameTestHelper helper) {
+        VisitWindowGameTests.depletionSurvivesSaveAndReloadAndOmitsCaughtMembers(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 200)
+    public void ledgerRowsArePrunedAfterTheirWindowAndProtectionCapsAreCounted(GameTestHelper helper) {
+        VisitWindowGameTests.ledgerRowsArePrunedAfterTheirWindowAndProtectionCapsAreCounted(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 200)
+    public void theVisitDebugCommandsReportAndForceAReveal(GameTestHelper helper) {
+        VisitWindowGameTests.theVisitDebugCommandsReportAndForceAReveal(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 200)
+    public void aRevealHalfwayThroughTheWindowMatchesTheMembersPresentPrediction(GameTestHelper helper) {
+        VisitWindowGameTests.aRevealHalfwayThroughTheWindowMatchesTheMembersPresentPrediction(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 200)
+    public void aWindowWhoseFishAllLeftOrWereCaughtNeverRevealsAgain(GameTestHelper helper) {
+        VisitWindowGameTests.aWindowWhoseFishAllLeftOrWereCaughtNeverRevealsAgain(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 300)
+    public void membersLeaveLiveAtTheirSeededTimes(GameTestHelper helper) {
+        VisitWindowGameTests.membersLeaveLiveAtTheirSeededTimes(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 300)
+    public void aWaterEditThatStopsTheWaterMakesALiveVisitDepartAndStayGone(GameTestHelper helper) {
+        VisitWindowGameTests.aWaterEditThatStopsTheWaterMakesALiveVisitDepartAndStayGone(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 300)
+    public void aProfileChangeChangesLaterDerivationsButKeepsDepletion(GameTestHelper helper) {
+        VisitWindowGameTests.aProfileChangeChangesLaterDerivationsButKeepsDepletion(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 200)
+    public void windowStartMoonPhaseMatchesTheEnvironmentAttribute(GameTestHelper helper) {
+        VisitWindowGameTests.windowStartMoonPhaseMatchesTheEnvironmentAttribute(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void aWindowKeepsItsStartWeatherAfterClearingAndRereveal(GameTestHelper helper) {
+        VisitWindowGameTests.aWindowKeepsItsStartWeatherAfterClearingAndRereveal(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void theWeatherLogSurvivesSaveReloadAndMarksMissingHistory(GameTestHelper helper) {
+        VisitWindowGameTests.theWeatherLogSurvivesSaveReloadAndMarksMissingHistory(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void theWeatherTickPrunesOldEntriesButKeepsTheCutoffAnchor(GameTestHelper helper) {
+        VisitWindowGameTests.theWeatherTickPrunesOldEntriesButKeepsTheCutoffAnchor(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void weatherCommandsAreLoggedFromTheAuthoritativeFlags(GameTestHelper helper) {
+        VisitWindowGameTests.weatherCommandsAreLoggedFromTheAuthoritativeFlags(helper);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 900)

@@ -1,6 +1,6 @@
 # In-world fish encounters
 
-**Status:** Accepted design. Phases 1–4 built 2026-10-26 (uncommitted); every phase's owner in-game look is pending, see §13. GLIDE and lava visits remain later work. Owner decisions O1–O7 and the §3.2 shape table approved 2026-10-26 (§12).
+**Status:** Written design decisions accepted. §13 tracks implementation progress and owner in-game review separately; accepting the design does not mean an in-game review has passed. GLIDE and lava visits remain later work. Owner decisions O1–O7 and the §3.2 shape table were approved 2026-10-26 (§12).
 
 **Date:** 2026-10-26
 
@@ -22,7 +22,8 @@ This proposal keeps the event rare and random and widens what it can be:
   Most sightings stay common. Now and then one is something special.
 - **A visit has a shape:** solitary, pair, loose group or school. The shape comes from the species,
   so a lone fish and a school feel different and signal different things.
-- **Players can tell what they've found**, and nearby players can notice that something arrived.
+- **Players can recognize that a visit arrived**, and nearby players can notice it. Species
+  identification before a catch is not promised.
 
 ## 2. Framing
 
@@ -192,14 +193,15 @@ nether-zone species are caught in lava, so they can't appear until a lava domain
 lava cell validation, a lava-safe cue, and confirming the sim and renderer behave in lava. It's a
 later phase, not part of this spec.
 
-## 6. Recognising the find
+## 6. Recognising the encounter
 
-### 6.1 Identity on sight (deferred)
+### 6.1 Recognising an arrival (decided)
 
 Showing the species name when a player looks at a fish is out of scope for now (O5, decided).
-Players identify a find from the fish model, the rarity cue (§6.2) and the catch itself. This can be
-revisited if playtesting shows players can't tell what they've found. The idea on file: show the name
-for species already caught, and `???` for species never caught.
+The design promises that players can recognize a visit, not that they can identify its species
+before catching it. The fish model, arrival cue (§6.3) and quality cue (§6.2) may help players
+recognize the event; species identity becomes certain through the catch. The idea on file—show the
+name for species already caught and `???` for species never caught—remains deferred.
 
 ### 6.2 The sparkle shows quality, not rarity (decided)
 
@@ -221,9 +223,10 @@ The arrival cue is visual only, and a client toggle can disable it.
 
 - **Frequency is unchanged.** Shape changes how many fish a visit contains, not how often visits
   happen. Visit count, scheduling and region caps stay as they are.
-- **Rare yield is bounded by shape.** A solitary visit yields at most one catch. Estimated rare
-  yield per hour = visits/hour × P(rare species) × 1, which can be computed from the natural pools
-  before shipping.
+- **Estimate rare yield for every visit shape.** For each rare species, estimate catches per hour
+  from visits/hour × P(species) × expected catches per visit. Include solitary, pair, group and
+  school shapes using their member bounds; a solitary visit contributes at most one. Set acceptable
+  yield bounds from those estimates before considering the balance contract complete.
 - **Common yield drops slightly.** Some former schools become pairs or groups. That's fine; the
   value of a sighting moves from volume to surprise.
 - **No in-world-only bonus** (O1, decided). The reward stays an ordinary catch.
@@ -304,7 +307,9 @@ Ports follow the usual catch-up ledger after each phase is accepted on 26.1.2.
 - **O1. In-world reward:** nothing extra. A sighting's catch is an ordinary catch.
 - **O2. Shrimp and Fried Shrimp:** excluded through `fish_encounter_disabled`.
 - **O3. Yellowstripe Grunt:** loose group, with no school override.
-- **O5. Look-at name:** excluded for now (§6.1).
+- **O5. Look-at name:** excluded for now (§6.1). Spyglass observation in the
+  [world fish exploration outline](world-fish-exploration-design-spec.md) (E7, 2026-10-30)
+  deliberately supersedes this for spyglass use; plain look-at names stay excluded.
 - **O4. Visit shape:** authored per species (option B), with the weight rule only as a fallback for
   species without one. Temperament is not an input. §3.2 shape table approved 2026-10-26.
 - **O6. Floor dwellers:** bottom bite (option B, §4.4) for all six BENTHIC species.

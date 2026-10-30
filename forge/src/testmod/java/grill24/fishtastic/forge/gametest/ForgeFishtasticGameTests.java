@@ -1085,89 +1085,71 @@ public class ForgeFishtasticGameTests {
         PacketRoundTripGameTests.companionPartyCodecsRoundTrip(helper);
     }
 
+    // Spyglass observation (exploration rework Step 5)
+
     @GameTest(structure = "fishtastic:empty_testarea")
-    public static void ambientContextRequestPacketRoundTrips(GameTestHelper helper) {
-        PacketRoundTripGameTests.ambientContextRequestPacketRoundTrips(helper);
+    public static void aValidVisitObservationRecordsOnce(GameTestHelper helper) {
+        ObservationGameTests.aValidVisitObservationRecordsOnce(helper, helper::makeMockServerPlayerInLevel);
     }
 
     @GameTest(structure = "fishtastic:empty_testarea")
-    public static void ambientContextResponsePacketRoundTrips(GameTestHelper helper) {
-        PacketRoundTripGameTests.ambientContextResponsePacketRoundTrips(helper);
+    public static void badVisitClaimsAreRejected(GameTestHelper helper) {
+        ObservationGameTests.badVisitClaimsAreRejected(helper, helper::makeMockServerPlayerInLevel);
     }
 
     @GameTest(structure = "fishtastic:empty_testarea")
-    public static void oversizedOriginListIsRejectedOnEncodeAndDecode(GameTestHelper helper) {
-        PacketRoundTripGameTests.oversizedOriginListIsRejectedOnEncodeAndDecode(helper);
+    public static void aValidAmbientObservationRecords(GameTestHelper helper) {
+        ObservationGameTests.aValidAmbientObservationRecords(helper, helper::makeMockServerPlayerInLevel);
     }
 
     @GameTest(structure = "fishtastic:empty_testarea")
-    public static void oversizedEntryListIsRejectedOnEncodeAndDecode(GameTestHelper helper) {
-        PacketRoundTripGameTests.oversizedEntryListIsRejectedOnEncodeAndDecode(helper);
+    public static void badAmbientClaimsAreRejected(GameTestHelper helper) {
+        ObservationGameTests.badAmbientClaimsAreRejected(helper, helper::makeMockServerPlayerInLevel);
     }
 
     @GameTest(structure = "fishtastic:empty_testarea")
-    public static void oversizedCandidateListIsRejectedOnEncodeAndDecode(GameTestHelper helper) {
-        PacketRoundTripGameTests.oversizedCandidateListIsRejectedOnEncodeAndDecode(helper);
+    public static void observationPacketsAreRateLimited(GameTestHelper helper) {
+        ObservationGameTests.observationPacketsAreRateLimited(helper, helper::makeMockServerPlayerInLevel);
     }
 
     @GameTest(structure = "fishtastic:empty_testarea")
-    public static void unknownStatusIdDecodesToARejectionNotAnError(GameTestHelper helper) {
-        PacketRoundTripGameTests.unknownStatusIdDecodesToARejectionNotAnError(helper);
-    }
-
-    // -------------------------------------------------------------------------
-    // Ambient context exchange (Fish in World, Phase 4) — server-side validation, resolve
-    // equality, session-snapshot precedence and the per-player rate limit
-    // -------------------------------------------------------------------------
-
-    @GameTest(structure = "fishtastic:empty_testarea")
-    public static void authoritativeResolveMatchesServerState(GameTestHelper helper) {
-        AmbientContextGameTests.authoritativeResolveMatchesServerState(helper, helper::makeMockServerPlayerInLevel);
+    public static void observingGrantsNoCatchCountQuestProgressOrReward(GameTestHelper helper) {
+        ObservationGameTests.observingGrantsNoCatchCountQuestProgressOrReward(helper, helper::makeMockServerPlayerInLevel);
     }
 
     @GameTest(structure = "fishtastic:empty_testarea")
-    public static void heldRodLaneIsResolvedFromTheServersOwnInventory(GameTestHelper helper) {
-        AmbientContextGameTests.heldRodLaneIsResolvedFromTheServersOwnInventory(helper, helper::makeMockServerPlayerInLevel);
+    public static void observationAndACatchOpenTheSameFields(GameTestHelper helper) {
+        ObservationGameTests.observationAndACatchOpenTheSameFields(helper);
     }
 
     @GameTest(structure = "fishtastic:empty_testarea")
-    public static void dimensionMismatchIsRejected(GameTestHelper helper) {
-        AmbientContextGameTests.dimensionMismatchIsRejected(helper, helper::makeMockServerPlayerInLevel);
+    public static void everyTierRevealsTheNameOnTheFirstCatch(GameTestHelper helper) {
+        ObservationGameTests.everyTierRevealsTheNameOnTheFirstCatch(helper);
     }
 
     @GameTest(structure = "fishtastic:empty_testarea")
-    public static void farOriginIsRejectedBeforeTheUnloadedCheck(GameTestHelper helper) {
-        AmbientContextGameTests.farOriginIsRejectedBeforeTheUnloadedCheck(helper, helper::makeMockServerPlayerInLevel);
+    public static void observePacketsRoundTrip(GameTestHelper helper) {
+        ObservationGameTests.observePacketsRoundTrip(helper);
     }
 
     @GameTest(structure = "fishtastic:empty_testarea")
-    public static void unloadedOriginIsRejectedWithoutLoadingTheChunk(GameTestHelper helper) {
-        AmbientContextGameTests.unloadedOriginIsRejectedWithoutLoadingTheChunk(helper, helper::makeMockServerPlayerInLevel);
-    }
-
-    @GameTest(structure = "fishtastic:empty_testarea")
-    public static void rateLimitDropsRequestsPastTheBurst(GameTestHelper helper) {
-        AmbientContextGameTests.rateLimitDropsRequestsPastTheBurst(helper, helper::makeMockServerPlayerInLevel);
-    }
-
-    @GameTest(structure = "fishtastic:empty_testarea")
-    public static void sessionSnapshotTakesPrecedenceOverAFreshResolve(GameTestHelper helper) {
-        AmbientContextGameTests.sessionSnapshotTakesPrecedenceOverAFreshResolve(helper, helper::makeMockServerPlayerInLevel);
-    }
-
-    @GameTest(structure = "fishtastic:empty_testarea")
-    public static void aDifferentPondNearTheCastFallsThroughToAFreshResolve(GameTestHelper helper) {
-        AmbientContextGameTests.aDifferentPondNearTheCastFallsThroughToAFreshResolve(helper, helper::makeMockServerPlayerInLevel);
-    }
-
-    @GameTest(structure = "fishtastic:empty_testarea")
-    public static void anEmptyRequestDoesNotConsumeAThrottleToken(GameTestHelper helper) {
-        AmbientContextGameTests.anEmptyRequestDoesNotConsumeAThrottleToken(helper, helper::makeMockServerPlayerInLevel);
+    public static void observedSetSurvivesSaveReloadAndBackupRestore(GameTestHelper helper) throws Exception {
+        BackupTestFixture.run(helper, () -> ObservationGameTests.observedSetSurvivesSaveReloadAndBackupRestore(helper, helper::makeMockServerPlayerInLevel));
     }
 
     // -------------------------------------------------------------------------
     // FishEncyclopediaEntry tests  (pure Codec, no world state needed)
     // -------------------------------------------------------------------------
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void naturalPoolMatchesTheServerResolvePath(GameTestHelper helper) {
+        EcologyGameTests.naturalPoolMatchesTheServerResolvePath(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void ecologySeedIsDerivedAndSurvivesThePacketCodec(GameTestHelper helper) {
+        EcologyGameTests.ecologySeedIsDerivedAndSurvivesThePacketCodec(helper);
+    }
 
     @GameTest(structure = "fishtastic:empty_testarea")
     public static void emptyObjectDecodesToAllDefaults(GameTestHelper helper) {
@@ -1363,8 +1345,88 @@ public class ForgeFishtasticGameTests {
     }
 
     @GameTest(structure = "fishtastic:empty_testarea")
-    public static void schools_saved_before_shapes_load_as_schools(GameTestHelper helper) {
-        FishSchoolGameTests.schoolsSavedBeforeShapesLoadAsSchools(helper);
+    public static void old_school_and_region_data_is_discarded_on_load(GameTestHelper helper) {
+        VisitWindowGameTests.oldSchoolAndRegionDataIsDiscardedOnLoad(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void a_visit_revealed_at_window_start_and_by_a_late_arrival_are_the_same(GameTestHelper helper) {
+        VisitWindowGameTests.aVisitRevealedAtWindowStartAndByALateArrivalAreTheSame(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void the_scheduler_reveals_only_what_the_hash_schedules_and_never_rerolls(GameTestHelper helper) {
+        VisitWindowGameTests.theSchedulerRevealsOnlyWhatTheHashSchedulesAndNeverRerolls(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void suppression_and_scheduling_are_the_same_for_any_loaded_set(GameTestHelper helper) {
+        VisitWindowGameTests.suppressionAndSchedulingAreTheSameForAnyLoadedSet(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void depletion_survives_save_and_reload_and_omits_caught_members(GameTestHelper helper) {
+        VisitWindowGameTests.depletionSurvivesSaveAndReloadAndOmitsCaughtMembers(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void ledger_rows_are_pruned_after_their_window_and_protection_caps_are_counted(GameTestHelper helper) {
+        VisitWindowGameTests.ledgerRowsArePrunedAfterTheirWindowAndProtectionCapsAreCounted(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void the_visit_debug_commands_report_and_force_a_reveal(GameTestHelper helper) {
+        VisitWindowGameTests.theVisitDebugCommandsReportAndForceAReveal(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea", maxTicks = 200)
+    public static void a_reveal_halfway_through_the_window_matches_the_members_present_prediction(GameTestHelper helper) {
+        VisitWindowGameTests.aRevealHalfwayThroughTheWindowMatchesTheMembersPresentPrediction(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea", maxTicks = 200)
+    public static void a_window_whose_fish_all_left_or_were_caught_never_reveals_again(GameTestHelper helper) {
+        VisitWindowGameTests.aWindowWhoseFishAllLeftOrWereCaughtNeverRevealsAgain(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea", maxTicks = 300)
+    public static void members_leave_live_at_their_seeded_times(GameTestHelper helper) {
+        VisitWindowGameTests.membersLeaveLiveAtTheirSeededTimes(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea", maxTicks = 300)
+    public static void a_water_edit_that_stops_the_water_makes_a_live_visit_depart_and_stay_gone(GameTestHelper helper) {
+        VisitWindowGameTests.aWaterEditThatStopsTheWaterMakesALiveVisitDepartAndStayGone(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea", maxTicks = 300)
+    public static void a_profile_change_changes_later_derivations_but_keeps_depletion(GameTestHelper helper) {
+        VisitWindowGameTests.aProfileChangeChangesLaterDerivationsButKeepsDepletion(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void window_start_moon_phase_matches_the_environment_attribute(GameTestHelper helper) {
+        VisitWindowGameTests.windowStartMoonPhaseMatchesTheEnvironmentAttribute(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void a_window_keeps_its_start_weather_after_clearing_and_rereveal(GameTestHelper helper) {
+        VisitWindowGameTests.aWindowKeepsItsStartWeatherAfterClearingAndRereveal(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void the_weather_log_survives_save_reload_and_marks_missing_history(GameTestHelper helper) {
+        VisitWindowGameTests.theWeatherLogSurvivesSaveReloadAndMarksMissingHistory(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void the_weather_tick_prunes_old_entries_but_keeps_the_cutoff_anchor(GameTestHelper helper) {
+        VisitWindowGameTests.theWeatherTickPrunesOldEntriesButKeepsTheCutoffAnchor(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void weather_commands_are_logged_from_the_authoritative_flags(GameTestHelper helper) {
+        VisitWindowGameTests.weatherCommandsAreLoggedFromTheAuthoritativeFlags(helper);
     }
 
     @GameTest(structure = "fishtastic:empty_testarea", maxTicks = 900)

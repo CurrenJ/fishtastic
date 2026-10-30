@@ -173,8 +173,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
 
         // Register fish encyclopedia sync packet client handler
         FishEncyclopediaSyncPacket.registerClientHandler(packet ->
-                FishEncyclopediaClientCache.update(packet.personalCatchCounts(), packet.personalBestSizes(), packet.globalBestSizes(),
-                        packet.claimedRewardKeys()));
+                FishEncyclopediaClientCache.update(packet));
 
         // Register cosmetic capture wand session sync packet client handler
         CosmeticCaptureSyncPacket.registerClientHandler(CosmeticCaptureClientState::apply);
@@ -198,10 +197,6 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         // Register reduced celebration effects sync packet client handler
         grill24.fishtastic.network.ReducedEffectsSyncPacket.registerClientHandler(
                 packet -> grill24.fishtastic.client.FishtasticClientConfig.setReducedCelebrationEffects(packet.reduced()));
-
-        // Register authoritative ambient context response handler (Fish in World, Phase 4)
-        grill24.fishtastic.network.AmbientContextResponsePacket.registerClientHandler(
-                grill24.fishtastic.client.ambient.AmbientContextClient::handle);
 
         // Install quest progress notification system
         QuestProgressNotificationManager.getInstance().install();

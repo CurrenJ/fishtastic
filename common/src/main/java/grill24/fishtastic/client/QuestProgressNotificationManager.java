@@ -97,9 +97,20 @@ public class QuestProgressNotificationManager {
      */
     public static final String COMPANION_BOND_ID_PREFIX = "companion_bond/";
 
+    /**
+     * Prefix for synthetic "quest" ids driving spyglass observation banners (world fish exploration
+     * E16), one per species for the same reason as first-catch.
+     */
+    public static final String OBSERVED_ID_PREFIX = "observed/";
+
     /** The synthetic quest id used for a species' first-catch banner. */
     public static Identifier firstCatchQuestId(Identifier fishId) {
         return Fishtastic.id(FIRST_CATCH_ID_PREFIX + fishId.getPath());
+    }
+
+    /** The synthetic quest id used for a species' spyglass observation banner. */
+    public static Identifier observedQuestId(Identifier fishId) {
+        return Fishtastic.id(OBSERVED_ID_PREFIX + fishId.getPath());
     }
 
     /** The synthetic quest id used for a species' companion bond-unlock banner. */
@@ -167,6 +178,11 @@ public class QuestProgressNotificationManager {
         QuestClientCache.setFirstCatchListener(fishItem -> {
             Identifier fishId = BuiltInRegistries.ITEM.getKey(fishItem.getItem());
             enqueue(new QuestProgressEvent(firstCatchQuestId(fishId), 0, 1, 1, true, fishItem));
+        });
+        FishEncyclopediaClientCache.setObservedListener(speciesId -> {
+            ItemStack fishItem = BuiltInRegistries.ITEM.getOptional(speciesId)
+                    .map(item -> new ItemStack(item, 1)).orElse(ItemStack.EMPTY);
+            enqueue(new QuestProgressEvent(observedQuestId(speciesId), 0, 1, 1, true, fishItem));
         });
         QuestClientCache.setBondUnlockListener(fishItem -> {
             if (fishItem.isEmpty()) return;

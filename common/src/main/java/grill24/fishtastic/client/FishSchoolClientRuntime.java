@@ -982,6 +982,7 @@ public final class FishSchoolClientRuntime {
     /** One foreground overlay at a time: the nearest visible cinematic breach owns the HUD. */
     public static void renderHud(GuiGraphicsExtractor graphics, float partialTick) {
         Minecraft mc = Minecraft.getInstance();
+        ObservationClient.renderHud(graphics, mc);
         ClientLevel level = mc.level;
         if (level == null || !FishtasticClientConfig.isFishSchoolsVisible()) return;
         Camera camera = mc.gameRenderer.getMainCamera();
@@ -1090,6 +1091,27 @@ public final class FishSchoolClientRuntime {
 
     private static float clamp(float value, float min, float max) {
         return Math.max(min, Math.min(max, value));
+    }
+
+    /** A visit member this client is showing, for the spyglass detector. */
+    public record ObservableMember(UUID school, UUID member, Identifier species, double x, double y, double z) {}
+
+    /** Every member of every caught-up visit copy, with where its lockstep copy has it now. */
+    public static List<ObservableMember> observableMembers() {
+        List<ObservableMember> out = new ArrayList<>();
+        for (Copy copy : COPIES.values()) {
+            FishSchoolSim sim = copy.replica.sim();
+            if (sim == null || !copy.replica.caughtUp()) continue;
+            Identifier species = BuiltInRegistries.ITEM.getKey(copy.stack.getItem());
+            BlockPos o = sim.origin();
+            List<UUID> members = sim.members();
+            for (int i = 0; i < members.size(); i++) {
+                out.add(new ObservableMember(copy.replica.school(), members.get(i), species,
+                        o.getX() + sim.engine().posL()[i], o.getY() + sim.engine().posY()[i],
+                        o.getZ() + sim.engine().posD()[i]));
+            }
+        }
+        return out;
     }
 
     /** Self-test: where member {@code i} of the first caught-up copy is now, in the world, or null. */

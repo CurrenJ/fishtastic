@@ -8,7 +8,7 @@ reproducible verification. [Product direction and backlog](backlog.md) holds uns
 ## Systems
 
 - [Companions](fish-companions.md) and [drifter movement](fish-companions-drift.md).
-- [Ambient fish](fish-in-world.md).
+- [Ambient fish](fish-in-world.md), the [world fish exploration outline](world-fish-exploration-design-spec.md) and its [implementation plan](world-fish-exploration-implementation-plan.md) and [session handoff](world-fish-exploration-handoff.md).
 - [Wild fish surface jumps](wild-fish-surface-jumps-design-spec.md) (interactive-school implementation; ambient design proposed).
 - [Interactive fish schools](interactive-fish-schools-design-spec.md) (Phase A implementation and tuning contract); [school motion plan and progress](interactive-fish-schools-motion-plan.md); [school performance plan](interactive-fish-schools-performance-plan.md); [in-world fish encounters](in-world-fish-encounters-design-spec.md) (Phases 1–4 built: all-species eligibility, visit shapes, cues, eel/drifter/bottom-bite approaches).
 - [Legendary fish breach celebration](legendary-fish-breach-celebration-design-spec.md) (synchronized slow-motion playback, procedural visuals and phase-triggered positional vanilla audio; original audio and in-game tuning remain open).
