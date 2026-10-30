@@ -1,5 +1,30 @@
 # Backport parity progress
 
+## Completed release follow-up (2026-10-29): build/smoke/publish 2.1.12
+
+- **Operation:** Build all eight supported loader artifacts from the three pinned 2.1.12 commit
+  trees, run the eight-profile release smoke matrix, and publish all eight as CurseForge releases.
+- **Pinned commits:** 26.1.2 `402892eb1e0f0c876923f132827bf7b79123f8c7`; 1.21.1
+  `164a29544fee726af45e9c7813c102bdcc9d63fd`; 1.20.1
+  `eceec53536b02ad3e784825b93341543d9552791`. The read-only shared `.git` metadata prevented
+  registering linked worktrees or local clones, so the builds used exact `git archive` snapshots.
+  The active 26.1.2 checkout remains on the 2.1.13 line.
+- **Builds and artifacts:** All three `build --no-parallel` runs succeeded: 26.1.2 Fabric,
+  NeoForge, Forge; 1.21.1 Fabric, NeoForge, Forge; and 1.20.1 Fabric and Forge. The shared tank
+  shape suite passed 21,955/21,955 tests on each line. All eight jars passed version, required
+  Gelatin UI dependency, FishSim/tutorial class, and release-exclusion checks.
+- **Release smoke:** All eight installed-profile runs passed. Six were clean PASS; 26.1.2 Forge
+  and 1.21.1 Forge were PASS_WITH_FINDINGS after the known vanilla experimental-settings screen
+  was confirmed. No fatal or Fishtastic errors were reported.
+- **CurseForge:** The three `publishCurseForge` tasks completed successfully as releases, using
+  the hellbender changelog note; submissions were 3 files for 26.1.2, 3 for 1.21.1, and 2 for
+  1.20.1. Gradle did not print file IDs. The authenticated file-list API returned HTTP 403, so
+  independent file-ID/visibility verification was unavailable; no upload was retried.
+- **Evidence:** `build/release-2.1.12/evidence/` contains build and publish logs, the eight-jar
+  SHA-256/metadata manifest, and per-profile smoke summaries, logs, and scratch transcripts.
+- **Parity:** No ported-through marker was changed.
+- **Next action:** None for this release follow-up.
+
 ## Completed (2026-10-29): synchronized 2.1.13 version bump
 
 - **Operation:** after the rendering commits landed, bump `mod_version` from `2.1.12` to `2.1.13`
