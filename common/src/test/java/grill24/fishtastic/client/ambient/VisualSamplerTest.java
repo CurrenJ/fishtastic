@@ -1,6 +1,6 @@
 package grill24.fishtastic.client.ambient;
 
-import grill24.fishtastic.network.AmbientContextResponsePacket.Candidate;
+import grill24.fishtastic.client.ambient.VisualSampler.Candidate;
 import grill24.fishtastic.util.Ids;
 import org.junit.jupiter.api.Test;
 

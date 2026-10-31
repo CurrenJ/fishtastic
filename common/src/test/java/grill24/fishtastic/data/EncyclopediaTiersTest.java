@@ -54,6 +54,13 @@ class EncyclopediaTiersTest {
     }
 
     @Test
+    void theFirstCatchRevealsTheNameInEveryTier() {
+        for (EncyclopediaTiers.Tier tier : EncyclopediaTiers.Tier.values()) {
+            assertEquals(1, tier.thresholds.nameRevealCatches(), tier + " must grant the observed identity fields on its first catch");
+        }
+    }
+
+    @Test
     void tiersGetSlowerAsTheyGetCommonerAndNeverPassFifty() {
         EncyclopediaTiers.Tier[] tiers = EncyclopediaTiers.Tier.values();
         for (int i = 0; i < tiers.length; i++) {

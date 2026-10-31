@@ -81,9 +81,9 @@ class EncyclopediaWordsTest {
         assertEquals(List.of(NAME_REVEAL, STATS, SPAWN_CONDITIONS, TYPES, LORE),
                 FishPageModel.unlockOrder(EncyclopediaTiers.Tier.UNCOMMON.thresholds)); // 1/2/4/3/15
         assertEquals(List.of(NAME_REVEAL, STATS, SPAWN_CONDITIONS, TYPES, LORE),
-                FishPageModel.unlockOrder(EncyclopediaTiers.Tier.COMMON.thresholds)); // 2/3/8/4/30
+                FishPageModel.unlockOrder(EncyclopediaTiers.Tier.COMMON.thresholds)); // 1/3/8/4/30
         assertEquals(List.of(NAME_REVEAL, STATS, SPAWN_CONDITIONS, TYPES, LORE),
-                FishPageModel.unlockOrder(EncyclopediaTiers.Tier.ABUNDANT.thresholds)); // 2/4/12/6/50
+                FishPageModel.unlockOrder(EncyclopediaTiers.Tier.ABUNDANT.thresholds)); // 1/4/12/6/50
     }
 
     @Test

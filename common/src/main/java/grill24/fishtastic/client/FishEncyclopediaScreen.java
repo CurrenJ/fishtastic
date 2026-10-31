@@ -168,7 +168,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
             savedHandler = FishEncyclopediaSyncPacket.clientHandler;
             handlerInstalled = true;
             FishEncyclopediaSyncPacket.registerClientHandler(packet -> {
-                FishEncyclopediaClientCache.update(packet.personalCatchCounts(), packet.personalBestSizes(), packet.globalBestSizes(), packet.claimedRewardKeys());
+                FishEncyclopediaClientCache.update(packet);
                 Minecraft mc = Minecraft.getInstance();
                 if (mc.screen == this) {
                     refreshFromCache();
@@ -370,7 +370,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
             for (Map.Entry<ResourceKey<FishProfile>, FishProfile> entry : fishList) {
                 ResourceKey<FishProfile> fishKey = entry.getKey();
                 Item item = BuiltInRegistries.ITEM.getOptional(fishKey.location()).orElse(Items.COD);
-                boolean caught = FishEncyclopediaClientCache.getCatchCount(fishKey.location()) > 0;
+                boolean caught = FishEncyclopediaClientCache.isDiscovered(fishKey.location());
 
                 // Unlisted fish (secret one-off variants) don't even get a silhouette slot —
                 // they're absent from the disc entirely until the player has caught one.
@@ -449,7 +449,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
     private void syncIcon(ResourceKey<FishProfile> fishKey, SilhouetteItemButton icon) {
         Minecraft mc = Minecraft.getInstance();
         ResourceLocation fishId = fishKey.location();
-        boolean caughtFish = FishEncyclopediaClientCache.getCatchCount(fishId) > 0;
+        boolean caughtFish = FishEncyclopediaClientCache.isDiscovered(fishId);
         icon.setSilhouette(!caughtFish);
         boolean onPage = pageOpen && icon == shownIcon;
         Item species = BuiltInRegistries.ITEM.getOptional(fishId).orElse(null);
@@ -741,7 +741,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
             portrait = null;
             return;
         }
-        portrait = new Portrait(uiScreen, model.themeZone(), shownKey.location().hashCode(), !model.caught(), k);
+        portrait = new Portrait(uiScreen, model.themeZone(), shownKey.location().hashCode(), !model.discovered(), k);
         backHost.addChild(portrait.backLayer());
         frontHost.addChild(portrait.frontLayer());
         frontHost.addChild(portrait.toggle());

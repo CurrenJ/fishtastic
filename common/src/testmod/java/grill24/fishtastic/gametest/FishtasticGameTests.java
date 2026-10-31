@@ -8,24 +8,21 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
 /**
  * The shared gametest harness: every Fishtastic game test, annotated with <b>vanilla</b>
  * {@code net.minecraft.gametest.framework.GameTest} so one class serves both loaders
- * (decision D10, ported from port/1.21.1's A6.1 to this branch at B6.1,
- * docs/backport-pass2/track-b-1.20.1.md). Each method delegates to a platform-agnostic body in a
- * sibling class; those bodies touch no loader API.
+ * (decision D10, docs/backport-pass2/track-a-1.21.1.md A6.1). Each method delegates to a
+ * platform-agnostic body in a sibling class; those bodies touch no loader API.
  *
  * <p>Registered on Fabric by the {@code fabric-gametest} entrypoint (Fabric derives the mod id
  * from the entrypoint and uses {@code template} verbatim - see its {@code TestFunctionsMixin}),
- * and on Forge by {@code RegisterGameTestsEvent.register(FishtasticGameTests.class)}.
+ * and on NeoForge by {@code RegisterGameTestsEvent.register(FishtasticGameTests.class)}.
  *
- * <p>{@code @GameTestHolder} and {@code @PrefixGameTestTemplate(false)} are Forge's real
- * annotations (unlike port/1.21.1's NeoForge, Forge 47 ships both natively) and are required
- * <em>on this class</em>: the holder supplies the template namespace its enabled-namespaces
- * filter matches on, and without the prefix annotation Forge prepends the class's simple name to
- * the template. Fabric has no Forge dependency, so its compile of this same shared source resolves
- * them against a PORT-ONLY compile-only stub instead (see that stub's own doc); at runtime Forge's
- * own annotation classes are the ones loaded, and on Fabric the annotation types are simply absent
- * and ignored.
+ * <p>{@code @GameTestHolder} and {@code @PrefixGameTestTemplate(false)} are NeoForge's, and are
+ * required <em>on this class</em>: the holder supplies the template namespace its enabled-namespaces
+ * filter matches on, and without the prefix annotation NeoForge prepends the class's simple name to
+ * the template. They are compiled against PORT-ONLY stubs that are on the testmod compile classpath
+ * only; at runtime NeoForge's own annotation classes are the ones loaded, and on Fabric the
+ * annotation types are simply absent and ignored. See "A6.1 as built" in the track doc.
  *
- * <p>The template is a <em>bare path</em> because the two loaders read it differently: Forge
+ * <p>The template is a <em>bare path</em> because the two loaders read it differently: NeoForge
  * builds the id as {@code getTemplateNamespace(method) + ":" + template}, so {@code fishtastic_empty}
  * becomes {@code fishtastic:fishtastic_empty}, while Fabric parses the template verbatim, so the same
  * bare path becomes {@code minecraft:fishtastic_empty}. The all-air 8x8x8 is therefore shipped twice,
@@ -36,10 +33,9 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
  * {@code GameTestHelper.setBlock()}.
  *
  * <p>Tests that need a player take a supplier and are handed
- * {@link FishtasticTestSupport#playerSupplier}: each platform's own gametest entrypoint installs
- * its own factory (Fabric uses vanilla's {@code makeMockServerPlayerInLevel}; Forge 47 can't,
- * because its patched {@code placeNewPlayer} needs the connection to have a Netty channel, so
- * Forge installs {@code ForgeTestPlayers}).
+ * {@link FishtasticTestSupport#playerSupplier}: the two loaders cannot share vanilla's
+ * {@code makeMockServerPlayerInLevel}, because NeoForge's mock connection skips the
+ * configuration handshake that registers its payload channels.
  */
 @GameTestHolder("fishtastic")
 @PrefixGameTestTemplate(false)
@@ -1272,22 +1268,17 @@ public class FishtasticGameTests {
         FishSchoolGameTests.spawnedVisitsTakeTheirShape(helper);
     }
 
-    @GameTest(template = "fishtastic_empty")
-    public void schoolsSavedBeforeShapesLoadAsSchools(GameTestHelper helper) {
-        FishSchoolGameTests.schoolsSavedBeforeShapesLoadAsSchools(helper);
-    }
-
-    @GameTest(template = "fishtastic_empty", timeoutTicks = 900, batch = "in_world_fish_visits")
+    @GameTest(template = "fishtastic_empty", timeoutTicks = 900)
     public void crawlerTakesABottomBite(GameTestHelper helper) {
         FishSchoolGameTests.crawlerTakesABottomBite(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(template = "fishtastic_empty", timeoutTicks = 1100, batch = "in_world_fish_visits")
+    @GameTest(template = "fishtastic_empty", timeoutTicks = 1100)
     public void drifterIsCarriedToTheBait(GameTestHelper helper) {
         FishSchoolGameTests.drifterIsCarriedToTheBait(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(template = "fishtastic_empty", timeoutTicks = 500, batch = "in_world_fish_visits")
+    @GameTest(template = "fishtastic_empty", timeoutTicks = 500)
     public void eelTakesABobberOverItsBurrow(GameTestHelper helper) {
         FishSchoolGameTests.eelTakesABobberOverItsBurrow(helper, FishtasticTestSupport.playerSupplier(helper));
     }
@@ -1993,81 +1984,151 @@ public class FishtasticGameTests {
         CompanionSceneGameTests.nearbyObserversAreToldAndFarOnesAreNot(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    // ----- Ambient context exchange (stage 5 slice 1) -----
+    // ----- World fish ecology, visit windows and observation -----
 
     @GameTest(template = "fishtastic_empty")
-    public void ambientContextRequestPacketRoundTrips(GameTestHelper helper) {
-        PacketRoundTripGameTests.ambientContextRequestPacketRoundTrips(helper);
+    public void naturalPoolMatchesTheServerResolvePath(GameTestHelper helper) {
+        EcologyGameTests.naturalPoolMatchesTheServerResolvePath(helper);
     }
 
     @GameTest(template = "fishtastic_empty")
-    public void ambientContextResponsePacketRoundTrips(GameTestHelper helper) {
-        PacketRoundTripGameTests.ambientContextResponsePacketRoundTrips(helper);
+    public void ecologySeedIsDerivedAndSurvivesThePacketCodec(GameTestHelper helper) {
+        EcologyGameTests.ecologySeedIsDerivedAndSurvivesThePacketCodec(helper);
     }
 
     @GameTest(template = "fishtastic_empty")
-    public void oversizedOriginListIsRejectedOnEncodeAndDecode(GameTestHelper helper) {
-        PacketRoundTripGameTests.oversizedOriginListIsRejectedOnEncodeAndDecode(helper);
+    public void aVisitRevealedAtWindowStartAndByALateArrivalAreTheSame(GameTestHelper helper) {
+        VisitWindowGameTests.aVisitRevealedAtWindowStartAndByALateArrivalAreTheSame(helper);
     }
 
     @GameTest(template = "fishtastic_empty")
-    public void oversizedEntryListIsRejectedOnEncodeAndDecode(GameTestHelper helper) {
-        PacketRoundTripGameTests.oversizedEntryListIsRejectedOnEncodeAndDecode(helper);
+    public void theSchedulerRevealsOnlyWhatTheHashSchedulesAndNeverRerolls(GameTestHelper helper) {
+        VisitWindowGameTests.theSchedulerRevealsOnlyWhatTheHashSchedulesAndNeverRerolls(helper);
     }
 
     @GameTest(template = "fishtastic_empty")
-    public void oversizedCandidateListIsRejectedOnEncodeAndDecode(GameTestHelper helper) {
-        PacketRoundTripGameTests.oversizedCandidateListIsRejectedOnEncodeAndDecode(helper);
+    public void suppressionAndSchedulingAreTheSameForAnyLoadedSet(GameTestHelper helper) {
+        VisitWindowGameTests.suppressionAndSchedulingAreTheSameForAnyLoadedSet(helper);
     }
 
     @GameTest(template = "fishtastic_empty")
-    public void unknownStatusIdDecodesToARejectionNotAnError(GameTestHelper helper) {
-        PacketRoundTripGameTests.unknownStatusIdDecodesToARejectionNotAnError(helper);
+    public void depletionSurvivesSaveAndReloadAndOmitsCaughtMembers(GameTestHelper helper) {
+        VisitWindowGameTests.depletionSurvivesSaveAndReloadAndOmitsCaughtMembers(helper);
     }
 
     @GameTest(template = "fishtastic_empty")
-    public void authoritativeResolveMatchesServerState(GameTestHelper helper) {
-        AmbientContextGameTests.authoritativeResolveMatchesServerState(helper, FishtasticTestSupport.playerSupplier(helper));
+    public void oldSchoolAndRegionDataIsDiscardedOnLoad(GameTestHelper helper) {
+        VisitWindowGameTests.oldSchoolAndRegionDataIsDiscardedOnLoad(helper);
     }
 
     @GameTest(template = "fishtastic_empty")
-    public void heldRodLaneIsResolvedFromTheServersOwnInventory(GameTestHelper helper) {
-        AmbientContextGameTests.heldRodLaneIsResolvedFromTheServersOwnInventory(helper, FishtasticTestSupport.playerSupplier(helper));
+    public void ledgerRowsArePrunedAfterTheirWindowAndProtectionCapsAreCounted(GameTestHelper helper) {
+        VisitWindowGameTests.ledgerRowsArePrunedAfterTheirWindowAndProtectionCapsAreCounted(helper);
     }
 
     @GameTest(template = "fishtastic_empty")
-    public void dimensionMismatchIsRejected(GameTestHelper helper) {
-        AmbientContextGameTests.dimensionMismatchIsRejected(helper, FishtasticTestSupport.playerSupplier(helper));
+    public void theVisitDebugCommandsReportAndForceAReveal(GameTestHelper helper) {
+        VisitWindowGameTests.theVisitDebugCommandsReportAndForceAReveal(helper);
     }
 
     @GameTest(template = "fishtastic_empty")
-    public void farOriginIsRejectedBeforeTheUnloadedCheck(GameTestHelper helper) {
-        AmbientContextGameTests.farOriginIsRejectedBeforeTheUnloadedCheck(helper, FishtasticTestSupport.playerSupplier(helper));
+    public void aRevealHalfwayThroughTheWindowMatchesTheMembersPresentPrediction(GameTestHelper helper) {
+        VisitWindowGameTests.aRevealHalfwayThroughTheWindowMatchesTheMembersPresentPrediction(helper);
     }
 
     @GameTest(template = "fishtastic_empty")
-    public void unloadedOriginIsRejectedWithoutLoadingTheChunk(GameTestHelper helper) {
-        AmbientContextGameTests.unloadedOriginIsRejectedWithoutLoadingTheChunk(helper, FishtasticTestSupport.playerSupplier(helper));
+    public void aWindowWhoseFishAllLeftOrWereCaughtNeverRevealsAgain(GameTestHelper helper) {
+        VisitWindowGameTests.aWindowWhoseFishAllLeftOrWereCaughtNeverRevealsAgain(helper);
     }
 
     @GameTest(template = "fishtastic_empty")
-    public void rateLimitDropsRequestsPastTheBurst(GameTestHelper helper) {
-        AmbientContextGameTests.rateLimitDropsRequestsPastTheBurst(helper, FishtasticTestSupport.playerSupplier(helper));
+    public void membersLeaveLiveAtTheirSeededTimes(GameTestHelper helper) {
+        VisitWindowGameTests.membersLeaveLiveAtTheirSeededTimes(helper);
     }
 
     @GameTest(template = "fishtastic_empty")
-    public void sessionSnapshotTakesPrecedenceOverAFreshResolve(GameTestHelper helper) {
-        AmbientContextGameTests.sessionSnapshotTakesPrecedenceOverAFreshResolve(helper, FishtasticTestSupport.playerSupplier(helper));
+    public void aWaterEditThatStopsTheWaterMakesALiveVisitDepartAndStayGone(GameTestHelper helper) {
+        VisitWindowGameTests.aWaterEditThatStopsTheWaterMakesALiveVisitDepartAndStayGone(helper);
     }
 
     @GameTest(template = "fishtastic_empty")
-    public void aDifferentPondNearTheCastFallsThroughToAFreshResolve(GameTestHelper helper) {
-        AmbientContextGameTests.aDifferentPondNearTheCastFallsThroughToAFreshResolve(helper, FishtasticTestSupport.playerSupplier(helper));
+    public void aProfileChangeChangesLaterDerivationsButKeepsDepletion(GameTestHelper helper) {
+        VisitWindowGameTests.aProfileChangeChangesLaterDerivationsButKeepsDepletion(helper);
     }
 
     @GameTest(template = "fishtastic_empty")
-    public void anEmptyRequestDoesNotConsumeAThrottleToken(GameTestHelper helper) {
-        AmbientContextGameTests.anEmptyRequestDoesNotConsumeAThrottleToken(helper, FishtasticTestSupport.playerSupplier(helper));
+    public void aWindowKeepsItsStartWeatherAfterClearingAndRereveal(GameTestHelper helper) {
+        VisitWindowGameTests.aWindowKeepsItsStartWeatherAfterClearingAndRereveal(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void theWeatherLogSurvivesSaveReloadAndMarksMissingHistory(GameTestHelper helper) {
+        VisitWindowGameTests.theWeatherLogSurvivesSaveReloadAndMarksMissingHistory(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void theWeatherTickPrunesOldEntriesButKeepsTheCutoffAnchor(GameTestHelper helper) {
+        VisitWindowGameTests.theWeatherTickPrunesOldEntriesButKeepsTheCutoffAnchor(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void weatherCommandsAreLoggedFromTheAuthoritativeFlags(GameTestHelper helper) {
+        VisitWindowGameTests.weatherCommandsAreLoggedFromTheAuthoritativeFlags(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void windowStartMoonPhaseMatchesTheEnvironmentAttribute(GameTestHelper helper) {
+        VisitWindowGameTests.windowStartMoonPhaseMatchesTheEnvironmentAttribute(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void aValidVisitObservationRecordsOnce(GameTestHelper helper) {
+        ObservationGameTests.aValidVisitObservationRecordsOnce(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void badVisitClaimsAreRejected(GameTestHelper helper) {
+        ObservationGameTests.badVisitClaimsAreRejected(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void aValidAmbientObservationRecords(GameTestHelper helper) {
+        ObservationGameTests.aValidAmbientObservationRecords(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void badAmbientClaimsAreRejected(GameTestHelper helper) {
+        ObservationGameTests.badAmbientClaimsAreRejected(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void observationPacketsAreRateLimited(GameTestHelper helper) {
+        ObservationGameTests.observationPacketsAreRateLimited(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void observingGrantsNoCatchCountQuestProgressOrReward(GameTestHelper helper) {
+        ObservationGameTests.observingGrantsNoCatchCountQuestProgressOrReward(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void observationAndACatchOpenTheSameFields(GameTestHelper helper) {
+        ObservationGameTests.observationAndACatchOpenTheSameFields(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void everyTierRevealsTheNameOnTheFirstCatch(GameTestHelper helper) {
+        ObservationGameTests.everyTierRevealsTheNameOnTheFirstCatch(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void observePacketsRoundTrip(GameTestHelper helper) {
+        ObservationGameTests.observePacketsRoundTrip(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void observedSetSurvivesSaveReloadAndBackupRestore(GameTestHelper helper) throws java.io.IOException {
+        ObservationGameTests.observedSetSurvivesSaveReloadAndBackupRestore(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
     // -------------------------------------------------------------------------
@@ -2084,7 +2145,7 @@ public class FishtasticGameTests {
         FishSchoolGameTests.missedTargetRecoversAndRetryKeepsReward(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(template = "fishtastic_empty", timeoutTicks = 360, batch = "in_world_fish_visits")
+    @GameTest(template = "fishtastic_empty", timeoutTicks = 360)
     public void liveSchoolApproachesAndTriggersOwnedBite(GameTestHelper helper) {
         FishSchoolGameTests.liveSchoolApproachesAndTriggersOwnedBite(helper, FishtasticTestSupport.playerSupplier(helper));
     }

@@ -88,6 +88,20 @@ tasks.withType(Test).configureEach {
         systemProperty 'exportObstacles', rootProject.file(project.property('exportObstacles').toString()).absolutePath
         outputs.upToDateWhen { false }
     }
+    // VisitDensityReportTest writes the world fish exploration visit density report (plan Step 0)
+    // only when asked: ./gradlew :common:test --tests '*VisitDensityReport*' -PvisitDensityReport=build/reports/visit-density
+    if (project.hasProperty('visitDensityReport')) {
+        systemProperty 'visitDensityReportDir', rootProject.file(project.property('visitDensityReport').toString()).absolutePath
+        outputs.upToDateWhen { false }
+    }
+    // AmbientPresenceReportTest writes the world fish exploration presence report (plan Step 1b)
+    // only when asked: ./gradlew :common:test --tests '*AmbientPresenceReport*' -PambientPresenceReport[=<dir>]
+    // (default build/reports/ambient-presence)
+    if (project.hasProperty('ambientPresenceReport')) {
+        def presenceDir = project.property('ambientPresenceReport').toString()
+        systemProperty 'ambientPresenceReport', rootProject.file(presenceDir ? presenceDir : 'build/reports/ambient-presence').absolutePath
+        outputs.upToDateWhen { false }
+    }
 }
 
 // common is never consumed as a jar: each platform takes the named classes (namedElements) and the

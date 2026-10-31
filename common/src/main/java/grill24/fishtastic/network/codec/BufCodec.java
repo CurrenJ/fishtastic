@@ -7,10 +7,10 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
- * A 1.20.1 stand-in for 1.21.1's {@code StreamCodec<RegistryFriendlyByteBuf, T>}: MC 1.20.1 has no
+ * A 1.20.1 stand-in for 1.21.1's {@code StreamCodec<FriendlyByteBuf, T>}: MC 1.20.1 has no
  * {@code StreamCodec}, {@code ByteBufCodecs}, {@code CustomPacketPayload} or
- * {@code RegistryFriendlyByteBuf} (docs/backport-pass2/track-b-1.20.1.md, B3.1). Every field that
- * declares {@code StreamCodec<RegistryFriendlyByteBuf, X> STREAM_CODEC} on other branches declares
+ * {@code FriendlyByteBuf} (docs/backport-pass2/track-b-1.20.1.md, B3.1). Every field that
+ * declares {@code StreamCodec<FriendlyByteBuf, X> STREAM_CODEC} on other branches declares
  * {@code BufCodec<X> STREAM_CODEC} here under the same field name, over a plain {@link ByteBuf}
  * (which {@link net.minecraft.network.FriendlyByteBuf} extends), so call sites don't change.
  *

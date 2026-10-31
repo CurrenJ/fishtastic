@@ -36,8 +36,8 @@ public class FishtasticPackets {
     public static final ResourceLocation BOND_COMPANION_ID = Fishtastic.id("bond_companion");
     public static final ResourceLocation COMPANION_SCENE_ID = Fishtastic.id("companion_scene");
     public static final ResourceLocation COMPANION_PARTY_SYNC_ID = Fishtastic.id("companion_party_sync");
-    public static final ResourceLocation AMBIENT_CONTEXT_REQUEST_ID = Fishtastic.id("ambient_context_request");
-    public static final ResourceLocation AMBIENT_CONTEXT_RESPONSE_ID = Fishtastic.id("ambient_context_response");
+    public static final ResourceLocation OBSERVE_FISH_ID = Fishtastic.id("observe_fish");
+    public static final ResourceLocation ECOLOGY_SEED_SYNC_ID = Fishtastic.id("ecology_seed_sync");
     public static final ResourceLocation RENAME_COMPANION_ID = Fishtastic.id("rename_companion");
     public static final ResourceLocation TAKE_PILE_FISH_ID = Fishtastic.id("take_pile_fish");
     public static final ResourceLocation COMPANION_FEEDBACK_ID = Fishtastic.id("companion_feedback");
@@ -59,12 +59,6 @@ public class FishtasticPackets {
                 TutorialActionPacket.class,
                 TutorialActionPacket.STREAM_CODEC,
                 TutorialActionPacket::handleClientToServer
-        );
-        registrar.registerClientToServer(
-                AmbientContextRequestPacket.TYPE,
-                AmbientContextRequestPacket.class,
-                AmbientContextRequestPacket.STREAM_CODEC,
-                AmbientContextRequestPacket::handleClientToServer
         );
         registrar.registerClientToServer(
                 FinishFishingMinigamePacket.TYPE,
@@ -186,6 +180,12 @@ public class FishtasticPackets {
                 TakePileFishPacket.STREAM_CODEC,
                 TakePileFishPacket::handleClientToServer
         );
+        registrar.registerClientToServer(
+                ObserveFishPacket.TYPE,
+                ObserveFishPacket.class,
+                ObserveFishPacket.STREAM_CODEC,
+                ObserveFishPacket::handleClientToServer
+        );
     }
 
     /**
@@ -300,18 +300,14 @@ public class FishtasticPackets {
                 CompanionScenePacket.STREAM_CODEC,
                 CompanionScenePacket::handleServerToClient
         );
-        registrar.registerServerToClient(
-                AmbientContextResponsePacket.TYPE,
-                AmbientContextResponsePacket.class,
-                AmbientContextResponsePacket.STREAM_CODEC,
-                AmbientContextResponsePacket::handleServerToClient
-        );
         registrar.registerServerToClient(FishSchoolSetupPacket.TYPE, FishSchoolSetupPacket.class,
                 FishSchoolSetupPacket.STREAM_CODEC, FishSchoolSetupPacket::handleServerToClient);
         registrar.registerServerToClient(FishSchoolInputPacket.TYPE, FishSchoolInputPacket.class,
                 FishSchoolInputPacket.STREAM_CODEC, FishSchoolInputPacket::handleServerToClient);
         registrar.registerServerToClient(FishSchoolStatePacket.TYPE, FishSchoolStatePacket.class,
                 FishSchoolStatePacket.STREAM_CODEC, FishSchoolStatePacket::handleServerToClient);
+        registrar.registerServerToClient(EcologySeedSyncPacket.TYPE, EcologySeedSyncPacket.class,
+                EcologySeedSyncPacket.STREAM_CODEC, EcologySeedSyncPacket::handleServerToClient);
     }
 
     /**
@@ -340,7 +336,7 @@ public class FishtasticPackets {
         registrar.accept(CompanionFeedbackPacket.TYPE, CompanionFeedbackPacket.STREAM_CODEC);
         registrar.accept(CompanionPartySyncPacket.TYPE, CompanionPartySyncPacket.STREAM_CODEC);
         registrar.accept(CompanionScenePacket.TYPE, CompanionScenePacket.STREAM_CODEC);
-        registrar.accept(AmbientContextResponsePacket.TYPE, AmbientContextResponsePacket.STREAM_CODEC);
+        registrar.accept(EcologySeedSyncPacket.TYPE, EcologySeedSyncPacket.STREAM_CODEC);
         registrar.accept(FishSchoolSetupPacket.TYPE, FishSchoolSetupPacket.STREAM_CODEC);
         registrar.accept(FishSchoolInputPacket.TYPE, FishSchoolInputPacket.STREAM_CODEC);
         registrar.accept(FishSchoolStatePacket.TYPE, FishSchoolStatePacket.STREAM_CODEC);

@@ -125,8 +125,7 @@ public final class FishtasticForgeClient {
 
         // Register fish encyclopedia sync packet client handler
         FishEncyclopediaSyncPacket.registerClientHandler(packet ->
-                FishEncyclopediaClientCache.update(packet.personalCatchCounts(), packet.personalBestSizes(), packet.globalBestSizes(),
-                        packet.claimedRewardKeys()));
+                FishEncyclopediaClientCache.update(packet));
 
         // Register cosmetic capture wand session sync packet client handler
         CosmeticCaptureSyncPacket.registerClientHandler(CosmeticCaptureClientState::apply);
@@ -171,9 +170,6 @@ public final class FishtasticForgeClient {
         MinecraftForge.EVENT_BUS.addListener((net.minecraftforge.client.event.RegisterClientCommandsEvent event) ->
                 grill24.fishtastic.client.ambient.AmbientClientCommands.register(event.getDispatcher(),
                         (source, message) -> source.sendSuccess(() -> net.minecraft.network.chat.Component.literal(message), false)));
-        // Authoritative ambient context responses (Fish in World, Phase 4)
-        grill24.fishtastic.network.AmbientContextResponsePacket.registerClientHandler(
-                grill24.fishtastic.client.ambient.AmbientContextClient::handle);
         // Mark every item usable as a tank cosmetic with a grey tooltip hint
         MinecraftForge.EVENT_BUS.addListener(FishtasticForgeClient::onItemTooltip);
 

@@ -169,9 +169,6 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback.EVENT.register((dispatcher, buildContext) ->
                 grill24.fishtastic.client.ambient.AmbientClientCommands.register(dispatcher,
                         (source, message) -> source.sendFeedback(net.minecraft.network.chat.Component.literal(message))));
-        // Authoritative ambient context responses (Fish in World, Phase 4)
-        grill24.fishtastic.network.AmbientContextResponsePacket.registerClientHandler(
-                grill24.fishtastic.client.ambient.AmbientContextClient::handle);
 
         // PORT-ONLY: Fishtastic's core shader programs (26.1 builds RenderPipelines instead).
         CoreShaderRegistrationCallback.EVENT.register(context -> FishtasticShaders.registerAll(context::register));
@@ -200,8 +197,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
 
         // Register fish encyclopedia sync packet client handler
         FishEncyclopediaSyncPacket.registerClientHandler(packet ->
-                FishEncyclopediaClientCache.update(packet.personalCatchCounts(), packet.personalBestSizes(), packet.globalBestSizes(),
-                        packet.claimedRewardKeys()));
+                FishEncyclopediaClientCache.update(packet));
 
         // Register cosmetic capture wand session sync packet client handler
         CosmeticCaptureSyncPacket.registerClientHandler(CosmeticCaptureClientState::apply);

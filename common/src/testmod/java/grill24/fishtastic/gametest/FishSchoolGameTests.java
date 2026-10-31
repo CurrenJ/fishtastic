@@ -177,8 +177,6 @@ public final class FishSchoolGameTests {
                                 FishSchoolSavedData.Position.at(anchor.offset(-2, 0, 0)),
                                 FishSchoolSavedData.MemberState.AVAILABLE, null)));
         FishSchoolManager schools = FishSchoolManager.get(helper.getLevel());
-        // This fixture tests movement and bobber ownership, not the GameTest biome's fish habitat.
-        schools.ignoreHabitatForTest(school.id());
         schools.tick();
         awaitOwnedBite(helper, player, hook, schools, school, 0);
     }
@@ -254,7 +252,8 @@ public final class FishSchoolGameTests {
     private static void awaitOwnedBite(GameTestHelper helper, ServerPlayer player, FishingHook hook,
                                        FishSchoolManager schools, FishSchoolSavedData.School school,
                                        int ticksWaited, int limit) {
-        // Restore the mock player's bobber link on every check; parallel fixtures may drop it.
+        // The mock player can drop its bobber link between ticks when many fixtures run at once;
+        // restore it every check, as the 1.20.1 port does (backport-catchup-progress).
         player.fishing = hook;
         schools.tick();
         FishSchoolSavedData.Member member = school.members().stream()
@@ -327,8 +326,6 @@ public final class FishSchoolGameTests {
         FishSchoolSavedData.School school = data.addSchoolForTest(Fishtastic.id("bluegill"), anchor,
                 now, now + 12_000, formation, fixtures);
         FishSchoolManager schools = FishSchoolManager.get(helper.getLevel());
-        // This fixture checks connected-water movement, independent of the GameTest biome's habitat.
-        schools.ignoreHabitatForTest(school.id());
         schools.tick();
         awaitContainedSteps(helper, schools, school, schools.simStepsForTest(school.id()), 0);
     }
@@ -356,6 +353,11 @@ public final class FishSchoolGameTests {
         helper.runAfterDelay(1, () -> awaitContainedSteps(helper, schools, school, firstStep, ticksWaited + 1));
     }
 
+    /**
+     * Live visits and their hook reservations are runtime state (a visit is derived from the world seed and
+     * its window, so only the depletion ledger is saved): a reload brings back no schools, and a completed
+     * catch stays depleted through the ledger.
+     */
     public static void transientReservationsRecoverAcrossSaveReload(GameTestHelper helper) {
         FishSchoolSavedData data = new FishSchoolSavedData();
         BlockPos anchor = helper.absolutePos(new BlockPos(1, 1, 1));
@@ -369,21 +371,16 @@ public final class FishSchoolGameTests {
                         new FishSchoolSavedData.MemberFixture(23L,
                                 FishSchoolSavedData.Position.at(anchor.offset(1, 0, 0)),
                                 FishSchoolSavedData.MemberState.CAUGHT, null)));
-        data.setRegionForTest(new FishSchoolSavedData.RegionSchedule(2, -3, 24000L, 20L));
+        grill24.fishtastic.ecology.VisitId window = new grill24.fishtastic.ecology.VisitId(
+                helper.getLevel().dimension().location().toString(), 2, -3, 77L);
+        data.markCaught(window, 1);
 
-        var encoded = FishSchoolSavedData.CODEC.encodeStart(JsonOps.INSTANCE, data).getOrThrow(false, error -> { throw new AssertionError(error); });
-        FishSchoolSavedData restored = FishSchoolSavedData.CODEC.parse(JsonOps.INSTANCE, encoded).getOrThrow(false, error -> { throw new AssertionError(error); });
-        FishSchoolSavedData.School restoredSchool = restored.schoolsForTest().get(0);
-        FishSchoolSavedData.Member restoredInFlight = restoredSchool.members().get(0);
-        FishSchoolSavedData.Member restoredCaught = restoredSchool.members().get(1);
-        helper.assertTrue(restoredInFlight.state() == FishSchoolSavedData.MemberState.RECOVERING
-                        && restoredInFlight.reservation() == null,
-                "A reload must clear non-restorable hook/session ownership and recover the member");
-        helper.assertTrue(restoredCaught.state() == FishSchoolSavedData.MemberState.CAUGHT,
+        var encoded = FishSchoolSavedData.CODEC.encodeStart(JsonOps.INSTANCE, data).getOrThrow(false, error -> { throw new IllegalStateException("Codec failed: " + error); });
+        FishSchoolSavedData restored = FishSchoolSavedData.CODEC.parse(JsonOps.INSTANCE, encoded).getOrThrow(false, error -> { throw new IllegalStateException("Codec failed: " + error); });
+        helper.assertTrue(restored.schoolsForTest().isEmpty(),
+                "A reload must bring back no live school or reservation: visits are derived again, not saved");
+        helper.assertTrue(restored.caughtMask(window) == 0b10L,
                 "A completed catch must remain depleted after reload");
-        helper.assertTrue(restored.regionsForTest().size() == 1
-                        && restored.regionsForTest().get(0).nextAttemptAt() == 24000L,
-                "The regional encounter deadline must survive reload");
         helper.succeed();
     }
 
@@ -418,7 +415,7 @@ public final class FishSchoolGameTests {
     }
 
     /**
-     * A visit takes its species' authored shape, or a forced one, and keeps it through a save:
+     * A visit takes its species' authored shape, or a forced one:
      * a pike arrives alone, a bluegill can be made a pair, and an ineligible species is refused.
      */
     public static void spawnedVisitsTakeTheirShape(GameTestHelper helper) {
@@ -447,13 +444,6 @@ public final class FishSchoolGameTests {
         helper.assertTrue(pair.shape() == VisitShape.PAIR && pair.members().size() == 2,
                 "a forced pair must hold exactly two fish: " + pair.shape() + " x" + pair.members().size());
 
-        var encoded = FishSchoolSavedData.CODEC.encodeStart(JsonOps.INSTANCE, data).getOrThrow(false, error -> { throw new AssertionError(error); });
-        FishSchoolSavedData restored = FishSchoolSavedData.CODEC.parse(JsonOps.INSTANCE, encoded).getOrThrow(false, error -> { throw new AssertionError(error); });
-        for (FishSchoolSavedData.School original : List.of(pike, pair)) {
-            FishSchoolSavedData.School reloaded = restored.schoolsForTest().stream()
-                    .filter(s -> s.id().equals(original.id())).findFirst().orElseThrow();
-            helper.assertTrue(reloaded.shape() == original.shape(), "a visit's shape must survive a save: " + original.shape());
-        }
         helper.succeed();
     }
 
@@ -461,22 +451,5 @@ public final class FishSchoolGameTests {
         helper.assertTrue(result.startsWith("Spawned"), "debug spawn must form a visit: " + result);
         UUID id = UUID.fromString(result.substring(result.lastIndexOf("(school ") + 8, result.length() - 2));
         return data.schoolsForTest().stream().filter(s -> s.id().equals(id)).findFirst().orElseThrow();
-    }
-
-    /** Visits saved before shapes existed carry no shape field; they were all schools. */
-    public static void schoolsSavedBeforeShapesLoadAsSchools(GameTestHelper helper) {
-        FishSchoolSavedData data = new FishSchoolSavedData();
-        BlockPos anchor = helper.absolutePos(new BlockPos(1, 1, 1));
-        var environment = FishingPoolResolver.resolveEnvironment(helper.getLevel(), anchor, null);
-        data.addSchoolForTest(Fishtastic.id("bluegill"), anchor, 10L, 500L, FishSchoolSavedData.snapshot(environment),
-                List.of(new FishSchoolSavedData.MemberFixture(5L, FishSchoolSavedData.Position.at(anchor),
-                        FishSchoolSavedData.MemberState.AVAILABLE, null)));
-        var encoded = FishSchoolSavedData.CODEC.encodeStart(JsonOps.INSTANCE, data).getOrThrow(false, error -> { throw new AssertionError(error); }).getAsJsonObject();
-        // A school is the field's default, so it is not written; drop it anyway in case that changes.
-        encoded.getAsJsonArray("schools").get(0).getAsJsonObject().remove("shape");
-        FishSchoolSavedData restored = FishSchoolSavedData.CODEC.parse(JsonOps.INSTANCE, encoded).getOrThrow(false, error -> { throw new AssertionError(error); });
-        helper.assertTrue(restored.schoolsForTest().get(0).shape() == VisitShape.SCHOOL,
-                "a visit saved without a shape must load as a school");
-        helper.succeed();
     }
 }

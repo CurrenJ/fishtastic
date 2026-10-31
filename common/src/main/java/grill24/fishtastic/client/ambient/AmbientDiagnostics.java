@@ -42,47 +42,43 @@ public final class AmbientDiagnostics {
                                int individuals, int retiring, long builds, double buildMillis,
                                boolean openMinL, boolean openMaxL, boolean openMinY, boolean openMaxY,
                                boolean openMinD, boolean openMaxD) {}
-    /**
-     * Every species any shown patch's sampler can currently draw, in first-seen order — the union
-     * of the live visual populations. Before the first context arrives, or where nothing is
-     * representable, this is empty: the runtime shows only what an authoritative rt.pool named.
-     */
+    /** Every species alive in a shown patch, in first-seen order. */
     public List<String> pool() {
         List<String> out = new ArrayList<>();
         for (AmbientFishRuntime.DomainState st : rt.domains.values()) {
-            if (st.sampler == null) continue;
-            for (VisualSampler.Entry entry : st.sampler.entries()) {
-                if (!out.contains(entry.species())) out.add(entry.species());
+            for (AmbientFishRuntime.Member m : st.members) {
+                if (!out.contains(m.species)) out.add(m.species);
             }
         }
         return List.copyOf(out);
     }
+
     /**
-     * The species one patch's sampler may draw, in candidate order — the harness's legality window
-     * ("every live individual's species must be in here"). Empty when the patch has no usable
-     * context or nothing representable.
+     * The seeded roster of the last pass, one line per fish: ID, species, lifespan phase and the
+     * drawn/hidden split. {@code /fishtasticambient debug} prints the summary and the nearest few.
      */
-    public List<String> representableSpecies(long patchKey) {
-        AmbientFishRuntime.DomainState st = rt.domains.get(patchKey);
-        if (st == null || st.sampler == null) return List.of();
-        List<String> out = new ArrayList<>(st.sampler.size());
-        for (VisualSampler.Entry entry : st.sampler.entries()) out.add(entry.species());
-        return List.copyOf(out);
+    public List<String> rosterLines(int limit) {
+        BlockPos at = Minecraft.getInstance().player != null
+                ? Minecraft.getInstance().player.blockPosition() : BlockPos.ZERO;
+        return rt.rosterSnapshot().stream()
+                .sorted(Comparator.comparingDouble(f -> at.distToCenterSqr(f.homeX() + 0.5, at.getY(), f.homeZ() + 0.5)))
+                .limit(limit)
+                .map(f -> String.format(java.util.Locale.ROOT, "%016x %s chunk=%d,%d slot=%d phase=%.2f %s",
+                        f.id(), f.species() == null ? "-" : f.species().replace("fishtastic:", ""),
+                        f.chunkX(), f.chunkZ(), f.slot(), f.phase(), f.status()))
+                .toList();
     }
-    /** One patch's sampler entries (shares included), for the scene log; empty when unusable. */
-    public List<VisualSampler.Entry> samplerFor(long patchKey) {
-        AmbientFishRuntime.DomainState st = rt.domains.get(patchKey);
-        return st == null || st.sampler == null ? List.of() : st.sampler.entries();
+
+    /** The drawn/hidden split of the last roster pass, in one line. */
+    public String rosterSummary() {
+        var st = rt.stats;
+        return "roster seeded=" + rt.seeded() + " fluid=" + rt.fluid() + " present=" + st.rosterPresent
+                + " drawn=" + st.rosterDrawn + " hidden[density=" + st.rosterHiddenDensity + "] noDomain=" + st.rosterNoDomain
+                + " pending=" + st.rosterPending + " alive=" + st.active + " retiring=" + st.retiring
+                + " draws=" + st.speciesDraws + " unplaceable=" + st.unplaceable + " leashed=" + st.retireLeash
+                + " scans=" + st.chunkScans;
     }
-    /** The fingerprint a patch's applied sampler was built from, or {@link Long#MIN_VALUE}. */
-    public long appliedFingerprint(long patchKey) {
-        AmbientFishRuntime.DomainState st = rt.domains.get(patchKey);
-        return st == null ? Long.MIN_VALUE : st.appliedFingerprint;
-    }
-    /** Patch random states currently held for a quick return (bounded; diagnostics). */
-    public int retainedStateCount() {
-        return rt.retained.size();
-    }
+
     /**
      * One line of internal state for the harness log: the population, and for each shown domain why
      * it is or is not taking fish. Diagnosis only — nothing in the sim reads it.
@@ -104,7 +100,6 @@ public final class AmbientDiagnostics {
                 .append(" peak=").append(rt.stats.peakTickMillis).append("] submitMs[mean=")
                 .append(rt.stats.totalSubmitMillis / Math.max(1, rt.stats.renderFrames))
                 .append(" peak=").append(rt.stats.peakSubmitMillis).append("] species=").append(pool().size())
-                .append(" retained=").append(rt.retained.size()).append('/').append(AmbientTuning.MAX_RETAINED_PATCHES)
                 .append(" domains=").append(rt.domains.size())
                 .append(" livePatches=").append(rt.discovery.livePatches().size())
                 .append(" submits=").append(rt.worldSubmitsThisFrame)
@@ -121,21 +116,14 @@ public final class AmbientDiagnostics {
         for (AmbientFishRuntime.DomainState st : rt.domains.values()) {
             if (shown++ == 4) break;
             WaterDiscovery.Patch now = rt.discovery.patch(st.patchKey);
-            int omitted = st.sampler == null ? 0 : st.sampler.omitted().size();
-            int representable = st.sampler == null ? 0 : st.sampler.size();
             sb.append(" [key=").append(st.patchKey)
                     .append(" patchCols=").append(st.patch == null ? -1 : st.patch.columns())
                     .append(" mapCols=").append(now == null ? -1 : now.columns())
                     .append(" builtCols=").append(st.builtColumns)
                     .append(" water=").append(st.domain == null ? "none" : "built")
                     .append(" refilling=").append(st.refilling)
-                    .append(" ctx=").append(st.contextOk ? "ok" : "none")
-                    .append(" pool=").append(representable).append('/').append(representable + omitted)
-                    .append(" fp=").append(st.appliedFingerprint == Long.MIN_VALUE ? "-"
-                            : Long.toHexString(st.appliedFingerprint))
                     .append(" top=").append(String.format(java.util.Locale.ROOT, "%.2f", st.topMargin))
-                    .append(" members=").append(st.members.size()).append('/').append(rt.targetFor(st))
-                    .append(" spawn=").append(skipReason(st))
+                    .append(" members=").append(st.members.size())
                     .append(']');
         }
         individuals().stream().sorted(Comparator.comparingDouble(p -> at.distToCenterSqr(p.x(), p.y(), p.z())))
@@ -143,16 +131,6 @@ public final class AmbientDiagnostics {
                         " [fish=%s xyz=%.1f,%.1f,%.1f depth=%.1f fade=%.2f reason=%d]",
                         p.species(), p.x(), p.y(), p.z(), p.surfaceClearance(), p.fade(), p.retireReason())));
         return sb.toString();
-    }
-    /** Why {@link #spawnOne} would skip this domain, in one word; {@code -} means eligible. */
-    private String skipReason(AmbientFishRuntime.DomainState st) {
-        if (st.dying) return "dying";
-        if (st.domain == null) return "unbuilt";
-        if (st.members.size() >= rt.targetFor(st)) return "full";
-        if (!st.contextOk) return "ctxx";
-        if (st.sampler == null || st.sampler.isEmpty()) return "norep";
-        if (AmbientFishRuntime.recent(st.lastOmissionTick, rt.lastTick, AmbientFishRuntime.OMISSION_RETRY_TICKS)) return "retry";
-        return "-";
     }
     public List<DomainReport> domainReports() {
         List<DomainReport> out = new ArrayList<>();

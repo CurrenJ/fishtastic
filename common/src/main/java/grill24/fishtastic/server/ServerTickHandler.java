@@ -47,6 +47,13 @@ public class ServerTickHandler {
             Fishtastic.LOGGER.error("Error ticking companion scene manager", e);
         }
 
+        // World fish ecology: make sure each client holds its dimension's derived seed
+        try {
+            EcologySeedSync.tick(server);
+        } catch (Exception e) {
+            Fishtastic.LOGGER.error("Error syncing ecology seeds", e);
+        }
+
         // Tick fishing minigame managers for all levels
         for (ServerLevel level : server.getAllLevels()) {
             FishingMinigameManager manager = FishingMinigameManager.get(level);

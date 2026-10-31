@@ -36,14 +36,15 @@ public final class EncyclopediaTiers {
     /**
      * Tiers by best pool share, rarest first. Full completion (lore) never asks for more than 50
      * catches of the species; rarer tiers ask for fewer so the expected casts to finish an entry
-     * stay within a few hundred whatever the species.
+     * stay within a few hundred whatever the species. The name opens on the first catch in every
+     * tier (world fish exploration P2: a catch always grants what spyglass observation grants).
      */
     public enum Tier {
         VERY_RARE(0.000f, new FishEncyclopediaEntry.UnlockThresholds(1, 1, 1, 1, 3)),
         RARE(0.015f, new FishEncyclopediaEntry.UnlockThresholds(1, 1, 2, 2, 6)),
         UNCOMMON(0.040f, new FishEncyclopediaEntry.UnlockThresholds(1, 2, 4, 3, 15)),
-        COMMON(0.120f, new FishEncyclopediaEntry.UnlockThresholds(2, 3, 8, 4, 30)),
-        ABUNDANT(0.300f, new FishEncyclopediaEntry.UnlockThresholds(2, 4, 12, 6, 50));
+        COMMON(0.120f, new FishEncyclopediaEntry.UnlockThresholds(1, 3, 8, 4, 30)),
+        ABUNDANT(0.300f, new FishEncyclopediaEntry.UnlockThresholds(1, 4, 12, 6, 50));
 
         /** Lowest best-pool share that lands a species in this tier. */
         public final float minShare;
