@@ -103,7 +103,7 @@ could be negligible or a visible hitch: step 0 measures it.
 
 `reserveNearbyHooks` runs every 5 ticks for up to 8 players (`MAX_HOOK_CHECKS_PER_TICK`). For each
 player with a line out over school water, `hookChoice` runs `findPath` once for each AVAILABLE
-member within `interestRadius`.
+member within the bite reach (`schools.biteReachHorizontal` x `schools.biteReachDepth`; was `interestRadius`).
 
 `findPath` is a breadth-first search over the school's region and allocates a `HashMap` each
 time. The result is rejected when the path is longer than `radius + 3`, but the search does not

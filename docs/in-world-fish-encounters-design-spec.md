@@ -117,7 +117,7 @@ eligible only once its approach is accepted in game.
 | Class | Species (non-nether) | Approach proposal | Readiness |
 |---|---|---|---|
 | FREE_SWIM | 41 | Current approach. Large solitary fish may need a slower, wider final turn. | Built (Phase 1) |
-| ANCHORED | 2 (garden eels) | Reversed: the fish never travels. A bobber landing within ~1.5 blocks of an emerged fish triggers a bite after a short delay. A colony can host several. | Built (Phase 3) |
+| ANCHORED | 2 (garden eels) | Reversed: the fish never travels. A bobber landing within 2 blocks (horizontally) of an emerged fish triggers a bite after a short delay. A colony can host several. | Built (Phase 3) |
 | DRIFT | 3 | Slow drift toward the bobber with a longer `approachMaxTicks`. The bite is a pulse onto the bobber. | Built (Phase 3) |
 | BENTHIC | 6 | Bottom bite (§4.4, O6 decided): crawls along the floor to beneath the bobber; the bobber dips. Nothing rises. | Built (Phase 4) |
 | GLIDE | 3 | Not eligible. Blocked on the GLIDE redesign. | Parked |
@@ -145,11 +145,25 @@ sand or gravel floor patch and stays put. The ANCHORED retract/emerge reaction t
 (locomotion doc) can work like stalking: a player who approaches too fast makes the colony retract,
 and a retracted fish won't bite until it re-emerges.
 
+### 4.5 Bite reach is a cylinder (2026-10-31)
+
+A fish takes a bobber when it is within `schools.biteReachHorizontal` (default 4) of it sideways and at
+most `schools.biteReachDepth` (default 12) below it, or up to 1 block above it. The bobber's depth is not
+the player's to control, so depth does not limit reach; only its position over the fish is the skill. When
+several fish qualify, the one nearest sideways wins (depth only breaks near-ties). Eels are sideways-only
+at `EEL_REACH` (2). Replaces the old 3D `schools.interestRadius` (8), which cut sideways reach as the fish
+got deeper.
+
+The visit water scan reaches 12 blocks below its seed (was 6) so deep fish exist at all. A column whose
+water continues under the scan is marked `truncated`, which gives it no floor: before this, the scan's
+bottom edge was treated as ground and a floor creature (garden eel) in medium-deep water was placed
+floating above the real sand.
+
 ### 4.4 BENTHIC bottom bite
 
 Floor dwellers never leave the floor. A benthic member is interested in a bobber when the water
 column below the bobber reaches a floor cell the member can crawl to through connected water, within
-`interestRadius` horizontally and a bounded depth below the bobber (proposed 8 blocks). It crawls to
+the bite reach horizontally (§4.5) and a bounded depth below the bobber (12 blocks). It crawls to
 the floor cell directly beneath the bobber, pauses, and the bobber dips with the normal bite feedback.
 The line is implied to reach the bottom; nothing is drawn rising.
 
@@ -395,7 +409,7 @@ Phases 3–4, the other classes. All four ready classes are now eligible (GLIDE 
   sprinting player within 8 blocks of an eel visit changes (or moves half a block); the engine's own
   startle then ducks eels within 3 blocks of them, and a ducked eel takes no bobber.
 
-Known limit: a visit's water scan reaches 6 blocks below where it starts, so a crawler or eel needs a
+Superseded by §4.5 (scan now 12 blocks, unknown beds get no floor). Old limit: a visit's water scan reaches 6 blocks below where it starts, so a crawler or eel needs a
 floor within that depth to have any floor at all. In practice floor creatures appear in shallow
 water (shores, reefs, shallow lagoons) and not over deep open ocean, and the 8-block bottom bite is
 capped by the scan. Deepening the scan for floor classes is possible later at some scan cost.

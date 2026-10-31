@@ -333,11 +333,11 @@ public final class FishSchoolSim {
     /** A drifter is at the bait when this close to it, blocks. */
     static final float DRIFT_ARRIVED = 0.45f;
     /** An eel takes a bobber that lands within this of its burrow, blocks (horizontal). */
-    public static final float EEL_REACH = 1.5f;
+    public static final float EEL_REACH = 2f;
     /** An eel this far withdrawn or less counts as out of its burrow. */
     static final float EEL_EMERGED = 0.3f;
     /** How far above the floor a bobber may be for a crawler to take it from the bottom, blocks (spec §4.4). */
-    public static final float BOTTOM_BITE_DEPTH = 8f;
+    public static final float BOTTOM_BITE_DEPTH = 12f;
     /** Where the eels' watcher sits when nobody is rushing them: present (so they re-arm) but far away. */
     private static final float WATCHER_AWAY = 1.0e5f;
 

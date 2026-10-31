@@ -78,7 +78,12 @@ public final class FishtasticServerConfig {
             schools.maxPerDimension=6
             schools.maxMembersPerDimension=24
             schools.maxMembersPerSchool=4
-            schools.interestRadius=8
+            # Bite reach is a cylinder under the bobber: how far to the side, and how far below it,
+            # a visiting fish can be and still come for the bobber. Keep the sideways reach small so
+            # the bobber has to be placed over the fish; depth is generous because it is not
+            # controllable. (A garden eel only takes a bobber within 2 blocks of its burrow.)
+            schools.biteReachHorizontal=4
+            schools.biteReachDepth=12
             schools.trackingRange=48
             schools.approachMinTicks=40
             schools.approachMaxTicks=600
@@ -143,7 +148,8 @@ public final class FishtasticServerConfig {
     public static int fishSchoolMaxPerDimension() { return Math.max(1, Math.min(16, integer("schools.maxPerDimension", 6))); }
     public static int fishSchoolMaxMembersPerDimension() { return Math.max(2, Math.min(64, integer("schools.maxMembersPerDimension", 24))); }
     public static int fishSchoolMaxMembersPerSchool() { return Math.max(2, Math.min(8, integer("schools.maxMembersPerSchool", 4))); }
-    public static int fishSchoolInterestRadius() { return Math.max(2, Math.min(16, integer("schools.interestRadius", 8))); }
+    public static int fishSchoolBiteReachHorizontal() { return Math.max(1, Math.min(16, integer("schools.biteReachHorizontal", 4))); }
+    public static int fishSchoolBiteReachDepth() { return Math.max(4, Math.min(16, integer("schools.biteReachDepth", 12))); }
     public static int fishSchoolTrackingRange() { return Math.max(16, Math.min(96, integer("schools.trackingRange", 48))); }
     public static int fishSchoolApproachMinTicks() { return Math.max(20, Math.min(1200, integer("schools.approachMinTicks", 40))); }
     public static int fishSchoolApproachMaxTicks() { return Math.max(fishSchoolApproachMinTicks(), Math.min(2400, integer("schools.approachMaxTicks", 600))); }
