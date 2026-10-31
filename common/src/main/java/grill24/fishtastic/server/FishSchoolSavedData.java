@@ -4,30 +4,43 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.component.FishQuality;
+import grill24.fishtastic.ecology.VisitId;
+import grill24.fishtastic.ecology.VisitWeatherLog;
 import grill24.fishtastic.data.FishMoonPhase;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.item.FishtasticFishItem;
 import grill24.fishtastic.school.VisitShape;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.UUIDUtil;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.util.StringRepresentable;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.world.level.saveddata.SavedData;
-
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.UUID;
 
-/** Persisted, shared fish-school visits and their bounded encounter schedule. */
+/**
+ * Shared fish-school visits, and the one thing about them that is saved: the depletion ledger
+ * ({@code VisitId -> caught-member bitmask}, world fish exploration E1/E14, implementation plan
+ * Step 2). A visit is derived from the world seed, its site and its window, so the schools in
+ * {@link #schools()} are live runtime state only - never written, and derived again when a player
+ * returns - and only the members already caught need to outlive a reload. Entries are pruned once
+ * their window can no longer be revealed. Saves from before the rework carried schools and region
+ * schedules; those fields are ignored on load and gone with the next save (planning decision P4).
+ * The bounded recent weather log is saved alongside depletion: world input needed to derive a
+ * window under its start weather, rather than saved visit state (the accepted exception to E1).
+ */
 public final class FishSchoolSavedData extends SavedData {
     public enum SchoolState implements StringRepresentable {
         ACTIVE, DEPARTING;
@@ -42,13 +55,6 @@ public final class FishSchoolSavedData extends SavedData {
     }
 
     public record Position(double x, double y, double z, float yaw) {
-        public static final Codec<Position> CODEC = RecordCodecBuilder.create(i -> i.group(
-                Codec.DOUBLE.fieldOf("x").forGetter(Position::x),
-                Codec.DOUBLE.fieldOf("y").forGetter(Position::y),
-                Codec.DOUBLE.fieldOf("z").forGetter(Position::z),
-                Codec.FLOAT.optionalFieldOf("yaw", 0f).forGetter(Position::yaw)
-        ).apply(i, Position::new));
-
         public static Position at(BlockPos pos) {
             return new Position(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 0f);
         }
@@ -58,40 +64,33 @@ public final class FishSchoolSavedData extends SavedData {
     public record FormationSnapshot(ResourceLocation biome, FishProfile.TimeOfDay timeOfDay,
                                     FishProfile.WeatherCondition weather, FishMoonPhase moon,
                                     List<String> zones) {
-        public static final Codec<FormationSnapshot> CODEC = RecordCodecBuilder.create(i -> i.group(
-                ResourceLocation.CODEC.fieldOf("biome").forGetter(FormationSnapshot::biome),
-                FishProfile.TimeOfDay.CODEC.fieldOf("time").forGetter(FormationSnapshot::timeOfDay),
-                FishProfile.WeatherCondition.CODEC.fieldOf("weather").forGetter(FormationSnapshot::weather),
-                FishMoonPhase.CODEC.fieldOf("moon").forGetter(FormationSnapshot::moon),
-                Codec.STRING.listOf().optionalFieldOf("zones", List.of()).forGetter(FormationSnapshot::zones)
-        ).apply(i, FormationSnapshot::new));
     }
 
-    /** Reservation identity is retained in-session, but transient reservations are cleared on reload. */
+    /** A hook's claim on a member. In memory only: hooks and minigame clients do not survive a restart. */
     public record Reservation(UUID playerId, UUID hookId, long startedAt, long leaseUntil,
                               int sessionId, int targetIndex) {
-        public static final Codec<Reservation> CODEC = RecordCodecBuilder.create(i -> i.group(
-                UUIDUtil.STRING_CODEC.fieldOf("player").forGetter(Reservation::playerId),
-                UUIDUtil.STRING_CODEC.fieldOf("hook").forGetter(Reservation::hookId),
-                Codec.LONG.fieldOf("started").forGetter(Reservation::startedAt),
-                Codec.LONG.fieldOf("lease_until").forGetter(Reservation::leaseUntil),
-                Codec.INT.optionalFieldOf("session", 0).forGetter(Reservation::sessionId),
-                Codec.INT.optionalFieldOf("target", -1).forGetter(Reservation::targetIndex)
-        ).apply(i, Reservation::new));
     }
 
     public static final class Member {
         private final UUID id;
         private final long rewardSeed;
+        /** The member's index in its visit's derivation (its ledger bit), or -1 for a member not derived from a window. */
+        private final int index;
+        /** The game tick its seeded departure falls on (E11), or -1 for a member that only leaves with its visit. */
+        private final long departAt;
+        /** When a member sent away on its own is gone, or 0. */
+        private long fadeUntil;
         private Position position;
         private long recoveryUntil;
         private MemberState state;
         private Reservation reservation;
 
-        private Member(UUID id, long rewardSeed, Position position,
+        private Member(UUID id, long rewardSeed, int index, long departAt, Position position,
                        long recoveryUntil, MemberState state, Optional<Reservation> reservation) {
             this.id = id;
             this.rewardSeed = rewardSeed;
+            this.index = index;
+            this.departAt = departAt;
             this.position = position;
             this.recoveryUntil = recoveryUntil;
             this.state = state;
@@ -100,6 +99,9 @@ public final class FishSchoolSavedData extends SavedData {
 
         public UUID id() { return id; }
         public long rewardSeed() { return rewardSeed; }
+        public int index() { return index; }
+        public long departAt() { return departAt; }
+        public long fadeUntil() { return fadeUntil; }
         /** This fish's quality for its whole visit: its trail shows it, and catching it gives it. */
         public FishQuality.Quality quality() { return qualityOf(rewardSeed); }
         /** Where the school's sim last had this member (frozen while it is out of the water). */
@@ -109,6 +111,7 @@ public final class FishSchoolSavedData extends SavedData {
         public Reservation reservation() { return reservation; }
 
         void setPosition(Position value) { position = value; }
+        void setFadeUntil(long value) { fadeUntil = value; }
         void setRecoveryUntil(long value) { recoveryUntil = value; }
         void setState(MemberState value) { state = value; }
         void setReservation(Reservation value) { reservation = value; }
@@ -116,6 +119,8 @@ public final class FishSchoolSavedData extends SavedData {
 
     public static final class School {
         private final UUID id;
+        /** The window this visit is the derivation of, or null for a visit that is not (debug spawns, test fixtures). */
+        private final @Nullable VisitId visitId;
         private final ResourceLocation species;
         private final BlockPos anchor;
         private final long createdAt;
@@ -127,11 +132,14 @@ public final class FishSchoolSavedData extends SavedData {
         private SchoolState state;
         /** Game time the visit may next roll a surface jump; 0 until the first roll is scheduled. */
         private long nextSurfaceJumpAt;
+        /** Of a derived visit's roster: how many had left, and how many were caught, before it was revealed. */
+        private int departedAtReveal, caughtAtReveal;
 
-        private School(UUID id, ResourceLocation species, BlockPos anchor, long createdAt, long activeUntil,
-                       long departureUntil, SchoolState state, FormationSnapshot formation, VisitShape shape,
-                       List<Member> members, long nextSurfaceJumpAt) {
+        private School(UUID id, @Nullable VisitId visitId, ResourceLocation species, BlockPos anchor, long createdAt,
+                       long activeUntil, long departureUntil, SchoolState state, FormationSnapshot formation,
+                       VisitShape shape, List<Member> members, long nextSurfaceJumpAt) {
             this.id = id;
+            this.visitId = visitId;
             this.species = species;
             this.anchor = anchor;
             this.createdAt = createdAt;
@@ -145,6 +153,7 @@ public final class FishSchoolSavedData extends SavedData {
         }
 
         public UUID id() { return id; }
+        public @Nullable VisitId visitId() { return visitId; }
         public ResourceLocation species() { return species; }
         public BlockPos anchor() { return anchor; }
         public long createdAt() { return createdAt; }
@@ -156,52 +165,37 @@ public final class FishSchoolSavedData extends SavedData {
         public VisitShape shape() { return shape; }
         public List<Member> members() { return members; }
         public long nextSurfaceJumpAt() { return nextSurfaceJumpAt; }
+        public int departedAtReveal() { return departedAtReveal; }
+        public int caughtAtReveal() { return caughtAtReveal; }
 
         void setState(SchoolState value) { state = value; }
         void setDepartureUntil(long value) { departureUntil = value; }
         void setNextSurfaceJumpAt(long value) { nextSurfaceJumpAt = value; }
     }
 
-    public record RegionSchedule(int x, int z, long nextAttemptAt, long lastSeenAt) {
-        public static final Codec<RegionSchedule> CODEC = RecordCodecBuilder.create(i -> i.group(
-                Codec.INT.fieldOf("x").forGetter(RegionSchedule::x),
-                Codec.INT.fieldOf("z").forGetter(RegionSchedule::z),
-                Codec.LONG.fieldOf("next_attempt").forGetter(RegionSchedule::nextAttemptAt),
-                Codec.LONG.fieldOf("last_seen").forGetter(RegionSchedule::lastSeenAt)
-        ).apply(i, RegionSchedule::new));
-    }
-
     /** Small test-fixture description; public because loader GameTests compile in a separate module. */
     public record MemberFixture(long rewardSeed, Position position, MemberState state,
                                 @Nullable Reservation reservation) {}
 
-    private static final Codec<Member> MEMBER_CODEC = RecordCodecBuilder.create(i -> i.group(
-            UUIDUtil.STRING_CODEC.fieldOf("id").forGetter(Member::id),
-            Codec.LONG.fieldOf("reward_seed").forGetter(Member::rewardSeed),
-            Position.CODEC.fieldOf("position").forGetter(Member::position),
-            Codec.LONG.optionalFieldOf("recovery_until", 0L).forGetter(Member::recoveryUntil),
-            MemberState.CODEC.optionalFieldOf("state", MemberState.AVAILABLE).forGetter(Member::state),
-            Reservation.CODEC.optionalFieldOf("reservation").forGetter(m -> Optional.ofNullable(m.reservation()))
-    ).apply(i, Member::new));
+    /** One ledger row: the members caught so far of one window of one site (bit {@code i} = member {@code i}). */
+    public record DepletionEntry(int chunkX, int chunkZ, long window, long caughtMask) {
+        public static final Codec<DepletionEntry> CODEC = RecordCodecBuilder.create(i -> i.group(
+                Codec.INT.fieldOf("x").forGetter(DepletionEntry::chunkX),
+                Codec.INT.fieldOf("z").forGetter(DepletionEntry::chunkZ),
+                Codec.LONG.fieldOf("window").forGetter(DepletionEntry::window),
+                Codec.LONG.fieldOf("caught").forGetter(DepletionEntry::caughtMask)
+        ).apply(i, DepletionEntry::new));
+    }
 
-    private static final Codec<School> SCHOOL_CODEC = RecordCodecBuilder.create(i -> i.group(
-            UUIDUtil.STRING_CODEC.fieldOf("id").forGetter(School::id),
-            ResourceLocation.CODEC.fieldOf("species").forGetter(School::species),
-            BlockPos.CODEC.fieldOf("anchor").forGetter(School::anchor),
-            Codec.LONG.fieldOf("created_at").forGetter(School::createdAt),
-            Codec.LONG.fieldOf("active_until").forGetter(School::activeUntil),
-            Codec.LONG.optionalFieldOf("departure_until", 0L).forGetter(School::departureUntil),
-            SchoolState.CODEC.optionalFieldOf("state", SchoolState.ACTIVE).forGetter(School::state),
-            FormationSnapshot.CODEC.fieldOf("formation").forGetter(School::formation),
-            // Visits saved before shapes existed were all schools.
-            VisitShape.CODEC.optionalFieldOf("shape", VisitShape.SCHOOL).forGetter(School::shape),
-            MEMBER_CODEC.listOf().fieldOf("members").forGetter(School::members),
-            Codec.LONG.optionalFieldOf("next_surface_jump_at", 0L).forGetter(School::nextSurfaceJumpAt)
-    ).apply(i, School::new));
+    private record LedgerKey(int chunkX, int chunkZ, long window) {
+        static LedgerKey of(VisitId id) {
+            return new LedgerKey(id.chunkX(), id.chunkZ(), id.window());
+        }
+    }
 
     public static final Codec<FishSchoolSavedData> CODEC = RecordCodecBuilder.create(i -> i.group(
-            SCHOOL_CODEC.listOf().optionalFieldOf("schools", List.of()).forGetter(d -> d.schools),
-            RegionSchedule.CODEC.listOf().optionalFieldOf("regions", List.of()).forGetter(d -> d.regions)
+            DepletionEntry.CODEC.listOf().optionalFieldOf("depletion", List.of()).forGetter(FishSchoolSavedData::depletionEntries),
+            VisitWeatherLog.Entry.CODEC.listOf().optionalFieldOf("weather", List.of()).forGetter(FishSchoolSavedData::weatherEntries)
     ).apply(i, FishSchoolSavedData::new));
 
     public static final String FILE_ID = "fishtastic_fish_schools";
@@ -222,8 +216,10 @@ public final class FishSchoolSavedData extends SavedData {
         return tag;
     }
 
-    private final List<School> schools;
-    private final List<RegionSchedule> regions;
+    /** Live visits: in memory only (see the class comment). */
+    private final List<School> schools = new ArrayList<>();
+    private final Map<LedgerKey, Long> depletion = new HashMap<>();
+    private VisitWeatherLog weatherLog;
     // Runtime-only service state belongs to this world's SavedData lifetime. Keeping it here
     // avoids a process-wide weak-key cache whose values would retain their ServerLevel keys.
     private transient FishSchoolManager manager;
@@ -232,10 +228,14 @@ public final class FishSchoolSavedData extends SavedData {
         this(List.of(), List.of());
     }
 
-    private FishSchoolSavedData(List<School> schools, List<RegionSchedule> regions) {
-        this.schools = new ArrayList<>(schools);
-        this.regions = new ArrayList<>(regions);
-        recoverTransientReservations();
+    private FishSchoolSavedData(List<DepletionEntry> depletion, List<VisitWeatherLog.Entry> weather) {
+        this.weatherLog = new VisitWeatherLog(weather);
+        for (DepletionEntry entry : depletion) {
+            if (entry.caughtMask() != 0L) {
+                this.depletion.merge(new LedgerKey(entry.chunkX(), entry.chunkZ(), entry.window()), entry.caughtMask(),
+                        (a, b) -> a | b);
+            }
+        }
     }
 
     public static FishSchoolSavedData get(ServerLevel level) {
@@ -248,14 +248,13 @@ public final class FishSchoolSavedData extends SavedData {
     }
 
     List<School> schools() { return schools; }
-    List<RegionSchedule> regions() { return regions; }
 
     /** Test-only fixture seam used by the shared GameTest suite across all loaders. */
     public School addSchoolForTest(ResourceLocation species, BlockPos anchor, long createdAt, long activeUntil,
                                    FormationSnapshot formation, List<MemberFixture> fixtures) {
         List<Member> members = new ArrayList<>(fixtures.size());
         for (MemberFixture fixture : fixtures) {
-            members.add(new Member(UUID.randomUUID(), fixture.rewardSeed(), fixture.position(),
+            members.add(new Member(UUID.randomUUID(), fixture.rewardSeed(), -1, -1L, fixture.position(),
                     0L, fixture.state(), Optional.ofNullable(fixture.reservation())));
         }
         School school = newSchool(species, anchor, createdAt, activeUntil, formation, VisitShape.SCHOOL, members);
@@ -269,53 +268,75 @@ public final class FishSchoolSavedData extends SavedData {
         if (!owned) throw new IllegalArgumentException("Member does not belong to this fish school data");
         member.setState(state);
         member.setReservation(reservation);
-        setDirty();
     }
 
     public List<School> schoolsForTest() { return List.copyOf(schools); }
-    public List<RegionSchedule> regionsForTest() { return List.copyOf(regions); }
-    public void setRegionForTest(RegionSchedule schedule) { setRegion(schedule); }
 
+    // Schools are runtime state (derived again on reveal), not saved, so changing them leaves the
+    // file clean; only the depletion ledger and the weather log mark it dirty.
     void addSchool(School school) {
         schools.add(school);
-        setDirty();
     }
 
     void removeSchool(School school) {
-        if (schools.remove(school)) setDirty();
+        schools.remove(school);
     }
 
-    void setRegion(RegionSchedule schedule) {
-        for (int i = 0; i < regions.size(); i++) {
-            RegionSchedule old = regions.get(i);
-            if (old.x() == schedule.x() && old.z() == schedule.z()) {
-                regions.set(i, schedule);
-                setDirty();
-                return;
-            }
-        }
-        regions.add(schedule);
+    /** The members of this window already caught, as a bitmask by member index (0 when none). */
+    public long caughtMask(VisitId id) {
+        return depletion.getOrDefault(LedgerKey.of(id), 0L);
+    }
+
+    /** Records that member {@code member} of the window was caught; saved, and the only thing about a visit that is. */
+    public void markCaught(VisitId id, int member) {
+        if (member < 0 || member >= Long.SIZE) return;
+        depletion.merge(LedgerKey.of(id), 1L << member, (a, b) -> a | b);
         setDirty();
     }
 
-    void markDirtyNow() { setDirty(); }
+    /** Drops the ledger rows for which {@code ended} holds (their window can no longer be revealed). */
+    int pruneDepletion(Predicate<DepletionEntry> ended) {
+        int before = depletion.size();
+        if (depletion.entrySet().removeIf(e -> ended.test(entry(e)))) setDirty();
+        return before - depletion.size();
+    }
 
-    private void recoverTransientReservations() {
-        boolean changed = false;
-        for (School school : schools) {
-            for (Member member : school.members) {
-                if (member.state == MemberState.APPROACHING || member.state == MemberState.BITE_READY
-                        || member.state == MemberState.IN_SESSION) {
-                    // Hooks and minigame clients are not restored across restart. A member recovers
-                    // into its original visit instead of becoming duplicated or permanently locked.
-                    member.state = MemberState.RECOVERING;
-                    member.recoveryUntil = 0;
-                    member.reservation = null;
-                    changed = true;
-                }
-            }
-        }
-        if (changed) setDirty();
+    int depletionSize() { return depletion.size(); }
+
+    private static DepletionEntry entry(Map.Entry<LedgerKey, Long> e) {
+        return new DepletionEntry(e.getKey().chunkX(), e.getKey().chunkZ(), e.getKey().window(), e.getValue());
+    }
+
+    private List<DepletionEntry> depletionEntries() {
+        List<DepletionEntry> out = new ArrayList<>(depletion.size());
+        for (Map.Entry<LedgerKey, Long> e : depletion.entrySet()) out.add(entry(e));
+        out.sort(java.util.Comparator.comparingInt(DepletionEntry::chunkX).thenComparingInt(DepletionEntry::chunkZ)
+                .thenComparingLong(DepletionEntry::window));
+        return out;
+    }
+
+    public List<DepletionEntry> depletionForTest() { return depletionEntries(); }
+
+    public List<VisitWeatherLog.Entry> weatherEntries() { return weatherLog.entries(); }
+
+    public VisitWeatherLog.Sample weatherAt(long gameTime, VisitWeatherLog.State current) {
+        return weatherLog.at(gameTime, current);
+    }
+
+    public void recordWeather(long gameTime, VisitWeatherLog.State state) {
+        if (weatherLog.record(gameTime, state)) setDirty();
+    }
+
+    public int pruneWeather(long cutoff) {
+        int removed = weatherLog.prune(cutoff);
+        if (removed != 0) setDirty();
+        return removed;
+    }
+
+    /** Test seam: restores the dimension's log after a synchronous weather fixture. */
+    public void replaceWeatherForTest(List<VisitWeatherLog.Entry> entries) {
+        weatherLog = new VisitWeatherLog(entries);
+        setDirty();
     }
 
     /**
@@ -331,14 +352,29 @@ public final class FishSchoolSavedData extends SavedData {
     private static final long QUALITY_SALT = 0x51A11E7C0FFEE5EDL;
 
     static Member newMember(long seed, Position position) {
-        return new Member(UUID.randomUUID(), seed, position, 0L,
-                MemberState.AVAILABLE, Optional.empty());
+        return new Member(UUID.randomUUID(), seed, -1, -1L, position, 0L, MemberState.AVAILABLE, Optional.empty());
+    }
+
+    /** A member derived from a window: a fixed id and index, so the same fish is the same fish on every reveal. */
+    static Member derivedMember(UUID id, int index, long seed, long departAt, Position position) {
+        return new Member(id, seed, index, departAt, position, 0L, MemberState.AVAILABLE, Optional.empty());
     }
 
     static School newSchool(ResourceLocation species, BlockPos anchor, long createdAt, long activeUntil,
                             FormationSnapshot formation, VisitShape shape, List<Member> members) {
-        return new School(UUID.randomUUID(), species, anchor, createdAt, activeUntil, 0L,
+        return new School(UUID.randomUUID(), null, species, anchor, createdAt, activeUntil, 0L,
                 SchoolState.ACTIVE, formation, shape, members, 0L);
+    }
+
+    /** A visit derived from {@code visitId}: its school id is fixed too. */
+    static School derivedSchool(UUID id, VisitId visitId, ResourceLocation species, BlockPos anchor, long createdAt,
+                                long activeUntil, FormationSnapshot formation, VisitShape shape, List<Member> members,
+                                int departedAtReveal, int caughtAtReveal) {
+        School school = new School(id, visitId, species, anchor, createdAt, activeUntil, 0L,
+                SchoolState.ACTIVE, formation, shape, members, 0L);
+        school.departedAtReveal = departedAtReveal;
+        school.caughtAtReveal = caughtAtReveal;
+        return school;
     }
 
     public static FormationSnapshot snapshot(FishingPoolResolver.EnvironmentContext env) {

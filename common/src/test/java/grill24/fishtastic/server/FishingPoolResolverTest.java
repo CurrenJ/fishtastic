@@ -492,79 +492,15 @@ class FishingPoolResolverTest {
     }
 
     // -------------------------------------------------------------------------
-    // Preview mode: reads the rod, consumes nothing, ignores the hook
+    // Resolution is pure: it consumes no random numbers
     // -------------------------------------------------------------------------
 
     @Test
-    void heldRodPreviewReadsTheBaitAndCharmSlots() {
-        ItemStack blazeBait = FishingPoolFixture.carrier(FishingPoolFixture.TEST_BAIT);
-        FishtasticItemData.set(blazeBait, FishtasticDataComponents.BAIT_EFFECT, BaitEffect.BLAZED_GRUB);
-        ItemStack bananaCharm = FishingPoolFixture.carrier(FishingPoolFixture.TEST_CHARM);
-        FishtasticItemData.set(bananaCharm, FishtasticDataComponents.CHARM_EFFECT, CharmEffect.BANANA_CHARM);
-        ItemStack rod = FishingPoolFixture.rodWith(blazeBait, ItemStack.EMPTY, bananaCharm);
-
-        FishingPoolResolver.Inputs preview = FishingPoolResolver.Inputs.heldRodPreview(rod,
-                FishingPoolResolver.PersonalEquipment.NEUTRAL);
-        assertEquals(BaitEffect.BLAZED_GRUB, preview.baitEffect());
-        assertEquals(CharmEffect.BANANA_CHARM, preview.charmEffect());
-        assertEquals(0, preview.personalEquipment().inventoryDiamonds());
-
-        FishingPoolResolver.SpeciesContext context = resolve(RIVER_DAY, preview);
-        assertEquals(List.of(BLENNY), ids(context.candidates()), "the rod's own exclusive-pool bait decides the pool");
-        assertEquals(List.of(12), weights(context.candidates()));
-
-        // The charm is genuinely read: same rod with Worms instead is reordered by the banana boost.
-        ItemStack wormsBait = FishingPoolFixture.carrier(FishingPoolFixture.TEST_BAIT);
-        FishtasticItemData.set(wormsBait, FishtasticDataComponents.BAIT_EFFECT, BaitEffect.WORMS);
-        FishingPoolResolver.SpeciesContext withCharm = resolve(RIVER_DAY,
-                FishingPoolResolver.Inputs.heldRodPreview(FishingPoolFixture.rodWith(wormsBait, ItemStack.EMPTY, bananaCharm),
-                        FishingPoolResolver.PersonalEquipment.NEUTRAL));
-        assertEquals(12, weightById(withCharm).get(CYPRINID).intValue());
-    }
-
-    @Test
-    void heldRodPreviewIgnoresTheHookSlotEntirely() {
-        ItemStack wormsBait = FishingPoolFixture.carrier(FishingPoolFixture.TEST_BAIT);
-        FishtasticItemData.set(wormsBait, FishtasticDataComponents.BAIT_EFFECT, BaitEffect.WORMS);
-        ItemStack hook = FishingPoolFixture.carrier(FishingPoolFixture.TEST_HOOK);
-        FishtasticItemData.set(hook, FishtasticDataComponents.HOOK_EFFECT, HookEffect.OLD_COPPER_HOOK);
-
-        // OLD_COPPER_HOOK is the most extreme hook in the mod (quality -0.5, trash +0.38,
-        // treasure -1.0). If any hook field leaked into species selection, this would move.
-        FishingPoolResolver.SpeciesContext withHook = resolve(RIVER_DAY,
-                FishingPoolResolver.Inputs.heldRodPreview(FishingPoolFixture.rodWith(wormsBait, hook, ItemStack.EMPTY),
-                        FishingPoolResolver.PersonalEquipment.NEUTRAL));
-        FishingPoolResolver.SpeciesContext withoutHook = resolve(RIVER_DAY,
-                FishingPoolResolver.Inputs.heldRodPreview(FishingPoolFixture.rodWith(wormsBait, ItemStack.EMPTY, ItemStack.EMPTY),
-                        FishingPoolResolver.PersonalEquipment.NEUTRAL));
-
-        assertEquals(withoutHook, withHook, "HookEffect has no species-affecting field, so the hook slot is not an input");
-    }
-
-    @Test
-    void heldRodPreviewWithAnEmptyBaitSlotResolvesLikeNoBait() {
-        ItemStack bareRod = FishingPoolFixture.rodWith(ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY);
-        FishingPoolResolver.Inputs preview = FishingPoolResolver.Inputs.heldRodPreview(bareRod,
-                FishingPoolResolver.PersonalEquipment.NEUTRAL);
-
-        assertEquals(BaitEffect.NO_BAIT, preview.baitEffect());
-        assertNull(preview.charmEffect());
-        assertEquals(weights(bait(RIVER_DAY, BaitEffect.NO_BAIT, null).candidates()),
-                weights(resolve(RIVER_DAY, preview).candidates()));
-    }
-
-    @Test
-    void resolvingAPreviewConsumesNoRandomNumbers() {
-        ItemStack bait = FishingPoolFixture.carrier(FishingPoolFixture.TEST_BAIT);
-        FishtasticItemData.set(bait, FishtasticDataComponents.BAIT_EFFECT, BaitEffect.GUMMY_WORMS);
-        ItemStack charm = FishingPoolFixture.carrier(FishingPoolFixture.TEST_CHARM);
-        FishtasticItemData.set(charm, FishtasticDataComponents.CHARM_EFFECT, CharmEffect.LUNA_CHARM);
-        ItemStack rod = FishingPoolFixture.rodWith(bait, ItemStack.EMPTY, charm);
-
+    void resolvingAPoolConsumesNoRandomNumbers() {
         RandomSource control = RandomSource.create(20261013L);
         RandomSource subject = RandomSource.create(20261013L);
         for (int i = 0; i < 5; i++) {
-            resolve(RIVER_NIGHT, FishingPoolResolver.Inputs.heldRodPreview(rod,
+            resolve(RIVER_NIGHT, FishingPoolResolver.Inputs.of(BaitEffect.GUMMY_WORMS, CharmEffect.LUNA_CHARM,
                     new FishingPoolResolver.PersonalEquipment(7)));
         }
 
@@ -575,7 +511,7 @@ class FishingPoolResolverTest {
             subjectDraws.add(subject.nextInt(1000));
         }
         assertEquals(controlDraws, subjectDraws,
-                "resolution must not touch the catch RNG stream — a preview that consumed draws would desync the subject");
+                "resolution must not touch the catch RNG stream — a resolution that consumed draws would desync the subject");
     }
 
     // -------------------------------------------------------------------------

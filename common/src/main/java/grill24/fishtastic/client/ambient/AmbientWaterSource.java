@@ -1,6 +1,7 @@
 package grill24.fishtastic.client.ambient;
 
 import grill24.fishsim.ambient.WaterSource;
+import grill24.fishtastic.ecology.AmbientFluid;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -17,7 +18,8 @@ import net.minecraft.world.phys.shapes.VoxelShape;
  * chunk would load it — the one thing ambient discovery must never do — so the guard comes first
  * and short-circuits the rest.
  *
- * <p>The three answers mirror vanilla exactly: water is {@link FluidTags#WATER}; its surface is
+ * <p>The three answers mirror vanilla exactly: water is {@link FluidTags#WATER} ({@link FluidTags#LAVA} in the
+ * Nether, where the ambient fluid is lava and the WATER flag means "holds the ambient fluid"); its surface is
  * {@link FluidState#getHeight} above the cell's own bottom, which is what makes a still source cell
  * 8/9 of a block and a flowing cell lower; and a block's collision top is the highest point of its
  * collision shape, so a waterlogged bottom slab leaves the water standing on the slab. A shape
@@ -32,10 +34,18 @@ public final class AmbientWaterSource implements WaterSource {
     private final BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
     private final BlockPos.MutableBlockPos below = new BlockPos.MutableBlockPos();
     private ClientLevel level;
+    private AmbientFluid fluid = AmbientFluid.WATER;
     private long flagReads, fluidReads, collisionReads;
 
     public void setLevel(ClientLevel level) {
         this.level = level;
+        this.fluid = level == null ? AmbientFluid.WATER
+                : AmbientFluid.forDimension(level.dimension().location().toString());
+    }
+
+    /** The fluid ambient fish live in here: water, or lava in the Nether (an easter egg for fire-resistant swimmers). */
+    public AmbientFluid fluid() {
+        return fluid;
     }
 
     public ClientLevel level() {
@@ -66,7 +76,7 @@ public final class AmbientWaterSource implements WaterSource {
         // past it. Below the build height the answer is void air — definitive, not unknown — and
         // asking the level for it would be out of range.
         if (lvl.isOutsideBuildHeight(pos)) return f;
-        boolean water = lvl.getFluidState(pos).is(FluidTags.WATER);
+        boolean water = lvl.getFluidState(pos).is(fluid == AmbientFluid.LAVA ? FluidTags.LAVA : FluidTags.WATER);
         if (water) f |= WATER;
         if (!lvl.getBlockState(pos).getCollisionShape(lvl, pos).isEmpty()) {
             f |= COLLISION;

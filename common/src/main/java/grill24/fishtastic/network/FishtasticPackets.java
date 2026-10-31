@@ -16,6 +16,7 @@ public class FishtasticPackets {
     public static final ResourceLocation LEADERBOARD_RESPONSE_ID = Fishtastic.id("leaderboard_response");
     public static final ResourceLocation COMPLETE_QUEST_ID = Fishtastic.id("complete_quest");
     public static final ResourceLocation QUEST_SYNC_ID = Fishtastic.id("quest_sync");
+    public static final ResourceLocation COMPANION_PARTY_SYNC_ID = Fishtastic.id("companion_party_sync");
     public static final ResourceLocation REQUEST_QUEST_LOG_ID = Fishtastic.id("request_quest_log");
     public static final ResourceLocation REQUEST_LEADERBOARD_SCREEN_ID = Fishtastic.id("request_leaderboard_screen");
     public static final ResourceLocation PURCHASE_SHOP_ENTRY_ID = Fishtastic.id("purchase_shop_entry");
@@ -33,15 +34,15 @@ public class FishtasticPackets {
     public static final ResourceLocation NOTIFICATION_VOLUME_SYNC_ID = Fishtastic.id("notification_volume_sync");
     public static final ResourceLocation SET_ORGANIZER_SORT_ID = Fishtastic.id("set_organizer_sort");
     public static final ResourceLocation REMOVE_TANK_ENTRY_ID = Fishtastic.id("remove_tank_entry");
-    public static final ResourceLocation SET_DAY_RATE_ID = Fishtastic.id("set_day_rate");
     public static final ResourceLocation BOND_COMPANION_ID = Fishtastic.id("bond_companion");
-    public static final ResourceLocation COMPANION_SCENE_ID = Fishtastic.id("companion_scene");
-    public static final ResourceLocation AMBIENT_CONTEXT_REQUEST_ID = Fishtastic.id("ambient_context_request");
-    public static final ResourceLocation AMBIENT_CONTEXT_RESPONSE_ID = Fishtastic.id("ambient_context_response");
+    public static final ResourceLocation UNEQUIP_COMPANION_ID = Fishtastic.id("unequip_companion");
     public static final ResourceLocation RENAME_COMPANION_ID = Fishtastic.id("rename_companion");
     public static final ResourceLocation TAKE_PILE_FISH_ID = Fishtastic.id("take_pile_fish");
     public static final ResourceLocation COMPANION_FEEDBACK_ID = Fishtastic.id("companion_feedback");
-    public static final ResourceLocation COMPANION_PARTY_SYNC_ID = Fishtastic.id("companion_party_sync");
+    public static final ResourceLocation COMPANION_TUTORIAL_ADVANCE_ID = Fishtastic.id("companion_tutorial_advance");
+    public static final ResourceLocation COMPANION_FISHING_EVENT_ID = Fishtastic.id("companion_fishing_event");
+    public static final ResourceLocation COMPANION_SCENE_ID = Fishtastic.id("companion_scene");
+    public static final ResourceLocation OBSERVE_FISH_ID = Fishtastic.id("observe_fish");
 
     /**
      * Initialize packet registration. Called during mod initialization.
@@ -55,14 +56,10 @@ public class FishtasticPackets {
      * Register client-to-server packets
      */
     public static void registerClientToServerPackets(IPacketRegistrar registrar) {
-        registrar.registerClientToServer(AmbientContextRequestPacket.TYPE, AmbientContextRequestPacket.STREAM_CODEC,
-                AmbientContextRequestPacket::handleClientToServer);
         registrar.registerClientToServer(TutorialActionPacket.TYPE, TutorialActionPacket.STREAM_CODEC,
                 TutorialActionPacket::handleClientToServer);
         registrar.registerClientToServer(OpenCompanionMenuPacket.TYPE, OpenCompanionMenuPacket.STREAM_CODEC,
                 OpenCompanionMenuPacket::handleClientToServer);
-        registrar.registerClientToServer(TakePileFishPacket.TYPE, TakePileFishPacket.STREAM_CODEC,
-                TakePileFishPacket::handleClientToServer);
         registrar.registerClientToServer(
                 FinishFishingMinigamePacket.TYPE,
                 FinishFishingMinigamePacket.STREAM_CODEC,
@@ -102,11 +99,6 @@ public class FishtasticPackets {
                 TutorialAdvancePacket.TYPE,
                 TutorialAdvancePacket.STREAM_CODEC,
                 TutorialAdvancePacket::handleClientToServer
-        );
-        registrar.registerClientToServer(
-                CompanionTutorialAdvancePacket.TYPE,
-                CompanionTutorialAdvancePacket.STREAM_CODEC,
-                CompanionTutorialAdvancePacket::handleClientToServer
         );
         registrar.registerClientToServer(
                 RequestFishEncyclopediaPacket.TYPE,
@@ -153,6 +145,21 @@ public class FishtasticPackets {
                 RenameCompanionPacket.STREAM_CODEC,
                 RenameCompanionPacket::handleClientToServer
         );
+        registrar.registerClientToServer(
+                TakePileFishPacket.TYPE,
+                TakePileFishPacket.STREAM_CODEC,
+                TakePileFishPacket::handleClientToServer
+        );
+        registrar.registerClientToServer(
+                CompanionTutorialAdvancePacket.TYPE,
+                CompanionTutorialAdvancePacket.STREAM_CODEC,
+                CompanionTutorialAdvancePacket::handleClientToServer
+        );
+        registrar.registerClientToServer(
+                ObserveFishPacket.TYPE,
+                ObserveFishPacket.STREAM_CODEC,
+                ObserveFishPacket::handleClientToServer
+        );
     }
 
     /**
@@ -182,11 +189,6 @@ public class FishtasticPackets {
                 TutorialSyncPacket::handleServerToClient
         );
         registrar.registerServerToClient(
-                CompanionTutorialSyncPacket.TYPE,
-                CompanionTutorialSyncPacket.STREAM_CODEC,
-                CompanionTutorialSyncPacket::handleServerToClient
-        );
-        registrar.registerServerToClient(
                 FishEncyclopediaSyncPacket.TYPE,
                 FishEncyclopediaSyncPacket.STREAM_CODEC,
                 FishEncyclopediaSyncPacket::handleServerToClient
@@ -207,14 +209,14 @@ public class FishtasticPackets {
                 NotificationVolumeSyncPacket::handleServerToClient
         );
         registrar.registerServerToClient(
-                TankWaterFillSyncPacket.TYPE,
-                TankWaterFillSyncPacket.STREAM_CODEC,
-                TankWaterFillSyncPacket::handleServerToClient
-        );
-        registrar.registerServerToClient(
                 SetDayRatePacket.TYPE,
                 SetDayRatePacket.STREAM_CODEC,
                 SetDayRatePacket::handleServerToClient
+        );
+        registrar.registerServerToClient(
+                TankWaterFillSyncPacket.TYPE,
+                TankWaterFillSyncPacket.STREAM_CODEC,
+                TankWaterFillSyncPacket::handleServerToClient
         );
         registrar.registerServerToClient(
                 TankInteriorLightSyncPacket.TYPE,
@@ -237,25 +239,40 @@ public class FishtasticPackets {
                 CompanionFeedbackPacket::handleServerToClient
         );
         registrar.registerServerToClient(
+                CompanionTutorialSyncPacket.TYPE,
+                CompanionTutorialSyncPacket.STREAM_CODEC,
+                CompanionTutorialSyncPacket::handleServerToClient
+        );
+        registrar.registerServerToClient(
                 CompanionScenePacket.TYPE,
                 CompanionScenePacket.STREAM_CODEC,
                 CompanionScenePacket::handleServerToClient
         );
         registrar.registerServerToClient(
-                AmbientContextResponsePacket.TYPE,
-                AmbientContextResponsePacket.STREAM_CODEC,
-                AmbientContextResponsePacket::handleServerToClient
+                FishSchoolSetupPacket.TYPE,
+                FishSchoolSetupPacket.STREAM_CODEC,
+                FishSchoolSetupPacket::handleServerToClient
+        );
+        registrar.registerServerToClient(
+                FishSchoolInputPacket.TYPE,
+                FishSchoolInputPacket.STREAM_CODEC,
+                FishSchoolInputPacket::handleServerToClient
+        );
+        registrar.registerServerToClient(
+                FishSchoolStatePacket.TYPE,
+                FishSchoolStatePacket.STREAM_CODEC,
+                FishSchoolStatePacket::handleServerToClient
         );
         registrar.registerServerToClient(
                 CompanionPartySyncPacket.TYPE,
                 CompanionPartySyncPacket.STREAM_CODEC,
                 CompanionPartySyncPacket::handleServerToClient
-        );        registrar.registerServerToClient(FishSchoolSetupPacket.TYPE, FishSchoolSetupPacket.STREAM_CODEC,
-                FishSchoolSetupPacket::handleServerToClient);
-        registrar.registerServerToClient(FishSchoolInputPacket.TYPE, FishSchoolInputPacket.STREAM_CODEC,
-                FishSchoolInputPacket::handleServerToClient);
-        registrar.registerServerToClient(FishSchoolStatePacket.TYPE, FishSchoolStatePacket.STREAM_CODEC,
-                FishSchoolStatePacket::handleServerToClient);
+        );
+        registrar.registerServerToClient(
+                EcologySeedSyncPacket.TYPE,
+                EcologySeedSyncPacket.STREAM_CODEC,
+                EcologySeedSyncPacket::handleServerToClient
+        );
     }
 
     /**
@@ -271,23 +288,23 @@ public class FishtasticPackets {
         registrar.accept(LeaderboardResponsePacket.TYPE, LeaderboardResponsePacket.STREAM_CODEC);
         registrar.accept(QuestSyncPacket.TYPE, QuestSyncPacket.STREAM_CODEC);
         registrar.accept(TutorialSyncPacket.TYPE, TutorialSyncPacket.STREAM_CODEC);
-        registrar.accept(CompanionTutorialSyncPacket.TYPE, CompanionTutorialSyncPacket.STREAM_CODEC);
         registrar.accept(FishEncyclopediaSyncPacket.TYPE, FishEncyclopediaSyncPacket.STREAM_CODEC);
         registrar.accept(CosmeticCaptureSyncPacket.TYPE, CosmeticCaptureSyncPacket.STREAM_CODEC);
         registrar.accept(EncyclopediaTutorialSyncPacket.TYPE, EncyclopediaTutorialSyncPacket.STREAM_CODEC);
         registrar.accept(NotificationVolumeSyncPacket.TYPE, NotificationVolumeSyncPacket.STREAM_CODEC);
-        registrar.accept(TankWaterFillSyncPacket.TYPE, TankWaterFillSyncPacket.STREAM_CODEC);
         registrar.accept(SetDayRatePacket.TYPE, SetDayRatePacket.STREAM_CODEC);
+        registrar.accept(TankWaterFillSyncPacket.TYPE, TankWaterFillSyncPacket.STREAM_CODEC);
         registrar.accept(TankInteriorLightSyncPacket.TYPE, TankInteriorLightSyncPacket.STREAM_CODEC);
         registrar.accept(ReducedEffectsSyncPacket.TYPE, ReducedEffectsSyncPacket.STREAM_CODEC);
         registrar.accept(ReactionBoostSyncPacket.TYPE, ReactionBoostSyncPacket.STREAM_CODEC);
         registrar.accept(CompanionFeedbackPacket.TYPE, CompanionFeedbackPacket.STREAM_CODEC);
+        registrar.accept(CompanionTutorialSyncPacket.TYPE, CompanionTutorialSyncPacket.STREAM_CODEC);
         registrar.accept(CompanionScenePacket.TYPE, CompanionScenePacket.STREAM_CODEC);
-        registrar.accept(AmbientContextResponsePacket.TYPE, AmbientContextResponsePacket.STREAM_CODEC);
         registrar.accept(CompanionPartySyncPacket.TYPE, CompanionPartySyncPacket.STREAM_CODEC);
         registrar.accept(FishSchoolSetupPacket.TYPE, FishSchoolSetupPacket.STREAM_CODEC);
         registrar.accept(FishSchoolInputPacket.TYPE, FishSchoolInputPacket.STREAM_CODEC);
         registrar.accept(FishSchoolStatePacket.TYPE, FishSchoolStatePacket.STREAM_CODEC);
+        registrar.accept(EcologySeedSyncPacket.TYPE, EcologySeedSyncPacket.STREAM_CODEC);
     }
 
     /**

@@ -104,6 +104,26 @@ public final class FishtasticRenderTypes extends RenderType {
                         .createCompositeState(false));
     }
 
+    /** Additive, emissive quads for the school trail mote sprites. */
+    public static RenderType schoolTrailMote(ResourceLocation texture) {
+        return create(
+                "fishtastic_school_trail_mote_" + texture.getPath().replace('/', '_'),
+                DefaultVertexFormat.NEW_ENTITY,
+                VertexFormat.Mode.QUADS,
+                TRANSIENT_BUFFER_SIZE,
+                false,
+                true,
+                CompositeState.builder()
+                        .setShaderState(RENDERTYPE_ENTITY_TRANSLUCENT_EMISSIVE_SHADER)
+                        .setTextureState(new TextureStateShard(texture, false, false))
+                        .setTransparencyState(ADDITIVE_TRANSPARENCY)
+                        .setCullState(NO_CULL)
+                        .setLightmapState(LIGHTMAP)
+                        .setOverlayState(OVERLAY)
+                        .setWriteMaskState(COLOR_WRITE)
+                        .createCompositeState(false));
+    }
+
     // Without this the outline is invisible under every shaderpack — see IrisCompat.
     // No shadow program: a translucent cosmetic overlay must not write to the shadow map.
     static {

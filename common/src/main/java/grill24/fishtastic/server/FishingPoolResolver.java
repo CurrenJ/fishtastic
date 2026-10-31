@@ -45,8 +45,7 @@ import java.util.Set;
  *       random numbers, so a preview cannot shift the catch RNG sequence.</li>
  *   <li>Never casts, summons weather or consumes items. In particular a Storm Charm sitting on a
  *       rod is <em>not</em> fired here: the real cast path fires it before resolving (see
- *       {@code FishingMinigameManager#startSession}), and {@link Inputs#heldRodPreview} reads only
- *       the charm slot's {@code CHARM_EFFECT} component, which a Storm Charm does not carry.</li>
+ *       {@code FishingMinigameManager#startSession}).</li>
  *   <li>Never reads world state the caller did not pass in: environment comes in as an
  *       {@link EnvironmentContext}, equipment as {@link Inputs}.</li>
  * </ul>
@@ -55,7 +54,7 @@ import java.util.Set;
  * {@link AcuteIapsisItem} historically read the hook owner's inventory out of the loot params to
  * vary its own weight. That is an explicit {@link PersonalEquipment} input here; the real cast path
  * passes {@link PersonalEquipment#fromHookOwner} (the hook's owner, which is the caster), and the
- * no-rod/held-rod preview modes pass what they actually know (see {@link Inputs}). No
+ * the baseline modes pass what they actually know (see {@link Inputs}). No
  * {@code LootParams} are needed by the resolver.
  *
  * <h2>Species-affecting versus not</h2>
@@ -138,13 +137,11 @@ public final class FishingPoolResolver {
     }
 
     /**
-     * The explicit input set of one resolution. All three fishing modes are expressible here:
+     * The explicit input set of one resolution. The fishing modes expressible here:
      * <ul>
      *   <li><b>standard-worms baseline</b> (no rod held, or a rod with no bait): {@link
      *       #standardWormsBaseline()} — the registered Worms definition plus neutral personal
      *       equipment, so an inventory full of diamonds changes nothing.</li>
-     *   <li><b>held-rod preview</b>: {@link #heldRodPreview} — the rod's actual bait and charm
-     *       slots plus the holder's own equipment. Reads no hook and consumes nothing.</li>
      *   <li><b>active-session snapshot</b>: not an input mode at all — a session stores the
      *       {@link SpeciesContext} it already resolved (see {@link SessionSnapshot}) rather than
      *       re-deriving one from later equipment.</li>
@@ -172,37 +169,6 @@ public final class FishingPoolResolver {
          */
         public static Inputs standardWormsBaseline() {
             return new Inputs(BaitEffect.WORMS, null, PersonalEquipment.NEUTRAL);
-        }
-
-        /**
-         * A rod the caller could be fishing with, resolved without casting: its actual bait slot
-         * (empty slot = no bait, {@link BaitEffect#NO_BAIT}), its actual charm slot, and the given
-         * personal equipment.
-         *
-         * <p>Deliberately ignores the rod's hook: {@code HookEffect} has no species-affecting field
-         * (quality bias, trash and treasure deltas only), so no hook input exists to pass. Also
-         * deliberately does not run the cast-time Storm Charm branch: a preview must never summon a
-         * storm or consume the charm, and since a Storm Charm carries no {@code CHARM_EFFECT} the
-         * preview simply sees no charm there.
-         */
-        public static Inputs heldRodPreview(ItemStack rod, PersonalEquipment personalEquipment) {
-            ItemStack bait = CopperFishingRod.getBait(rod);
-            BaitEffect baitEffect = bait.isEmpty() ? BaitEffect.NO_BAIT : BaitEffect.fromStack(bait);
-            ItemStack charmStack = CopperFishingRod.getCharm(rod);
-            CharmEffect charmEffect = charmStack.isEmpty()
-                    ? null
-                    : FishtasticItemData.get(charmStack, FishtasticDataComponents.CHARM_EFFECT);
-            return new Inputs(baitEffect, charmEffect, personalEquipment);
-        }
-
-        /**
-         * Held-rod preview for a specific holder. There is no live hook to ask, so the holder's own
-         * carried diamonds stand in for the hook-owner lookup the real cast path performs — for the
-         * ordinary case (the player holding the rod is the one who would cast it) these are the same
-         * number. Documented rather than faked: nothing else about a cast is simulated.
-         */
-        public static Inputs heldRodPreview(ItemStack rod, Player holder) {
-            return heldRodPreview(rod, PersonalEquipment.fromInventory(holder));
         }
 
         /** Vanilla fish stay in the pool only for the bare hook — see {@link FishingPoolResolver#vanillaAllowed(BaitEffect)}. */
@@ -248,8 +214,8 @@ public final class FishingPoolResolver {
                 : FishProfile.TimeOfDay.fromGameTime(level.getDayTime());
         FishProfile.WeatherCondition weather = FishProfile.WeatherCondition.fromLevel(level, pos);
         FishMoonPhase moonPhase = FishMoonPhase.at(level, pos);
-        Set<FishProfile.Zone> zones = FishProfile.Zone.resolve(biome, pos.getY(), level.getSeaLevel());
-        return new EnvironmentContext(biome, timeOfDay, weather, moonPhase, zones);
+        return grill24.fishtastic.ecology.NaturalPool.environment(biome, timeOfDay, weather, moonPhase,
+                pos.getY(), level.getSeaLevel());
     }
 
     /**

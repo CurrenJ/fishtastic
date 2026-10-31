@@ -1105,9 +1105,7 @@ public class FishingMinigameManager {
     }
 
     /**
-     * The rod a cast would use: the main hand first, then the offhand, else empty. Public and
-     * {@link Player}-typed so the client-side ambient context manager (Phase 4) asks the same
-     * question of the same rule rather than re-implementing hand order.
+     * The rod a cast would use: the main hand first, then the offhand, else empty.
      */
     public static ItemStack findFishtasticRod(Player player) {
         if (player.getMainHandItem().is(FishtasticItemTags.FISHING_RODS)) {

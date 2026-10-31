@@ -66,7 +66,6 @@ public final class ClientAmbientFish {
         lastPlayerPosition = null;
         RUNTIME.clear();
         worldSubmitsThisFrame = 0;
-        AmbientContextClient.resetSession();
     }
 
     public static void invalidate() { clear(); }
@@ -74,7 +73,14 @@ public final class ClientAmbientFish {
     /** Called even with no world, so disconnects release all state. */
     public static void tick() {
         Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null) {
+            // Out of a world: the next one (or a server without Fishtastic) must not inherit this
+            // world's ecology seed or observation cooldowns.
+            if (grill24.fishtastic.ecology.EcologyClient.hasSeed()) grill24.fishtastic.ecology.EcologyClient.clear();
+            grill24.fishtastic.client.ObservationClient.clear();
+        }
         grill24.fishtastic.client.FishSchoolClientRuntime.tick(mc);
+        grill24.fishtastic.client.ObservationClient.tick(mc);
         if (developmentView != null) {
             if (!developmentView.tick(mc)) clear();
             return;
@@ -97,13 +103,11 @@ public final class ClientAmbientFish {
             if (lastNaturalLevel != mc.level || (lastPlayerPosition != null
                     && lastPlayerPosition.distanceToSqr(position) > 64 * 64)) {
                 RUNTIME.start(mc.level, RUNTIME.budget());
-                AmbientContextClient.resetSession();
             }
             lastNaturalLevel = mc.level;
             lastPlayerPosition = position;
         }
         RUNTIME.tick(mc);
-        AmbientContextClient.tick(mc, RUNTIME);
     }
 
     public static void submitWorld(PoseStack poses, MultiBufferSource buffers, Frustum frustum, float partialTick) {

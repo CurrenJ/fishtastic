@@ -86,8 +86,10 @@ public final class AmbientClientCommands {
                             return 1;
                         })))
                 .then(LiteralArgumentBuilder.<S>literal("debug").executes(ctx -> {
-                    feedback.accept(ctx.getSource(), ClientAmbientFish.natural().diagnostics().debugState());
-                    feedback.accept(ctx.getSource(), AmbientContextClient.debugState());
+                    var diagnostics = ClientAmbientFish.natural().diagnostics();
+                    feedback.accept(ctx.getSource(), diagnostics.rosterSummary());
+                    for (String line : diagnostics.rosterLines(24)) feedback.accept(ctx.getSource(), line);
+                    feedback.accept(ctx.getSource(), diagnostics.debugState());
                     return 1;
                 })));
     }

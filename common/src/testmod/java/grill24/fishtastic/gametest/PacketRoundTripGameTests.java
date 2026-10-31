@@ -1,18 +1,13 @@
 package grill24.fishtastic.gametest;
 
-import net.minecraft.core.BlockPos;
-import io.netty.handler.codec.EncoderException;
-import io.netty.handler.codec.DecoderException;
-import grill24.fishtastic.network.AmbientContextResponsePacket;
-import grill24.fishtastic.network.AmbientContextRequestPacket;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.component.ItemSize;
-import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.data.FishProfile;
 import grill24.fishtastic.data.PhaseRule;
+import grill24.fishtastic.network.CompanionScenePacket;
 import grill24.fishtastic.network.FishEncyclopediaSyncPacket;
 import grill24.fishtastic.network.LeaderboardEntry;
 import grill24.fishtastic.network.PurchaseShopEntryPacket;
@@ -24,14 +19,17 @@ import grill24.fishtastic.util.FishingBarContext;
 import grill24.fishtastic.util.FishingTarget;
 import grill24.fishtastic.util.Ids;
 import io.netty.buffer.Unpooled;
+import io.netty.handler.codec.DecoderException;
+import io.netty.handler.codec.EncoderException;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
-import java.util.HashMap;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -204,10 +202,6 @@ public final class PacketRoundTripGameTests {
         helper.assertTrue(decodedTriggerStack != null, "triggeringItems key must round-trip");
         assertStacksMatch(helper, triggeringStack, decodedTriggerStack, "triggeringItems[questA]");
 
-        helper.assertTrue(decoded.unlockedCompanions().equals(original.unlockedCompanions()),
-            "unlockedCompanions must round-trip, expected " + original.unlockedCompanions() + " got " + decoded.unlockedCompanions());
-        helper.assertTrue(decoded.newlyUnlockedCompanions().equals(original.newlyUnlockedCompanions()),
-            "newlyUnlockedCompanions must round-trip, expected " + original.newlyUnlockedCompanions() + " got " + decoded.newlyUnlockedCompanions());
         helper.assertTrue(decoded.cleanupGoal().equals(original.cleanupGoal()),
             "cleanupGoal (CleanupGoalProgress) must round-trip via equals(), expected " + original.cleanupGoal() + " got " + decoded.cleanupGoal());
 
@@ -221,6 +215,11 @@ public final class PacketRoundTripGameTests {
 
         helper.assertTrue(decoded.shopRefreshCount() == original.shopRefreshCount(),
             "shopRefreshCount must round-trip, expected " + original.shopRefreshCount() + " got " + decoded.shopRefreshCount());
+
+        helper.assertTrue(decoded.unlockedCompanions().equals(original.unlockedCompanions()),
+            "unlockedCompanions must round-trip, expected " + original.unlockedCompanions() + " got " + decoded.unlockedCompanions());
+        helper.assertTrue(decoded.newlyUnlockedCompanions().equals(original.newlyUnlockedCompanions()),
+            "newlyUnlockedCompanions must round-trip, expected " + original.newlyUnlockedCompanions() + " got " + decoded.newlyUnlockedCompanions());
 
         helper.succeed();
     }
@@ -269,7 +268,8 @@ public final class PacketRoundTripGameTests {
 
         List<String> claimedRewardKeys = List.of(bluegill.toString() + "#0");
 
-        FishEncyclopediaSyncPacket original = new FishEncyclopediaSyncPacket(catchCounts, personalBest, globalBest, claimedRewardKeys);
+        FishEncyclopediaSyncPacket original = new FishEncyclopediaSyncPacket(catchCounts, personalBest, globalBest, claimedRewardKeys,
+            List.of(trout), List.of(trout));
 
         RegistryFriendlyByteBuf buf = newBuf(helper);
         FishEncyclopediaSyncPacket.STREAM_CODEC.encode(buf, original);
@@ -279,6 +279,8 @@ public final class PacketRoundTripGameTests {
         helper.assertTrue(decoded.personalBestSizes().equals(original.personalBestSizes()), "personalBestSizes (clean record list) must round-trip via equals()");
         helper.assertTrue(decoded.globalBestSizes().equals(original.globalBestSizes()), "globalBestSizes (clean record list) must round-trip via equals()");
         helper.assertTrue(decoded.claimedRewardKeys().equals(original.claimedRewardKeys()), "claimedRewardKeys list must round-trip via equals()");
+        helper.assertTrue(decoded.observedSpecies().equals(original.observedSpecies()), "observedSpecies list must round-trip via equals()");
+        helper.assertTrue(decoded.newlyObserved().equals(original.newlyObserved()), "newlyObserved list must round-trip via equals()");
 
         helper.succeed();
     }
@@ -298,219 +300,66 @@ public final class PacketRoundTripGameTests {
         helper.succeed();
     }
 
-
-    // -------------------------------------------------------------------------
-    // AmbientContextRequestPacket (Fish in World, Phase 4) — nested Origin records, a bounded
-    // list, ResourceLocation + BlockPos codecs and signed longs/ints
-    // -------------------------------------------------------------------------
-
-    public static void ambientContextRequestPacketRoundTrips(GameTestHelper helper) {
-        // A negative session exercises the VAR_LONG sign, negative coordinates exercise the
-        // BlockPos codec, and the second origin carries a modded dimension and non-trivial
-        // generation counters.
-        AmbientContextRequestPacket original =
-                new AmbientContextRequestPacket(
-                        -0x5E5510ABC01L, 7,
-                        List.of(
-                                new AmbientContextRequestPacket.Origin(
-                                        Ids.of("minecraft", "overworld"), 77L, 1, 0,
-                                        new BlockPos(-64, 62, 1234)),
-                                new AmbientContextRequestPacket.Origin(
-                                        Ids.of("fishtastic", "the_deep"), 0x1234_5678_9ABCL, 999, 42,
-                                        new BlockPos(0, -60, 0))));
-
-        RegistryFriendlyByteBuf buf = newBuf(helper);
-        AmbientContextRequestPacket.STREAM_CODEC.encode(buf, original);
-        AmbientContextRequestPacket decoded =
-                AmbientContextRequestPacket.STREAM_CODEC.decode(buf);
-
-        helper.assertTrue(decoded.equals(original),
-                "AmbientContextRequestPacket must round-trip via equals(), got " + decoded);
-        helper.succeed();
-    }
-
-    public static void ambientContextResponsePacketRoundTrips(GameTestHelper helper) {
-        // The OK entry carries every boolean non-default and two candidates.
-        AmbientContextResponsePacket.Entry ok = new AmbientContextResponsePacket.Entry(
-                77L, 1, 0, AmbientContextResponsePacket.Status.OK,
-                true, true, true, 0x1234ABCDL,
-                List.of(
-                        new AmbientContextResponsePacket.Candidate(Ids.of("fishtastic", "bluegill"), 10),
-                        new AmbientContextResponsePacket.Candidate(Ids.of("fishtastic", "plaice"), 1)));
-        roundTripResponse(helper, "OK with candidates",
-                new AmbientContextResponsePacket(-42L, 7, List.of(ok)));
-
-        // One packet per rejection status: the status enum is the field most likely to be
-        // silently dropped, and the wire bound of 4 entries (MAX_ENTRIES) means they cannot all
-        // share one packet.
-        for (AmbientContextResponsePacket.Status status : AmbientContextResponsePacket.Status.values()) {
-            if (status == AmbientContextResponsePacket.Status.OK) {
-                continue;
-            }
-            roundTripResponse(helper, status.name(), new AmbientContextResponsePacket(-42L, 7,
-                    List.of(AmbientContextResponsePacket.Entry.rejected(77L, 1, 0, status))));
+    /** A pet-to-pet scene (§10): scene, both participants as (owner, party slot), and the shared start time. */
+    public static void companionScenePacketRoundTrips(GameTestHelper helper) {
+        java.util.UUID first = java.util.UUID.randomUUID();
+        java.util.UUID second = java.util.UUID.randomUUID();
+        for (grill24.fishtastic.companion.CompanionSceneType scene
+                : grill24.fishtastic.companion.CompanionSceneType.values()) {
+            CompanionScenePacket original = new CompanionScenePacket(scene, first, 2, second, 1, 123456L);
+            RegistryFriendlyByteBuf buf = newBuf(helper);
+            CompanionScenePacket.STREAM_CODEC.encode(buf, original);
+            CompanionScenePacket decoded = CompanionScenePacket.STREAM_CODEC.decode(buf);
+            helper.assertTrue(decoded.equals(original),
+                    "CompanionScenePacket must round-trip for " + scene);
         }
         helper.succeed();
     }
 
-    private static void roundTripResponse(GameTestHelper helper, String label,
-                                          AmbientContextResponsePacket original) {
+    /** The party slot travels with bond (including "first empty") and rename (party spec §5.2). */
+    public static void companionSlotPacketsRoundTrip(GameTestHelper helper) {
+        ItemStack fish = grill24.fishtastic.util.ItemSizeHelper.setSize(
+                new ItemStack(grill24.fishtastic.FishtasticItems.BLUEGILL.value()), 25f);
+        for (int slot : new int[]{grill24.fishtastic.companion.Companions.FIRST_EMPTY, 0, 2}) {
+            var bond = new grill24.fishtastic.network.BondCompanionPacket(fish, slot);
+            RegistryFriendlyByteBuf buf = newBuf(helper);
+            grill24.fishtastic.network.BondCompanionPacket.STREAM_CODEC.encode(buf, bond);
+            var decodedBond = grill24.fishtastic.network.BondCompanionPacket.STREAM_CODEC.decode(buf);
+            helper.assertTrue(decodedBond.slot() == slot && ItemStack.matches(decodedBond.fish(), fish),
+                    "BondCompanionPacket must round-trip for slot " + slot);
+        }
+        var rename = new grill24.fishtastic.network.RenameCompanionPacket(1, "Gilbert");
         RegistryFriendlyByteBuf buf = newBuf(helper);
-        AmbientContextResponsePacket.STREAM_CODEC.encode(buf, original);
-        AmbientContextResponsePacket decoded = AmbientContextResponsePacket.STREAM_CODEC.decode(buf);
-        helper.assertTrue(decoded.equals(original),
-                "AmbientContextResponsePacket must round-trip (" + label + "), got " + decoded);
-    }
-
-    // -------------------------------------------------------------------------
-    // AmbientContext* wire bounds (Fish in World, Phase 4) — the whole
-    // bounded-traffic argument rests on the codecs refusing an oversized list
-    // on BOTH sides: encode (the client cannot even build the packet) and
-    // decode (a hostile writer's oversized buffer is rejected, not read).
-    // -------------------------------------------------------------------------
-
-    private static List<AmbientContextRequestPacket.Origin> origins(int count) {
-        List<AmbientContextRequestPacket.Origin> origins = new ArrayList<>(count);
-        for (int i = 0; i < count; i++) {
-            origins.add(new AmbientContextRequestPacket.Origin(
-                    Ids.of("minecraft", "overworld"), i, 1, 0, new BlockPos(i, 62, 0)));
-        }
-        return origins;
-    }
-
-    public static void oversizedOriginListIsRejectedOnEncodeAndDecode(GameTestHelper helper) {
-        List<AmbientContextRequestPacket.Origin> tooMany = origins(AmbientContextRequestPacket.MAX_ORIGINS + 1);
-        helper.assertTrue(tooMany.size() == 5, "Sanity check: MAX_ORIGINS is 4, so 5 origins is oversized");
-
-        boolean encodeThrew = false;
-        try {
-            AmbientContextRequestPacket.STREAM_CODEC.encode(newBuf(helper),
-                    new AmbientContextRequestPacket(7L, 1, tooMany));
-        } catch (EncoderException expected) {
-            encodeThrew = true;
-        }
-        helper.assertTrue(encodeThrew,
-                "Encoding more than MAX_ORIGINS origins must throw EncoderException — this is what "
-                        + "stops an over-large dispatch at the source");
-
-        RegistryFriendlyByteBuf buf = newBuf(helper);
-        buf.writeVarLong(7L);
-        buf.writeVarInt(1);
-        buf.writeVarInt(tooMany.size());
-        for (AmbientContextRequestPacket.Origin origin : tooMany) {
-            AmbientContextRequestPacket.Origin.STREAM_CODEC.encode(buf, origin);
-        }
-        boolean decodeThrew = false;
-        try {
-            AmbientContextRequestPacket.STREAM_CODEC.decode(buf);
-        } catch (DecoderException expected) {
-            decodeThrew = true;
-        }
-        helper.assertTrue(decodeThrew,
-                "Decoding a hand-written oversized origins list must throw DecoderException");
-        helper.succeed();
-    }
-
-    public static void oversizedEntryListIsRejectedOnEncodeAndDecode(GameTestHelper helper) {
-        List<AmbientContextResponsePacket.Entry> tooMany = new ArrayList<>();
-        for (int i = 0; i < AmbientContextResponsePacket.MAX_ENTRIES + 1; i++) {
-            tooMany.add(AmbientContextResponsePacket.Entry.rejected(
-                    i, 1, 0, AmbientContextResponsePacket.Status.REJECTED_NOT_WATER));
-        }
-        helper.assertTrue(tooMany.size() == 5, "Sanity check: MAX_ENTRIES is 4, so 5 entries is oversized");
-
-        boolean encodeThrew = false;
-        try {
-            AmbientContextResponsePacket.STREAM_CODEC.encode(newBuf(helper),
-                    new AmbientContextResponsePacket(-42L, 7, tooMany));
-        } catch (EncoderException expected) {
-            encodeThrew = true;
-        }
-        helper.assertTrue(encodeThrew, "Encoding more than MAX_ENTRIES entries must throw EncoderException");
-
-        RegistryFriendlyByteBuf buf = newBuf(helper);
-        buf.writeVarLong(-42L);
-        buf.writeVarInt(7);
-        buf.writeVarInt(tooMany.size());
-        for (AmbientContextResponsePacket.Entry entry : tooMany) {
-            AmbientContextResponsePacket.Entry.STREAM_CODEC.encode(buf, entry);
-        }
-        boolean decodeThrew = false;
-        try {
-            AmbientContextResponsePacket.STREAM_CODEC.decode(buf);
-        } catch (DecoderException expected) {
-            decodeThrew = true;
-        }
-        helper.assertTrue(decodeThrew,
-                "Decoding a hand-written oversized entries list must throw DecoderException");
-        helper.succeed();
-    }
-
-    public static void oversizedCandidateListIsRejectedOnEncodeAndDecode(GameTestHelper helper) {
-        List<AmbientContextResponsePacket.Candidate> tooMany = new ArrayList<>();
-        for (int i = 0; i < AmbientContextResponsePacket.MAX_CANDIDATES + 1; i++) {
-            tooMany.add(new AmbientContextResponsePacket.Candidate(Ids.of("minecraft", "candidate_" + i), i + 1));
-        }
-        helper.assertTrue(tooMany.size() == 97, "Sanity check: MAX_CANDIDATES is 96, so 97 candidates is oversized");
-        AmbientContextResponsePacket.Entry oversized = new AmbientContextResponsePacket.Entry(
-                77L, 1, 0, AmbientContextResponsePacket.Status.OK, false, false, true, 0x1111L, tooMany);
-
-        boolean encodeThrew = false;
-        try {
-            AmbientContextResponsePacket.Entry.STREAM_CODEC.encode(newBuf(helper), oversized);
-        } catch (EncoderException expected) {
-            encodeThrew = true;
-        }
-        helper.assertTrue(encodeThrew, "Encoding more than MAX_CANDIDATES candidates must throw EncoderException");
-
-        RegistryFriendlyByteBuf buf = newBuf(helper);
-        buf.writeVarLong(77L);
-        buf.writeVarInt(1);
-        buf.writeVarInt(0);
-        buf.writeVarInt(AmbientContextResponsePacket.Status.OK.ordinal());
-        buf.writeBoolean(false);
-        buf.writeBoolean(false);
-        buf.writeBoolean(true);
-        buf.writeVarLong(0x1111L);
-        buf.writeVarInt(tooMany.size());
-        for (AmbientContextResponsePacket.Candidate candidate : tooMany) {
-            AmbientContextResponsePacket.Candidate.STREAM_CODEC.encode(buf, candidate);
-        }
-        boolean decodeThrew = false;
-        try {
-            AmbientContextResponsePacket.Entry.STREAM_CODEC.decode(buf);
-        } catch (DecoderException expected) {
-            decodeThrew = true;
-        }
-        helper.assertTrue(decodeThrew,
-                "Decoding a hand-written oversized candidate list must throw DecoderException");
+        grill24.fishtastic.network.RenameCompanionPacket.STREAM_CODEC.encode(buf, rename);
+        helper.assertTrue(grill24.fishtastic.network.RenameCompanionPacket.STREAM_CODEC.decode(buf).equals(rename),
+                "RenameCompanionPacket must round-trip");
         helper.succeed();
     }
 
     /**
-     * An unknown status id on the wire is a hostile or broken writer's doing; it must decode to a
-     * rejection (never OK, never an exception). The trivially wrong implementation throws
-     * ArrayIndexOutOfBoundsException here — an extra crash surface reachable from the network.
+     * The party attachment (party spec §5.1): both persistent codecs and the sync codec round-trip a
+     * party with a gap in it.
      */
-    public static void unknownStatusIdDecodesToARejectionNotAnError(GameTestHelper helper) {
-        for (int statusId : new int[]{AmbientContextResponsePacket.Status.values().length + 83, -5}) {
-            RegistryFriendlyByteBuf buf = newBuf(helper);
-            buf.writeVarLong(77L);
-            buf.writeVarInt(1);
-            buf.writeVarInt(0);
-            buf.writeVarInt(statusId);
-            buf.writeBoolean(false);
-            buf.writeBoolean(false);
-            buf.writeBoolean(false);
-            buf.writeVarLong(0L);
-            buf.writeVarInt(0);
-            AmbientContextResponsePacket.Entry decoded = AmbientContextResponsePacket.Entry.STREAM_CODEC.decode(buf);
-            helper.assertTrue(decoded.status() != AmbientContextResponsePacket.Status.OK,
-                    "An unknown status id (" + statusId + ") must never decode to OK, got " + decoded.status());
-            helper.assertTrue(decoded.status() == AmbientContextResponsePacket.Status.REJECTED_NOT_WATER,
-                    "An unknown status id (" + statusId + ") must decode to the safe rejection default, got "
-                            + decoded.status());
-        }
+    public static void companionPartyCodecsRoundTrip(GameTestHelper helper) {
+        var ops = helper.getLevel().registryAccess().createSerializationContext(net.minecraft.nbt.NbtOps.INSTANCE);
+        ItemStack lead = grill24.fishtastic.util.ItemSizeHelper.setSize(
+                new ItemStack(grill24.fishtastic.FishtasticItems.BLUEGILL.value()), 25f);
+        lead.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME, net.minecraft.network.chat.Component.literal("Gilbert"));
+        ItemStack last = new ItemStack(grill24.fishtastic.FishtasticItems.STARFISH.value());
+        var party = new grill24.fishtastic.companion.CompanionParty(List.of(lead, ItemStack.EMPTY, last));
+
+        var fabricTag = grill24.fishtastic.companion.CompanionParty.CODEC.encodeStart(ops, party).getOrThrow();
+        var fabric = grill24.fishtastic.companion.CompanionParty.CODEC.parse(ops, fabricTag).getOrThrow();
+        helper.assertTrue(fabric.matches(party), "Fabric codec must round-trip, got " + fabric);
+        var neoCodec = grill24.fishtastic.companion.CompanionParty.MAP_CODEC.codec();
+        var neoTag = neoCodec.encodeStart(ops, party).getOrThrow();
+        var neo = neoCodec.parse(ops, neoTag).getOrThrow();
+        helper.assertTrue(neo.matches(party), "NeoForge codec must round-trip, got " + neo);
+
+        RegistryFriendlyByteBuf buf = newBuf(helper);
+        grill24.fishtastic.companion.CompanionParty.STREAM_CODEC.encode(buf, party);
+        var synced = grill24.fishtastic.companion.CompanionParty.STREAM_CODEC.decode(buf);
+        helper.assertTrue(synced.matches(party), "the sync codec must round-trip, got " + synced);
         helper.succeed();
     }
 }

@@ -1,6 +1,5 @@
 package grill24.fishtastic.client.ambient;
 
-import grill24.fishtastic.network.AmbientContextResponsePacket.Candidate;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
@@ -37,6 +36,10 @@ import java.util.function.Predicate;
  * pinned by plain JUnit tests.
  */
 public final class VisualSampler {
+
+    /** One species of a pool with its final raw weight, in pool order. */
+    public record Candidate(ResourceLocation species, int weight) {
+    }
 
     /**
      * One representable candidate, with its weight and all three probabilities in candidate order.
@@ -105,8 +108,16 @@ public final class VisualSampler {
      * rather than fall back to something a context did not offer.
      */
     public String sample(AmbientRandom random) {
+        return entries.isEmpty() ? null : sampleAt(random.nextDouble());
+    }
+
+    /**
+     * The species at uniform position {@code u} in [0, 1) of the mixture: the seeded ambient roster
+     * draws with a hashed {@code u} per fish, so the draw is a pure function of the fish's ID.
+     * Returns {@code null} when nothing is representable.
+     */
+    public String sampleAt(double u) {
         if (entries.isEmpty()) return null;
-        double u = random.nextDouble();
         int lo = 0, hi = cumulative.length - 1;
         while (lo < hi) {
             int mid = (lo + hi) >>> 1;

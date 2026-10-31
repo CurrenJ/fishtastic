@@ -9,6 +9,10 @@ import grill24.fishsim.core.FlockEngine;
 import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.core.Tunables;
 import grill24.fishsim.domain.WaterDomain;
+import grill24.fishtastic.ecology.AmbientFluid;
+import grill24.fishtastic.ecology.AmbientRoster;
+import grill24.fishtastic.ecology.EcologyClient;
+import grill24.fishtastic.ecology.NaturalPool;
 import grill24.fishtastic.client.renderer.FishVisuals;
 import grill24.fishtastic.client.renderer.GroupFishDraw;
 import grill24.fishtastic.client.renderer.GroupFishPose;
@@ -24,6 +28,8 @@ import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import grill24.fishtastic.server.FishingPoolResolver;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.Item;
@@ -43,18 +49,27 @@ import java.util.Random;
 import org.joml.Matrix4f;
 
 /**
- * Bounded, world-anchored water around the player, populated from authoritative fishing contexts.
+ * Bounded, world-anchored water around the player, populated by the seeded shared roster (world
+ * fish exploration E6, E12, E13): no server request, no held-rod preview, no stored fish.
  *
  * <p>Client settings arm the natural runtime in normal play. The development harness retains an
  * explicit full-density seam ({@link ClientAmbientFish#startNatural}).
  *
- * <p><b>Structure.</b> {@link WaterDiscovery} finds loaded water and keeps each body of it under a
+ * <p><b>Roster.</b> {@link AmbientChunkField} scans the ambient fluid of every loaded chunk around
+ * the player; {@link AmbientRoster} turns the chunk's usable volume and the game time into the fish
+ * present (seeded slots with staggered lifespans, IDs shared by every client). A fish whose home
+ * cell lies in a shown patch is drawn in that patch's domain, if the density setting draws it (a
+ * stable subset by ID rank). The species comes from {@link NaturalPool} under the conditions at the
+ * fish's arrival, vanilla fish excluded, and is remembered per ID so a later weather change does not
+ * swap a living fish.
+ *
+ * <p><b>Structure.</b> {@link WaterDiscovery} finds loaded fluid and keeps each body of it under a
  * stable patch key; this class owns one {@link WaterDomain} and one {@link FlockEngine} per shown
- * patch, samples representable eligible species with whole-body clearance, and retires individuals
- * whose water moves out from under them. Every tick's work is budgeted: discovery has its own cell
- * and column budgets, at most one domain is rebuilt per tick, and at most
- * {@link #MEMBERSHIP_CHANGES_PER_TICK} individuals are added or removed per tick, so no frame ever
- * carries an unbounded flavour of the field build.
+ * patch (the tank-sim motion, E12: each client moves its own copy of a fish, leashed to the fish's
+ * home chunk) and retires individuals whose water moves out from under them. Every tick's work is
+ * budgeted: discovery has its own cell and column budgets, at most one chunk is scanned and one
+ * domain rebuilt per tick, and at most {@link #MEMBERSHIP_CHANGES_PER_TICK} individuals are added or
+ * removed per tick.
  *
  * <p><b>Frames.</b> A patch's origin is chosen by {@link WaterDiscovery} when the patch is first
  * found and never moves, and each shown patch keeps its own {@link DomainState} keyed by the patch
@@ -73,10 +88,9 @@ public final class AmbientFishRuntime {
      */
     public static final float DEFAULT_SIZE_CM = 30f;
 
-    /** Patches shown at once (nearest to the player). One shown patch per request origin, so this
-     * is exactly the context request's wire bound: the two are the same number by construction. */
-    public static final int MAX_DOMAINS = grill24.fishtastic.network.AmbientContextRequestPacket.MAX_ORIGINS;
-    /** Individuals across every domain; per-domain targets come from {@link AmbientBudget#target}. */
+    /** Patches shown at once (nearest to the player). */
+    public static final int MAX_DOMAINS = 4;
+    /** Individuals alive across every domain; the density setting also caps this ({@link AmbientBudget#individuals}). */
     public static final int MAX_INDIVIDUALS = AmbientBudget.MAX_INDIVIDUALS;
     /** A patch smaller than this is a puddle, not somewhere to put a shoal. */
     public static final int MIN_PATCH_COLUMNS = 4;
@@ -93,30 +107,42 @@ public final class AmbientFishRuntime {
     public static final int MEMBERSHIP_CHANGES_PER_TICK = 2;
     /** Fade length of a retiring individual, ticks at 20 tps (~1.2 s). */
     public static final int FADE_TICKS = 24;
-    /** After a domain omits a spawn because nothing fits, wait this long before trying again. */
+    /** After a fish cannot be placed because nothing fits, wait this long before trying it again. */
     public static final int OMISSION_RETRY_TICKS = 20;
-    /** Spawns land within this horizontal radius of the player. */
-    public static final float SPAWN_RADIUS = 10f;
-    /** …but never right on their nose. */
-    public static final float SPAWN_NEAREST = 2.5f;
     /** Minimum gap between a new individual and a resident one. */
     public static final float SPAWN_SEPARATION = 0.5f;
     /** Readable surface population, rather than eight fish scattered through a deep ocean band. */
     public static final float DISPLAY_DEPTH = 4f;
-    private static final int SPAWN_ATTEMPTS = 24;
+    private static final int SPAWN_ATTEMPTS = 8;
     private static final float ROTATION_JITTER = 20f;
+
+    /** The seeded roster's slot and lifespan model. */
+    public static final AmbientRoster.Params ROSTER = AmbientRoster.DEFAULT;
+    /** Chunks scanned around the player beyond the discovery radius, so a border chunk is known. */
+    public static final int CHUNK_MARGIN = 1;
+    /** A fish whose lifespan began this recently arrives from the fluid edge; older ones are already there. */
+    public static final int ARRIVAL_WINDOW_TICKS = 120;
+    /** Fade-in of an arriving fish, ticks. */
+    public static final int ARRIVAL_FADE_TICKS = 40;
+    /** A fish further than this many blocks outside its home chunk's footprint is out of its leash. */
+    public static final float LEASH_MARGIN = 8f;
+    /** Re-derivation of the roster at most this often when nothing changed it (ticks). */
+    private static final int PRUNE_INTERVAL_TICKS = 200;
 
     /** Why an individual is fading out. */
     public static final int REASON_OPEN_FACE = 0;
     public static final int REASON_INVALID = 1;
     public static final int REASON_DOMAIN_LOST = 2;
-    /** Its species left the authoritative pool (Phase 5); fades over {@code POPULATION_FADE_TICKS}. */
+    /** The density setting no longer draws it, or its slot disappeared; fades over {@code POPULATION_FADE_TICKS}. */
     public static final int REASON_EXCLUDED = 3;
-    /** Its own bounded lifetime ran out (Phase 5); fades over {@code POPULATION_FADE_TICKS}. */
+    /** Its seeded lifespan ended; fades over {@code POPULATION_FADE_TICKS}. */
     public static final int REASON_EXPIRED = 4;
+    /** It swam beyond its leash to the home chunk; it re-enters at its home cell. */
+    public static final int REASON_LEASH = 5;
 
     /** One spawned individual: its engine index, its spec, and its retirement state. */
     static final class Member {
+        /** The seeded ID every client derives for this fish (hash of seed, chunk, slot, lifespan index). */
         final long id;
         final String species;
         final FishSpec spec;
@@ -124,10 +150,10 @@ public final class AmbientFishRuntime {
         final ItemStack stack;
         final FishAnimationConfig anim;
         final long bornTick;
-        /** This individual's own lifetime, drawn once at spawn, independent of species. */
+        /** Ticks from spawn to the end of the seeded lifespan. */
         final int lifetimeTicks;
-        int slot;
-        AABB bounds;
+        final AmbientRoster.Lifespan lifespan;
+        final boolean arriving;
         Matrix4f retirementPose;
         int engineIndex = -1;
         long retireTick = Long.MIN_VALUE;
@@ -135,16 +161,19 @@ public final class AmbientFishRuntime {
         int fadeTicks = FADE_TICKS;
         float fade = 1f;
 
-        Member(long id, String species, FishSpec spec, WaterDomain.BodyBox body, ItemStack stack,
-               FishAnimationConfig anim, long bornTick, int lifetimeTicks) {
-            this.id = id;
+        Member(AmbientRoster.Lifespan lifespan, String species, FishSpec spec, WaterDomain.BodyBox body, ItemStack stack,
+               FishAnimationConfig anim, long bornTick, boolean arriving) {
+            this.lifespan = lifespan;
+            this.id = lifespan.fishId();
             this.species = species;
             this.spec = spec;
             this.body = body;
             this.stack = stack;
             this.anim = anim;
             this.bornTick = bornTick;
-            this.lifetimeTicks = lifetimeTicks;
+            this.lifetimeTicks = (int) Math.max(1, Math.min(Integer.MAX_VALUE, lifespan.departureTick() - bornTick));
+            this.arriving = arriving;
+            if (arriving) fade = 0f;
         }
 
         boolean retiring() {
@@ -167,13 +196,6 @@ public final class AmbientFishRuntime {
         final long patchKey;
         final FlockEngine engine = new FlockEngine(Tunables.GROUP);
         final List<Member> members = new ArrayList<>();
-        /**
-         * The patch's own phase-5 random stream — spawn draws and lifetimes. Seeded from the patch
-         * key, restorable from a retained state, and touched by nothing else: the catch path has its
-         * own randomness and never shares this one.
-         */
-        final AmbientRandom speciesRandom;
-        AmbientPopulationRolls rolls = new AmbientPopulationRolls();
         WaterDiscovery.Patch patch;
         WaterDomain domain;
         int builtColumns = -1;
@@ -183,18 +205,7 @@ public final class AmbientFishRuntime {
         /** A revived domain waiting for its patch's cache to refill to {@link #builtColumns}. */
         boolean refilling;
         long refillSince;
-        int spawnCount;
-        long lastOmissionTick = Long.MIN_VALUE;
-        /** Whether the store currently holds an OK context for this patch; false blocks new spawns. */
-        boolean contextOk;
-        long unknownSince = Long.MIN_VALUE;
-        /** The visual sampler for the applied context, or null before the first usable answer. */
-        VisualSampler sampler;
-        /** The fingerprint the current sampler was built from; {@link Long#MIN_VALUE} is "never". */
-        long appliedFingerprint = Long.MIN_VALUE;
-        long builtGeometrySignature = Long.MIN_VALUE;
-        long samplerGeometrySignature = Long.MIN_VALUE;
-        /** Head-room the domain must reserve for the tallest representable species, or zero. */
+        /** Head-room the domain must reserve for the tallest species drawn in it, or zero (only ever grows). */
         float topMargin;
         /** The margin the current domain was built with; a mismatch marks it stale. */
         float builtTopMargin = Float.NaN;
@@ -204,19 +215,14 @@ public final class AmbientFishRuntime {
         int builtPx, builtPy, builtPz;
         double waterVolume;
 
-        DomainState(WaterDiscovery.Patch patch, long seed) {
+        DomainState(WaterDiscovery.Patch patch) {
             this.patch = patch;
             this.patchKey = patch.key();
-            this.speciesRandom = new AmbientRandom(seed);
         }
 
         int originX() { return patch.originX(); }
         int originY() { return patch.originY(); }
         int originZ() { return patch.originZ(); }
-    }
-
-    /** A dropped patch's retained random state, waiting out {@link AmbientTuning#RETENTION_TICKS}. */
-    private record Retained(long streamState, int spawnCount, long storedTick, AmbientPopulationRolls rolls) {
     }
 
     /** Totals and peaks the harness asserts on. */
@@ -274,25 +280,25 @@ public final class AmbientFishRuntime {
         public double totalTickMillis, peakTickMillis;
         public long renderFrames;
         public double totalSubmitMillis, peakSubmitMillis;
-        // ── Phase 5: authoritative pools, sampling and turnover ────────────────
-        /** Samplers built from applied contexts (one per applied fingerprint change). */
-        public long samplerBuilds;
-        /** Species omitted from samplers because they cannot be represented at all. */
-        public long unrepresentableOmissions;
-        /** All species omitted from samplers, unrepresentable ones included, cumulative. */
-        public long exclusions;
-        /** Domain-ticks whose patch had no usable (OK) context — the spawn-blocked clock. */
-        public long contextGaps;
-        /** Ticks where a spawn was wanted but no shown domain had a usable context. */
-        public long spawnsBlockedNoContext;
-        /** Ticks where a spawn was wanted but every eligible domain's pool was empty. */
-        public long spawnsBlockedEmptyPool;
-        /** Patch random states put into retention when a domain dropped. */
-        public long retainedStores;
-        /** Retained states that were restored into a re-adopted patch. */
-        public long retainedRestores;
-        /** Retained states that expired unreused (age, sweep, or the size bound). */
-        public long retainedExpiries;
+        // ── Seeded roster ──────────────────────────────────────────────────────
+        /** Fish present in the scanned chunks at the last roster pass (the shared roster, all clients). */
+        public int rosterPresent;
+        /** …of which the density setting draws. */
+        public int rosterDrawn;
+        /** …of which the density setting hides (a stable subset by ID rank). */
+        public int rosterHiddenDensity;
+        /** …drawn by density but with no shown patch around their home cell yet. */
+        public int rosterNoDomain;
+        /** …drawn and in a shown patch but not alive: waiting on the cap, a retry or a fit. */
+        public int rosterPending;
+        /** Species draws made (one per fish ID, remembered). */
+        public long speciesDraws;
+        /** Fish a pass could not place (no body fit near the home cell), counted per attempt. */
+        public long unplaceable;
+        /** Fish that swam beyond their leash and re-entered. */
+        public long retireLeash;
+        /** Chunk scans done. */
+        public long chunkScans;
 
         public double meanBuildMillis() {
             return domainBuilds == 0 ? 0d : totalBuildMillis / domainBuilds;
@@ -303,24 +309,45 @@ public final class AmbientFishRuntime {
     private final AmbientWaterSource source = new AmbientWaterSource();
     final Map<Long, DomainState> domains = new LinkedHashMap<>();
     final Stats stats = new Stats();
-    private final Random random = new Random(20261013L);
     private final Random poseRandom = new Random(7L);
-    /** Resolved species visuals, by {@code namespace:path} — built lazily from the context's ids. */
+    /** Resolved species visuals, by {@code namespace:path} — built lazily from the roster's ids. */
     private final Map<String, SpeciesVisual> visuals = new LinkedHashMap<>();
     /** Species ids that resolved to nothing drawable; never re-attempted within a session. */
     private final java.util.Set<String> unrepresentable = new java.util.LinkedHashSet<>();
-    /** Patch random states kept across brief absences, bounded by count and by age. */
-    final Map<Long, Retained> retained = new LinkedHashMap<>();
+    /** The chunk fluid scans the roster is derived from. */
+    final AmbientChunkField field = new AmbientChunkField();
+    /** Species drawn per fish ID, kept for the fish's lifespan so a weather change cannot swap a living fish. */
+    private final Map<Long, String> speciesById = new java.util.HashMap<>();
+    /** Pools resolved per environment, so the 100th fish at dawn in a river costs a lookup. */
+    private final Map<FishingPoolResolver.EnvironmentContext, VisualSampler> samplers = new java.util.HashMap<>();
+    /** Fish IDs that could not be placed, until when. */
+    private final Map<Long, Long> retryAfter = new java.util.HashMap<>();
+    /** The latest roster pass, for the debug view and the harness. */
+    final List<RosterFish> roster = new ArrayList<>();
+    private long lastPrune = Long.MIN_VALUE;
+    private long seed;
+    private boolean seeded;
+    private AmbientFluid fluid = AmbientFluid.WATER;
+
+    /** Why a rostered fish is not shown. */
+    public enum Status { ALIVE, HIDDEN_DENSITY, NO_DOMAIN, PENDING, UNPLACEABLE, NO_SPECIES }
+
+    /**
+     * One fish of the shared roster at a pass: its ID, species, lifespan and where it stands. The
+     * debug view lists these; {@code status} is the drawn/hidden split.
+     */
+    public record RosterFish(long id, int chunkX, int chunkZ, int slot, String species, double phase,
+                             long arrivalTick, long departureTick, int homeX, int homeZ, long patchKey,
+                             Status status) {}
     private final List<Member> scratchMembers = new ArrayList<>();
     private float[] depthScratch = new float[0];
     private int[] orderScratch = new int[0];
     private ClientLevel level;
     long lastTick = Long.MIN_VALUE;
-    private long nextId = 1;
     boolean armed;
     AmbientBudget budget = AmbientBudget.forDensity(100);
     int worldSubmitsThisFrame;
-    /** Why this tick's spawn attempt did nothing: diagnosis for {@link #debugState()}. */
+    /** Why this tick's spawn attempt did nothing: diagnosis for the debug line. */
     String lastSpawnSkip = "not-ticked";
 
     // ------------------------------------------------------------------ lifecycle
@@ -335,6 +362,8 @@ public final class AmbientFishRuntime {
         clear();
         this.level = level;
         source.setLevel(level);
+        fluid = source.fluid();
+        field.reset(fluid);
         configure(budget);
         armed = true;
         return true;
@@ -351,7 +380,6 @@ public final class AmbientFishRuntime {
 
     public void clear() {
         patchDistances = Map.of();
-        sampleGeometry.clear();
         armed = false;
         domains.clear();
         discovery.reset();
@@ -359,11 +387,16 @@ public final class AmbientFishRuntime {
         source.resetCounters();
         level = null;
         lastTick = Long.MIN_VALUE;
-        nextId = 1;
         worldSubmitsThisFrame = 0;
         visuals.clear();
         unrepresentable.clear();
-        retained.clear();
+        field.reset(AmbientFluid.WATER);
+        speciesById.clear();
+        samplers.clear();
+        retryAfter.clear();
+        roster.clear();
+        lastPrune = Long.MIN_VALUE;
+        seeded = false;
         scratchMembers.clear();
         depthScratch = new float[0];
         orderScratch = new int[0];
@@ -416,117 +449,6 @@ public final class AmbientFishRuntime {
     private int spawnSkip(String why) {
         lastSpawnSkip = why;
         return 0;
-    }
-
-    /**
-     * One live shown patch a context request may reference: its key, one deterministic
-     * water-surface sample cell inside its cached water, and a signature of the geometry that
-     * sample was taken from.
-     */
-    public record PatchSample(long patchKey, BlockPos pos, long geometrySignature) {
-    }
-
-    /**
-     * Water-surface samples for the patches this runtime is currently showing — at most one per
-     * non-dying domain ({@link #MAX_DOMAINS}), deterministic for a given geometry. Phase 4's
-     * context manager requests these; nothing in the simulation reads them.
-     */
-    public List<PatchSample> patchSamples() {
-        List<PatchSample> out = new ArrayList<>(domains.size());
-        for (DomainState st : domains.values()) {
-            if (st.dying) continue;
-            PatchSample sample = sampleOf(st.patchKey);
-            if (sample != null) out.add(sample);
-        }
-        sampleGeometry.keySet().removeIf(key -> !domains.containsKey(key));
-        return List.copyOf(out);
-    }
-
-    /**
-     * What {@link #sampleOf} derives from a patch's columns alone — the sorted set, its signature
-     * and the column nearest the seed — kept until the patch's version or seed moves, so the
-     * context manager's per-tick compare costs a lookup instead of a scan, a sort and a hash.
-     */
-    private record SampleGeometry(long version, int seedX, int seedZ, List<WaterDiscovery.Column> sorted,
-                                  long signature, @Nullable WaterDiscovery.Column nearest) {}
-
-    private final Map<Long, SampleGeometry> sampleGeometry = new java.util.HashMap<>();
-
-    private SampleGeometry sampleGeometry(WaterDiscovery.Patch patch) {
-        long version = discovery.patchVersion(patch.key());
-        SampleGeometry g = sampleGeometry.get(patch.key());
-        if (g != null && g.version() == version && g.seedX() == patch.seedX() && g.seedZ() == patch.seedZ()) return g;
-        List<WaterDiscovery.Column> columns = discovery.patchColumns(patch.key());
-        columns.sort(Comparator.comparingInt(WaterDiscovery.Column::x).thenComparingInt(WaterDiscovery.Column::z));
-        g = new SampleGeometry(version, patch.seedX(), patch.seedZ(), List.copyOf(columns),
-                geometrySignature(columns), nearestToSeed(patch, columns, false));
-        sampleGeometry.put(patch.key(), g);
-        return g;
-    }
-
-    /**
-     * The column nearest the patch seed, ties to the lower x then z — among the loaded ones when
-     * {@code loadedOnly}. Sorted input, so the first of equals wins either way.
-     */
-    @Nullable
-    private WaterDiscovery.Column nearestToSeed(WaterDiscovery.Patch patch, List<WaterDiscovery.Column> sorted,
-                                                boolean loadedOnly) {
-        WaterDiscovery.Column best = null;
-        long bestDistance = Long.MAX_VALUE;
-        for (WaterDiscovery.Column c : sorted) {
-            if (c.water().isEmpty()) continue;
-            if (loadedOnly && !loaded(c)) continue;
-            long dx = c.x() - patch.seedX(), dz = c.z() - patch.seedZ();
-            long distance = dx * dx + dz * dz;
-            if (best == null || distance < bestDistance
-                    || (distance == bestDistance && (c.x() < best.x() || (c.x() == best.x() && c.z() < best.z())))) {
-                best = c;
-                bestDistance = distance;
-            }
-        }
-        return best;
-    }
-
-    private boolean loaded(WaterDiscovery.Column c) {
-        return level != null && level.hasChunkAt(new BlockPos(c.x(),
-                (int) Math.floor(c.water().surfaceY() - 1e-4), c.z()));
-    }
-
-    /**
-     * The top water cell of the patch column nearest its seed — a position inside every
-     * open-face margin, on the actual fluid surface, so the server can re-validate "water, now?"
-     * exactly where the client believes water is. The geometry signature folds the sorted column
-     * set and every span, so any real terrain change moves it and no hash iteration order can
-     * fake one.
-     */
-    @Nullable
-    private PatchSample sampleOf(long patchKey) {
-        WaterDiscovery.Patch patch = discovery.patch(patchKey);
-        if (patch == null) return null;
-        SampleGeometry g = sampleGeometry(patch);
-        // The nearest column overall is the nearest loaded one whenever it is loaded itself — the
-        // usual case; only an unloaded nearest sends the pick back through the whole set.
-        WaterDiscovery.Column best = g.nearest() != null && loaded(g.nearest()) ? g.nearest()
-                : nearestToSeed(patch, g.sorted(), true);
-        if (best == null) return null;
-        int y = (int) Math.floor(best.water().surfaceY() - 1e-4);
-        return new PatchSample(patchKey, new BlockPos(best.x(), y, best.z()), g.signature());
-    }
-
-    private static long geometrySignature(List<WaterDiscovery.Column> sortedColumns) {
-        long hash = 0xcbf29ce484222325L;
-        for (WaterDiscovery.Column c : sortedColumns) {
-            hash = (hash ^ c.x()) * 0x100000001b3L;
-            hash = (hash ^ c.z()) * 0x100000001b3L;
-            hash = (hash ^ c.contextSignature()) * 0x100000001b3L;
-            WaterColumn water = c.water();
-            hash = (hash ^ (water.truncated() ? 1 : 0)) * 0x100000001b3L;
-            for (int i = 0; i < water.spanCount(); i++) {
-                hash = (hash ^ Float.floatToIntBits(water.lo(i))) * 0x100000001b3L;
-                hash = (hash ^ Float.floatToIntBits(water.hi(i))) * 0x100000001b3L;
-            }
-        }
-        return hash;
     }
 
     // ------------------------------------------------------------------ pool
@@ -620,15 +542,15 @@ public final class AmbientFishRuntime {
         discovery.tick(source, px, py, pz, time);
 
         syncDomains(time, px, py, pz);
-        applyContexts(time);
-        expireMembers(time);
+        deriveRoster(lvl, time, px, py, pz);
+        int changes = reconcileRoster(time, px, py, pz);
         retireAtFaces(time);
         updateFades(time);
-        int changes = retireFinished(time);
-        changes += spawnOne(time, px, py, pz, changes);
+        changes += retireFinished(time);
+        spawnRoster(time, px, py, pz, changes);
         stepEngines();
+        enforceLeash(time);
         dropDeadDomains(time);
-        sweepRetained(time);
         recordStats();
         double millis = (System.nanoTime() - tickStarted) / 1_000_000.0;
         stats.ticks++;
@@ -636,119 +558,118 @@ public final class AmbientFishRuntime {
         stats.peakTickMillis = Math.max(stats.peakTickMillis, millis);
     }
 
-    // ------------------------------------------------------------------ contexts and turnover
+    // ------------------------------------------------------------------ the seeded roster
+
+    /** One fish of the roster at this pass, with what the runtime knows about showing it. */
+    private record Plan(AmbientRoster.Lifespan lifespan, AmbientChunkField.Scan scan, int column, String species,
+                        long patchKey, boolean drawn) {
+        int homeX() { return scan.blockX(column); }
+        int homeZ() { return scan.blockZ(column); }
+    }
+
+    private final List<Plan> plans = new ArrayList<>();
 
     /**
-     * Brings each shown patch's visual population in line with its authoritative context: reads the
-     * store's fresh answer, and when the fingerprint moves, rebuilds the sampler and reconciles the
-     * residents. Runs after {@link #syncDomains} so newly adopted patches are covered the tick they
-     * appear, and before the retirement passes so an exclusion starts fading the same tick it is
-     * decided.
-     *
-     * <p>A patch without a usable (OK) answer is left exactly as it is: no sampler is built, no
-     * resident is classified, and {@link #spawnOne} will not spawn into it. Existing individuals
-     * keep living under the ordinary policy — bounded lifetime, open faces, domain loss — rather
-     * than being frozen or mass-retired, and a later answer resumes the same patch.
+     * Derives the fish present now in every scanned chunk: the pure part is {@link AmbientRoster}; this
+     * adds the chunk scans, the home cell's patch, the species and the density draw. No random number
+     * is consumed, so two clients holding the same seed and water derive the same list.
      */
-    private void applyContexts(long time) {
-        for (DomainState st : domains.values()) {
-            AmbientContextStore.Context ctx = AmbientContextClient.store().freshContext(st.patchKey);
-            st.contextOk = ctx != null;
-            if (ctx == null) {
-                stats.contextGaps++;
-                if (st.unknownSince == Long.MIN_VALUE) st.unknownSince = time;
-                if (time - st.unknownSince >= AmbientContextStore.PENDING_TIMEOUT_TICKS) {
-                    for (Member member : st.members) beginRetire(st, member, REASON_INVALID, time);
+    private void deriveRoster(ClientLevel lvl, long time, int px, int py, int pz) {
+        plans.clear();
+        stats.rosterPresent = stats.rosterDrawn = stats.rosterHiddenDensity = stats.rosterNoDomain = 0;
+        String dimension = lvl.dimension().location().toString();
+        Long held = EcologyClient.seedFor(dimension);
+        seeded = held != null;
+        if (!seeded) return;
+        seed = held;
+        int radius = Math.max(1, (discovery.radius() + 15) / 16 + CHUNK_MARGIN);
+        field.refresh(lvl, px >> 4, pz >> 4, radius, time);
+        stats.chunkScans = field.scansDone();
+        if (lastPrune == Long.MIN_VALUE || time - lastPrune >= PRUNE_INTERVAL_TICKS) {
+            if (lastPrune != Long.MIN_VALUE) pruneMemos();
+            lastPrune = time;
+        }
+        int density = budget.density();
+        for (AmbientChunkField.Scan scan : field.all()) {
+            if (Math.abs(scan.chunkX() - (px >> 4)) > radius || Math.abs(scan.chunkZ() - (pz >> 4)) > radius) continue;
+            int slots = AmbientRoster.slotCount(scan.usableCells(), ROSTER);
+            if (slots == 0 || scan.columnCount() == 0) continue;
+            for (AmbientRoster.Lifespan lifespan : AmbientRoster.present(seed, scan.chunkX(), scan.chunkZ(), slots, time, ROSTER)) {
+                stats.rosterPresent++;
+                int column = AmbientRoster.homeColumn(lifespan.fishId(), scan.columnCount());
+                String species = speciesFor(lvl, lifespan, scan, column);
+                long patchKey = discovery.patchKeyAt(scan.blockX(column), scan.blockZ(column));
+                boolean drawn = AmbientRoster.drawn(lifespan.fishId(), density);
+                plans.add(new Plan(lifespan, scan, column, species, patchKey, drawn));
+                if (!drawn) {
+                    stats.rosterHiddenDensity++;
+                    continue;
                 }
-                continue;
+                stats.rosterDrawn++;
+                DomainState st = patchKey == 0L ? null : domains.get(patchKey);
+                if (st == null || st.dying || species == null) {
+                    stats.rosterNoDomain++;
+                    continue;
+                }
+                SpeciesVisual visual = visuals.get(species);
+                if (visual != null && visual.body().above() > st.topMargin) st.topMargin = visual.body().above();
             }
-            st.unknownSince = Long.MIN_VALUE;
-            if (st.domain != null && (st.sampler == null || ctx.fingerprint() != st.appliedFingerprint
-                    || st.samplerGeometrySignature != st.builtGeometrySignature)) {
-                st.appliedFingerprint = ctx.fingerprint();
-                buildSampler(st, ctx);
-                reconcile(st, ctx, time);
+        }
+    }
+
+    /** Forgets memoised draws of fish no longer on the roster, so the maps stay bounded. */
+    private void pruneMemos() {
+        java.util.Set<Long> alive = new java.util.HashSet<>(plans.size() * 2);
+        for (Plan plan : plans) alive.add(plan.lifespan().fishId());
+        speciesById.keySet().retainAll(alive);
+        retryAfter.keySet().retainAll(alive);
+        if (samplers.size() > 256) samplers.clear();
+    }
+
+    /**
+     * The fish species: drawn once from the natural pool at its home cell under the conditions at its
+     * arrival (time of day and moon from the arrival clock time; weather as this client sees it now, so
+     * two clients can differ for a fish that arrived before a weather change one of them saw late),
+     * vanilla fish excluded, and remembered for the fish life.
+     */
+    @Nullable
+    private String speciesFor(ClientLevel lvl, AmbientRoster.Lifespan lifespan, AmbientChunkField.Scan scan, int column) {
+        String cached = speciesById.get(lifespan.fishId());
+        if (cached != null) return cached.isEmpty() ? null : cached;
+        BlockPos cell = new BlockPos(scan.blockX(column), scan.topY()[column], scan.blockZ(column));
+        long clockOffset = lvl.getDayTime() - lvl.getGameTime();
+        var env = NaturalPool.ambientEnvironment(lvl.getBiome(cell), lifespan.arrivalTick() + clockOffset,
+                FishProfile.WeatherCondition.fromLevel(lvl, cell), cell.getY(), lvl.getSeaLevel());
+        VisualSampler sampler = samplers.get(env);
+        if (sampler == null) {
+            var profiles = lvl.registryAccess().registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
+            var pool = NaturalPool.resolve(lvl.registryAccess().registryOrThrow(Registries.ITEM), profiles, env);
+            sampler = VisualSampler.build(NaturalPool.ambientCandidates(profiles, pool), id -> visualFor(id, lvl) != null);
+            samplers.put(env, sampler);
+        }
+        String species = sampler.sampleAt(AmbientRoster.speciesUnit(lifespan.fishId()));
+        stats.speciesDraws++;
+        speciesById.put(lifespan.fishId(), species == null ? "" : species);
+        return species;
+    }
+
+    /** Starts the fade of every resident the roster no longer wants drawn: lifespan over, density lowered, slot gone. */
+    private int reconcileRoster(long time, int px, int py, int pz) {
+        if (!seeded) {
+            for (DomainState st : domains.values()) {
+                for (Member m : st.members) beginRetire(st, m, REASON_EXCLUDED, time);
             }
+            return 0;
         }
-    }
-
-    /**
-     * Builds one patch's sampler from an authoritative context: the mixture over the candidates
-     * this client can actually show here. Restriction happens before normalisation and every
-     * omission is recorded — a species that fails the global visual check (no item, locomotion
-     * mismatch) or this domain's own locomotion gate is left out of the sampler and can never be
-     * drawn, never shown as something it is not.
-     */
-    private void buildSampler(DomainState st, AmbientContextStore.Context ctx) {
-        List<WaterDiscovery.Column> placementColumns = discovery.columnsOf(st.patchKey);
-        placementColumns.sort(Comparator.comparingInt(WaterDiscovery.Column::x).thenComparingInt(WaterDiscovery.Column::z));
-        int global = 0;
-        for (var candidate : ctx.candidates()) {
-            if (visualFor(candidate.species(), level) == null) global++;
-        }
-        st.sampler = VisualSampler.build(ctx.candidates(), id -> {
-            SpeciesVisual visual = visualFor(id, level);
-            return visual != null && st.engine.passesGate(visual.spec().locomotion(), visual.spec().length())
-                    && hasPlacement(st, visual, placementColumns);
-        });
-        stats.samplerBuilds++;
-        st.samplerGeometrySignature = st.builtGeometrySignature;
-        stats.unrepresentableOmissions += global;
-        stats.exclusions += st.sampler.omitted().size();
-        // The domain reserves head-room for the tallest species the sampler can draw; a change
-        // here marks the domain stale so the next sync rebuilds it with the right margin.
-        float top = 0f;
-        for (VisualSampler.Entry entry : st.sampler.entries()) {
-            SpeciesVisual visual = visuals.get(entry.species());
-            if (visual != null) top = Math.max(top, visual.body().above());
-        }
-        st.topMargin = top;
-    }
-
-    /** Bounded deterministic fit probe before normalizing; no random placement retries change weights. */
-    private static boolean hasPlacement(DomainState st, SpeciesVisual visual, List<WaterDiscovery.Column> columns) {
-        WaterDomain.BodyBox body = visual.body();
-        int probes = Math.min(32, columns.size());
-        for (int i = 0; i < probes; i++) {
-            WaterDiscovery.Column c = columns.get(i * columns.size() / probes);
-            float l = c.x() + 0.5f - st.originX(), d = c.z() + 0.5f - st.originZ();
-            if ((visual.spec().locomotion() == Locomotion.BENTHIC || visual.spec().locomotion() == Locomotion.ANCHORED)
-                    && !Float.isFinite(st.domain.bedAt(l, d))) continue;
-            float low = st.domain.bottomAt(l, d) + body.below() + 0.02f;
-            float high = st.domain.surfaceAt(l, d) - body.above() - 0.02f;
-            float y = AmbientPlacement.height(visual.spec().locomotion(), st.domain.bedAt(l, d), low, high, 0.5f);
-            if (high > low && st.domain.bodyFits(l, y, d, body)) return true;
-        }
-        return false;
-    }
-
-    /**
-     * Classifies every resident against the raw candidate list of a newly applied context:
-     * a species that is no longer in the pool at all is excluded and starts its eligibility fade;
-     * everything else is retained untouched. A current OK answer with no candidates excludes
-     * everyone; pending/rejected/stale answers are handled separately by the bounded grace policy.
-     */
-    private void reconcile(DomainState st, AmbientContextStore.Context ctx, long time) {
-        java.util.Set<String> pool = new java.util.HashSet<>(ctx.candidates().size());
-        for (var candidate : ctx.candidates()) pool.add(candidate.species().toString());
-        for (Member m : st.members) {
-            if (m.retiring()) continue;
-            if (!pool.contains(m.species)) beginRetire(st, m, REASON_EXCLUDED, time);
-        }
-    }
-
-    /**
-     * Retires every resident whose own bounded lifetime has run out. The lifetime was drawn at
-     * spawn from the patch's stream with no species input, so every species turns over at the same
-     * rate and abundance is decided by what replaces an individual, not by who lives longer.
-     */
-    private void expireMembers(long time) {
+        java.util.Set<Long> wanted = new java.util.HashSet<>(plans.size() * 2);
+        for (Plan plan : plans) if (plan.drawn()) wanted.add(plan.lifespan().fishId());
         for (DomainState st : domains.values()) {
             for (Member m : st.members) {
-                if (m.retiring()) continue;
-                if (time - m.bornTick >= m.lifetimeTicks) beginRetire(st, m, REASON_EXPIRED, time);
+                if (m.retiring() || wanted.contains(m.id)) continue;
+                beginRetire(st, m, m.lifespan.departureTick() <= time ? REASON_EXPIRED : REASON_EXCLUDED, time);
             }
         }
+        return 0;
     }
 
     /**
@@ -788,9 +709,7 @@ public final class AmbientFishRuntime {
             DomainState st = domains.get(p.key());
             if (st != null) continue;
             if (domains.size() >= budget.domains()) break;
-            DomainState adopted = new DomainState(p, p.key());
-            restoreRetained(adopted, time);
-            domains.put(p.key(), adopted);
+            domains.put(p.key(), new DomainState(p));
         }
 
         // A revived domain waits for its patch's cache to refill before it is rebuilt. Rediscovery
@@ -946,8 +865,6 @@ public final class AmbientFishRuntime {
             return;
         }
         st.domain = built;
-        columns.sort(Comparator.comparingInt(WaterDiscovery.Column::x).thenComparingInt(WaterDiscovery.Column::z));
-        st.builtGeometrySignature = geometrySignature(columns);
         reseed(st);
         stats.rebuilds++;
         // Positions survive the rebuild exactly (the patch frame never moves), so the only thing a
@@ -1002,13 +919,14 @@ public final class AmbientFishRuntime {
         m.retireReason = reason;
         // Context-driven retirements get the spec's ~2 s eligibility fade; the water-boundary
         // retirements keep the Phase 2 fade they were tuned with.
-        m.fadeTicks = (reason == REASON_EXCLUDED || reason == REASON_EXPIRED)
+        m.fadeTicks = (reason == REASON_EXCLUDED || reason == REASON_EXPIRED || reason == REASON_LEASH)
                 ? AmbientTuning.POPULATION_FADE_TICKS : FADE_TICKS;
         if (reason == REASON_OPEN_FACE) stats.retireOpenFace++;
         else if (reason == REASON_INVALID) stats.retireInvalid++;
         else if (reason == REASON_DOMAIN_LOST) stats.retireDomainLost++;
         else if (reason == REASON_EXCLUDED) stats.retireExcluded++;
         else if (reason == REASON_EXPIRED) stats.retireExpired++;
+        else if (reason == REASON_LEASH) stats.retireLeash++;
     }
 
     /** Removes members whose fade has run out, up to the tick's membership budget. */
@@ -1046,7 +964,11 @@ public final class AmbientFishRuntime {
             WaterDomain d = st.domain;
             for (int i = 0; i < st.members.size(); i++) {
                 Member m = st.members.get(i);
-                if (!m.retiring()) continue;
+                if (!m.retiring()) {
+                    // An arrival swims in from the fluid edge, fading up as it goes.
+                    if (m.arriving && m.fade < 1f) m.fade = Math.min(1f, (time - m.bornTick) / (float) ARRIVAL_FADE_TICKS);
+                    continue;
+                }
                 float timeFade = 1f - (time - m.retireTick) / (float) m.fadeTicks;
                 float fade = timeFade;
                 if (m.retireReason == REASON_OPEN_FACE && d != null) {
@@ -1062,214 +984,236 @@ public final class AmbientFishRuntime {
         }
     }
 
-    /** Drops a dying domain once its last resident has faded away, retaining its random state. */
+    /** Drops a dying domain once its last resident has faded away. */
     private void dropDeadDomains(long time) {
-        var it = domains.entrySet().iterator();
-        while (it.hasNext()) {
-            DomainState st = it.next().getValue();
-            if (st.dying && st.members.isEmpty()) {
-                retainState(st, time);
-                it.remove();
-            }
-        }
+        domains.values().removeIf(st -> st.dying && st.members.isEmpty());
     }
 
     /**
-     * Puts a dropped patch's random stream and spawn bookkeeping into the bounded retention map, so
-     * stepping out of a patch and back does not restart its stream from the seed and re-deal the
-     * same first draws. The map is bounded twice — by age ({@code RETENTION_TICKS}) and by count
-     * ({@code MAX_RETAINED_PATCHES}, oldest evicted) — and cleared when the runtime does. Only
-     * state is kept: no individuals survive a drop, so the patch repopulates through the ordinary
-     * spawn and turnover policy when it is next shown.
+     * Adds the roster's drawn fish that are not yet alive, nearest to the player first, within the
+     * membership budget and the density setting cap. A fish no body fits near its home cell is
+     * omitted (never demoted) and tried again after {@link #OMISSION_RETRY_TICKS}.
      */
-    private void retainState(DomainState st, long time) {
-        if (retained.size() >= AmbientTuning.MAX_RETAINED_PATCHES && !retained.containsKey(st.patchKey)) {
-            Map.Entry<Long, Retained> oldest = null;
-            for (Map.Entry<Long, Retained> entry : retained.entrySet()) {
-                if (oldest == null || entry.getValue().storedTick() < oldest.getValue().storedTick()) {
-                    oldest = entry;
-                }
-            }
-            if (oldest != null) {
-                retained.remove(oldest.getKey());
-                stats.retainedExpiries++;
-            }
-        }
-        retained.put(st.patchKey, new Retained(st.speciesRandom.state(), st.spawnCount, time, st.rolls));
-        stats.retainedStores++;
-    }
-
-    /** Restores a retained stream into a freshly adopted domain, if it is still inside its bound. */
-    private void restoreRetained(DomainState st, long time) {
-        Retained state = retained.remove(st.patchKey);
-        if (state == null) return;
-        if (time - state.storedTick() > AmbientTuning.RETENTION_TICKS) {
-            stats.retainedExpiries++;
+    private void spawnRoster(long time, int px, int py, int pz, int changes) {
+        if (!seeded) return;
+        if (changes >= MEMBERSHIP_CHANGES_PER_TICK) {
+            spawnSkip("changes");
             return;
         }
-        st.speciesRandom.restore(state.streamState());
-        st.rolls = state.rolls();
-        st.spawnCount = state.spawnCount();
-        stats.retainedRestores++;
+        int total = 0;
+        java.util.Set<Long> existing = new java.util.HashSet<>();
+        for (DomainState st : domains.values()) {
+            total += st.members.size();
+            for (Member m : st.members) existing.add(m.id);
+        }
+        if (total >= budget.individuals()) {
+            spawnSkip("cap");
+            return;
+        }
+        List<Plan> pending = new ArrayList<>();
+        for (Plan plan : plans) {
+            if (!plan.drawn() || plan.species() == null || existing.contains(plan.lifespan().fishId())) continue;
+            DomainState st = plan.patchKey() == 0L ? null : domains.get(plan.patchKey());
+            if (st == null || st.dying || st.domain == null) continue;
+            Long after = retryAfter.get(plan.lifespan().fishId());
+            if (after != null && time < after) continue;
+            pending.add(plan);
+        }
+        stats.rosterPending = pending.size();
+        pending.sort(Comparator.comparingDouble(p -> {
+            double dx = p.homeX() + 0.5 - px, dz = p.homeZ() + 0.5 - pz;
+            return dx * dx + dz * dz;
+        }));
+        for (Plan plan : pending) {
+            if (changes >= MEMBERSHIP_CHANGES_PER_TICK || total >= budget.individuals()) break;
+            if (spawnFish(plan, domains.get(plan.patchKey()), time)) {
+                changes++;
+                total++;
+            }
+        }
     }
 
-    /** Forgets retained states older than the retention bound. The map is small and bounded. */
-    private void sweepRetained(long time) {
-        retained.entrySet().removeIf(entry -> {
-            boolean expired = time - entry.getValue().storedTick() > AmbientTuning.RETENTION_TICKS;
-            if (expired) stats.retainedExpiries++;
-            return expired;
-        });
+    private boolean spawnFish(Plan plan, DomainState st, long time) {
+        long id = plan.lifespan().fishId();
+        SpeciesVisual visual = visuals.get(plan.species());
+        if (visual == null) return false;
+        FishSpec spec = visual.spec();
+        WaterDomain.BodyBox body = visual.body();
+        spec = new FishSpec(spec.length(), spec.locomotion(), AmbientRoster.mirrored(id), spec.species(), spec.shelterUse());
+        if (!st.engine.passesGate(spec.locomotion(), spec.length())) {
+            retryAfter.put(id, time + OMISSION_RETRY_TICKS);
+            stats.omissions++;
+            spawnSkip("gate " + spec.species());
+            return false;
+        }
+        boolean arriving = time - plan.lifespan().arrivalTick() < ARRIVAL_WINDOW_TICKS;
+        float[] found = new float[3];
+        if (!findPlacement(st, plan, spec, body, arriving, found)) {
+            retryAfter.put(id, time + OMISSION_RETRY_TICKS);
+            stats.omissions++;
+            stats.unplaceable++;
+            spawnSkip("nowhere " + spec.species());
+            return false;
+        }
+        spawnSkip("spawned " + spec.species());
+        Member m = new Member(plan.lifespan(), plan.species(), spec, body, visual.stack().copy(), visual.anim(), time, arriving);
+        st.members.add(m);
+        reseed(st);
+        int index = st.members.size() - 1;
+        st.engine.placeFish(index, found[0], found[1], found[2]);
+        if (invariantStats) {
+            stats.spawnFitChecks++;
+            if (!st.domain.bodyFits(st.engine.posL()[index], st.engine.posY()[index],
+                    st.engine.posD()[index], body)) stats.spawnFitFailures++;
+        }
+        stats.spawns++;
+        return true;
     }
 
     /**
-     * Adds at most one individual: to the nearest domain that is short of its target, has room and
-     * a usable authoritative context, drawing its species from that patch's visual sampler — one
-     * independent draw per individual, never species-then-school. A species the domain cannot host
-     * or no position can hold is omitted, never demoted, and a patch with no usable context (or
-     * nothing representable) spawns nothing at all: the population only ever comes from a pool the
-     * server named.
+     * Where a fish enters: an arrival at the patch outermost column of its home chunk (it swims in
+     * from the fluid edge), anyone already living there at its seeded home cell; then a few seeded
+     * neighbours of the home cell if the body does not fit. Every choice is hashed from the fish ID.
      */
-    private int spawnOne(long time, int px, int py, int pz, int changes) {
-        if (changes >= MEMBERSHIP_CHANGES_PER_TICK) return spawnSkip("changes");
-        if (stats.individuals >= budget.individuals()) return spawnSkip("cap");
-
-        DomainState best = null;
-        int bestDistance = Integer.MAX_VALUE;
-        int dying = 0, unbuilt = 0, full = 0, retry = 0, noCtx = 0, empty = 0;
-        for (DomainState st : domains.values()) {
-            if (st.dying) {
-                dying++;
-                continue;
-            }
-            if (st.domain == null) {
-                unbuilt++;
-                continue;
-            }
-            if (st.members.size() >= targetFor(st)) {
-                full++;
-                continue;
-            }
-            if (recent(st.lastOmissionTick, time, OMISSION_RETRY_TICKS)) {
-                retry++;
-                continue;
-            }
-            if (!st.contextOk) {
-                noCtx++;
-                continue;
-            }
-            if (st.sampler == null || st.sampler.isEmpty()) {
-                empty++;
-                continue;
-            }
-            int distance = patchDistance(st.patch);
-            if (distance < bestDistance) {
-                bestDistance = distance;
-                best = st;
-            }
+    private boolean findPlacement(DomainState st, Plan plan, FishSpec spec, WaterDomain.BodyBox body,
+                                  boolean arriving, float[] out) {
+        AmbientChunkField.Scan scan = plan.scan();
+        long id = plan.lifespan().fishId();
+        double height = AmbientRoster.heightFraction(id);
+        if (arriving) {
+            int edge = edgeColumn(st, scan);
+            if (edge >= 0 && placeAt(st, spec, body, scan.blockX(edge), scan.blockZ(edge), height, out)) return true;
         }
-        if (best == null) {
-            if (noCtx > 0) stats.spawnsBlockedNoContext++;
-            else if (empty > 0) stats.spawnsBlockedEmptyPool++;
-            return spawnSkip("none d=" + dying + " u=" + unbuilt + " f=" + full + " r=" + retry
-                    + " c=" + noCtx + " e=" + empty);
-        }
-
-        // One draw per spawn attempt, spent even when the attempt fails: slots are filled by
-        // independent individual draws, so nothing here can turn "hard to place" into "keeps
-        // being retried". The stream is the patch's own and retention resumes it mid-sequence.
-        int slot = 0;
-        while (slot < AmbientPopulationRolls.MAX_SLOTS) {
-            boolean occupied = false;
-            for (Member member : best.members) if (member.slot == slot) occupied = true;
-            if (!occupied) break;
-            slot++;
-        }
-        if (slot == AmbientPopulationRolls.MAX_SLOTS) return spawnSkip("slots");
-        DomainState chosen = best;
-        AmbientPopulationRolls.Choice choice = best.rolls.choose(slot, best.appliedFingerprint, time,
-                id -> chosen.sampler.entries().stream().anyMatch(entry -> entry.species().equals(id)),
-                () -> new AmbientPopulationRolls.Choice(chosen.sampler.sample(chosen.speciesRandom),
-                        time + AmbientTuning.lifetimeTicks(chosen.speciesRandom)));
-        String species = choice.species();
-        best.spawnCount++;
-        if (species == null) return spawnSkip("norep");
-        SpeciesVisual visual = visuals.get(species);
-        if (visual == null) return spawnSkip("novisual " + species);
-
-        FishSpec spec = visual.spec();
-        WaterDomain.BodyBox body = visual.body();
-        boolean mirrored = random.nextBoolean();
-        spec = new FishSpec(spec.length(), spec.locomotion(), mirrored, spec.species(), spec.shelterUse());
-        if (!best.engine.passesGate(spec.locomotion(), spec.length())) {
-            // The domain moved under the sampler (it was gate-checked when the sampler was built).
-            best.lastOmissionTick = time;
-            stats.omissions++;
-            return spawnSkip("gate " + spec.species());
-        }
-        float[] found = new float[3];
-        if (!findSpawn(best, spec, body, px, pz, found)) {
-            best.lastOmissionTick = time;
-            stats.omissions++;
-            return spawnSkip("nowhere " + spec.species());
-        }
-        spawnSkip("spawned " + spec.species());
-        Member m = new Member(nextId++, species, spec, body, visual.stack().copy(), visual.anim(),
-                time, (int) Math.max(1, choice.expiresTick() - time));
-        m.slot = slot;
-        best.members.add(m);
-        reseed(best);
-        int index = best.members.size() - 1;
-        best.engine.placeFish(index, found[0], found[1], found[2]);
-        if (invariantStats) {
-            stats.spawnFitChecks++;
-            if (!best.domain.bodyFits(best.engine.posL()[index], best.engine.posY()[index],
-                    best.engine.posD()[index], body)) stats.spawnFitFailures++;
-        }
-        stats.spawns++;
-        return 1;
-    }
-
-    int targetFor(DomainState st) {
-        return budget.target(st.waterVolume);
-    }
-
-    /** Samples a position inside this domain's water where the whole body fits with margin. */
-    private boolean findSpawn(DomainState st, FishSpec spec, WaterDomain.BodyBox body, int px, int pz, float[] out) {
-        WaterDomain d = st.domain;
-        if (d == null) return false;
         for (int attempt = 0; attempt < SPAWN_ATTEMPTS; attempt++) {
-            float wx = px + 0.5f + (random.nextFloat() * 2f - 1f) * SPAWN_RADIUS;
-            float wz = pz + 0.5f + (random.nextFloat() * 2f - 1f) * SPAWN_RADIUS;
-            float dx = wx - (px + 0.5f), dz = wz - (pz + 0.5f);
-            float dist2 = dx * dx + dz * dz;
-            if (dist2 < SPAWN_NEAREST * SPAWN_NEAREST || dist2 > SPAWN_RADIUS * SPAWN_RADIUS) continue;
-            float l = wx - st.originX(), dep = wz - st.originZ();
-            if ((spec.locomotion() == Locomotion.BENTHIC || spec.locomotion() == Locomotion.ANCHORED)
-                    && !Float.isFinite(d.bedAt(l, dep))) continue;
-            float bed = d.bottomAt(l, dep), surface = d.surfaceAt(l, dep);
-            if (!Float.isFinite(bed) || !Float.isFinite(surface)) continue;
-            float lo = bed + body.below() + 0.02f;
-            float hi = surface - body.above() - 0.02f;
-            if (hi <= lo) continue;
-            float y = AmbientPlacement.height(spec.locomotion(), d.bedAt(l, dep), lo, hi, random.nextFloat());
-            if (!d.bodyFits(l, y, dep, body)) continue;
-            if (d.openFaceDistance(l, y, dep) <= WaterDomain.OPEN_FACE_MARGIN + 0.05f) continue;
-            boolean crowded = false;
-            for (int i = 0; i < st.members.size(); i++) {
-                float dl = st.engine.posL()[i] - l, dy = st.engine.posY()[i] - y, dd = st.engine.posD()[i] - dep;
-                if (dl * dl + dy * dy + dd * dd < SPAWN_SEPARATION * SPAWN_SEPARATION) {
-                    crowded = true;
-                    break;
-                }
-            }
-            if (crowded) continue;
-            out[0] = l;
-            out[1] = y;
-            out[2] = dep;
-            return true;
+            int column = attempt == 0 ? plan.column()
+                    : AmbientRoster.homeColumn(id + 0x9E3779B97F4A7C15L * attempt, scan.columnCount());
+            int bx = scan.blockX(column), bz = scan.blockZ(column);
+            if (discovery.patchKeyAt(bx, bz) != st.patchKey) continue;
+            if (placeAt(st, spec, body, bx, bz, attempt == 0 ? height : (height + 0.37 * attempt) % 1.0, out)) return true;
         }
         return false;
+    }
+
+    /** The chunk column in this patch furthest from the chunk centre, or -1. */
+    private int edgeColumn(DomainState st, AmbientChunkField.Scan scan) {
+        int best = -1;
+        float bestDistance = -1f;
+        for (int i = 0; i < scan.columnCount(); i++) {
+            int bx = scan.blockX(i), bz = scan.blockZ(i);
+            if (discovery.patchKeyAt(bx, bz) != st.patchKey) continue;
+            float distance = Math.max(Math.abs((scan.columns()[i] & 15) - 7.5f), Math.abs((scan.columns()[i] >> 4) - 7.5f));
+            if (distance > bestDistance) {
+                bestDistance = distance;
+                best = i;
+            }
+        }
+        return best;
+    }
+
+    /** One placement probe in a column: the whole body fits with margin, clear of open faces and residents. */
+    private boolean placeAt(DomainState st, FishSpec spec, WaterDomain.BodyBox body, int bx, int bz, double fraction,
+                            float[] out) {
+        WaterDomain d = st.domain;
+        if (d == null) return false;
+        float l = bx + 0.5f - st.originX(), dep = bz + 0.5f - st.originZ();
+        if ((spec.locomotion() == Locomotion.BENTHIC || spec.locomotion() == Locomotion.ANCHORED)
+                && !Float.isFinite(d.bedAt(l, dep))) return false;
+        float bed = d.bottomAt(l, dep), surface = d.surfaceAt(l, dep);
+        if (!Float.isFinite(bed) || !Float.isFinite(surface)) return false;
+        float lo = bed + body.below() + 0.02f;
+        float hi = surface - body.above() - 0.02f;
+        if (hi <= lo) return false;
+        float y = AmbientPlacement.height(spec.locomotion(), d.bedAt(l, dep), lo, hi, (float) fraction);
+        if (!d.bodyFits(l, y, dep, body)) return false;
+        if (d.openFaceDistance(l, y, dep) <= WaterDomain.OPEN_FACE_MARGIN + 0.05f) return false;
+        for (int i = 0; i < st.members.size(); i++) {
+            float dl = st.engine.posL()[i] - l, dy = st.engine.posY()[i] - y, dd = st.engine.posD()[i] - dep;
+            if (dl * dl + dy * dy + dd * dd < SPAWN_SEPARATION * SPAWN_SEPARATION) return false;
+        }
+        out[0] = l;
+        out[1] = y;
+        out[2] = dep;
+        return true;
+    }
+
+    /**
+     * E12: each client moves its own copy of a fish, leashed to the fish home chunk. A fish that
+     * wanders more than {@link #LEASH_MARGIN} blocks past its chunk footprint fades out and, being
+     * still on the roster, re-enters at its seeded home cell.
+     */
+    private void enforceLeash(long time) {
+        for (DomainState st : domains.values()) {
+            if (st.domain == null) continue;
+            for (int i = 0; i < st.members.size(); i++) {
+                Member m = st.members.get(i);
+                if (m.retiring()) continue;
+                double x = st.originX() + st.engine.posL()[i], z = st.originZ() + st.engine.posD()[i];
+                double x0 = (m.lifespan.chunkX() << 4) - LEASH_MARGIN, z0 = (m.lifespan.chunkZ() << 4) - LEASH_MARGIN;
+                if (x < x0 || x > x0 + 16 + 2 * LEASH_MARGIN || z < z0 || z > z0 + 16 + 2 * LEASH_MARGIN) {
+                    beginRetire(st, m, REASON_LEASH, time);
+                }
+            }
+        }
+    }
+
+    /** The roster of the last pass with its drawn/hidden split, for the debug view and the harness. */
+    public List<RosterFish> rosterSnapshot() {
+        java.util.Map<Long, Member> alive = new java.util.HashMap<>();
+        for (DomainState st : domains.values()) for (Member m : st.members) if (!m.retiring()) alive.put(m.id, m);
+        List<RosterFish> out = new ArrayList<>(plans.size());
+        long now = lastTick == Long.MIN_VALUE ? 0 : lastTick;
+        for (Plan plan : plans) {
+            AmbientRoster.Lifespan l = plan.lifespan();
+            Status status;
+            if (alive.containsKey(l.fishId())) status = Status.ALIVE;
+            else if (!plan.drawn()) status = Status.HIDDEN_DENSITY;
+            else if (plan.species() == null) status = Status.NO_SPECIES;
+            else if (plan.patchKey() == 0L || domains.get(plan.patchKey()) == null) status = Status.NO_DOMAIN;
+            else if (retryAfter.containsKey(l.fishId()) && now < retryAfter.get(l.fishId())) status = Status.UNPLACEABLE;
+            else status = Status.PENDING;
+            out.add(new RosterFish(l.fishId(), l.chunkX(), l.chunkZ(), l.slot(), plan.species(), l.phaseAt(now),
+                    l.arrivalTick(), l.departureTick(), plan.homeX(), plan.homeZ(), plan.patchKey(), status));
+        }
+        return out;
+    }
+
+    /**
+     * A shown ambient fish a spyglass could be held on: what the server needs to derive it again
+     * (chunk, slot, lifespan index, home cell) and where this client has it now.
+     */
+    public record Observable(long id, String species, int chunkX, int chunkZ, int slot, long lifespanIndex,
+                             BlockPos home, double x, double y, double z) {}
+
+    /**
+     * Every fully faded-in ambient fish this client is showing, for the spyglass detector. Fish
+     * still arriving or retiring are left out, so a hold is never started on one about to vanish.
+     */
+    public List<Observable> observableFish() {
+        List<Observable> out = new ArrayList<>();
+        for (DomainState st : domains.values()) {
+            if (st.domain == null) continue;
+            for (int i = 0; i < st.members.size(); i++) {
+                Member m = st.members.get(i);
+                if (m.retiring() || m.fade < 0.75f) continue;
+                AmbientChunkField.Scan scan = field.get(m.lifespan.chunkX(), m.lifespan.chunkZ());
+                if (scan == null || scan.columnCount() == 0) continue;
+                int column = AmbientRoster.homeColumn(m.id, scan.columnCount());
+                BlockPos home = new BlockPos(scan.blockX(column), scan.topY()[column], scan.blockZ(column));
+                out.add(new Observable(m.id, m.species, m.lifespan.chunkX(), m.lifespan.chunkZ(), m.lifespan.slot(),
+                        m.lifespan.index(), home, st.originX() + st.engine.posL()[i],
+                        st.originY() + st.engine.posY()[i], st.originZ() + st.engine.posD()[i]));
+            }
+        }
+        return out;
+    }
+
+    /** The ambient fluid of this session: water, or lava in the Nether. */
+    public AmbientFluid fluid() {
+        return fluid;
+    }
+
+    public boolean seeded() {
+        return seeded;
     }
 
     private void stepEngines() {

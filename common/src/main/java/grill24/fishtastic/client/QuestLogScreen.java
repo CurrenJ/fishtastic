@@ -491,8 +491,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
             savedEncyclopediaHandler = FishEncyclopediaSyncPacket.clientHandler;
             encyclopediaHandlerInstalled = true;
             FishEncyclopediaSyncPacket.registerClientHandler(packet -> {
-                FishEncyclopediaClientCache.update(packet.personalCatchCounts(), packet.personalBestSizes(),
-                        packet.globalBestSizes(), packet.claimedRewardKeys());
+                FishEncyclopediaClientCache.update(packet);
                 Minecraft mc = Minecraft.getInstance();
                 // Discovered/silhouette state and spoiler-guarded text are baked into the icons and
                 // quest descriptions at build time, so a plain in-place update isn't enough here.
@@ -1605,7 +1604,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
      * sprite/name instead of a silhouette.
      */
     private static boolean isDiscovered(ResourceKey<Item> speciesKey) {
-        return !isFishSpecies(speciesKey) || FishEncyclopediaClientCache.getCatchCount(speciesKey.location()) > 0;
+        return !isFishSpecies(speciesKey) || FishEncyclopediaClientCache.isDiscovered(speciesKey.location());
     }
 
     /**

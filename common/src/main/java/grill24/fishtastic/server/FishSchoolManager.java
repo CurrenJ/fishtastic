@@ -6,7 +6,13 @@ import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.component.BaitEffect;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.config.FishtasticServerConfig;
+import grill24.fishtastic.data.FishMoonPhase;
 import grill24.fishtastic.data.FishProfile;
+import grill24.fishtastic.ecology.NaturalPool;
+import grill24.fishtastic.ecology.VisitDerivation;
+import grill24.fishtastic.ecology.VisitId;
+import grill24.fishtastic.ecology.VisitWeatherLog;
+import grill24.fishtastic.ecology.VisitWindows;
 import grill24.fishtastic.item.FishtasticFishItem;
 import grill24.fishtastic.network.FishSchoolInputPacket;
 import grill24.fishtastic.network.FishSchoolSetupPacket;
@@ -23,6 +29,7 @@ import grill24.fishsim.core.Locomotion;
 import grill24.fishsim.domain.WaterDomain;
 import grill24.fishtastic.util.IFishingHookExtension;
 import grill24.fishtastic.util.IServerLevelSchools;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
@@ -35,6 +42,10 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.entity.projectile.FishingHook;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -58,10 +69,26 @@ import java.util.UUID;
 
 /** Server authority for finite fish-school visits, attraction, bite ownership and tracking. */
 public final class FishSchoolManager {
-    private static final int REGION_SIZE = 128;
-    private static final int REGION_RETENTION_TICKS = 1_440_000; // 60 in-game days
-    private static final int MAX_RETAINED_REGIONS = 4096;
     private static final int GLOBAL_SCHOOL_CAP = 16;
+    /** How often the visit scheduler looks at the loaded water chunks near players, ticks. */
+    private static final int SCHEDULE_PERIOD_TICKS = 20;
+    /** The most chunks one scheduler pass checks; the rest wait for the rotation to come round. */
+    private static final int MAX_CHUNK_CHECKS_PER_PASS = 512;
+    /** The most windows one pass reveals, so a crowd of simultaneous windows does not spike a tick. */
+    private static final int MAX_REVEALS_PER_PASS = 2;
+    /**
+     * A live visit is dropped once no player is within the tracking range plus this, blocks. The
+     * reveal reach is the tracking range (to a chunk's edge, so up to ~23 blocks more to its start
+     * cell), so this keeps a visit from being dropped just after it is revealed, and a player
+     * watching from outside tracking range keeps seeing it come back where it was.
+     */
+    private static final int DROP_MARGIN_BLOCKS = 48;
+    /** A window that failed for a reason the world can change (no room, a tight fit) is tried again after this, ticks. */
+    private static final long ATTEMPT_RETRY_TICKS = 1200;
+    /** A window held up for something transient (an unloaded neighbour chunk, a spent cap) is tried again after this, ticks. */
+    private static final long ATTEMPT_DEFER_TICKS = 100;
+    /** The depletion ledger is pruned this often, ticks. */
+    private static final int LEDGER_PRUNE_TICKS = 1200;
     /**
      * A school's water is bounded by how far it spreads, not by its volume: at most this many
      * columns (about 11 blocks out from the anchor), each to its full depth in the search box. A
@@ -108,8 +135,6 @@ public final class FishSchoolManager {
     private static final double INTEREST_DISTANCE_SQR = 1024.0;
     /** A bobber that drifts this far from where its fish was sent is a new cast, blocks. */
     private static final double ANCHOR_DRIFT = 1.0;
-    /** Saved positions are refreshed from the sims every tick but only written out this often. */
-    private static final int POSITION_SAVE_TICKS = 100;
     /** A sim's held nose outlasts the longest bite it can be asked to wait for by this, ticks. */
     private static final int HOLD_SLACK_TICKS = 40;
 
@@ -264,12 +289,33 @@ public final class FishSchoolManager {
         if (cached != null) cached.markDirty(level.getGameTime());
     }
 
+    /**
+     * Windows that were tried and did not produce a visit (or whose visit has ended), by id: when to
+     * try again, and when the entry stops mattering. In memory; a restart simply tries again.
+     */
+    private record Attempt(long retryAt, long expiresAt) {}
+    private final Map<VisitId, Attempt> attempts = new HashMap<>();
+    private long ecologySeed;
+    private boolean ecologySeedKnown;
+    /** Why the last {@link #createSchool} returned null, and how long until a derived window may try again. */
+    private String createNote = "";
+    private long createRetryTicks;
+    /** Debug counters of the scheduler, shown by {@code /fishtastic visits windows}. */
+    private long windowsRevealed, windowsDropped, windowsConcluded, capBinds;
+    /** Test only: {maxSchools, maxMembers} instead of the configured protection caps (a shared test world holds many fixtures). */
+    private int @Nullable [] capsForTest;
+    private String lastCapBind = "none";
+
     /** Per species: whether its profile allows in-world visits ({@link #readyByProfile}). */
     private final Map<Item, Boolean> profileReady = new HashMap<>();
+    /** The registry {@link #profileReady} was computed from; another one means the profiles were reloaded. */
+    private Registry<FishProfile> profileReadyRegistry;
+    /** Test only: species treated as no longer eligible, standing in for a datapack or profile change. */
+    private final Set<ResourceLocation> excludedForTest = new HashSet<>();
 
     /** Each live school's motion, by school id. Not saved: a reload starts a new epoch. */
     private final Map<UUID, SchoolRuntime> sims = new HashMap<>();
-    private int playerCursor;
+    private int scheduleCursor;
     private int interestPlayerCursor;
     private int syncPlayerCursor;
 
@@ -316,10 +362,16 @@ public final class FishSchoolManager {
 
     public void tick() {
         long now = level.getGameTime();
+        captureWeather(now);
         FishSchoolPerf.skipLevel = level.players().isEmpty() && data.schools().isEmpty();
         long tickStart = FishSchoolPerf.start();
         long t = FishSchoolPerf.start();
-        if (now % 20 == 0) scheduleNearbyRegionAttempts(now);
+        if (now % SCHEDULE_PERIOD_TICKS == 0) {
+            List<Vec3> centres = playerPositions();
+            scheduleVisits(now, centres);
+            dropFarVisits(centres);
+        }
+        if (now % LEDGER_PRUNE_TICKS == 0) pruneLedger(now);
         FishSchoolPerf.end(FishSchoolPerf.Phase.SCHEDULE, t);
         t = FishSchoolPerf.start();
         advanceSims(now);
@@ -331,7 +383,6 @@ public final class FishSchoolManager {
         t = FishSchoolPerf.start();
         if (now % 5 == 0) reserveNearbyHooks(now);
         FishSchoolPerf.end(FishSchoolPerf.Phase.HOOKS, t);
-        if (now % POSITION_SAVE_TICKS == 0 && !data.schools().isEmpty()) data.markDirtyNow();
         t = FishSchoolPerf.start();
         if (now % SCHOOL_MEMBER_SYNC_TICKS == 0) syncNearbyPlayers(now);
         FishSchoolPerf.end(FishSchoolPerf.Phase.SYNC, t);
@@ -433,7 +484,6 @@ public final class FishSchoolManager {
                 ^ Long.rotateLeft(school.id().getLeastSignificantBits(), 17) ^ (now * 0x9E3779B97F4A7C15L));
         if (random.nextFloat() >= SURFACE_JUMP_CHANCE) {
             school.setNextSurfaceJumpAt(now + surfaceJumpCooldown(random));
-            data.markDirtyNow();
             return;
         }
         // A roll that finds nobody to send does not use up the visit's turn: it waits a short while.
@@ -471,7 +521,6 @@ public final class FishSchoolManager {
         if (completed) {
             RandomSource random = RandomSource.create(goal.getLeastSignificantBits() ^ now);
             school.setNextSurfaceJumpAt(now + surfaceJumpCooldown(random));
-            data.markDirtyNow();
         } else {
             school.setNextSurfaceJumpAt(now + SURFACE_JUMP_RETRY_TICKS);
         }
@@ -620,6 +669,9 @@ public final class FishSchoolManager {
      * (§5.3). Habitat is otherwise judged separately, by the natural pool.
      */
     public boolean encounterEligible(Holder<Item> item) {
+        if (!excludedForTest.isEmpty() && item.unwrapKey().map(key -> excludedForTest.contains(key.location())).orElse(false)) {
+            return false;
+        }
         if (!(item.value() instanceof FishtasticFishItem) || item.is(FishtasticItemTags.FISH_ENCOUNTER_DISABLED)) {
             return false;
         }
@@ -631,6 +683,11 @@ public final class FishSchoolManager {
      * Profiles are fixed for the server's life, so it is cached; tags are not, so they are read live.
      */
     private boolean readyByProfile(Item item) {
+        Registry<FishProfile> registry = level.registryAccess().registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
+        if (registry != profileReadyRegistry) {
+            profileReady.clear(); // other profiles than the ones this was worked out from (E14)
+            profileReadyRegistry = registry;
+        }
         Boolean known = profileReady.get(item);
         if (known != null) return known;
         ResourceLocation species = BuiltInRegistries.ITEM.getKey(item);
@@ -757,12 +814,12 @@ public final class FishSchoolManager {
         return spawnForDebug(near, species, null);
     }
 
-    /** {@link #spawnForDebug(BlockPos, ResourceLocation)}, member {@code i} gets {@code qualities[i % length]} if set. */
+    /** {@link #spawnForDebug(BlockPos, ResourceLocation)}, member {@code i} given {@code qualities[i % length]} if set. */
     public String spawnForDebug(BlockPos near, @Nullable ResourceLocation species, FishQuality.Quality @Nullable [] qualities) {
         return spawnForDebug(near, species, qualities, null);
     }
 
-    /** As above, with the visit shape forced to {@code shape} if set (still limited by its class). */
+    /** As above, with the visit's shape forced to {@code shape} if set (still limited by its class). */
     public String spawnForDebug(BlockPos near, @Nullable ResourceLocation species, FishQuality.Quality @Nullable [] qualities,
                                 @Nullable VisitShape shape) {
         BlockPos water = nearestWater(near, 12, 5, 2);
@@ -914,7 +971,6 @@ public final class FishSchoolManager {
                 leaveWater(school, member);
                 withdraw(school, r.hookId());
                 ((IFishingHookExtension) hook).fishtastic$clearSchoolBite();
-                data.markDirtyNow();
                 return new SessionBinding(school.id(), member.id(), player.getUUID(), sessionId, -1,
                         school.species(), member.rewardSeed());
             }
@@ -931,7 +987,6 @@ public final class FishSchoolManager {
         if (!old.playerId().equals(binding.playerId()) || targetIndex < 0) return null;
         member.setReservation(new FishSchoolSavedData.Reservation(old.playerId(), old.hookId(), old.startedAt(),
                 old.leaseUntil(), old.sessionId(), targetIndex));
-        data.markDirtyNow();
         return binding.withTargetIndex(targetIndex);
     }
 
@@ -945,7 +1000,9 @@ public final class FishSchoolManager {
                 || member.reservation().targetIndex() != binding.targetIndex()) return false;
         member.setState(FishSchoolSavedData.MemberState.CAUGHT);
         member.setReservation(null);
-        data.markDirtyNow();
+        // The one thing saved about a visit: this fish is gone from its window for good.
+        FishSchoolSavedData.School school = findSchool(binding.schoolId());
+        if (school != null && school.visitId() != null) data.markCaught(school.visitId(), member.index());
         return true;
     }
 
@@ -963,7 +1020,6 @@ public final class FishSchoolManager {
             FishSchoolSim.Placement at = placement(member, runtime.sim.origin(), runtime.water);
             runtime.apply(new FishSchoolSim.Rejoin(member.id(), at.l(), at.y(), at.d()));
         }
-        data.markDirtyNow();
     }
 
     private @Nullable FishSchoolSavedData.Member findMember(UUID schoolId, UUID memberId) {
@@ -976,42 +1032,519 @@ public final class FishSchoolManager {
         return null;
     }
 
-    private void scheduleNearbyRegionAttempts(long now) {
-        if (!FishtasticServerConfig.fishSchoolsEnabled() || level.players().isEmpty()) return;
-        List<ServerPlayer> players = level.players();
-        int checks = Math.min(2, players.size());
-        for (int offset = 0; offset < checks; offset++) {
-            ServerPlayer player = players.get(Math.floorMod(playerCursor++, players.size()));
-            BlockPos water = nearestWater(player.blockPosition(), 12, 5, 2);
-            if (water == null) continue;
+    // ---- Visit windows (world fish exploration, implementation plan Step 2) ----
 
-            int regionX = Math.floorDiv(water.getX(), REGION_SIZE);
-            int regionZ = Math.floorDiv(water.getZ(), REGION_SIZE);
-            FishSchoolSavedData.RegionSchedule schedule = findRegion(regionX, regionZ);
-            if (schedule == null) {
-                data.setRegion(new FishSchoolSavedData.RegionSchedule(regionX, regionZ,
-                        now + FishtasticServerConfig.fishSchoolAttemptIntervalTicks(), now));
-                pruneRegions(now);
-                continue;
-            }
-            if (now - schedule.lastSeenAt() > 1200) {
-                schedule = new FishSchoolSavedData.RegionSchedule(regionX, regionZ,
-                        schedule.nextAttemptAt(), now);
-                data.setRegion(schedule);
-            }
-            if (now < schedule.nextAttemptAt()) continue;
-
-            // Persist the next opportunity before any environmental, budget or random decision.
-            data.setRegion(new FishSchoolSavedData.RegionSchedule(regionX, regionZ,
-                    now + FishtasticServerConfig.fishSchoolAttemptIntervalTicks(), now));
-            if (activeSchools() >= FishtasticServerConfig.fishSchoolMaxPerDimension()
-                    || activeMembers() >= FishtasticServerConfig.fishSchoolMaxMembersPerDimension()
-                    || globalActiveSchools() >= GLOBAL_SCHOOL_CAP
-                    || overlapsExisting(water, 64.0)) continue;
-            if (level.getRandom().nextFloat() >= FishtasticServerConfig.fishSchoolEncounterChance()) continue;
-
-            tryCreateSchool(water, now);
+    /** The dimension's ecology seed, derived once (it is a hash of the world seed). */
+    private long ecologySeed() {
+        if (!ecologySeedKnown) {
+            ecologySeed = EcologySeedSync.seedFor(level);
+            ecologySeedKnown = true;
         }
+        return ecologySeed;
+    }
+
+    private List<Vec3> playerPositions() {
+        List<Vec3> out = new ArrayList<>(level.players().size());
+        for (ServerPlayer player : level.players()) out.add(player.position());
+        return out;
+    }
+
+    /** The visit of this window if one is live right now. */
+    private FishSchoolSavedData.@Nullable School liveVisit(VisitId id) {
+        for (FishSchoolSavedData.School school : data.schools()) {
+            if (id.equals(school.visitId())) return school;
+        }
+        return null;
+    }
+
+    /**
+     * The loaded chunks within {@code range} blocks (to the chunk's edge, horizontally) of any of
+     * {@code centres}, nearest-agnostic and without duplicates. Loaded only: nothing here loads a chunk.
+     */
+    private List<ChunkPos> loadedChunksNear(List<Vec3> centres, double range) {
+        return chunksNear(centres, range, true);
+    }
+
+    /** As {@link #loadedChunksNear}, optionally including chunks that are not loaded (the debug report lists those too). */
+    private List<ChunkPos> chunksNear(List<Vec3> centres, double range, boolean loadedOnly) {
+        Set<Long> seen = new HashSet<>();
+        List<ChunkPos> out = new ArrayList<>();
+        int reach = (int) Math.ceil(range / 16.0) + 1;
+        for (Vec3 centre : centres) {
+            int cx = Mth.floor(centre.x) >> 4, cz = Mth.floor(centre.z) >> 4;
+            for (int dx = -reach; dx <= reach; dx++) {
+                for (int dz = -reach; dz <= reach; dz++) {
+                    int x = cx + dx, z = cz + dz;
+                    double ox = Math.max(Math.max(x * 16.0 - centre.x, 0.0), centre.x - (x * 16.0 + 16.0));
+                    double oz = Math.max(Math.max(z * 16.0 - centre.z, 0.0), centre.z - (z * 16.0 + 16.0));
+                    if (ox * ox + oz * oz > range * range) continue;
+                    long key = ChunkPos.asLong(x, z);
+                    if (!seen.add(key) || (loadedOnly && level.getChunkSource().getChunkNow(x, z) == null)) continue;
+                    out.add(new ChunkPos(x, z));
+                }
+            }
+        }
+        return out;
+    }
+
+    /**
+     * A budgeted rotation over the loaded chunks near players. Whether a window hosts a visit is a
+     * pure function of the seed, the site and the time (E1, E5), so this never decides anything: it
+     * only reveals an already-scheduled, unsuppressed, undepleted window that has no live visit.
+     * Arriving, leaving or reloading cannot create, reroll or speed one up.
+     */
+    private void scheduleVisits(long now, List<Vec3> centres) {
+        pruneAttempts(now);
+        if (!FishtasticServerConfig.fishSchoolsEnabled() || centres.isEmpty()) return;
+        VisitWindows.Params params = FishtasticServerConfig.visitWindowParams();
+        long seed = ecologySeed();
+        String dimension = level.dimension().location().toString();
+        List<ChunkPos> chunks = loadedChunksNear(centres, FishtasticServerConfig.fishSchoolTrackingRange());
+        if (chunks.isEmpty()) return;
+        int budget = Math.min(chunks.size(), MAX_CHUNK_CHECKS_PER_PASS);
+        int first = Math.floorMod(scheduleCursor, chunks.size());
+        scheduleCursor += budget;
+        int reveals = 0;
+        for (int k = 0; k < budget && reveals < MAX_REVEALS_PER_PASS; k++) {
+            ChunkPos chunk = chunks.get((first + k) % chunks.size());
+            VisitId id = VisitId.at(dimension, seed, chunk.x, chunk.z, now, params);
+            long windowStart = id.start(seed, params);
+            if (now < windowStart || now >= windowStart + revealSpan(params)
+                    || !VisitWindows.hostsVisit(seed, chunk.x, chunk.z, id.window(), params)) continue;
+            Attempt attempt = attempts.get(id);
+            if (attempt != null && now < attempt.retryAt()) continue;
+            if (liveVisit(id) != null) continue;
+            if (revealWindow(id, seed, params, now, false) != null) reveals++;
+        }
+    }
+
+    /**
+     * How far into a window a reveal is still tried: as long as the longest-lived species' visit, so a late
+     * arrival sees a long-lived species for exactly as long as its visit lasts (the roll then refuses a reveal
+     * past the species' own end). For the default L = 2 minutes, T = 3 minutes that is the whole period.
+     */
+    private static long revealSpan(VisitWindows.Params params) {
+        return VisitDerivation.revealSpanTicks(params.visitTicks(), params.periodTicks(), FishProfile.WorldEncounter.MAX_LIFETIME_SCALE);
+    }
+
+    /**
+     * Reveals window {@code id}: a visit derived from the seed and the window alone, as it would be
+     * whenever it was revealed. Null (with {@link #createNote} and a retry time noted) when the water,
+     * the species or a protection cap says no. {@code forced} is the debug override: it skips the
+     * schedule (the caller has already chosen the window), not the derivation.
+     *
+     * <p>Step 3 seam (E11): everything a mid-window reveal changes is the member list built in
+     * {@link #createSchool}'s derived branch - at the moment it reveals the full roster at seeded
+     * spots, minus caught members; Step 3 removes members whose seeded departure time has passed.
+     */
+    private FishSchoolSavedData.@Nullable School revealWindow(VisitId id, long seed, VisitWindows.Params params,
+                                                              long now, boolean forced) {
+        long expiresAt = id.start(seed, params) + params.periodTicks();
+        LevelChunk chunk = level.getChunkSource().getChunkNow(id.chunkX(), id.chunkZ());
+        if (chunk == null) return failedReveal(id, expiresAt, now, "the chunk is not loaded", ATTEMPT_DEFER_TICKS, forced);
+        LongArrayList cells = qualifyingWaterCells(chunk);
+        if (cells.isEmpty()) return failedReveal(id, expiresAt, now, "the chunk holds no qualifying water", ATTEMPT_RETRY_TICKS, forced);
+        BlockPos start = BlockPos.of(cells.getLong(VisitDerivation.startIndex(VisitDerivation.startHash(seed, id), cells.size())));
+        createNote = "";
+        createRetryTicks = ATTEMPT_RETRY_TICKS;
+        FishSchoolSavedData.School school = createSchool(start, now, null, null, null,
+                new Derived(id, seed, params, forced));
+        if (school == null) return failedReveal(id, expiresAt, now, createNote, createRetryTicks, forced);
+        windowsRevealed++;
+        return school;
+    }
+
+    private FishSchoolSavedData.@Nullable School failedReveal(VisitId id, long expiresAt, long now, String why,
+                                                              long retryTicks, boolean forced) {
+        createNote = why;
+        if (!forced) {
+            attempts.put(id, new Attempt(retryTicks == Long.MAX_VALUE ? Long.MAX_VALUE : now + retryTicks, expiresAt));
+        }
+        return null;
+    }
+
+    /**
+     * The chunk's qualifying water cells in a fixed order (section by section from the bottom, then
+     * y, z, x): the list the start hash indexes into (E2). Loaded source water with an empty
+     * collision shape, the existing rule; sections without any water are skipped unread.
+     */
+    private LongArrayList qualifyingWaterCells(LevelChunk chunk) {
+        LongArrayList out = new LongArrayList();
+        LevelChunkSection[] sections = chunk.getSections();
+        int minSection = chunk.getMinSection();
+        int baseX = chunk.getPos().getMinBlockX(), baseZ = chunk.getPos().getMinBlockZ();
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        for (int i = 0; i < sections.length; i++) {
+            LevelChunkSection section = sections[i];
+            if (section.hasOnlyAir() || !section.maybeHas(state -> state.getFluidState().is(FluidTags.WATER))) continue;
+            int baseY = (minSection + i) << 4;
+            for (int y = 0; y < 16; y++) {
+                for (int z = 0; z < 16; z++) {
+                    for (int x = 0; x < 16; x++) {
+                        // The section read is the cheap half of validWaterCell's own fluid test, so
+                        // only source water pays for the level lookups; the result is unchanged.
+                        var fluid = section.getFluidState(x, y, z);
+                        if (!fluid.is(FluidTags.WATER) || !fluid.isSource()) continue;
+                        pos.set(baseX + x, baseY + y, baseZ + z);
+                        if (validWaterCell(pos)) out.add(pos.asLong());
+                    }
+                }
+            }
+        }
+        return out;
+    }
+
+    /**
+     * The environment a window's visit is derived under: the biome and height of its start cell and
+     * the world clock at the window's START, so a reveal at any moment of the window derives the same
+     * species. Time of day and the moon follow from the clock (it runs with game time); weather
+     * comes from the bounded dimension log. A window predating that log falls back to current
+     * weather, explicitly marked in the windows report.
+     */
+    private FishingPoolResolver.EnvironmentContext environmentAtWindowStart(BlockPos start, long windowStart, long now) {
+        // `now` is the game time the reveal happens at; it is the level's own except in tests that
+        // simulate other moments, where the clock is carried along with it (it runs with game time).
+        long clock = VisitDerivation.clockAtWindowStart(level.getDayTime() + (now - level.getGameTime()),
+                now, windowStart);
+        VisitWeatherLog.State weather = windowWeather(windowStart).state();
+        FishProfile.WeatherCondition condition = switch (weather) {
+            case CLEAR -> FishProfile.WeatherCondition.CLEAR;
+            case THUNDER -> FishProfile.WeatherCondition.THUNDER;
+            case RAIN -> level.getBiome(start).value().getPrecipitationAt(start) == Biome.Precipitation.SNOW
+                    ? FishProfile.WeatherCondition.SNOW : FishProfile.WeatherCondition.RAIN;
+        };
+        return NaturalPool.environment(level.getBiome(start), FishProfile.TimeOfDay.fromGameTime(clock),
+                condition, FishMoonPhase.fromIndex(VisitDerivation.moonPhaseIndex(clock)),
+                start.getY(), level.getSeaLevel());
+    }
+
+    /** 26.1's {@code Level#canHaveWeather}: a sky, no ceiling, and not the End. */
+    private boolean canHaveWeather() {
+        return level.dimensionType().hasSkyLight() && !level.dimensionType().hasCeiling()
+                && level.dimension() != net.minecraft.world.level.Level.END;
+    }
+
+    private VisitWeatherLog.State currentWeather() {
+        return canHaveWeather() ? VisitWeatherLog.State.fromFlags(level.getLevelData().isRaining(),
+                level.getLevelData().isThundering()) : VisitWeatherLog.State.CLEAR;
+    }
+
+    private VisitWeatherLog.Sample windowWeather(long windowStart) {
+        return canHaveWeather() ? data.weatherAt(windowStart, currentWeather())
+                : new VisitWeatherLog.Sample(VisitWeatherLog.State.CLEAR, false);
+    }
+
+    /** Capture the flags rather than the visual rain ramp, so /weather is recorded on the next tick. */
+    private void captureWeather(long now) {
+        if (!canHaveWeather()) return;
+        data.recordWeather(now, currentWeather());
+        VisitWindows.Params params = FishtasticServerConfig.visitWindowParams();
+        data.pruneWeather(now - params.periodTicks() - revealSpan(params));
+    }
+
+    /** Debug: the recent world input used to derive window-start weather, with the unknown-history fallback. */
+    public String weatherLogReport() {
+        VisitWindows.Params params = FishtasticServerConfig.visitWindowParams();
+        List<VisitWeatherLog.Entry> entries = data.weatherEntries();
+        StringBuilder out = new StringBuilder("Visit weather log in " + level.dimension().location()
+                + " at tick " + level.getGameTime() + ": current=" + currentWeather().getSerializedName()
+                + ", retention=" + (params.periodTicks() + revealSpan(params)) + " ticks, entries=" + entries.size());
+        if (!canHaveWeather()) return out.append("; this dimension has no weather (clear).").toString();
+        out.append(". Windows before the first entry use current weather (FALLBACK: no history).");
+        int first = Math.max(0, entries.size() - 64);
+        if (first > 0) out.append("\n  ... ").append(first).append(" older entries not shown");
+        for (int i = first; i < entries.size(); i++) {
+            VisitWeatherLog.Entry entry = entries.get(i);
+            out.append("\n  ").append(entry.gameTime()).append(": ").append(entry.state().getSerializedName());
+        }
+        return out.toString();
+    }
+
+    /**
+     * Live visits derived from a window are dropped once no player is within the tracking range plus
+     * {@link #DROP_MARGIN_BLOCKS} (horizontally, as reveals are): their state is derivable, so there is nothing to keep, and the
+     * scheduler reveals them again when a player returns. A visit with a fish on a line stays.
+     */
+    private void dropFarVisits(List<Vec3> centres) {
+        double range = FishtasticServerConfig.fishSchoolTrackingRange() + DROP_MARGIN_BLOCKS;
+        double rangeSqr = range * range;
+        List<FishSchoolSavedData.School> drop = null;
+        for (FishSchoolSavedData.School school : data.schools()) {
+            if (school.visitId() == null || busy(school)) continue;
+            boolean near = false;
+            for (Vec3 centre : centres) {
+                // Horizontal, like the reveal range: a start cell can sit anywhere in its column's
+                // height, and a 3D test dropped deep visits in the same pass that revealed them.
+                double dx = school.anchor().getX() + 0.5 - centre.x, dz = school.anchor().getZ() + 0.5 - centre.z;
+                if (dx * dx + dz * dz <= rangeSqr) {
+                    near = true;
+                    break;
+                }
+            }
+            if (!near) {
+                if (drop == null) drop = new ArrayList<>();
+                drop.add(school);
+            }
+        }
+        if (drop == null) return;
+        for (FishSchoolSavedData.School school : drop) {
+            forgetVisit(school);
+            windowsDropped++;
+        }
+    }
+
+    /** Whether a hook, a bite or a minigame holds one of the school's members. */
+    private static boolean busy(FishSchoolSavedData.School school) {
+        for (FishSchoolSavedData.Member member : school.members()) {
+            switch (member.state()) {
+                case APPROACHING, BITE_READY, IN_SESSION -> {
+                    return true;
+                }
+                default -> { }
+            }
+        }
+        return false;
+    }
+
+    private void forgetVisit(FishSchoolSavedData.School school) {
+        data.removeSchool(school);
+        waterRegions.remove(school.id());
+        sims.remove(school.id());
+        habitatFreeForTest.remove(school.id());
+    }
+
+    /** A visit that ended in this runtime (departed, depleted, or never fit) is not revealed again in its window. */
+    private void concludeVisit(VisitId id) {
+        VisitWindows.Params params = FishtasticServerConfig.visitWindowParams();
+        attempts.put(id, new Attempt(Long.MAX_VALUE, id.start(ecologySeed(), params) + params.periodTicks()));
+        windowsConcluded++;
+    }
+
+    private void pruneAttempts(long now) {
+        if (!attempts.isEmpty()) attempts.values().removeIf(attempt -> now >= attempt.expiresAt());
+    }
+
+    /** Drops ledger rows whose window can no longer be revealed (a whole period after it opened). */
+    private void pruneLedger(long now) {
+        VisitWindows.Params params = FishtasticServerConfig.visitWindowParams();
+        long seed = ecologySeed();
+        data.pruneDepletion(entry -> now >= VisitWindows.windowStart(seed, entry.chunkX(), entry.chunkZ(),
+                entry.window(), params) + params.periodTicks());
+    }
+
+    /** A protection cap stopped a window from forming: counted, and tried again soon. */
+    private @Nullable FishSchoolSavedData.School capBound(String which) {
+        capBinds++;
+        lastCapBind = which;
+        createNote = "protection cap reached: " + which;
+        createRetryTicks = ATTEMPT_DEFER_TICKS;
+        return null;
+    }
+
+    private @Nullable FishSchoolSavedData.School fail(String why, long retryTicks) {
+        createNote = why;
+        createRetryTicks = retryTicks;
+        return null;
+    }
+
+    /** A window's derivation inputs: which window, under which seed and schedule, and whether a debug override asked. */
+    private record Derived(VisitId id, long seed, VisitWindows.Params params, boolean forced) {
+        long base() {
+            return VisitDerivation.base(seed, id);
+        }
+
+        long windowStart() {
+            return id.start(seed, params);
+        }
+    }
+
+    /** Debug: the windows around {@code near}, in words (what is scheduled, suppressed, depleted and live). */
+    public String visitWindowsReport(Vec3 near) {
+        VisitWindows.Params params = FishtasticServerConfig.visitWindowParams();
+        long seed = ecologySeed();
+        long now = level.getGameTime();
+        String dimension = level.dimension().location().toString();
+        double range = FishtasticServerConfig.fishSchoolTrackingRange();
+        List<ChunkPos> chunks = chunksNear(List.of(near), range, false);
+        record Row(long start, double distance, String text) {}
+        List<Row> rows = new ArrayList<>();
+        int activeSites = 0;
+        for (ChunkPos chunk : chunks) {
+            long first = VisitWindows.windowIndex(seed, chunk.x, chunk.z, now, params);
+            boolean any = false;
+            for (long window = first; window <= first + 2; window++) {
+                if (!VisitWindows.isActive(seed, chunk.x, chunk.z, window, params)) continue;
+                any = true;
+                long start = VisitWindows.windowStart(seed, chunk.x, chunk.z, window, params);
+                long end = VisitWindows.windowEnd(seed, chunk.x, chunk.z, window, params);
+                VisitId id = new VisitId(dimension, chunk.x, chunk.z, window);
+                boolean suppressed = VisitWindows.isSuppressed(seed, chunk.x, chunk.z, window, params);
+                long mask = data.caughtMask(id);
+                FishSchoolSavedData.School live = liveVisit(id);
+                Attempt attempt = attempts.get(id);
+                double distance = Math.sqrt(Vec3.atCenterOf(new BlockPos(chunk.getMiddleBlockX(), (int) near.y,
+                        chunk.getMiddleBlockZ())).distanceToSqr(near));
+                String when = now < start ? "opens in " + seconds(start - now) : now < end ? "OPEN, closes in " + seconds(end - now)
+                        : "closed";
+                VisitWeatherLog.Sample weather = windowWeather(start);
+                String weatherNote = now < start ? "weather pending" : "weather " + weather.state().getSerializedName()
+                        + (weather.fallback() ? " (FALLBACK: current, no history)" : " at window start");
+                rows.add(new Row(start, distance, String.format(java.util.Locale.ROOT,
+                        "chunk %d,%d (%.0f blocks) window %d [%d, %d) %s | rank %08x | %s | %s | caught %s | %s%s",
+                        chunk.x, chunk.z, distance, window, start, end, when,
+                        (int) (VisitWindows.rank(seed, chunk.x, chunk.z, window) >>> 32),
+                        suppressed ? "SUPPRESSED" : "hosts a visit",
+                        weatherNote,
+                        mask == 0 ? "none" : "0b" + Long.toBinaryString(mask),
+                        live != null ? "LIVE: " + live.species() + " " + membersSummary(live) : "not live",
+                        attempt == null ? "" : attempt.retryAt() == Long.MAX_VALUE ? " | concluded"
+                                : attempt.retryAt() > now ? " | retry in " + seconds(attempt.retryAt() - now) : "")));
+            }
+            if (any) activeSites++;
+        }
+        rows.sort(Comparator.comparingLong(Row::start).thenComparingDouble(Row::distance));
+        StringBuilder out = new StringBuilder(String.format(java.util.Locale.ROOT,
+                "Visit windows in %s at tick %d: T=%d L=%d chance=%s R=%d, %d chunks within %.0f blocks, %d with an active window"
+                        + " in the next %d ticks.\nLive visits %d, revealed %d, dropped (nobody near) %d, concluded %d, ledger rows %d,"
+                        + " protection caps bound %d times (last: %s).",
+                dimension, now, params.periodTicks(), params.visitTicks(), params.visitChance(),
+                params.suppressionRadiusChunks(), chunks.size(), range, activeSites, 3 * params.periodTicks(),
+                data.schools().stream().filter(school -> school.visitId() != null).count(), windowsRevealed, windowsDropped,
+                windowsConcluded, data.depletionSize(), capBinds, lastCapBind));
+        if (rows.isEmpty()) out.append("\nNo window is scheduled near you in the next three periods.");
+        for (int i = 0; i < Math.min(rows.size(), 12); i++) out.append("\n  ").append(rows.get(i).text());
+        if (rows.size() > 12) out.append("\n  ... and ").append(rows.size() - 12).append(" more");
+        return out.toString();
+    }
+
+    /** Test seam: reveals the window as if it were game time {@code now}, skipping the schedule gate. */
+    public FishSchoolSavedData.@Nullable School revealWindowForTest(VisitId id, long now) {
+        return revealWindow(id, ecologySeed(), FishtasticServerConfig.visitWindowParams(), now, false);
+    }
+
+    /** Test seam: one scheduler pass at game time {@code now} for players at {@code centres}. */
+    public void scheduleVisitsForTest(long now, List<Vec3> centres) {
+        scheduleVisits(now, centres);
+    }
+
+    /** Test seam: one drop pass with players at {@code centres}. */
+    public void dropFarVisitsForTest(List<Vec3> centres) {
+        dropFarVisits(centres);
+    }
+
+    /** Test seam: forgets a live visit as the drop does (no conclusion, no ledger change). */
+    public void forgetVisitForTest(FishSchoolSavedData.School school) {
+        forgetVisit(school);
+    }
+
+    public void pruneLedgerForTest(long now) {
+        pruneLedger(now);
+    }
+
+    /** Test seam: replaces the protection caps (null restores the configured ones). */
+    public void setCapsForTest(int @Nullable [] maxSchoolsAndMembers) {
+        capsForTest = maxSchoolsAndMembers;
+    }
+
+    public long capBindsForTest() {
+        return capBinds;
+    }
+
+    /** Test seam: treats these species as ineligible, standing in for a datapack or profile change (E14). */
+    public void setExcludedSpeciesForTest(Set<ResourceLocation> species) {
+        excludedForTest.clear();
+        excludedForTest.addAll(species);
+    }
+
+    public void clearAttemptsForTest() {
+        attempts.clear();
+    }
+
+    /** Test seam: capture flags through the tick's weather path, without advancing unrelated visits. */
+    public void captureWeatherForTest(long now) {
+        captureWeather(now);
+    }
+
+    /** Test seam: one lifecycle pass for this visit only, without shifting the shared level clock. */
+    public void tickVisitForTest(FishSchoolSavedData.School school, long now) {
+        runtime(school, now); // the normal tick initializes it in advanceSims before the lifecycle pass
+        tickVisitsAndMembers(now, List.of(school));
+    }
+
+    public long ecologySeedForTest() {
+        return ecologySeed();
+    }
+
+    public FishSchoolSavedData.@Nullable School liveVisitForTest(VisitId id) {
+        return liveVisit(id);
+    }
+
+    public String lastRevealNoteForTest() {
+        return createNote;
+    }
+
+    public long windowsDroppedForTest() {
+        return windowsDropped;
+    }
+
+    /** "3 present / 1 departed / 1 caught": the roster of a live visit, counting those gone before it was revealed. */
+    private static String membersSummary(FishSchoolSavedData.School school) {
+        int present = 0, departed = school.departedAtReveal(), caught = school.caughtAtReveal();
+        for (FishSchoolSavedData.Member member : school.members()) {
+            switch (member.state()) {
+                case DEPARTING, DEPARTED -> departed++;
+                case CAUGHT -> caught++;
+                default -> present++;
+            }
+        }
+        return present + " present / " + departed + " departed / " + caught + " caught";
+    }
+
+    private static String seconds(long ticks) {
+        long s = Math.max(0, ticks) / 20;
+        return s >= 60 ? (s / 60) + "m" + String.format(java.util.Locale.ROOT, "%02d", s % 60) + "s" : s + "s";
+    }
+
+    /**
+     * Debug: forces the nearest site with water to reveal its CURRENT window now, hash-active or not.
+     * An override for testing only: the deterministic schedule is untouched for everyone else (the
+     * window keeps its own active/suppressed answer, the same visit would be derived by the real
+     * schedule, and a catch still marks depletion for it). A line saying what happened.
+     */
+    public String revealNearestForDebug(Vec3 near) {
+        VisitWindows.Params params = FishtasticServerConfig.visitWindowParams();
+        long seed = ecologySeed();
+        long now = level.getGameTime();
+        String dimension = level.dimension().location().toString();
+        List<ChunkPos> chunks = loadedChunksNear(List.of(near), FishtasticServerConfig.fishSchoolTrackingRange());
+        chunks.sort(Comparator.comparingDouble(chunk -> new Vec3(chunk.getMiddleBlockX() + 0.5, near.y,
+                chunk.getMiddleBlockZ() + 0.5).distanceToSqr(near)));
+        String banner = "FORCED OVERRIDE (debug): ";
+        String firstFailure = null;
+        int tried = 0;
+        for (ChunkPos chunk : chunks) {
+            VisitId id = VisitId.at(dimension, seed, chunk.x, chunk.z, now, params);
+            FishSchoolSavedData.School live = liveVisit(id);
+            if (live != null) {
+                return banner + "chunk " + chunk.x + "," + chunk.z + " window " + id.window() + " already has a live "
+                        + live.species() + " visit at " + live.anchor().toShortString() + "; nothing forced.";
+            }
+            FishSchoolSavedData.School school = revealWindow(id, seed, params, now, true);
+            if (school != null) {
+                boolean active = VisitWindows.isActive(seed, chunk.x, chunk.z, id.window(), params);
+                boolean suppressed = VisitWindows.isSuppressed(seed, chunk.x, chunk.z, id.window(), params);
+                return banner + "revealed " + school.members().size() + " " + school.species() + " ("
+                        + school.shape().getSerializedName() + ") at " + school.anchor().toShortString()
+                        + " from chunk " + chunk.x + "," + chunk.z + " window " + id.window() + " (school " + school.id()
+                        + "). The schedule itself is untouched: that window is " + (active ? "" : "NOT ") + "active by its hash and "
+                        + (suppressed ? "" : "not ") + "suppressed, so nobody else gets this visit unless it really is scheduled."
+                        + " It ends " + seconds(school.activeUntil() - now) + " from now; catches still mark this window's depletion.";
+            }
+            if (firstFailure == null) firstFailure = "chunk " + chunk.x + "," + chunk.z + ": " + createNote;
+            if (++tried >= 12) break;
+        }
+        return banner + "no visit could form in the " + tried + " nearest loaded chunks"
+                + (firstFailure == null ? "." : " (nearest: " + firstFailure + ").");
     }
 
     private @Nullable BlockPos nearestWater(BlockPos center, int radius, int down, int up) {
@@ -1037,62 +1570,119 @@ public final class FishSchoolManager {
         return tryCreateSchool(seed, now, null, null, null);
     }
 
+    /** The debug/test path: random draws, no window. */
+    private @Nullable FishSchoolSavedData.School tryCreateSchool(BlockPos seed, long now, @Nullable Holder<Item> forced,
+                                                                FishQuality.Quality @Nullable [] qualities,
+                                                                @Nullable VisitShape forcedShape) {
+        return createSchool(seed, now, forced, qualities, forcedShape, null);
+    }
+
     /**
+     * Forms a visit at {@code seed}'s water. With {@code derived} it is the window's visit: species,
+     * shape, member count, member reward seeds and ids, and the placement order all come from the
+     * window's hash and the natural pool under the environment at the window's start, so it is the same
+     * visit whenever it is revealed; caught members are left out. Without it (debug spawns) every draw
+     * is a random one as before.
+     *
      * @param forced    a species to use instead of drawing one from the natural pool (debug only): it
      *                  must still be {@link #encounterEligible}, but this water's habitat is not checked for it
      * @param qualities debug only: member {@code i} gets {@code qualities[i % length]} (its reward
      *                  seed is re-drawn until {@link FishSchoolSavedData#qualityOf} says so), or null
      * @param forcedShape debug only: the visit's shape instead of the species' own, or null
+     * @param derived   the window this visit is the derivation of, or null for a debug visit
      */
-    private @Nullable FishSchoolSavedData.School tryCreateSchool(BlockPos seed, long now, @Nullable Holder<Item> forced,
-                                                                FishQuality.Quality @Nullable [] qualities,
-                                                                @Nullable VisitShape forcedShape) {
+    private @Nullable FishSchoolSavedData.School createSchool(BlockPos seed, long now, @Nullable Holder<Item> forced,
+                                                             FishQuality.Quality @Nullable [] qualities,
+                                                             @Nullable VisitShape forcedShape, @Nullable Derived derived) {
+        // Protection caps (not the model): in normal play they should never bind.
+        if (derived != null) {
+            int maxSchools = capsForTest != null ? capsForTest[0] : FishtasticServerConfig.fishSchoolMaxPerDimension();
+            if (activeSchools() >= maxSchools) return capBound("schools per dimension");
+            if (capsForTest == null && globalActiveSchools() >= GLOBAL_SCHOOL_CAP) return capBound("schools across dimensions");
+        }
         WaterScan waterScan = scanConnectedWater(seed, null, null);
         Set<BlockPos> water = waterScan.cells();
-        if (water.size() < MIN_WATER_CELLS) return null;
+        // A scan that met an unloaded chunk would give a result that depends on what happens to be
+        // loaded, so a window waits for the chunks rather than derive from a partial lake.
+        if (derived != null && waterScan.incomplete() && !derived.forced()) {
+            return fail("the water runs into unloaded chunks", ATTEMPT_DEFER_TICKS);
+        }
+        if (water.size() < MIN_WATER_CELLS) return fail("fewer than " + MIN_WATER_CELLS + " connected water cells (E4)", ATTEMPT_RETRY_TICKS);
 
-        FishingPoolResolver.EnvironmentContext env = FishingPoolResolver.resolveEnvironment(level, seed, null);
+        FishingPoolResolver.EnvironmentContext env = derived != null
+                ? environmentAtWindowStart(seed, derived.windowStart(), now)
+                : FishingPoolResolver.resolveEnvironment(level, seed, null);
         Registry<FishProfile> profiles = level.registryAccess().registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
         Registry<Item> items = level.registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.ITEM);
-        FishingPoolResolver.SpeciesContext naturalPool = FishingPoolResolver.resolve(items, profiles, env,
-                FishingPoolResolver.Inputs.of(BaitEffect.NO_BAIT, null,
-                        FishingPoolResolver.PersonalEquipment.NEUTRAL));
+        FishingPoolResolver.SpeciesContext naturalPool = NaturalPool.resolve(items, profiles, env);
         List<FishingPoolResolver.WeightedFish> candidates = naturalPool.candidates().stream()
                 .filter(candidate -> encounterEligible(candidate.item()))
                 .toList();
-        FishingPoolResolver.WeightedFish selected = forced != null ? new FishingPoolResolver.WeightedFish(forced, 1)
-                : weightedChoice(candidates);
-        if (selected == null) return null;
+        FishingPoolResolver.WeightedFish selected;
+        if (forced != null) {
+            selected = new FishingPoolResolver.WeightedFish(forced, 1);
+        } else if (derived != null) {
+            int pick = VisitDerivation.pickWeighted(derived.base(),
+                    candidates.stream().mapToInt(FishingPoolResolver.WeightedFish::weight).toArray());
+            selected = pick < 0 ? null : candidates.get(pick);
+        } else {
+            selected = weightedChoice(candidates);
+        }
+        if (selected == null) return fail("no eligible species lives in this water", ATTEMPT_RETRY_TICKS);
         ResourceLocation species = selected.item().unwrapKey().map(key -> key.location()).orElse(null);
-        if (species == null) return null;
+        if (species == null) return fail("the drawn species has no id", ATTEMPT_RETRY_TICKS);
 
+        // The rolled species is the window's species. If it does not fit, the window passes with no
+        // visit; there is no substitute (a re-roll would make the visit depend on the water's shape).
         Map<Long, Boolean> zoneEligible = new HashMap<>();
         WaterScan speciesScan = forced != null ? null : scanConnectedWater(seed, selected.item(), zoneEligible);
         Set<BlockPos> speciesWater = forced != null ? water : speciesScan.cells();
-        if (speciesWater.size() < MIN_WATER_CELLS) return null;
+        if (speciesWater.size() < MIN_WATER_CELLS) return fail(species + " has fewer than " + MIN_WATER_CELLS + " cells of its habitat here", ATTEMPT_RETRY_TICKS);
         FishProfile profile = FishtasticFishItem.getProfile(selected.item(), profiles).orElse(null);
         FishSpec spec = speciesSpec(species);
-        if (spec == null) return null;
+        if (spec == null) return fail(species + " has no engine descriptor", ATTEMPT_RETRY_TICKS);
         VisitShape shape = VisitShape.allowedFor(forcedShape != null ? forcedShape
                 : profile != null ? profile.visitShape() : VisitShape.fallback(FishProfile.DEFAULT_BASE_WEIGHT),
                 spec.locomotion());
-        int remaining = FishtasticServerConfig.fishSchoolMaxMembersPerDimension() - activeMembers();
-        int maxMembers = Math.min(FishtasticServerConfig.fishSchoolMaxMembersPerSchool(), remaining);
-        MemberPlan plan = planMembers(shape, profile, maxMembers);
-        if (plan == null) return null;
+        MemberPlan plan;
+        if (derived != null) {
+            plan = planMembers(shape, profile, FishtasticServerConfig.fishSchoolMaxMembersPerSchool(), derived.base());
+        } else {
+            int remaining = FishtasticServerConfig.fishSchoolMaxMembersPerDimension() - activeMembers();
+            plan = planMembers(shape, profile, Math.min(FishtasticServerConfig.fishSchoolMaxMembersPerSchool(), remaining), null);
+        }
+        if (plan == null) return fail("the member budget cannot fit even the smallest " + shape.getSerializedName(), ATTEMPT_RETRY_TICKS);
+        if (derived != null && activeMembers() + plan.count()
+                > (capsForTest != null ? capsForTest[1] : FishtasticServerConfig.fishSchoolMaxMembersPerDimension())) {
+            return capBound("members per dimension");
+        }
         // A species too big for this water would be a frozen display (encounter spec §4.1).
-        if (!FishSchoolSim.hosts(seed, columns(speciesWater), spec, shape)) return null;
+        if (!FishSchoolSim.hosts(seed, columns(speciesWater), spec, shape)) {
+            return fail(species + " does not fit this water", ATTEMPT_RETRY_TICKS);
+        }
 
         List<BlockPos> cells = speciesWater.stream()
                 .filter(pos -> Math.abs(pos.getX() - seed.getX()) <= SCHOOL_FORMATION_RADIUS
                         && Math.abs(pos.getZ() - seed.getZ()) <= SCHOOL_FORMATION_RADIUS
                         && Math.abs(pos.getY() - seed.getY()) <= 2)
                 .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
-        if (cells.size() < plan.min()) return null;
+        if (cells.size() < plan.min()) return fail("too little room round the start cell for " + plan.min() + " fish", ATTEMPT_RETRY_TICKS);
+        float lifetimeScale = profile == null ? 1f
+                : profile.worldEncounter().map(FishProfile.WorldEncounter::lifetimeScale).orElse(1f);
+        // A derived visit lasts from its window's start; each member leaves at its own seeded tick inside that span.
+        long derivedLength = derived == null ? 0L : VisitDerivation.lifetimeTicks(derived.params().visitTicks(),
+                derived.params().periodTicks(), lifetimeScale);
         int members = plan.count();
         double spacingSqr = (double) shape.spacing() * shape.spacing();
         List<FishSchoolSavedData.Member> schoolMembers = new ArrayList<>(members);
-        RandomSource random = level.getRandom();
+        // A window's placement is seeded, so a cell set means one arrangement; a debug visit is random.
+        RandomSource random;
+        if (derived != null) {
+            cells.sort(Comparator.<BlockPos>comparingInt(BlockPos::getY).thenComparingInt(BlockPos::getZ).thenComparingInt(BlockPos::getX));
+            random = RandomSource.create(VisitDerivation.positionSeed(derived.base()));
+        } else {
+            random = level.getRandom();
+        }
         for (int i = cells.size() - 1; i > 0; i--) {
             java.util.Collections.swap(cells, i, random.nextInt(i + 1));
         }
@@ -1104,6 +1694,15 @@ public final class FishSchoolManager {
             float yaw = random.nextFloat() * 360f;
             FishSchoolSavedData.Position position = new FishSchoolSavedData.Position(
                     candidate.x, candidate.y, candidate.z, yaw);
+            if (derived != null) {
+                int index = schoolMembers.size();
+                // A forced (debug) visit has no seeded departures: it may be revealed outside its window.
+                long departAt = derived.forced() ? -1L
+                        : VisitDerivation.departureTick(derived.base(), index, derived.windowStart(), derivedLength);
+                schoolMembers.add(FishSchoolSavedData.derivedMember(VisitDerivation.memberId(derived.base(), index), index,
+                        VisitDerivation.memberRewardSeed(derived.base(), index), departAt, position));
+                continue;
+            }
             long rewardSeed = random.nextLong();
             if (qualities != null) {
                 FishQuality.Quality want = qualities[schoolMembers.size() % qualities.length];
@@ -1113,13 +1712,37 @@ public final class FishSchoolManager {
             }
             schoolMembers.add(FishSchoolSavedData.newMember(rewardSeed, position));
         }
-        if (schoolMembers.size() < plan.min()) return null;
+        if (schoolMembers.size() < plan.min()) return fail("could not seat " + plan.min() + " fish apart in this water", ATTEMPT_RETRY_TICKS);
 
-        float lifetimeScale = profile == null ? 1f
-                : profile.worldEncounter().map(FishProfile.WorldEncounter::lifetimeScale).orElse(1f);
-        long lifetime = Math.round(FishtasticServerConfig.fishSchoolActiveLifetimeTicks() * (double) lifetimeScale);
-        FishSchoolSavedData.School school = FishSchoolSavedData.newSchool(species, seed, now, now + lifetime,
-                FishSchoolSavedData.snapshot(env), shape, schoolMembers);
+        FishSchoolSavedData.School school;
+        if (derived != null) {
+            // E11: the full seeded roster stands at its seeded spots; the fish caught (the ledger) and the
+            // fish whose seeded departure has passed are not there. Nothing else about the moment of reveal matters.
+            long caught = data.caughtMask(derived.id());
+            int caughtCount = 0, departedCount = 0;
+            for (FishSchoolSavedData.Member member : new ArrayList<>(schoolMembers)) {
+                if (VisitDerivation.isCaught(caught, member.index())) {
+                    caughtCount++;
+                    schoolMembers.remove(member);
+                } else if (VisitDerivation.hasDeparted(member.departAt(), now)) {
+                    departedCount++;
+                    schoolMembers.remove(member);
+                }
+            }
+            if (schoolMembers.isEmpty()) {
+                return fail("every fish of this visit was caught or has left (depleted: " + caughtCount + " caught, "
+                        + departedCount + " departed)", Long.MAX_VALUE);
+            }
+            long activeUntil = derived.windowStart() + derivedLength;
+            if (derived.forced()) activeUntil = Math.max(activeUntil, now + derivedLength);
+            if (now >= activeUntil) return fail("this species' visit is already over for the window", Long.MAX_VALUE);
+            school = FishSchoolSavedData.derivedSchool(VisitDerivation.schoolId(derived.base()), derived.id(), species, seed,
+                    now, activeUntil, FishSchoolSavedData.snapshot(env), shape, schoolMembers, departedCount, caughtCount);
+        } else {
+            long lifetime = Math.round(FishtasticServerConfig.visitLengthTicks() * (double) lifetimeScale);
+            school = FishSchoolSavedData.newSchool(species, seed, now, now + lifetime,
+                    FishSchoolSavedData.snapshot(env), shape, schoolMembers);
+        }
         data.addSchool(school);
         RegionCache region = new RegionCache(speciesScan != null ? speciesScan : waterScan, now);
         region.zoneEligible.putAll(zoneEligible);
@@ -1127,8 +1750,9 @@ public final class FishSchoolManager {
         // as the next rescan always did.
         if (forced != null) region.markDirty(now);
         waterRegions.put(school.id(), region);
-        Fishtastic.LOGGER.debug("Created fish school {} ({}, {}) with {} members near {} in {}",
-                school.id(), species, shape.getSerializedName(), schoolMembers.size(), seed, level.dimension().location());
+        Fishtastic.LOGGER.debug("Created fish school {} ({}, {}) with {} members near {} in {}{}",
+                school.id(), species, shape.getSerializedName(), schoolMembers.size(), seed, level.dimension().location(),
+                derived == null ? "" : " for " + derived.id());
         return school;
     }
 
@@ -1149,9 +1773,11 @@ public final class FishSchoolManager {
     /**
      * The visit's member count: the shape's range, narrowed by the species' authored range, capped
      * by {@code max} (the per-visit and per-dimension budgets). Null when the budget cannot fit
-     * even the smallest visit of this shape.
+     * even the smallest visit of this shape. Drawn from {@code derivedBase} (a window's hash) when
+     * given, else at random.
      */
-    private @Nullable MemberPlan planMembers(VisitShape shape, @Nullable FishProfile profile, int max) {
+    private @Nullable MemberPlan planMembers(VisitShape shape, @Nullable FishProfile profile, int max,
+                                             @Nullable Long derivedBase) {
         int min = shape.minMembers(), most = shape.maxMembers();
         var authored = profile == null ? java.util.Optional.<FishProfile.WorldEncounter.MemberRange>empty()
                 : profile.worldEncounter().flatMap(FishProfile.WorldEncounter::members);
@@ -1161,16 +1787,8 @@ public final class FishSchoolManager {
         }
         most = Math.min(most, max);
         if (most < min) return null;
-        return new MemberPlan(min, min + level.getRandom().nextInt(most - min + 1));
-    }
-
-    private boolean overlapsExisting(BlockPos point, double radius) {
-        double radiusSqr = radius * radius;
-        for (FishSchoolSavedData.School school : data.schools()) {
-            if (school.state() == FishSchoolSavedData.SchoolState.ACTIVE
-                    && school.anchor().distToCenterSqr(Vec3.atCenterOf(point)) < radiusSqr) return true;
-        }
-        return false;
+        return new MemberPlan(min, derivedBase != null ? VisitDerivation.memberCount(derivedBase, min, most)
+                : min + level.getRandom().nextInt(most - min + 1));
     }
 
     private int globalActiveSchools() {
@@ -1192,29 +1810,19 @@ public final class FishSchoolManager {
                         || m.state() == FishSchoolSavedData.MemberState.DEPARTED ? 0 : 1).sum();
     }
 
-    private @Nullable FishSchoolSavedData.RegionSchedule findRegion(int x, int z) {
-        return data.regions().stream().filter(region -> region.x() == x && region.z() == z).findFirst().orElse(null);
-    }
-
-    private void pruneRegions(long now) {
-        data.regions().removeIf(region -> now - region.lastSeenAt() > REGION_RETENTION_TICKS);
-        if (data.regions().size() > MAX_RETAINED_REGIONS) {
-            data.regions().sort(Comparator.comparingLong(FishSchoolSavedData.RegionSchedule::lastSeenAt).reversed());
-            data.regions().subList(MAX_RETAINED_REGIONS, data.regions().size()).clear();
-        }
-        data.markDirtyNow();
-    }
-
     private void tickVisitsAndMembers(long now) {
-        boolean dirty = false;
+        tickVisitsAndMembers(now, data.schools());
+    }
+
+    private void tickVisitsAndMembers(long now, List<FishSchoolSavedData.School> schools) {
         List<FishSchoolSavedData.School> remove = new ArrayList<>();
-        for (FishSchoolSavedData.School school : data.schools()) {
+        for (FishSchoolSavedData.School school : schools) {
             // Simulation pauses while the anchor chunk is unloaded; no call below loads it.
             if (!level.hasChunkAt(school.anchor())) continue;
             Set<BlockPos> cells = currentWaterRegion(school, now);
             SchoolRuntime runtime = sims.get(school.id());
             if (runtime == null) {
-                dirty |= beginDeparture(school, now);
+                beginDeparture(school, now);
             } else if (!cells.isEmpty() && cells != runtime.water) {
                 // Each rescan returns a new set. Unchanged water is adopted as is, so the ticks until
                 // the next rescan compare by identity instead of cell by cell (~0.35 ms a school a
@@ -1226,47 +1834,48 @@ public final class FishSchoolManager {
                     runtime.apply(new FishSchoolSim.Water(columns(cells)));
                     FishSchoolPerf.waterInputs++;
                     // Shrunk below what the species needs: leave rather than freeze in place.
-                    if (!runtime.sim.hostsSpecies()) dirty |= beginDeparture(school, now);
+                    if (!runtime.sim.hostsSpecies()) beginDeparture(school, now);
                 }
             }
             Item item = BuiltInRegistries.ITEM.getOptional(school.species()).orElse(null);
             if (cells.size() < MIN_WATER_CELLS || item == null || !encounterEligible(item.builtInRegistryHolder())) {
-                dirty |= beginDeparture(school, now);
+                beginDeparture(school, now);
             }
             if (!FishtasticServerConfig.fishSchoolsEnabled()) {
-                dirty |= beginDeparture(school, now);
+                beginDeparture(school, now);
             }
             if (school.state() == FishSchoolSavedData.SchoolState.ACTIVE && now >= school.activeUntil()) {
-                dirty |= beginDeparture(school, now);
+                beginDeparture(school, now);
             }
 
             for (FishSchoolSavedData.Member member : school.members()) {
                 switch (member.state()) {
-                    case APPROACHING -> dirty |= tickApproach(school, member, cells, now);
-                    case BITE_READY -> dirty |= tickBiteWindow(school, member, now);
+                    case APPROACHING -> tickApproach(school, member, cells, now);
+                    case BITE_READY -> tickBiteWindow(school, member, now);
                     case RECOVERING -> {
                         if (now >= member.recoveryUntil()) {
                             if (school.state() == FishSchoolSavedData.SchoolState.ACTIVE && cells.contains(blockPos(member.position()))) {
                                 member.setState(FishSchoolSavedData.MemberState.AVAILABLE);
-                                dirty = true;
                             } else {
                                 member.setState(FishSchoolSavedData.MemberState.DEPARTING);
-                                dirty = true;
                             }
                         }
                     }
                     case AVAILABLE -> {
                         if (school.state() != FishSchoolSavedData.SchoolState.ACTIVE) {
                             member.setState(FishSchoolSavedData.MemberState.DEPARTING);
-                            dirty = true;
+                        } else if (VisitDerivation.hasDeparted(member.departAt(), now)) {
+                            // Its seeded time came: it leaves the visit while the others stay (E11).
+                            member.setState(FishSchoolSavedData.MemberState.DEPARTING);
+                            member.setFadeUntil(now + DEPARTURE_TICKS);
                         }
                     }
                     case DEPARTING -> {
                         // It swims on with its school while it fades; then it is gone.
-                        if (now >= school.departureUntil()) {
+                        long until = member.fadeUntil() > 0 ? member.fadeUntil() : school.departureUntil();
+                        if (now >= until) {
                             member.setState(FishSchoolSavedData.MemberState.DEPARTED);
                             leaveWater(school, member);
-                            dirty = true;
                         }
                     }
                     case IN_SESSION, CAUGHT, DEPARTED -> { }
@@ -1279,12 +1888,9 @@ public final class FishSchoolManager {
             if (!living && !occupied) remove.add(school);
         }
         for (FishSchoolSavedData.School school : remove) {
-            data.removeSchool(school);
-            waterRegions.remove(school.id());
-            sims.remove(school.id());
-            dirty = true;
+            if (school.visitId() != null) concludeVisit(school.visitId());
+            forgetVisit(school);
         }
-        if (dirty) data.markDirtyNow();
     }
 
     private Set<BlockPos> currentWaterRegion(FishSchoolSavedData.School school, long now) {
@@ -1495,7 +2101,6 @@ public final class FishSchoolManager {
             chosenMember.setReservation(new FishSchoolSavedData.Reservation(player.getUUID(), hook.getUUID(), now,
                     now + approachLimitTicks(runtime) + FishtasticServerConfig.fishSchoolBiteWindowTicks(),
                     0, -1));
-            data.markDirtyNow();
         }
     }
 

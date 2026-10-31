@@ -146,6 +146,11 @@ public class QuestProgressNotification {
                     ? "New Encyclopedia Entry!"
                     : event.triggeringItem().getHoverName().getString() + " Discovered!";
             showProgress = false;
+        } else if (event.questId().getPath().startsWith(QuestProgressNotificationManager.OBSERVED_ID_PREFIX)) {
+            name = event.triggeringItem().isEmpty()
+                    ? "New Species Observed!"
+                    : event.triggeringItem().getHoverName().getString() + " Observed!";
+            showProgress = false;
         } else if (event.questId().getPath().startsWith(QuestProgressNotificationManager.COMPANION_BOND_ID_PREFIX)) {
             // "<Fish>: Bond Unlocked!" — the species name is the headline, so the player knows which
             // entry just completed. The banner stack doesn't carry a renamed companion.

@@ -112,9 +112,6 @@ public final class FishtasticForgeClient {
                 packet -> grill24.fishtastic.client.renderer.TankInteriorLight.set(packet.level()));
         grill24.fishtastic.network.ReducedEffectsSyncPacket.registerClientHandler(
                 packet -> grill24.fishtastic.client.FishtasticClientConfig.setReducedCelebrationEffects(packet.reduced()));
-        grill24.fishtastic.network.AmbientContextResponsePacket.registerClientHandler(
-                grill24.fishtastic.client.ambient.AmbientContextClient::handle);
-
         QuestProgressNotificationManager.getInstance().install();
 
         modEventBus.addListener(FishtasticForgeClient::registerClientReloadListeners);

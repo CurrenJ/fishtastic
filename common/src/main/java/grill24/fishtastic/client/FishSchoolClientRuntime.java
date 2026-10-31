@@ -8,6 +8,7 @@ import grill24.fishsim.core.FlockEngine;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.client.renderer.FishVisuals;
+import grill24.fishtastic.client.renderer.FishtasticRenderTypes;
 import grill24.fishtastic.client.renderer.GroupFishDraw;
 import grill24.fishtastic.client.renderer.TankBubbleEmitter;
 import grill24.fishtastic.data.FishAnimationConfig;
@@ -68,8 +69,8 @@ public final class FishSchoolClientRuntime {
     static final RenderType[] MOTE_RENDER_TYPES = new RenderType[MOTE_SPRITES.length];
     static {
         for (int i = 0; i < MOTE_SPRITES.length; i++) {
-            MOTE_RENDER_TYPES[i] = RenderType.entityTranslucentEmissive(
-                    Fishtastic.id("textures/particle/" + MOTE_SPRITES[i] + ".png"), false);
+            MOTE_RENDER_TYPES[i] = FishtasticRenderTypes.schoolTrailMote(
+                    Fishtastic.id("textures/particle/" + MOTE_SPRITES[i] + ".png"));
         }
     }
     static final int GLINT_SPRITE = 0;
@@ -78,7 +79,7 @@ public final class FishSchoolClientRuntime {
     /** The ripple ring, last on the list: splash rings use it, airborne droplets never do. */
     static final int RIPPLE_SPRITE = 5;
     /** The pearl/sea-glass cyans the motes were drawn in before the sprites went greyscale. */
-    private static final int[] DEFAULT_MOTE_TINTS = {0xB4FFF0, 0x8CF5F0, 0x5AE6DC, 0xC8FFE6};
+    private static final int[] DEFAULT_MOTE_TINTS = {0x66FFEE, 0x1FFFF0, 0x00F5E0, 0x8CFFF2};
     /**
      * Each quality's mote tints, by {@link FishQuality.Quality} ordinal: a fish's trail shows what
      * catching it gives. Common keeps the original sea-glass cyans; the rest are shades round their
@@ -86,14 +87,16 @@ public final class FishSchoolClientRuntime {
      */
     private static final int[][] QUALITY_MOTE_TINTS = {
             DEFAULT_MOTE_TINTS,
-            {0x9CFF9C, 0x6EF56E, 0x55E655, 0xC8FFC8},
-            {0x8C9CFF, 0x6E7EFF, 0x5566FF, 0xB4BEFF},
-            {0xFF9CFF, 0xF06EF0, 0xE055E6, 0xFFC8FF},
-            {0xFFD966, 0xFFC233, 0xFFAA00, 0xFFE9A8},
+            {0x6BFF6B, 0x2BFF2B, 0x00F000, 0x9CFF9C},
+            {0x7FA0FF, 0x4D7DFF, 0x3366FF, 0x99B8FF},
+            {0xFF6BFF, 0xF030F0, 0xE020FF, 0xFF9CFF},
+            {0xFFD233, 0xFFBB00, 0xFFA000, 0xFFE070},
     };
     /** Dev override of every school's mote tints (RGB), or null for the defaults. */
     private static int @Nullable [] moteTintOverride;
     private static final int FULL_BRIGHT = 15728880;
+    /** Alpha a live mote fades toward before its final fade-out. */
+    private static final float ALPHA_FLOOR = 0.5f;
     private static final int GLINT_FRAME_COUNT = 8;
     /** The sheets' fullest frame, where every sprite is near its peak coverage: held motes draw it. */
     private static final int HELD_FRAME = 4;
@@ -981,6 +984,7 @@ public final class FishSchoolClientRuntime {
     /** One foreground overlay at a time: the nearest visible cinematic breach owns the HUD. */
     public static void renderHud(GuiGraphics graphics, float partialTick) {
         Minecraft mc = Minecraft.getInstance();
+        ObservationClient.renderHud(graphics, mc);
         ClientLevel level = mc.level;
         if (level == null || !FishtasticClientConfig.isFishSchoolsVisible()) return;
         Camera camera = mc.gameRenderer.getMainCamera();
@@ -1032,7 +1036,10 @@ public final class FishSchoolClientRuntime {
             float progress = clamp(age / mote.lifetime, 0f, 1f);
             float appear = smoothstep(clamp(age / 2f, 0f, 1f));
             float sunk = mote.sinkAge < 0 ? 0f : clamp((age - mote.sinkAge) / TrailMote.SINK_FADE_TICKS, 0f, 1f);
-            float alpha = appear * (mote.held ? 1f : 1f - smoothstep(progress)) * (1f - sunk);
+            // Keep live motes visible for most of their lifetime, then fade them out in the last fifth.
+            float lifeAlpha = (ALPHA_FLOOR + (1f - ALPHA_FLOOR) * (1f - smoothstep(progress)))
+                    * (1f - smoothstep((progress - 0.8f) / 0.2f));
+            float alpha = appear * (mote.held ? 1f : lifeAlpha) * (1f - sunk);
             if (alpha <= 0.015f) continue;
 
             double x = mote.previousX + (mote.x - mote.previousX) * partialTick;
@@ -1089,6 +1096,27 @@ public final class FishSchoolClientRuntime {
 
     private static float clamp(float value, float min, float max) {
         return Math.max(min, Math.min(max, value));
+    }
+
+    /** A visit member this client is showing, for the spyglass detector. */
+    public record ObservableMember(UUID school, UUID member, ResourceLocation species, double x, double y, double z) {}
+
+    /** Every member of every caught-up visit copy, with where its lockstep copy has it now. */
+    public static List<ObservableMember> observableMembers() {
+        List<ObservableMember> out = new ArrayList<>();
+        for (Copy copy : COPIES.values()) {
+            FishSchoolSim sim = copy.replica.sim();
+            if (sim == null || !copy.replica.caughtUp()) continue;
+            ResourceLocation species = BuiltInRegistries.ITEM.getKey(copy.stack.getItem());
+            BlockPos o = sim.origin();
+            List<UUID> members = sim.members();
+            for (int i = 0; i < members.size(); i++) {
+                out.add(new ObservableMember(copy.replica.school(), members.get(i), species,
+                        o.getX() + sim.engine().posL()[i], o.getY() + sim.engine().posY()[i],
+                        o.getZ() + sim.engine().posD()[i]));
+            }
+        }
+        return out;
     }
 
     /** Self-test: where member {@code i} of the first caught-up copy is now, in the world, or null. */
