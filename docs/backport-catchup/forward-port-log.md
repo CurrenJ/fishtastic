@@ -104,3 +104,38 @@ was visually confirmed in final captures on both targets. See the result matrix 
 Checklist marker commits: 1.21.1 `a5c88846`; 1.20.1 `13dec3b1`. Owner-only real-play,
 multiplayer, and tank-frame equivalence checks remain open; they are not claimed as passed by the
 automated matrix.
+
+## Post-marker follow-up: `00df5ff9..5bf9c6fc`
+
+Updated: 2026-10-31. Every source commit after `00df5ff9` through `5bf9c6fc` is accounted for.
+The two product changes in this range are adapted and committed on both targets. Feature commits:
+1.21.1 `361eefe79e9710c656c5ba55feaf6d9091c85f2c`; 1.20.1
+`51f1573d47c0e0097ebd954f704c9ba9c44595fe`. Checklist marker commits: 1.21.1
+`193067207ca072e828a13052ed4bef2377639097`; 1.20.1 `d6ed5a7f799246ef8fe618a017417a3196eee276`.
+Both markers now read `5bf9c6fc`.
+
+| 26.1.2 source commit | Disposition | `port/1.21.1` | `port/1.20.1` |
+|---|---|---|---|
+| `860887a0` Record 2026-10-29 backport parity catch-up | Excluded: source progress/ledger documentation only | — | — |
+| `c23199d5` Fix legendary breach glow and ray transparency | Present at target baselines before this follow-up | Present | Present |
+| `4d1b8b8e` Bump Fishtastic to 2.1.13 | Present at target baselines before this follow-up | Present | Present |
+| `49bd1201` Refresh source commit reference | Excluded: documentation/reference maintenance; targets retain local source references | — | — |
+| `afaa10f0` Add world fish exploration: windowed visits, seeded ambient fish and spyglass observation | Ported in target-adapted feature commit | `361eefe7` | `51f1573d` |
+| `22fc4d73` Record 2.1.12 release follow-up | Excluded: source progress tracker only | — | — |
+| `5bf9c6fc` Make school trail motes obvious in vanilla | Ported in target-adapted feature commit | `361eefe7` | `51f1573d` |
+
+Validation: 1.21.1 common tests, all three loader compiles, all three testmod compiles, and all
+three GameTest suites passed; the final three-loader compile after the rendering adaptation passed.
+Fabric datagen passed with 5,515 entries unchanged, 101 authored entries preserved, zero copied,
+and no generated-resource diff.
+1.20.1 common tests, Fabric/Forge compiles, both testmod compiles, both GameTest suites, and the
+final common/loader compile passed. Fabric datagen on 1.20.1 passed with zero copied files. Forge
+`runData` reported zero providers/files, and the generated-output diff is empty across Forge and
+common generated-resource paths, passing the documented G-B4 no-op expectation. Its JVM remained
+alive on parked executor threads after data generation and was stopped after capturing the thread
+dump; clean process exit is unverified due to the known FML shutdown hang. The run log and dump are under
+`build/backport-catchup/2026-10-30/world-fish-exploration/1.20.1-exploration/`. No generated-resource
+changes were found. The target feature commits and separate marker commits are recorded above. No
+push was made.
+`git diff HEAD --check` passes on both target worktrees. No target-side client visual review or
+two-client owner playtest was run; those owner checks remain open in the feature handoff.

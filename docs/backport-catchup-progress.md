@@ -1,5 +1,136 @@
 # Backport parity progress
 
+## Target commits completed (2026-10-31): catch up both ports through `5bf9c6fc`
+
+- **Operation:** Verify the 1.21.1 and 1.20.1 target worktrees, then account for every source
+  commit after marker `00df5ff9` through source `5bf9c6fc`. Preserve the existing display and
+  2.1.13 version ports; port world-fish exploration (`afaa10f0`) sequentially to 1.21.1 then
+  1.20.1, followed by the school-trail mote rendering fix (`5bf9c6fc`) on both. Record deliberate
+  source-only exclusions, validate the target gates, and update the crosswalk and target markers
+  only after the full range is accounted for. Do not push or publish.
+- **Starting refs:** source `26.1.2` `5bf9c6fc`; shared refs show `port/1.21.1` `310dd7e7` and
+  `port/1.20.1` `fcd1e4a6`. Target worktree status must be verified before editing; preserve
+  unrelated edits and runtime files.
+- **Evidence:** `build/backport-catchup/2026-10-30/world-fish-exploration/`.
+- **Checkpoint:** both target worktrees were clean at the refs above. Their own checklist rows
+  record marker `00df5ff9`; canonical topics 19 and 20 and both target pass-2 plans have been
+  reviewed. Applying `afaa10f0` to 1.21.1 exposed 23 conflicting paths. The first common compile
+  failed after several 26.1.2 renderer files were mistakenly selected; those files were restored
+  or merged with the 1.21.1 APIs. The next compile reached the feature code and reported 89 API
+  mismatches, mainly chunk, registry and section APIs. A first targeted compatibility batch now
+  uses pinned 1.21.1 signatures for section scanning, registry lookup, day-time offsets, and command
+  arguments. The 1.21.1 common production compile now passes after four attempts; the final
+  successful log is `build/backport-catchup/2026-10-30/world-fish-exploration/1.21.1-common-compile-4.log`.
+  New shared GameTests were adapted to 1.21.1 registry, chunk and weather/time APIs. The first
+  `:common:test` failed while compiling one new report fixture because it used 26.1 item component
+  binding APIs; the fixture now uses 1.21.1 registry registration and holders. The rerun passes in
+  1m06s; its log is `build/backport-catchup/2026-10-30/world-fish-exploration/1.21.1-common-test-2.log`.
+  The first loader compile stopped on stale ambient-context response handlers, which were removed
+  from all three loader setups; the rerun passed Fabric, Forge and NeoForge. Full output is
+  `build/backport-catchup/2026-10-30/world-fish-exploration/1.21.1-loader-compile-2.log`. The first
+  Fabric GameTest run stopped at testmod compilation with 34 errors: obsolete wrapper references to
+  retired context and saved-school tests, plus 1.21 `ChunkPos` and player inventory/position APIs.
+  The harness now drops retired calls and registers the new ecology, visit-window and observation
+  test bodies; typed API sites are adapted. Fabric now passes all 402 required tests. Its full log is
+  `build/backport-catchup/2026-10-30/world-fish-exploration/1.21.1-fabric-gametest-2.log`. Forge
+  also passes all 402 required GameTests (`BUILD SUCCESSFUL`, 1m47s); full log:
+  `build/backport-catchup/2026-10-30/world-fish-exploration/1.21.1-forge-gametest.log`. The first
+  NeoForge first failed 133 tests because the existing `set_day_rate` packet was missing from the
+  clientbound registry. Adding `SetDayRatePacket` to its handler and codec lists fixed that; all 402
+  required NeoForge tests now pass (`BUILD SUCCESSFUL`, 1m04s). See log
+  `build/backport-catchup/2026-10-30/world-fish-exploration/1.21.1-neoforge-gametest-2.log`. The
+  source school-trail mote rendering fix (`5bf9c6fc`) is now adapted for the 1.21.1 legacy renderer:
+  additive emissive `RenderType`, saturated tints and a raised mid-life alpha floor with a final
+  fade. Final Fabric, Forge and NeoForge compiles pass; log:
+  `build/backport-catchup/2026-10-30/world-fish-exploration/1.21.1-final-loader-compile.log`. Fabric
+  datagen also passes: 5,515 entries unchanged, 101 authored entries preserved, zero copied, and
+  none pruned. Generated-resource and common-resource diffs are empty; log:
+  `build/backport-catchup/2026-10-30/world-fish-exploration/1.21.1-fabric-datagen-1.log`. The
+  resolved 1.21.1 cherry-pick sequencer has been closed. The 1.20.1 branch was clean at
+  `fcd1e4a6`; applying `afaa10f0` with `git cherry-pick --no-commit` exposed 26 paths. The 10
+  intentional target deletions/layout differences are retained. The major renderer/runtime/school
+  refactors use the already verified 1.21 legacy adaptation as a code reference; the 1.20 network
+  and identifier APIs were resolved against its local `FishtasticPayload`/`BufCodec` shim. All
+  unmerged paths are now resolved. The first 1.20.1 common compile failed with 55 diagnostics,
+  primarily 1.21-only chunk section, registry, SavedData, GUI and self-test APIs. Full log:
+  `build/backport-catchup/2026-10-30/world-fish-exploration/1.20.1-exploration/1.20.1-common-compile-1.log`.
+  The API conversion reduced the second common compile to six stale self-test registrations for
+  the deleted ambient-context/population/lifecycle scenes. Those registrations are removed; the
+  common production compile now passes with only two existing JEI deprecation warnings. Log:
+  `build/backport-catchup/2026-10-30/world-fish-exploration/1.20.1-exploration/1.20.1-common-compile-3.log`.
+  **Pending operation:** run `:common:test --no-parallel --console=plain` and capture complete
+  output at
+  `build/backport-catchup/2026-10-30/world-fish-exploration/1.20.1-exploration/1.20.1-common-test-1.log`.
+  The third test attempt compiled and ran 987 tests: 983 passed, 3 were skipped, and 4 failed with
+  `NoSuchFileException` while resolving the shipped profile/tag fixture paths. Full log:
+  `build/backport-catchup/2026-10-30/world-fish-exploration/1.20.1-exploration/1.20.1-common-test-3.log`.
+  The resource-root fallback and target `tags/items/` paths fixed the report fixture. The 1.20.1
+  common unit suite now passes (`BUILD SUCCESSFUL`); full output:
+  `build/backport-catchup/2026-10-30/world-fish-exploration/1.20.1-exploration/1.20.1-common-test-5.log`.
+  The first loader compile stopped on literal escaped line breaks in the stale context-hook removal;
+  those were removed, and both Fabric/Forge main source compiles now pass. Final log:
+  `build/backport-catchup/2026-10-30/world-fish-exploration/1.20.1-exploration/1.20.1-loader-compile-2.log`.
+  The first testmod compile found NeoForge annotations in the shared harness (this target has Forge
+  only) and `JavaOps`, unavailable in 1.20.1. Log:
+  `build/backport-catchup/2026-10-30/world-fish-exploration/1.20.1-exploration/1.20.1-testmod-compile-1.log`.
+  The annotation/API changes let compilation reach the GameTest bodies; the second testmod compile
+  reported 45 further 1.21 API mismatches in test fixtures. Full log:
+  `build/backport-catchup/2026-10-30/world-fish-exploration/1.20.1-exploration/1.20.1-testmod-compile-2.log`.
+  **Pending operation:** adapt the shared test sources to 1.20 registry, chunk, player, codec,
+  weather and time APIs, then rerun both testmod compiles to
+  `build/backport-catchup/2026-10-30/world-fish-exploration/1.20.1-exploration/1.20.1-testmod-compile-3.log`.
+  The 1.20.1 final gates pass: common unit tests; Fabric and Forge main-source compiles; both
+  testmod compiles; Fabric GameTests (402 required) and Forge GameTests (403 required); and the
+  final common/loader compile after the school-trail rendering port. Fabric datagen also passes and
+  copied zero generated files. Forge `:forge:runData` initialized the data gatherer but reported
+  zero providers and zero generated files, then remained alive with two 24-thread executor pools
+  parked on empty queues. Its thread dump is
+  `build/backport-catchup/2026-10-30/world-fish-exploration/1.20.1-exploration/1.20.1-forge-datagen-thread-dump.txt`;
+  the run log is
+  `build/backport-catchup/2026-10-30/world-fish-exploration/1.20.1-exploration/1.20.1-forge-datagen-1.log`.
+  The Forge process did not exit cleanly: after the data phase it remained alive on parked
+  non-daemon executor pools and was stopped after the dump. Its data-output diff is empty, which
+  passes the 1.20.1 G-B4 no-op expectation (Forge has no datagen providers); the process-exit
+  behavior is the documented FML shutdown hang in the target plan. No generated-resource changes
+  were found. Both cherry-pick sequencers are closed, both worktrees have no unmerged paths, and all
+  adapted changes remain uncommitted. The target checklist markers remain `00df5ff9`; no commit or
+  push was made. Source commits `afaa10f0` and `5bf9c6fc` are now accounted for in the crosswalk.
+  `git diff HEAD --check` passes on both target worktrees after whitespace cleanup. No target-side
+  client visual review or two-client playtest was run; the feature handoff leaves those owner checks
+  open.
+  **Commit checkpoint (2026-10-31):** the first 1.21.1 commit attempt passed common unit tests and
+  then failed its Fabric GameTest hook in `aWaterEditThatStopsTheWaterMakesALiveVisitDepartAndStayGone`;
+  the diagnostic counted 780 connected water cells after the pond edit. The fixture now encloses
+  the pond with stone sides; the rerun passes all Fabric GameTests. Full output:
+  `build/backport-catchup/2026-10-30/world-fish-exploration/1.21.1-fabric-gametest-commit-retry.log`.
+  The configured 1.21.1 pre-commit hook passed common/fishsim/tank-shape tests and all Fabric
+  GameTests. After the signer became available, the signed feature commit succeeded as
+  `361eefe79e9710c656c5ba55feaf6d9091c85f2c`; its hook/signing transcript is
+  `build/backport-catchup/2026-10-30/world-fish-exploration/1.21.1-commit-hook-retry.log`.
+  On 1.20.1, `git add -u` staged the remaining target API adaptations. Its configured pre-commit
+  hook passed common/fishsim/tank-shape tests and all 402 required Fabric GameTests. The signed
+  feature commit succeeded as `51f1573d47c0e0097ebd954f704c9ba9c44595fe`; the hook/signing transcript
+  is `build/backport-catchup/2026-10-30/world-fish-exploration/1.20.1-exploration/1.20.1-commit-hook-retry-2.log`.
+  Both feature commits now exist: 1.21.1 `361eefe79e9710c656c5ba55feaf6d9091c85f2c`, and 1.20.1
+  `51f1573d47c0e0097ebd954f704c9ba9c44595fe`. The 1.21.1 checklist marker is now `5bf9c6fc`;
+  separate signed marker commit `193067207ca072e828a13052ed4bef2377639097` passed the configured
+  common/fishsim/tank-shape and Fabric GameTest hook. Transcript:
+  `build/backport-catchup/2026-10-30/world-fish-exploration/1.21.1-marker-commit.log`.
+  The 1.20.1 checklist marker is also `5bf9c6fc`; separate signed marker commit
+  `d6ed5a7f799246ef8fe618a017417a3196eee276` passed its configured common/fishsim/tank-shape and
+  Fabric GameTest hook. Transcript:
+  `build/backport-catchup/2026-10-30/world-fish-exploration/1.20.1-exploration/1.20.1-marker-commit.log`.
+  Both target markers and all four feature/marker commits now exist. The first source-ledger commit
+  hook passed common/fishsim/tank-shape unit tests, then its Fabric GameTest gate failed in
+  `aWaterEditThatStopsTheWaterMakesALiveVisitDepartAndStayGone`, reporting `water=338`. Its transcript
+  is `build/backport-catchup/2026-10-30/world-fish-exploration/source-ledger-commit.log`. A standalone
+  rerun of `:fabric:runGametest --no-parallel --console=plain` passed (`BUILD SUCCESSFUL`); full
+  output: `build/backport-catchup/2026-10-30/world-fish-exploration/source-ledger-fabric-gametest-retry.log`.
+  Source documentation remains staged, with no source-ledger commit created. **Pending operation:**
+  retry the source-ledger commit with its configured hook, capturing its transcript at
+  `build/backport-catchup/2026-10-30/world-fish-exploration/source-ledger-commit-retry.log`. Nothing
+  was pushed.
+
 ## Completed release follow-up (2026-10-29): build/smoke/publish 2.1.12
 
 - **Operation:** Build all eight supported loader artifacts from the three pinned 2.1.12 commit
@@ -712,3 +843,41 @@ branches. Canonical guide topics 19 and 20 cover backport APIs and workflow.
 The visual switches `driftBob`, `bobRetime`, `bobMindTurn`, `bobCalm`,
 `partySwimSeparation` and `otherPlayerClearance` retain their current defaults
 until owner review. Publication/profile deployment are separate operations.
+
+## World-fish exploration backport checkpoint (2026-10-31)
+
+The 1.21.1 branch changes for source commits `afaa10f0` and `5bf9c6fc` are implemented
+and their common tests, loader compiles, and Fabric/Forge/NeoForge GameTests passed; the
+branch remains uncommitted. The 1.20.1 `afaa10f0` port has passed common compilation,
+common unit tests, Fabric/Forge main compilation, and Fabric/Forge testmod compilation. The latest
+testmod log is
+`build/backport-catchup/2026-10-30/world-fish-exploration/1.20.1-exploration/1.20.1-testmod-compile-5.log`.
+After isolating the pond fixture with stone sides, Fabric GameTests pass all 402 required cases;
+full output:
+`build/backport-catchup/2026-10-30/world-fish-exploration/1.20.1-exploration/1.20.1-fabric-gametest-2.log`.
+Forge GameTests pass all 403 required cases; full output:
+`build/backport-catchup/2026-10-30/world-fish-exploration/1.20.1-exploration/1.20.1-forge-gametest-1.log`.
+**Pending operation:** adapt source commit `5bf9c6fc`'s trail-mote rendering change to the 1.20.1
+renderer. The final `:common:test :fabric:compileJava :forge:compileJava --no-parallel --console=plain`
+gate passed; full output is
+`build/backport-catchup/2026-10-30/world-fish-exploration/1.20.1-exploration/1.20.1-final-compile-1.log`.
+**Final checkpoint (2026-10-31):** 1.21.1 Fabric datagen passes with `syncGeneratedResources`
+reporting zero copied files, 101 authored entries preserved, 5,515 unchanged, and none pruned;
+generated-resource and common-resource diffs are empty. Full output:
+`build/backport-catchup/2026-10-30/world-fish-exploration/1.21.1-fabric-datagen-1.log`.
+1.20.1 Fabric datagen also passes with `syncGeneratedResources` reporting zero copied files; full output:
+`build/backport-catchup/2026-10-30/world-fish-exploration/1.20.1-exploration/1.20.1-fabric-datagen-1.log`.
+Forge `:forge:runData` initialized, reported zero providers/files, and then remained alive on parked
+executor pools. This is the documented 1.20.1 Forge behavior: datagen is Fabric-owned, so the
+expected Forge output diff is empty. Rechecked `git status` and staged/unstaged diffs for
+`forge/src/main/generated`, `common/src/main/generated`, and `common/src/main/resources`; all are
+empty, so the G-B4 data-output gate passes. The process-exit hang is a separate, known FML executor
+shutdown issue. The thread dump is
+`build/backport-catchup/2026-10-30/world-fish-exploration/1.20.1-exploration/1.20.1-forge-datagen-thread-dump.txt`;
+the final Gradle output in
+`build/backport-catchup/2026-10-30/world-fish-exploration/1.20.1-exploration/1.20.1-forge-datagen-1.log`
+records exit `-1` after that confirmed child was stopped. The data-output result is verified; only
+clean process exit remains unverified. No generated-resource changes were found. The 1.20.1
+cherry-pick sequencer is closed, both worktrees have no unmerged paths, the adapted changes are
+uncommitted, and the target markers remain `00df5ff9`. No commit or push was made. **Next action:**
+none for this working-tree backport; review the two worktrees before committing or advancing markers.

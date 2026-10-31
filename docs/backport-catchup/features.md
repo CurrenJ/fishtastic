@@ -45,3 +45,19 @@ The source changes after marker `8794a541` are complete on both ports as of sour
 The per-commit source-only exclusions and validation evidence are recorded in
 [`forward-port-log.md`](forward-port-log.md) and the 2026-10-29 result matrix. The target-local
 ported-through markers now name `00df5ff9`; manual owner checks remain open.
+
+## Post-marker feature follow-up (2026-10-31)
+
+The source backlog after marker `00df5ff9` through `5bf9c6fc` is accounted for. The world-fish
+exploration feature (`afaa10f0`) and school-trail mote visibility fix (`5bf9c6fc`) are adapted and
+committed on both targets. Feature commits: 1.21.1 `361eefe79e9710c656c5ba55feaf6d9091c85f2c`;
+1.20.1 `51f1573d47c0e0097ebd954f704c9ba9c44595fe`. The 2.1.13 bump and legendary breach glow/ray
+fix were already present at both target baselines. Source-only progress/reference commits are
+excluded. Both target checklist markers now advance to `5bf9c6fc`; marker commits: 1.21.1
+`193067207ca072e828a13052ed4bef2377639097`; 1.20.1 `d6ed5a7f799246ef8fe618a017417a3196eee276`.
+
+The validation summary and Forge datagen caveat are in
+[`forward-port-log.md`](forward-port-log.md); full gate logs and the Forge thread dump are in
+`build/backport-catchup/2026-10-30/world-fish-exploration/`.
+The automated port gates do not claim a target-side visual review or two-client owner playtest; those
+checks remain open in the world-fish exploration handoff.
