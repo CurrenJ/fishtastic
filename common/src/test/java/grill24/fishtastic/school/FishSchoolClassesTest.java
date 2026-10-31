@@ -88,12 +88,12 @@ class FishSchoolClassesTest {
     void aBottomBiteNeedsAFloorWithinReach() {
         FishSchoolSim shallow = FishSchoolSim.create(setup(Locomotion.BENTHIC, 0.3f, 4, 1L,
                 new FishSchoolSim.Placement(A, 0.5f, 0.5f, 0.5f)));
-        FishSchoolSim deep = FishSchoolSim.create(setup(Locomotion.BENTHIC, 0.3f, 11, 1L,
+        FishSchoolSim deep = FishSchoolSim.create(setup(Locomotion.BENTHIC, 0.3f, 15, 1L,
                 new FishSchoolSim.Placement(A, 0.5f, 0.5f, 0.5f)));
         assertNotNull(shallow);
         assertNotNull(deep);
         assertNotNull(shallow.goalFor(A, 2.5f, 3.9f, 2.5f));
-        assertNull(deep.goalFor(A, 2.5f, 10.9f, 2.5f), "a floor 11 blocks down is past the 8-block bottom bite");
+        assertNull(deep.goalFor(A, 2.5f, 14.9f, 2.5f), "a floor 15 blocks down is past the 12-block bottom bite");
     }
 
     @Test

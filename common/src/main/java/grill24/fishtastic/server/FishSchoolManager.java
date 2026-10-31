@@ -97,13 +97,13 @@ public final class FishSchoolManager {
      * self-test, 2026-10-25: 9/32 bobber cells at 2 blocks, 13/32 at 3).
      */
     private static final int MAX_WATER_COLUMNS = 400;
-    /** Safety bound on the search itself: 400 columns of the full 11-block search depth fit. */
-    private static final int MAX_WATER_CELLS = 4400;
+    /** Safety bound on the search itself: 400 columns of the full 17-block search depth fit. */
+    private static final int MAX_WATER_CELLS = 6800;
     private static final int MIN_WATER_CELLS = 6;
     private static final int MAX_HOOK_CHECKS_PER_TICK = 8;
     private static final int MAX_PLAYERS_PER_SNAPSHOT_TICK = 32;
     private static final int WATER_RADIUS = 16;
-    private static final int WATER_DOWN = 6;
+    private static final int WATER_DOWN = 12;
     private static final int WATER_UP = 4;
     private static final int SCHOOL_FORMATION_RADIUS = 4;
     private static final int SCHOOL_MEMBER_SYNC_TICKS = 10;
@@ -321,6 +321,8 @@ public final class FishSchoolManager {
 
     /** Ticks before a hook the engine refused a fish for is offered one again. */
     private static final int APPROACH_RETRY_TICKS = 40;
+    /** How far above a bobber a fish may be and still take it, blocks: a fish riding the surface. */
+    private static final double BITE_REACH_UP = 1.0;
     /** Dev/self-test: log every approach's start, bite and failure (with why) to the server log. */
     public static boolean logApproaches;
     /** Past this many inputs an epoch is retired and a new one started, so its replay stays bounded. */
@@ -742,7 +744,10 @@ public final class FishSchoolManager {
             float[] out = new float[n];
             for (int i = 0; i < n; i++) out[i] = spans.get(i);
             BlockPos any = column.firstEntry().getValue();
-            columns.add(new WaterDomain.Column(any.getX(), any.getZ(), out, false));
+            // Water that goes on under the search band has an unknown bed: the lowest cell is the band
+            // edge, not ground, so the engine must not stand a floor creature on it.
+            boolean bedUnknown = validWaterCell(column.firstEntry().getValue().below());
+            columns.add(new WaterDomain.Column(any.getX(), any.getZ(), out, bedUnknown));
         }
         return columns;
     }
@@ -2132,7 +2137,7 @@ public final class FishSchoolManager {
         float[] chosenGoal = null;
         double bestDistance = Double.MAX_VALUE;
         double nearestAvailable = Double.MAX_VALUE;
-        int schoolsHere = 0, unreachable = 0, noGoal = 0;
+        int schoolsHere = 0, unreachable = 0, noGoal = 0, outOfDepth = 0;
         String noGoalWhy = null;
         for (FishSchoolSavedData.School school : data.schools()) {
             SchoolRuntime runtime = sims.get(school.id());
@@ -2142,18 +2147,30 @@ public final class FishSchoolManager {
             schoolsHere++;
             // An eel never travels: it takes only a bobber over its own burrow (encounter spec §4).
             boolean eel = runtime.sim.spec().locomotion() == Locomotion.ANCHORED;
-            double radius = eel ? FishSchoolSim.EEL_REACH : FishtasticServerConfig.fishSchoolInterestRadius();
+            // Bite reach is a cylinder under the bobber: narrow sideways, deep downward. A bobber's
+            // depth is not the player's to control, so only its position over the fish is a skill.
+            double radius = eel ? FishSchoolSim.EEL_REACH : FishtasticServerConfig.fishSchoolBiteReachHorizontal();
+            double reachDown = FishtasticServerConfig.fishSchoolBiteReachDepth();
             BlockPos o = runtime.sim.origin();
             float hl = (float) (hook.getX() - o.getX()), hy = (float) (hook.getY() - o.getY()),
                     hd = (float) (hook.getZ() - o.getZ());
             for (FishSchoolSavedData.Member member : school.members()) {
                 if (member.state() != FishSchoolSavedData.MemberState.AVAILABLE) continue;
-                double distance = eel ? horizontalDistanceSqr(vec(member.position()), hook.position())
-                        : vec(member.position()).distanceToSqr(hook.position());
-                nearestAvailable = Math.min(nearestAvailable, distance);
-                if (distance > radius * radius || distance >= bestDistance) continue;
+                Vec3 at = vec(member.position());
+                double sideways = horizontalDistanceSqr(at, hook.position());
+                double below = hook.getY() - at.y; // positive: the fish is under the bobber
+                nearestAvailable = Math.min(nearestAvailable, sideways);
+                if (sideways > radius * radius) continue;
+                if (!eel && (below > reachDown || below < -BITE_REACH_UP)) {
+                    outOfDepth++;
+                    continue;
+                }
+                // The fish straight under the bobber wins; depth only breaks near-ties.
+                double distance = sideways + 0.05 * below * below;
+                if (distance >= bestDistance) continue;
                 // Reachability only: the swim itself is the engine's.
-                if (!eel && !withinPath(blockPos(member.position()), hookPos, cells, (int) Math.floor(radius + 3))) {
+                if (!eel && !withinPath(blockPos(member.position()), hookPos, cells,
+                        (int) Math.ceil(Math.sqrt(sideways)) + (int) Math.ceil(Math.abs(below)) + 4)) {
                     unreachable++;
                     continue;
                 }
@@ -2179,7 +2196,9 @@ public final class FishSchoolManager {
             if (nearestAvailable == Double.MAX_VALUE) return HookChoice.no("no school fish is free right now");
             if (noGoal > 0) return HookChoice.no(noGoalWhy);
             if (unreachable > 0) return HookChoice.no(unreachable + " fish in range but no water path to the bobber");
-            return HookChoice.no(String.format(java.util.Locale.ROOT, "nearest free fish is %.1f blocks away",
+            if (outOfDepth > 0) return HookChoice.no(outOfDepth + " fish under the bobber but more than "
+                    + FishtasticServerConfig.fishSchoolBiteReachDepth() + " blocks below it");
+            return HookChoice.no(String.format(java.util.Locale.ROOT, "nearest free fish is %.1f blocks away sideways",
                     Math.sqrt(nearestAvailable)));
         }
         return new HookChoice(null, hook, chosenSchool, chosenMember, chosenGoal);
