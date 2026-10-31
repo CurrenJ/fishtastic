@@ -126,10 +126,12 @@
   is `build/backport-catchup/2026-10-30/world-fish-exploration/source-ledger-commit.log`. A standalone
   rerun of `:fabric:runGametest --no-parallel --console=plain` passed (`BUILD SUCCESSFUL`); full
   output: `build/backport-catchup/2026-10-30/world-fish-exploration/source-ledger-fabric-gametest-retry.log`.
-  Source documentation remains staged, with no source-ledger commit created. **Pending operation:**
-  retry the source-ledger commit with its configured hook, capturing its transcript at
-  `build/backport-catchup/2026-10-30/world-fish-exploration/source-ledger-commit-retry.log`. Nothing
-  was pushed.
+  The configured source-ledger commit hook passed on retry, and the three source docs were committed
+  as `accae9b85d72ab72a6bdbe6803e42ace47b80f81`; transcript:
+  `build/backport-catchup/2026-10-30/world-fish-exploration/source-ledger-commit-retry.log`.
+  Local `git verify-commit` could not validate the SSH signature because `gpg.ssh.allowedSignersFile`
+  is not configured; commit creation via the configured signer succeeded. No further backport
+  operation is pending. Nothing was pushed.
 
 ## Completed release follow-up (2026-10-29): build/smoke/publish 2.1.12
 
