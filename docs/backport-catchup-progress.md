@@ -1,6 +1,6 @@
 # Backport parity progress
 
-## Pending (2026-11-01): fishing rod gear fix and 2.1.15 release
+## Completed (2026-11-01): fishing rod gear fix and 2.1.15 release
 
 - **Operation:** Record the four concerns from the static fishing audit; fix concern #1 by making
   the minigame client recognize every item in `fishtastic:fishing_rods`, including the Obsidian
@@ -46,12 +46,16 @@
   Fishtastic error lines or crash reports were found. The matrix log is
   `build/release-2.1.15/evidence/release-smoke/matrix.log`; per-profile summaries and captures are
   under `build/release-smoke/F2_*`.
-- **Publication status:** not attempted because no `CURSEFORGE_TOKEN`/`curseforge_token` or
-  `curseforge_project_id` is configured in the process environment, project properties, or Gradle
-  user properties. The publisher defaults the project ID to `0`, so uploading cannot proceed safely.
-  **Pending operation:** configure the CurseForge API token and project ID, then publish source and
-  1.21.1 Fabric/NeoForge/Forge jars plus 1.20.1 Fabric/Forge jars. Capture outputs at
-  `build/release-2.1.15/evidence/{26.1.2,1.21.1,1.20.1}/publish.log`. Do not push or advance markers.
+- **Publication status:** smoke gates passed. Each branch has a `local.properties`; `build.gradle`
+  loads its properties for the CurseForge task. The prior credential check missed this loader.
+  Contents remain undisplayed. Source `publishCurseForge -Prelease_type=release` completed with exit
+  code 0 for its Fabric/NeoForge/Forge uploads; log: `build/release-2.1.15/evidence/26.1.2/publish.log`.
+  1.21.1 and 1.20.1 `publishCurseForge -Prelease_type=release` also completed with exit code 0 for
+  their configured loader sets; the 1.20.1 task selected `fabric,forge`. Logs:
+  `build/release-2.1.15/evidence/1.21.1/publish.log` and
+  `build/release-2.1.15/evidence/1.20.1/publish.log`. All eight supported loader artifacts were
+  submitted across the three branches. **Next action:** none. No branches were pushed and no parity
+  markers were advanced.
 
 ## Target commits completed (2026-10-31): catch up both ports through `5bf9c6fc`
 
