@@ -2,7 +2,7 @@ package grill24.fishtastic.client;
 
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItemData;
-import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.component.BaitEffect;
 import grill24.fishtastic.component.CharmEffect;
 import grill24.fishtastic.item.CopperFishingRod;
@@ -41,13 +41,13 @@ public class FishingMinigameClientHandler {
         // smaller bobber (see BaitEffect.smallBobber), which is baked into the animation's
         // FishingMinigameState at construction time and can't change afterward.
         ItemStack rod = minecraft.player.getMainHandItem();
-        if (!rod.is(FishtasticItems.COPPER_FISHING_ROD)) {
+        if (!FishtasticItemTags.isFishtasticFishingRod(rod)) {
             rod = minecraft.player.getOffhandItem();
         }
         ItemStack bait = ItemStack.EMPTY;
         ItemStack hook = ItemStack.EMPTY;
         ItemStack charm = ItemStack.EMPTY;
-        if (rod.is(FishtasticItems.COPPER_FISHING_ROD)) {
+        if (FishtasticItemTags.isFishtasticFishingRod(rod)) {
             bait = CopperFishingRod.getBait(rod);
             hook = CopperFishingRod.getHook(rod);
             charm = CopperFishingRod.getCharm(rod);
@@ -67,7 +67,7 @@ public class FishingMinigameClientHandler {
             }
             animation.setEquippedCharmEffect(charmEffect);
         }
-        if (rod.is(FishtasticItems.COPPER_FISHING_ROD)) {
+        if (FishtasticItemTags.isFishtasticFishingRod(rod)) {
             animation.setEquippedGearStacks(bait, hook, charm);
         }
         animation.setBaitWillBeSaved(packet.baitWillBeSaved());

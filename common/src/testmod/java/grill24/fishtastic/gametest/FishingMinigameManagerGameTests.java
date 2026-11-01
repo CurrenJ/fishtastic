@@ -249,6 +249,9 @@ public final class FishingMinigameManagerGameTests {
         FishingMinigameManager manager = FishingMinigameManager.get(helper.getLevel());
 
         ItemStack rod = new ItemStack(FishtasticItems.COPPER_FISHING_ROD.value());
+        ItemStack obsidianRod = new ItemStack(FishtasticItems.OBSIDIAN_FISHING_ROD.value());
+        helper.assertTrue(FishtasticItemTags.isFishtasticFishingRod(obsidianRod),
+            "The Obsidian Fishing Rod must be recognized through the shared fishing-rods tag");
         CopperFishingRod.setBait(rod, new ItemStack(FishtasticItems.WORMS.value(), 5));
         player.setItemInHand(InteractionHand.MAIN_HAND, rod);
 
