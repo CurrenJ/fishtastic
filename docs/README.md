@@ -19,6 +19,7 @@ reproducible verification. [Product direction and backlog](backlog.md) holds uns
 - [Shelters/obstacles/reactions](fish-shelters.md) and [historical cosmetic benchmark](cosmetic-render-cost.md).
 - [Quest data/server behavior](quest-system.md), [quest book contract and open checks](quest-log-redesign/design-spec.md),
   and [encyclopedia behavior](encyclopedia-redesign/README.md).
+- [Fishing minigame audit findings and follow-up status](fishing-minigame-audit.md).
 - [Item-effect rendering](item-effect-rendering.md) and [shape blueprints](tank-shapes/).
 
 ## Compatibility and retained records

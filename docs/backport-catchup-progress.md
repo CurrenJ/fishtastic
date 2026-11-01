@@ -1,5 +1,28 @@
 # Backport parity progress
 
+## Pending (2026-11-01): fishing rod gear fix and 2.1.15 release
+
+- **Operation:** Record the four concerns from the static fishing audit; fix concern #1 by making
+  the minigame client recognize every item in `fishtastic:fishing_rods`, including the Obsidian
+  Fishing Rod, on source `26.1.2` and targets `port/1.21.1` then `port/1.20.1`. Add a regression
+  assertion to the existing fishing-manager GameTest. Build and run the relevant tests for all three
+  MC lines, bump `mod_version` from `2.1.14` to `2.1.15` in a separate commit per line, run the full
+  release build and eight-profile smoke matrix, and publish all supported CurseForge artifacts only
+  if the builds and smoke checks pass. Do not push and do not advance parity markers.
+- **Starting refs:** source `26.1.2` `b6595f24`; target `port/1.21.1` `2250cef8`; target
+  `port/1.20.1` `f722c5f2`. All three worktrees were verified clean before editing. Source and both
+  targets report version `2.1.14`.
+- **Evidence:** `build/release-2.1.15/evidence/26.1.2/`,
+  `build/release-2.1.15/evidence/1.21.1/`, `build/release-2.1.15/evidence/1.20.1/`, and
+  `build/release-2.1.15/evidence/release-smoke/`.
+- **Checkpoint:** Audit findings are recorded in `docs/fishing-minigame-audit.md`. On source `26.1.2`,
+  the client now resolves equipped rods through the shared fishing-rods tag, and the existing
+  fishing-manager GameTest asserts that the Obsidian Fishing Rod matches it. `:common:test` and
+  `:fabric:runGametest --no-parallel --console=plain` pass; all 408 required Fabric GameTests passed.
+  Complete log: `build/release-2.1.15/evidence/26.1.2/fix-validation.log`. `git diff --check` passes.
+  **Next action:** commit the source fix, then port it sequentially to 1.21.1 and 1.20.1 and run each
+  target's regression gate.
+
 ## Target commits completed (2026-10-31): catch up both ports through `5bf9c6fc`
 
 - **Operation:** Verify the 1.21.1 and 1.20.1 target worktrees, then account for every source

@@ -451,6 +451,8 @@ public final class FishingMinigameManagerGameTests {
         ServerPlayer player = mockPlayer.get();
         ItemStack mainHandRod = new ItemStack(FishtasticItems.COPPER_FISHING_ROD.value());
         ItemStack offHandRod = new ItemStack(FishtasticItems.OBSIDIAN_FISHING_ROD.value());
+        helper.assertTrue(FishtasticItemTags.isFishtasticFishingRod(offHandRod),
+                "The Obsidian Fishing Rod must be recognized through the shared fishing-rods tag");
         player.setItemInHand(InteractionHand.MAIN_HAND, mainHandRod);
         player.setItemInHand(InteractionHand.OFF_HAND, offHandRod);
         castLine(helper, player);
