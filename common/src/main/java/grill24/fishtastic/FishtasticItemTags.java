@@ -3,6 +3,7 @@ package grill24.fishtastic;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
 
@@ -69,5 +70,10 @@ public class FishtasticItemTags {
 
     private static TagKey<Item> create(String name) {
         return TagKey.create(Registries.ITEM, Fishtastic.id(name));
+    }
+
+    /** Whether a stack is one of the mod's fishing rods, including rods added to the shared tag. */
+    public static boolean isFishtasticFishingRod(ItemStack stack) {
+        return !stack.isEmpty() && stack.is(FISHING_RODS);
     }
 }
