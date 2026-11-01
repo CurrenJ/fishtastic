@@ -19,9 +19,26 @@
   the client now resolves equipped rods through the shared fishing-rods tag, and the existing
   fishing-manager GameTest asserts that the Obsidian Fishing Rod matches it. `:common:test` and
   `:fabric:runGametest --no-parallel --console=plain` pass; all 408 required Fabric GameTests passed.
-  Complete log: `build/release-2.1.15/evidence/26.1.2/fix-validation.log`. `git diff --check` passes.
-  **Next action:** commit the source fix, then port it sequentially to 1.21.1 and 1.20.1 and run each
-  target's regression gate.
+  Complete log: `build/release-2.1.15/evidence/26.1.2/fix-validation.log`. The source fix commit is
+  `469c9a92`; its configured pre-commit hook passed common/fishsim/tank-shape unit tests and all
+  408 Fabric GameTests (NeoForge GameTests skipped by the configured hook). Hook transcript:
+  `build/release-2.1.15/evidence/26.1.2/fix-commit.log`. `git diff --check` passed before commit.
+  On `port/1.21.1`, the client uses the same shared-tag predicate; the existing rod/bait GameTest
+  now asserts that an Obsidian rod is included. `:common:test` and `:fabric:runGametest
+  --no-parallel --console=plain` pass, including all 402 required Fabric GameTests. Full log:
+  `build/release-2.1.15/evidence/1.21.1/fix-validation.log`. Commit `208269bb` records the 1.21.1
+  fix; its configured hook passed common/fishsim/tank-shape tests and all Fabric GameTests (NeoForge
+  GameTests skipped by policy). Hook transcript: `build/release-2.1.15/evidence/1.21.1/fix-commit.log`.
+  On `port/1.20.1`, the same shared-tag predicate and Obsidian rod assertion are in place. `:common:test`
+  and `:fabric:runGametest --no-parallel --console=plain` pass, including all 402 required Fabric
+  GameTests. Full log: `build/release-2.1.15/evidence/1.20.1/fix-validation.log`. Commit `3a314d7a`
+  records the 1.20.1 fix; its configured hook passed common/fishsim/tank-shape tests and all Fabric
+  GameTests (NeoForge GameTests skipped by policy). Hook transcript:
+  `build/release-2.1.15/evidence/1.20.1/fix-commit.log`. **Pending operation:** finish the source
+  2.1.15 release commit by updating `gradle.properties` and `CHANGELOG.md`, and capture its hook
+  transcript at `build/release-2.1.15/evidence/26.1.2/version-commit.log`. Then apply the same
+  version/changelog changes and commit them on 1.21.1 and 1.20.1. **Next action:** run all release
+  builds and eight smoke checks; publish the supported CurseForge artifacts only if both gates pass.
 
 ## Target commits completed (2026-10-31): catch up both ports through `5bf9c6fc`
 

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 2.1.15
+
+- Fixed minigame gear detection for the Obsidian Fishing Rod.
+- Added scheduled fish visits, seeded ambient fish, and spyglass observation.
+- Added legendary breach celebrations and improved fish-school trails and bite reach.
+- Refined hellbender wet/dry visuals and ground-walker behavior.
+
 ## 2.1.12
 
 - Added the hellbender, a rare river fish.
