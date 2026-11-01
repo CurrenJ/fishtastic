@@ -34,11 +34,24 @@
   GameTests. Full log: `build/release-2.1.15/evidence/1.20.1/fix-validation.log`. Commit `3a314d7a`
   records the 1.20.1 fix; its configured hook passed common/fishsim/tank-shape tests and all Fabric
   GameTests (NeoForge GameTests skipped by policy). Hook transcript:
-  `build/release-2.1.15/evidence/1.20.1/fix-commit.log`. **Pending operation:** finish the source
-  2.1.15 release commit by updating `gradle.properties` and `CHANGELOG.md`, and capture its hook
-  transcript at `build/release-2.1.15/evidence/26.1.2/version-commit.log`. Then apply the same
-  version/changelog changes and commit them on 1.21.1 and 1.20.1. **Next action:** run all release
-  builds and eight smoke checks; publish the supported CurseForge artifacts only if both gates pass.
+  `build/release-2.1.15/evidence/1.20.1/fix-commit.log`. The source version commit `e45cb395`,
+  1.21.1 version commit `be9a89ca`, and 1.20.1 version commit `f18e72fe` all passed their configured
+  hooks; transcripts are under each branch's `version-commit.log` evidence path. All branches have
+  synchronized `mod_version = 2.1.15` and
+  release notes. Full `build` passed on all three branches; logs are
+  `build/release-2.1.15/evidence/{26.1.2,1.21.1,1.20.1}/release-build.log`. The two legacy builds
+  printed a non-fatal “Could not determine Mixin version for jar manifest” message. The eight-profile
+  matrix completed: six `PASS`, 26.1.2 Forge and 1.21.1 Forge `PASS_WITH_FINDINGS` due to vanilla's
+  experimental-settings screen, which the runner accepted with `--accept-experimental`. No
+  Fishtastic error lines or crash reports were found. The matrix log is
+  `build/release-2.1.15/evidence/release-smoke/matrix.log`; per-profile summaries and captures are
+  under `build/release-smoke/F2_*`.
+- **Publication status:** not attempted because no `CURSEFORGE_TOKEN`/`curseforge_token` or
+  `curseforge_project_id` is configured in the process environment, project properties, or Gradle
+  user properties. The publisher defaults the project ID to `0`, so uploading cannot proceed safely.
+  **Pending operation:** configure the CurseForge API token and project ID, then publish source and
+  1.21.1 Fabric/NeoForge/Forge jars plus 1.20.1 Fabric/Forge jars. Capture outputs at
+  `build/release-2.1.15/evidence/{26.1.2,1.21.1,1.20.1}/publish.log`. Do not push or advance markers.
 
 ## Target commits completed (2026-10-31): catch up both ports through `5bf9c6fc`
 
