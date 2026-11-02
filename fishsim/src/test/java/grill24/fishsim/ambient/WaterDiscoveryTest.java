@@ -431,6 +431,12 @@ class WaterDiscoveryTest {
         assertEquals(body, d.patchKeyAt(-4, 2), "the new pocket joins the established body");
         assertNull(d.patch(pocket), "the newer pocket's key was merged");
         assertTrue(d.counters().patchMerges >= 1);
+        // The owner of the pocket's population learns where its water went, chain resolved.
+        var merges = d.drainMerges();
+        assertTrue(merges.stream().anyMatch(m -> m[0] == pocket && m[1] == body),
+                "the merge is reported as pocket -> body");
+        assertTrue(merges.stream().allMatch(m -> d.patch(m[1]) != null), "every survivor is a live key");
+        assertTrue(d.drainMerges().isEmpty(), "draining forgets what it reported");
     }
 
     // ── Eviction and window movement ────────────────────────────────────────

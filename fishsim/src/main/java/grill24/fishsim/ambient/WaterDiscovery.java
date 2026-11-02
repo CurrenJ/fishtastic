@@ -196,6 +196,10 @@ public final class WaterDiscovery {
     }
 
     private final Map<Long, Entry> columns = new HashMap<>();
+    /** Most undrained merges kept; an owner that never drains must not grow this forever. */
+    private static final int MAX_PENDING_MERGES = 256;
+    /** Merges not yet drained ({@link #drainMerges}). */
+    private final List<long[]> merges = new ArrayList<>();
     private final Map<Long, Patch> patches = new HashMap<>();
     /**
      * Each patch's columns, kept in step with {@link #columns}, so per-patch queries never scan the
@@ -315,6 +319,7 @@ public final class WaterDiscovery {
 
     public void reset() {
         columns.clear();
+        merges.clear();
         patches.clear();
         byPatch.clear();
         nearestDistances = null;
@@ -720,6 +725,22 @@ public final class WaterDiscovery {
         }
         patches.remove(loser);
         bumpPatch(winner, p == null ? 0 : p.columns(), tick);
+        // Anyone holding the loser's key (a domain with fish in it) learns where its water went.
+        for (long[] m : merges) if (m[1] == loser) m[1] = winner;
+        merges.add(new long[]{loser, winner});
+        if (merges.size() > MAX_PENDING_MERGES) merges.remove(0); // an owner that never drains
+    }
+
+    /**
+     * Merges since the last call, oldest first, as {@code {loser, winner}} pairs, and forgets them.
+     * A chain (A into B, then B into C) is already resolved: every pair names the key that survives
+     * now. The caller owns each loser's population; discovery only reports that the water is one.
+     */
+    public List<long[]> drainMerges() {
+        if (merges.isEmpty()) return List.of();
+        List<long[]> out = new ArrayList<>(merges);
+        merges.clear();
+        return out;
     }
 
     /**

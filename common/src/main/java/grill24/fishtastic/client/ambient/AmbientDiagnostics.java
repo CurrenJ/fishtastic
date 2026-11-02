@@ -107,6 +107,8 @@ public final class AmbientDiagnostics {
                 .append(" domain=").append(rt.stats.retireDomainLost).append(" excluded=").append(rt.stats.retireExcluded)
                 .append(" expired=").append(rt.stats.retireExpired)
                 .append(" displaced=").append(rt.stats.retireDisplaced).append(" leash=").append(rt.stats.retireLeash).append(']')
+                .append(" merges[").append(rt.stats.merges).append(" carried=").append(rt.stats.mergeTransfers)
+                .append(" faded=").append(rt.stats.mergeFallbacks).append(']')
                 .append(" known=").append(rt.discovery.columns().size())
                 .append(" nearKnown=").append(knownNear).append(" nearWater=").append(waterNear)
                 .append(" scansThisTick=").append(c.scansThisTick)
@@ -159,6 +161,14 @@ public final class AmbientDiagnostics {
     public int patchColumns(long patchKey) {
         return rt.discovery.columnCount(patchKey);
     }
+    /** The key that absorbed {@code key} through any chain of recent merges, or {@code key} itself. */
+    public long survivorOf(long key) {
+        Long next;
+        int guard = 0;
+        while ((next = rt.mergeHistory.get(key)) != null && guard++ < 64) key = next;
+        return key;
+    }
+
     /** Snapshot of every individual, in world coordinates with its clearance figures. */
     public List<Individual> individuals() {
         List<Individual> out = new ArrayList<>();

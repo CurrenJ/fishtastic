@@ -146,6 +146,11 @@ public final class AmbientFishRuntime {
     public static final float NEAR_VIEW_SPAWN_DISTANCE = 12f;
     /** The longest a fish waits for that, ticks; after it, it fades in where it is seen. */
     public static final int MAX_SPAWN_DEFER_TICKS = 60;
+    /**
+     * How long a domain whose water merged into another body waits for the survivor's domain to be
+     * built before giving up and fading its residents as a lost domain (the old behaviour), ticks.
+     */
+    public static final int MERGE_TIMEOUT_TICKS = 100;
     /** How often a deferred fish's spot is looked at again, ticks. */
     private static final int DEFER_RETRY_TICKS = 5;
     /** A fish further than this many blocks outside its home chunk's footprint is out of its leash. */
@@ -248,6 +253,13 @@ public final class AmbientFishRuntime {
         long builtVersion = Long.MIN_VALUE;
         /** The player block the current domain's open faces were judged from. */
         int builtPx, builtPy, builtPz;
+        /**
+         * The surviving key when this domain's water was found to be part of a bigger body (a patch
+         * merge), else 0. The domain keeps simulating its residents in the water it already has
+         * until the survivor's domain is built, then hands them over ({@code transferMerged}).
+         */
+        long mergedInto;
+        long mergedAt;
         double waterVolume;
 
         DomainState(WaterDiscovery.Patch patch) {
@@ -338,6 +350,8 @@ public final class AmbientFishRuntime {
         public long chunkScans;
         /** Time spent in water discovery, total. */
         public long discoveryNanos;
+        /** Patch merges that reached a domain with residents; residents carried across; residents faded instead. */
+        public long merges, mergeTransfers, mergeFallbacks;
         /** Bytes the ambient tick allocated (self-test only: measured while invariant stats are on). */
         public long allocBytes;
         /** The same, by tick section (see {@code allocMark}). */
@@ -367,6 +381,8 @@ public final class AmbientFishRuntime {
     private final Map<FishingPoolResolver.EnvironmentContext, VisualSampler> samplers = new java.util.HashMap<>();
     /** Fish IDs that could not be placed, until when. */
     private final Map<Long, Long> retryAfter = new java.util.HashMap<>();
+    /** Recent merges, loser key to the key that absorbed it, for the harness (bounded). */
+    final Map<Long, Long> mergeHistory = new LinkedHashMap<>();
     /** Fish IDs held back because their spot was in view and near, since when. */
     private final Map<Long, Long> deferredSince = new java.util.HashMap<>();
     /** The latest roster pass, for the debug view and the harness. */
@@ -446,6 +462,7 @@ public final class AmbientFishRuntime {
         samplers.clear();
         retryAfter.clear();
         deferredSince.clear();
+        mergeHistory.clear();
         roster.clear();
         lastPrune = Long.MIN_VALUE;
         seeded = false;
@@ -741,13 +758,16 @@ public final class AmbientFishRuntime {
      * from the current columns each tick.
      */
     private void syncDomains(long time, int px, int py, int pz) {
+        noteMerges(time);
         List<WaterDiscovery.Patch> live = new ArrayList<>();
         for (WaterDiscovery.Patch p : discovery.livePatches()) {
             if (p.columns() >= MIN_PATCH_COLUMNS) live.add(p);
         }
         var occupied = new java.util.HashSet<Long>();
         for (DomainState st : domains.values()) {
-            if (!st.dying && !st.members.isEmpty()) occupied.add(st.patchKey);
+            // A merging domain's residents are bound for the survivor, so the survivor holds a slot.
+            if (st.mergedInto != 0L) occupied.add(st.mergedInto);
+            else if (!st.dying && !st.members.isEmpty()) occupied.add(st.patchKey);
         }
         // An occupied patch keeps its slot while any of its water is in range: at a 32-block range
         // several bodies of water compete for the slots, and the old 10-block hold let a few steps
@@ -758,6 +778,12 @@ public final class AmbientFishRuntime {
         patchDistances = selection.distances();
 
         for (DomainState st : domains.values()) {
+            if (st.mergedInto != 0L) {
+                // Its key is gone by design; it lives on until the survivor can take its residents.
+                if (time - st.mergedAt < MERGE_TIMEOUT_TICKS) continue;
+                stats.mergeFallbacks += st.members.size();
+                st.mergedInto = 0L;
+            }
             boolean stillLive = false;
             for (WaterDiscovery.Patch p : live) {
                 if (p.key() == st.patchKey) {
@@ -771,11 +797,15 @@ public final class AmbientFishRuntime {
             }
             if (!stillLive) beginDying(st, time);
         }
+        // A merging domain does not hold a slot of its own: its water is the survivor's now.
+        int slots = 0;
+        for (DomainState st : domains.values()) if (st.mergedInto == 0L) slots++;
         for (WaterDiscovery.Patch p : live) {
             DomainState st = domains.get(p.key());
             if (st != null) continue;
-            if (domains.size() >= budget.domains()) break;
+            if (slots >= budget.domains()) break;
             domains.put(p.key(), new DomainState(p));
+            slots++;
         }
 
         // A revived domain waits for its patch's cache to refill before it is rebuilt. Rediscovery
@@ -796,7 +826,7 @@ public final class AmbientFishRuntime {
         DomainState dirtiest = null;
         int bestDistance = Integer.MAX_VALUE;
         for (DomainState st : domains.values()) {
-            if (st.dying || st.refilling) continue;
+            if (st.dying || st.refilling || st.mergedInto != 0L) continue;
             int distance = patchDistance(st.patch);
             // A margin the domain was not built with is as much a staleness as a moved column:
             // the reserved head-room is what keeps a tall species' spawns inside the water.
@@ -820,6 +850,74 @@ public final class AmbientFishRuntime {
             }
         }
         if (dirtiest != null) rebuild(dirtiest, time, px, py, pz);
+        transferMerged(time);
+    }
+
+    /**
+     * Marks every domain whose water discovery just merged into another body. Its residents are
+     * not lost: they stay where they are, in water that is still there, and move to the survivor
+     * once the survivor's domain covers it. A merge used to retire the whole absorbed domain, which
+     * faded every fish in it at once and respawned them a moment later.
+     */
+    private void noteMerges(long time) {
+        for (long[] merge : discovery.drainMerges()) {
+            long loser = merge[0], winner = merge[1];
+            mergeHistory.put(loser, winner);
+            if (mergeHistory.size() > 64) mergeHistory.remove(mergeHistory.keySet().iterator().next());
+            for (DomainState st : domains.values()) {
+                if (st.mergedInto == loser) st.mergedInto = winner; // a chain: follow the survivor
+            }
+            DomainState st = domains.get(loser);
+            if (st == null || st.dying || st.mergedInto != 0L || st.members.isEmpty()) continue;
+            st.mergedInto = winner;
+            st.mergedAt = time;
+            st.refilling = false;
+            stats.merges++;
+        }
+    }
+
+    /**
+     * Moves each merged domain's residents into the survivor once the survivor's domain has been
+     * built from the joined water: same world position, motion, phases and individuality
+     * ({@link FlockEngine#adopt}), so nothing visibly changes. A resident whose body the new water
+     * cannot hold, or one already fading, stays behind and fades with the old domain.
+     */
+    private void transferMerged(long time) {
+        for (DomainState from : domains.values()) {
+            if (from.mergedInto == 0L) continue;
+            DomainState to = domains.get(from.mergedInto);
+            if (to == null || to.dying || to.domain == null || to.builtTick == Long.MIN_VALUE
+                    || to.builtTick < from.mergedAt || from.domain == null) continue;
+            float dl = from.originX() - to.originX();
+            float dy = from.originY() - to.originY();
+            float dd = from.originZ() - to.originZ();
+            List<Member> moving = new ArrayList<>();
+            List<Integer> sources = new ArrayList<>();
+            for (int i = 0; i < from.members.size(); i++) {
+                Member m = from.members.get(i);
+                if (m.retiring()) continue;
+                float l = from.engine.posL()[i] + dl, y = from.engine.posY()[i] + dy, d = from.engine.posD()[i] + dd;
+                if (!to.domain.bodyFits(l, y, d, m.body)) continue;
+                moving.add(m);
+                sources.add(i);
+            }
+            if (!moving.isEmpty()) {
+                int first = to.members.size();
+                for (Member m : moving) {
+                    m.engineIndex = -1;
+                    to.members.add(m);
+                }
+                reseed(to);
+                for (int k = 0; k < moving.size(); k++) {
+                    to.engine.adopt(first + k, moving.get(k).spec, from.engine, sources.get(k), dl, dy, dd);
+                }
+                from.members.removeAll(moving);
+                stats.mergeTransfers += moving.size();
+            }
+            from.mergedInto = 0L;
+            reseed(from);
+            beginDying(from, time);
+        }
     }
 
     /** Starts a domain's one-way exit: everyone fades out, the state goes when the last one has. */

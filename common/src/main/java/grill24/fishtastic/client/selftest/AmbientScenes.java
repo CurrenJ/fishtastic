@@ -890,7 +890,8 @@ final class AmbientScenes {
                 double[] was = before.get(p.id());
                 if (was == null) continue;
                 survived++;
-                if ((long) was[3] != p.patchKey()) {
+                // A merge changes a carried fish's key to the survivor's on purpose: same water.
+                if ((long) was[3] != p.patchKey() && runtime.diagnostics().survivorOf((long) was[3]) != p.patchKey()) {
                     keyChanged++;
                     note(String.format("ambientwater.carry key changed id=%016x %d->%d retiring=%s reason=%d born=%d now=%d moved=%.2f",
                             p.id(), (long) was[3], p.patchKey(), p.retiring(), p.retireReason(), p.bornTick(),

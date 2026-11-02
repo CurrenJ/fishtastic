@@ -1085,6 +1085,38 @@ public final class FlockEngine {
         yawDeg[i] = prevYawDeg[i] = yaw;
     }
 
+    /**
+     * Makes fish {@code i} (already present after a rebuild) carry on as fish {@code from} of
+     * {@code src}, whose frame is offset from this one by {@code (dl, dy, dd)} (this-local = src-local
+     * + offset): the cross-engine twin of a rebuild carry ({@link #seedCarried}), with the same
+     * fields. Seed and traits come across, so the fish keeps its individuality, and so do its motion
+     * and phases, so the render lerp carries straight on. Shelter state does not: shelters belong to
+     * a domain, so the fish starts roaming here. For two bodies of water that turn out to be one,
+     * where the absorbed body's residents move into the survivor's engine.
+     */
+    public void adopt(int i, FishSpec spec, FlockEngine src, int from, float dl, float dy, float dd) {
+        initFish(i, spec, src.posL[from] + dl, src.posY[from] + dy, src.posD[from] + dd,
+                src.baseRotations[from], src.seeds[from]);
+        homeDepth[i] = src.homeDepth[from] + dd;
+        prevL[i] = src.prevL[from] + dl;
+        prevY[i] = src.prevY[from] + dy;
+        prevD[i] = src.prevD[from] + dd;
+        velL[i] = src.velL[from]; velY[i] = src.velY[from]; velD[i] = src.velD[from];
+        heading[i] = src.heading[from]; speed[i] = src.speed[from]; bank[i] = src.bank[from];
+        bankSmooth[i] = src.bankSmooth[from]; prevBankSmooth[i] = src.prevBankSmooth[from];
+        shapeDrive[i] = src.shapeDrive[from]; prevShapeDrive[i] = src.prevShapeDrive[from];
+        anchorTimer[i] = src.anchorTimer[from]; anchorArmed[i] = src.anchorArmed[from];
+        tailPhase[i] = src.tailPhase[from]; prevTailPhase[i] = src.prevTailPhase[from];
+        yawDeg[i] = src.yawDeg[from]; prevYawDeg[i] = src.prevYawDeg[from];
+        wanderState[i] = src.wanderState[from]; wanderStateY[i] = src.wanderStateY[from];
+        spinState[i] = src.spinState[from];
+        noiseState[i] = src.noiseState[from]; burstPhase[i] = src.burstPhase[from];
+        burstDrive[i] = src.burstDrive[from];
+        startleRefractory[i] = src.startleRefractory[from]; startled[i] = src.startled[from];
+        flinchTimer[i] = src.flinchTimer[from]; flinchL[i] = src.flinchL[from]; flinchD[i] = src.flinchD[from];
+        visitUrge[i] = src.visitUrge[from];
+    }
+
     /** Fish {@code i}'s sim-local position lerped to {@code partialTick}, as {@link #interpolate} draws it. */
     public void localAt(int i, float partialTick, float[] out) {
         out[0] = SimMath.lerp(partialTick, prevL[i], posL[i]);
