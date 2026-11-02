@@ -1,5 +1,30 @@
 # Backport parity progress
 
+## In progress (2026-11-02): Forge MixinExtras crash fix, 2.1.16 (committed, not released)
+
+- **Problem:** the published Forge jars for 1.20.1 and 1.21.1 (2.1.14 and 2.1.15) crash on startup
+  next to any mod that JarJars MixinExtras (Farmer's Delight, Embeddium, ModernFix, Puzzles Lib, ...):
+  `ResolutionException: Modules MixinExtras and fishtastic export package com.llamalad7.mixinextras...`.
+  The JVM dies on `main` before latest.log gets a line. 1.20.1 shaded `mixinextras-common` flat (B6.1);
+  1.21.1 shaded the `mixinextras-forge` wrapper, leaving its `platform.forge` package in our module.
+  Found boot-testing a 65-mod 1.20.1 pack. Not affected: every Fabric and NeoForge jar and 26.1.2 Forge
+  (no `com/llamalad7` classes; Fabric has no JPMS).
+- **Fix (owner: handle it the way other mods do):** both Forge ports now
+  `implementation(include("io.github.llamalad7:mixinextras-forge:0.5.4"))` — FML JarJar picks one shared
+  copy, which initialises itself. No shading, no `FishtasticMixinExtrasPlugin`, no copied init config.
+  1.20.1 dev runs additionally need `mixinextras-common` + `--mixin.config mixinextras.init.mixins.json`
+  (Forge 47 dev doesn't unpack the nested jar); the shipped jar is unchanged by that.
+- **Commits:** `port/1.20.1` `bdf902ae` (fix) + `01c3a0bb` (2.1.16); `port/1.21.1` `77eef7a9` (fix) +
+  `b5cb2615` (2.1.16); source `26.1.2` bumped to 2.1.16 to keep versions in lockstep (no code change).
+- **Gates passed:** release_smoke boots of both fixed Forge jars alone and beside a JarJar-ing probe mod
+  (one "Initializing MixinExtras (0.5.4)"); published jars beside the probe reproduce the crash; the
+  65-mod pack boots with 1.20.1 2.1.16; runGametest 1.20.1 Forge 403/403, 1.20.1 Fabric 402/402,
+  1.21.1 Forge 402/402. Pre-commit hooks passed. `awatereditthatstopsthewatermakesalivevisitdepartandstaygone`
+  is intermittently failing on the ports independent of this change (A/B: untouched port/1.20.1 failed
+  2 of 3 Fabric runs) and blocked two hook runs before a retry passed.
+- **Next action:** owner said do not release yet. When told: full release build on all three lines,
+  eight-profile release smoke matrix, then publish. Do not push and do not advance parity markers.
+
 ## Completed (2026-11-01): fishing rod gear fix and 2.1.15 release
 
 - **Operation:** Record the four concerns from the static fishing audit; fix concern #1 by making
