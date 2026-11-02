@@ -1,6 +1,6 @@
 # Backport parity progress
 
-## In progress (2026-11-02): Forge MixinExtras crash fix, 2.1.16 (committed, not released)
+## Completed (2026-11-02): Forge MixinExtras crash fix and 2.1.16 release
 
 - **Problem:** the published Forge jars for 1.20.1 and 1.21.1 (2.1.14 and 2.1.15) crash on startup
   next to any mod that JarJars MixinExtras (Farmer's Delight, Embeddium, ModernFix, Puzzles Lib, ...):
@@ -22,8 +22,25 @@
   1.21.1 Forge 402/402. Pre-commit hooks passed. `awatereditthatstopsthewatermakesalivevisitdepartandstaygone`
   is intermittently failing on the ports independent of this change (A/B: untouched port/1.20.1 failed
   2 of 3 Fabric runs) and blocked two hook runs before a retry passed.
-- **Next action:** owner said do not release yet. When told: full release build on all three lines,
-  eight-profile release smoke matrix, then publish. Do not push and do not advance parity markers.
+- **Release source:** published from the three version-bump commits, checked out detached so no branch
+  moved: source `26.1.2` `92b2ea85`, `port/1.21.1` `b5cb2615`, `port/1.20.1` `01c3a0bb`. Commits made
+  after the bumps are **not** in 2.1.16 and ship in the next release: the water-edit GameTest clock fix
+  on all three lines (`4a7b1897` / `279467f1` / `79bf9a12`, which also touches `FishSchoolManager`),
+  the Forge 1.20.1 flat gametest world pin `e709dd75`, and the 1.20.1 Pile of Fish tooltip fix `ca0bb32c`.
+- **Evidence:** `build/release-2.1.16/evidence/{26.1.2,1.21.1,1.20.1}/` (`release-build.log`,
+  `publish.log`) and `build/release-2.1.16/evidence/release-smoke/matrix.log`; per-profile summaries and
+  captures under `build/release-smoke/F2_*`.
+- **Release gates:** full `build` passed on all three lines (26.1.2 on JDK 25 via the gradle.properties
+  pin, both ports on JDK 21). Both Forge port jars contain no `com/llamalad7` classes and carry
+  `META-INF/jarjar/metadata.json`. The eight-profile smoke matrix was run by calling `release_smoke.py`
+  per profile with the matrix's jars, worlds and flags (`run_matrix.py` resolves checkouts by branch and
+  the trees were detached): seven `PASS`; 26.1.2 Forge `PASS_WITH_FINDINGS` for the known vanilla
+  experimental-settings screen, accepted with `--accept-experimental`. 1.21.1 Forge did not park on
+  that screen this run. No Fishtastic error lines, fatal lines or crash reports on any profile.
+- **Publication:** `publishCurseForge -Prelease_type=release` exited 0 on all three lines, using each
+  `CHANGELOG.md`'s 2.1.16 entry: 26.1.2 and 1.21.1 uploaded Fabric, NeoForge and Forge; 1.20.1 uploaded
+  Fabric and Forge, eight artifacts in total. **Next action:** none. No branches were pushed and no parity
+  markers were advanced.
 
 ## Completed (2026-11-01): fishing rod gear fix and 2.1.15 release
 
