@@ -611,6 +611,8 @@ public final class VisitWindowGameTests {
                     for (int y = -2; y <= 0; y++) level.setBlock(center.offset(x, y, z), Blocks.STONE.defaultBlockState(), 3);
                 }
             }
+            // The drain happens at t on this test's clock; the block-change hook stamps the level's.
+            schools.waterChangedForTest(school.id(), t);
             schools.tickVisitForTest(school, t + 100);
             helper.assertTrue(school.state() == FishSchoolSavedData.SchoolState.DEPARTING,
                     "draining its water starts the normal departure: " + schools.debugState(school.id()));
