@@ -2159,4 +2159,10 @@ public class FishtasticGameTests {
     public void transientReservationsRecoverAcrossSaveReload(GameTestHelper helper) {
         FishSchoolGameTests.transientReservationsRecoverAcrossSaveReload(helper);
     }
+
+    // PORT-ONLY: 1.20.1 piles store contents outside vanilla's "Items" NBT.
+    @GameTest(template = "fishtastic_empty")
+    public void pileOfFishTooltipShowsContents(GameTestHelper helper) {
+        PileOfFishTooltipGameTests.pileOfFishTooltipShowsContents(helper);
+    }
 }

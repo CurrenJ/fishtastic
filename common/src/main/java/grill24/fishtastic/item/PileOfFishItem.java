@@ -26,6 +26,18 @@ import net.minecraft.world.item.ItemStack;
 import grill24.fishtastic.component.BundleContents;
 import net.minecraft.world.level.Level;
 import org.jspecify.annotations.Nullable;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.NonNullList;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.inventory.tooltip.BundleTooltip;
+import net.minecraft.world.inventory.tooltip.TooltipComponent;
+import net.minecraft.world.item.ItemUtils;
+import net.minecraft.world.item.TooltipFlag;
+import org.apache.commons.lang3.math.Fraction;
+
+import java.util.List;
+import java.util.Optional;
 
 public class PileOfFishItem extends BundleItem {
 
@@ -443,6 +455,54 @@ public class PileOfFishItem extends BundleItem {
         } else {
             // 26.1.2 clears the bundle's selected item here; 1.21.1 bundles have no selection.
             return false;
+        }
+    }
+
+    // --- Vanilla bundle surface (PORT-ONLY) ---
+    //
+    // 1.20.1's BundleItem reads its contents from the vanilla "Items" NBT list, but a pile stores
+    // them under the fishtastic:bundle_contents ComponentKey. Without these overrides the inherited
+    // tooltip, fullness line, bar and destroy-drop all see an empty bundle (blank tooltip slots).
+    // 1.21.1/26.1.2 store piles in vanilla's BUNDLE_CONTENTS, so vanilla handles all of this there.
+
+    /** Weight scaled to vanilla 1.20.1's int "out of 64" units, truncating like 1.21.1. */
+    private static int contentWeight64(BundleContents contents) {
+        return contents.weight().multiplyBy(Fraction.getFraction(MAX_WEIGHT, 1)).intValue();
+    }
+
+    @Override
+    public Optional<TooltipComponent> getTooltipImage(ItemStack stack) {
+        BundleContents contents = FishtasticItemData.bundleContentsOrEmpty(stack);
+        NonNullList<ItemStack> items = NonNullList.create();
+        contents.items().forEach(items::add);
+        return Optional.of(new BundleTooltip(items, contentWeight64(contents)));
+    }
+
+    @Override
+    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
+        int weight = contentWeight64(FishtasticItemData.bundleContentsOrEmpty(stack));
+        tooltip.add(Component.translatable("item.minecraft.bundle.fullness", weight, MAX_WEIGHT)
+                .withStyle(ChatFormatting.GRAY));
+    }
+
+    @Override
+    public boolean isBarVisible(ItemStack stack) {
+        return FishtasticItemData.bundleContentsOrEmpty(stack).weight().compareTo(Fraction.ZERO) > 0;
+    }
+
+    @Override
+    public int getBarWidth(ItemStack stack) {
+        BundleContents contents = FishtasticItemData.bundleContentsOrEmpty(stack);
+        return Math.min(1 + contents.weight().multiplyBy(Fraction.getFraction(12, 1)).intValue(), 13);
+    }
+
+    @Override
+    public void onDestroyed(ItemEntity itemEntity) {
+        ItemStack stack = itemEntity.getItem();
+        BundleContents contents = FishtasticItemData.bundleContents(stack);
+        if (contents != null && !contents.isEmpty()) {
+            FishtasticItemData.setBundleContents(stack, BundleContents.EMPTY);
+            ItemUtils.onContainerDestroyed(itemEntity, contents.itemCopyStream());
         }
     }
 
