@@ -431,7 +431,8 @@ public final class TankGroupFlock {
                 swimKeyPos.add(memberPos.asLong());
                 swimKeySlot.add(slot);
                 swimSpecs.add(new FishSpec(length, locomotion, member.isItemMirrored(slot),
-                        FishVisuals.speciesId(stack), FishVisuals.shelterUseOf(stack, level)));
+                        FishVisuals.speciesId(stack), FishVisuals.shelterUseOf(stack, level),
+                        FishVisuals.cruiseTierOf(stack, level).tank()));
             }
         }
         contentsSnapshot = allContents.toArray(new ItemStack[0]);

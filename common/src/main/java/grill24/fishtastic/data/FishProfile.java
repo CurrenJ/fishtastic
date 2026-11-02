@@ -89,8 +89,11 @@ public record FishProfile(
      *
      * @param members       how many fish a visit holds, clamped to the shape's own range
      * @param lifetimeScale multiplies the configured visit lifetime
+     * @param cruise        how fast the species swims (docs/ambient-fish-schools-design-spec.md
+     *                      §5.2); every shipped profile authors one, a missing one reads as normal
      */
-    public record WorldEncounter(Optional<VisitShape> shape, Optional<MemberRange> members, float lifetimeScale) {
+    public record WorldEncounter(Optional<VisitShape> shape, Optional<MemberRange> members, float lifetimeScale,
+                                 Optional<CruiseTier> cruise) {
         public static final float MIN_LIFETIME_SCALE = 0.25f;
         public static final float MAX_LIFETIME_SCALE = 2.0f;
 
@@ -98,7 +101,8 @@ public record FishProfile(
                 VisitShape.CODEC.optionalFieldOf("shape").forGetter(WorldEncounter::shape),
                 MemberRange.CODEC.optionalFieldOf("members").forGetter(WorldEncounter::members),
                 Codec.floatRange(MIN_LIFETIME_SCALE, MAX_LIFETIME_SCALE).optionalFieldOf("lifetime_scale", 1.0f)
-                        .forGetter(WorldEncounter::lifetimeScale)
+                        .forGetter(WorldEncounter::lifetimeScale),
+                CruiseTier.CODEC.optionalFieldOf("cruise").forGetter(WorldEncounter::cruise)
         ).apply(i, WorldEncounter::new));
 
         public record MemberRange(int min, int max) {
@@ -109,6 +113,48 @@ public record FishProfile(
                     ? com.mojang.serialization.DataResult.success(range)
                     : com.mojang.serialization.DataResult.error(() -> "members.min must not exceed members.max"));
         }
+    }
+
+    /**
+     * A species' swim speed (docs/ambient-fish-schools-design-spec.md §5.2, §5.4). Scales the
+     * fish's speed within its own locomotion set; tanks use a damped spread.
+     */
+    public enum CruiseTier implements StringRepresentable {
+        SLOW(0.6f, 0.8f), NORMAL(1.0f, 1.0f), FAST(1.5f, 1.25f);
+        public static final Codec<CruiseTier> CODEC = StringRepresentable.fromEnum(CruiseTier::values);
+
+        private final float openWater;
+        private final float tank;
+
+        CruiseTier(float openWater, float tank) {
+            this.openWater = openWater;
+            this.tank = tank;
+        }
+
+        /** Multiplier for ambient fish in open water. */
+        public float openWater() {
+            return openWater;
+        }
+
+        /** Multiplier for fish in tanks: a damped spread, with no size term. */
+        public float tank() {
+            return tank;
+        }
+
+        @Override
+        public String getSerializedName() {
+            return name().toLowerCase(java.util.Locale.ROOT);
+        }
+    }
+
+    /** The authored cruise tier, or {@link CruiseTier#NORMAL} for a profile without one. */
+    public CruiseTier cruiseTier() {
+        return worldEncounter.flatMap(WorldEncounter::cruise).orElse(CruiseTier.NORMAL);
+    }
+
+    /** Whether this profile authors a cruise tier (every shipped one must). */
+    public boolean authorsCruiseTier() {
+        return worldEncounter.flatMap(WorldEncounter::cruise).isPresent();
     }
 
     /** The authored visit shape, or the rarity fallback when none is authored. */

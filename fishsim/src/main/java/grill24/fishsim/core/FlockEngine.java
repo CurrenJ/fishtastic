@@ -77,6 +77,12 @@ public final class FlockEngine {
     float[] speedScale = new float[0];
     float[] patrolScale = new float[0];
     float[] turnScale = new float[0];
+    // The fish's FishSpec.speedScale (species/size cruise, docs/ambient-fish-schools-design-spec.md
+    // §5.2), folded into speedScale/patrolScale and the binary model's wander and ceiling. 1 for
+    // every caller that does not set it, which keeps the goldens bit-identical (x * 1f == x).
+    float[] cruise = new float[0];
+    // Upper bound of cruise[] over the fish in play (never below 1), for the spatial-index radius.
+    private float cruiseBound = 1f;
     // Burst-and-coast cycle: phase in [0,1), advanced by a per-fish rate (period jitter) so a
     // shoal never beats in unison even though each individual's own cycle is regular.
     float[] burstPhase = new float[0];
@@ -1095,6 +1101,10 @@ public final class FlockEngine {
      * where the absorbed body's residents move into the survivor's engine.
      */
     public void adopt(int i, FishSpec spec, FlockEngine src, int from, float dl, float dy, float dd) {
+        if (spec.speedScale() > cruiseBound) {
+            cruiseBound = spec.speedScale();
+            configureGrid();
+        }
         initFish(i, spec, src.posL[from] + dl, src.posY[from] + dy, src.posD[from] + dd,
                 src.baseRotations[from], src.seeds[from]);
         homeDepth[i] = src.homeDepth[from] + dd;
@@ -1255,6 +1265,7 @@ public final class FlockEngine {
             if (spec.locomotion() == Locomotion.BENTHIC) hasBenthic = true;
             if (spec.locomotion() == Locomotion.GLIDE) hasGlide = true;
         }
+        scanCruise(specs);
 
         float rotRad = (float) Math.toRadians(baseRotationDeg);
         cosR = (float) StrictMath.cos(rotRad);
@@ -1358,6 +1369,7 @@ public final class FlockEngine {
             if (spec.locomotion() == Locomotion.BENTHIC) hasBenthic = true;
             if (spec.locomotion() == Locomotion.GLIDE) hasGlide = true;
         }
+        scanCruise(specs);
 
         float rotRad = (float) Math.toRadians(baseRotationDeg);
         cosR = (float) StrictMath.cos(rotRad);
@@ -1621,6 +1633,7 @@ public final class FlockEngine {
         startled[i] = false;
         shelterClaim[i] = -1;
         species[i] = spec.species();
+        cruise[i] = spec.speedScale();
         hoverMirrored[i] = spec.mirrored();
         locomotion[i] = gate(spec.locomotion(), spec.length());
         swimmers[i] = locomotion[i] == Locomotion.FREE_SWIM;
@@ -1733,8 +1746,8 @@ public final class FlockEngine {
         // shoal's swell. Safe to call from initFish because locomotion[i] is assigned above it.
         Tunables p = params(i);
         float jitter = p.traitJitter();
-        speedScale[i] = 1f + jitter * unitFromHash(seed, 1);
-        patrolScale[i] = 1f + jitter * unitFromHash(seed, 2);
+        speedScale[i] = (1f + jitter * unitFromHash(seed, 1)) * cruise[i];
+        patrolScale[i] = (1f + jitter * unitFromHash(seed, 2)) * cruise[i];
         turnScale[i] = 1f + jitter * unitFromHash(seed, 3);
         float period = p.burstPeriodSeconds() * (1f + BURST_PERIOD_JITTER * unitFromHash(seed, 5));
         burstStep[i] = period > 0f ? p.dt() / period : 0f;
@@ -1804,6 +1817,7 @@ public final class FlockEngine {
         wanderState = new float[n]; wanderStateY = new float[n]; spinState = new float[n];
         noiseState = new long[n];
         speedScale = new float[n]; patrolScale = new float[n]; turnScale = new float[n];
+        cruise = new float[n];
         burstPhase = new float[n]; burstStep = new float[n]; burstDrive = new float[n];
         posL = new float[n]; posY = new float[n]; posD = new float[n];
         prevL = new float[n]; prevY = new float[n]; prevD = new float[n];
@@ -4128,13 +4142,16 @@ public final class FlockEngine {
         candidateCount = -1; // binary model: brute-force scan, bitwise parity
         // Soft steering: separation over all close fish (swimmers + hovering obstacles), plus
         // alignment and cohesion over the k nearest swimmers.
-        float dL = wanderL(i) * t.cruiseSpeed();
-        float dY = wanderY(i) * t.cruiseSpeed();
+        // c = this fish's cruise scale; 1 unless an adapter opts in, and x * 1f is exact, so the
+        // single-tank parity set is untouched.
+        float c = cruise[i];
+        float dL = wanderL(i) * t.cruiseSpeed() * c;
+        float dY = wanderY(i) * t.cruiseSpeed() * c;
         // Patrol: cruise along the current heading so fish traverse multi-block domains (wall
         // avoidance + heading hysteresis produce the end-of-run turn). Guarded, not added-as-zero:
         // the single-tank parity set relies on this branch never executing.
         if (t.patrolSpeed() != 0f) {
-            dL += heading[i] * t.patrolSpeed();
+            dL += heading[i] * t.patrolSpeed() * c;
         }
 
         float sepL = 0f, sepY = 0f, sepD = 0f;
@@ -4198,10 +4215,11 @@ public final class FlockEngine {
         // Speed ceiling (no floor — the wander keeps fish from stopping, and a floor would block
         // the velocity zero-crossing that makes a reversal read as a turn rather than a pop).
         float sp = (float) Math.sqrt(velL[i] * velL[i] + velY[i] * velY[i] + velD[i] * velD[i]);
-        if (sp > t.maxSpeed()) {
-            float k = t.maxSpeed() / sp;
+        float ceiling = t.maxSpeed() * c;
+        if (sp > ceiling) {
+            float k = ceiling / sp;
             velL[i] *= k; velY[i] *= k; velD[i] *= k;
-            sp = t.maxSpeed();
+            sp = ceiling;
         }
         speed[i] = sp;
 
@@ -4276,7 +4294,14 @@ public final class FlockEngine {
 
     /** The fastest any fish may be moving — the per-fish speed cap at the top of the trait spread. */
     private float peakSpeed() {
-        return t.maxSpeed() * (1f + Math.abs(t.traitJitter()));
+        return t.maxSpeed() * (1f + Math.abs(t.traitJitter())) * cruiseBound;
+    }
+
+    /** Raises {@link #cruiseBound} to cover {@code specs}; called before a rebuild sizes its grid. */
+    private void scanCruise(FishSpec[] specs) {
+        float bound = 1f;
+        for (FishSpec spec : specs) bound = Math.max(bound, spec.speedScale());
+        cruiseBound = bound;
     }
 
     /**

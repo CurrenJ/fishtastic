@@ -25,5 +25,5 @@
   "time_weights": [
     { "time": "night", "multiplier": 1.5 }
   ],
-  "world_encounter": { "shape": "loose_group" }
+  "world_encounter": { "shape": "loose_group", "cruise": "slow" }
 }

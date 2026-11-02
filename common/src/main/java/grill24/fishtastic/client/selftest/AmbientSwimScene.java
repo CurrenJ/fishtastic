@@ -10,6 +10,7 @@ import grill24.fishsim.ambient.WaterDiscovery;
 import net.minecraft.client.Minecraft;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,6 +37,13 @@ import static grill24.fishtastic.client.selftest.RenderSelfTest.worldCommand;
  * <p>Marker params: {@code density=50}, {@code speeds=0.11,0.28,0.5} (blocks per tick),
  * {@code leg=240} (blocks per leg), and optional budget overrides {@code radius=}, {@code
  * individuals=}, {@code domains=}, {@code cells=}, {@code columns=} for range/performance sweeps.
+ *
+ * <p>Each stationary settle also logs a {@code MOTION} line (docs/ambient-fish-schools-design-spec.md
+ * §7): per-fish speed spread ({@code acrossCv}), within-fish variation ({@code withinCv}), the peak
+ * rate of speed change ({@code rate p95/p99}, b/s²), per-species mean speeds, and clumping as the
+ * share of fish whose nearest neighbour is the same species ({@code nnSame}) against the share a
+ * random mix would give ({@code nnChance}). {@code settle=200} sets the stationary ticks.
+ * Ambient speed is docs/ambient-fish-schools-design-spec.md §5.
  */
 final class AmbientSwimScene {
     private AmbientSwimScene() {}
@@ -43,7 +51,10 @@ final class AmbientSwimScene {
     // Ocean fixture: x 0..400, z -48..48, floor y 55, water y 56..63 (8 deep), surface at 63.
     private static final int X0 = 0, X1 = 400, Z0 = -48, Z1 = 48, FLOOR = 55, TOP = 63;
     private static final double EYE_Y = 61.6;
-    private static final int BASELINE_TICKS = 200, RECOVERY_TICKS = 400, FOG_DIST = 24;
+    private static final int RECOVERY_TICKS = 400, FOG_DIST = 24;
+    /** Speeds above this (b/s) between two ticks are a re-placement, not a swim. */
+    private static final double JUMP_SPEED = 4.0;
+    private static int baselineTicks = 200;
 
     private static final class State {
         int phase; // 0 settle, 1 swim, 2 recover, 3 done
@@ -76,6 +87,13 @@ final class AmbientSwimScene {
         final List<Integer> lSpawnDist = new ArrayList<>();
         double lTickMs, lTickPeak, lSubmitMs;
         int recoverAt = -1;
+        // motion accumulators (stationary settle only)
+        final Map<Long, double[]> mPrev = new HashMap<>();     // x, y, z, last speed (-1 = none)
+        final Map<Long, double[]> mFish = new HashMap<>();     // samples, sum, sum of squares
+        final Map<Long, String> mSpeciesOf = new HashMap<>();
+        final List<Double> mRates = new ArrayList<>();
+        double mNnSame, mNnChance, mSameNear;
+        int mNnN, mNnSamples;
     }
 
     static void queueAmbientSwimScene() {
@@ -83,6 +101,7 @@ final class AmbientSwimScene {
         List<Double> speeds = new ArrayList<>();
         for (String s : param("speeds", "0.11,0.28,0.5").split(",")) speeds.add(Double.parseDouble(s.trim()));
         double leg = Double.parseDouble(param("leg", "240"));
+        baselineTicks = Integer.parseInt(param("settle", "200"));
         Integer radius = intParam("radius"), individuals = intParam("individuals"), domains = intParam("domains"),
                 cells = intParam("cells"), columns = intParam("columns");
 
@@ -219,6 +238,8 @@ final class AmbientSwimScene {
         st.seen.clear();
         st.seen.addAll(now);
 
+        if (st.phase == 0) sampleMotion(rt, st);
+
         // discovery lead: farthest known water column straight ahead
         int lead = Integer.MIN_VALUE;
         for (WaterDiscovery.Column c : rt.discovery().columns()) {
@@ -306,8 +327,9 @@ final class AmbientSwimScene {
             case 0 -> {
                 st.baselineSum += inView;
                 st.baselineN++;
-                if (st.phaseTick >= BASELINE_TICKS) {
+                if (st.phaseTick >= baselineTicks) {
                     st.baseline = st.baselineSum / st.baselineN;
+                    noteMotion(st);
                     note(String.format(Locale.ROOT, "ambientswim leg=%d baseline inView=%.2f (stationary, %d ticks)",
                             st.leg, st.baseline, st.baselineN));
                     if (st.leg == 0) screenshot(mc, "ambientswim", "baseline");
@@ -372,6 +394,120 @@ final class AmbientSwimScene {
             }
             default -> { }
         }
+    }
+
+    /** One stationary tick of the §7 motion metrics: speeds from position deltas, clumping every 10 ticks. */
+    private static void sampleMotion(AmbientFishRuntime rt, State st) {
+        List<AmbientDiagnostics.Individual> fish = new ArrayList<>();
+        for (AmbientDiagnostics.Individual f : rt.diagnostics().individuals()) {
+            if (!f.retiring() && f.fade() >= 0.99f) fish.add(f);
+        }
+        Set<Long> live = new HashSet<>();
+        for (AmbientDiagnostics.Individual f : fish) {
+            live.add(f.id());
+            double[] prev = st.mPrev.get(f.id());
+            double v = -1;
+            if (prev != null) {
+                double dx = f.x() - prev[0], dy = f.y() - prev[1], dz = f.z() - prev[2];
+                v = Math.sqrt(dx * dx + dy * dy + dz * dz) * 20.0;
+                if (v > JUMP_SPEED) v = -1;
+            }
+            if (v >= 0) {
+                double[] acc = st.mFish.computeIfAbsent(f.id(), k -> new double[3]);
+                acc[0]++;
+                acc[1] += v;
+                acc[2] += v * v;
+                st.mSpeciesOf.put(f.id(), f.species());
+                if (prev[3] >= 0) st.mRates.add(Math.abs(v - prev[3]) * 20.0);
+            }
+            st.mPrev.put(f.id(), new double[] {f.x(), f.y(), f.z(), v});
+        }
+        st.mPrev.keySet().retainAll(live);
+        if (st.phaseTick % 10 != 0 || fish.size() < 2) return;
+        Map<String, Integer> counts = new HashMap<>();
+        for (AmbientDiagnostics.Individual f : fish) counts.merge(f.species(), 1, Integer::sum);
+        int n = fish.size();
+        double chance = 0;
+        for (int c : counts.values()) chance += c * (double) (c - 1) / (n * (double) (n - 1));
+        int same = 0;
+        double near = 0;
+        for (AmbientDiagnostics.Individual a : fish) {
+            double best = Double.MAX_VALUE;
+            AmbientDiagnostics.Individual nn = null;
+            for (AmbientDiagnostics.Individual b : fish) {
+                if (a == b) continue;
+                double dx = a.x() - b.x(), dy = a.y() - b.y(), dz = a.z() - b.z();
+                double d2 = dx * dx + dy * dy + dz * dz;
+                if (d2 < best) {
+                    best = d2;
+                    nn = b;
+                }
+                if (d2 <= 9.0 && a.species().equals(b.species())) near++;
+            }
+            if (nn != null && nn.species().equals(a.species())) same++;
+        }
+        st.mNnSame += same / (double) n;
+        st.mNnChance += chance;
+        st.mSameNear += near / n;
+        st.mNnN += n;
+        st.mNnSamples++;
+    }
+
+    /** Logs and resets the settle's motion metrics. */
+    private static void noteMotion(State st) {
+        List<Double> means = new ArrayList<>();
+        double cvSum = 0;
+        int cvN = 0;
+        Map<String, double[]> bySpecies = new HashMap<>();
+        for (var e : st.mFish.entrySet()) {
+            double[] a = e.getValue();
+            if (a[0] < 40) continue;
+            double mean = a[1] / a[0];
+            double var = Math.max(0, a[2] / a[0] - mean * mean);
+            means.add(mean);
+            if (mean > 1e-3) {
+                cvSum += Math.sqrt(var) / mean;
+                cvN++;
+            }
+            double[] sp = bySpecies.computeIfAbsent(st.mSpeciesOf.get(e.getKey()), k -> new double[2]);
+            sp[0]++;
+            sp[1] += mean;
+        }
+        means.sort(Double::compare);
+        double pooled = 0;
+        for (double m : means) pooled += m;
+        pooled /= Math.max(1, means.size());
+        double across = 0;
+        for (double m : means) across += (m - pooled) * (m - pooled);
+        across = means.size() > 1 && pooled > 0 ? Math.sqrt(across / means.size()) / pooled : 0;
+        List<Double> rates = new ArrayList<>(st.mRates);
+        rates.sort(Double::compare);
+        StringBuilder species = new StringBuilder();
+        bySpecies.entrySet().stream()
+                .sorted((x, y) -> Double.compare(y.getValue()[1] / y.getValue()[0], x.getValue()[1] / x.getValue()[0]))
+                .forEach(e -> {
+                    String id = e.getKey() == null ? "?" : e.getKey().substring(e.getKey().indexOf(':') + 1);
+                    species.append(String.format(Locale.ROOT, "%s:%.3f(%d) ", id, e.getValue()[1] / e.getValue()[0], (int) e.getValue()[0]));
+                });
+        double k = Math.max(1, st.mNnSamples);
+        note(String.format(Locale.ROOT,
+                "ambientswim leg=%d MOTION fish=%d meanSpeed=%.3f speed[p10=%.3f p50=%.3f p90=%.3f max=%.3f] acrossCv=%.3f withinCv=%.3f "
+                        + "rate[p95=%.3f p99=%.3f max=%.3f] nnSame=%.3f nnChance=%.3f sameWithin3=%.2f meanAlive=%.1f species=%s",
+                st.leg, means.size(), pooled, pctD(means, 10), pctD(means, 50), pctD(means, 90),
+                means.isEmpty() ? -1 : means.get(means.size() - 1), across, cvN > 0 ? cvSum / cvN : 0,
+                pctD(rates, 95), pctD(rates, 99), rates.isEmpty() ? -1 : rates.get(rates.size() - 1),
+                st.mNnSame / k, st.mNnChance / k, st.mSameNear / k, st.mNnN / k, species.toString().trim()));
+        st.mPrev.clear();
+        st.mFish.clear();
+        st.mSpeciesOf.clear();
+        st.mRates.clear();
+        st.mNnSame = st.mNnChance = st.mSameNear = 0;
+        st.mNnN = st.mNnSamples = 0;
+    }
+
+    private static double pctD(List<Double> sorted, int p) {
+        if (sorted.isEmpty()) return -1;
+        return sorted.get(Math.min(sorted.size() - 1, sorted.size() * p / 100));
     }
 
     private static String phaseName(int phase) {

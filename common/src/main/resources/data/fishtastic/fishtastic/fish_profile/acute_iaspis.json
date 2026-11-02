@@ -12,5 +12,6 @@
   "temperament": "fishtastic:aggressive",
   "animation": {
     "mode": "belly_down"
-  }
+  },
+  "world_encounter": { "cruise": "normal" }
 }

@@ -14,5 +14,5 @@
   ],
   "temperament": "fishtastic:docile",
   "swarm": { "shelter": "visitor" },
-  "world_encounter": { "shape": "school" }
+  "world_encounter": { "shape": "school", "cruise": "normal" }
 }

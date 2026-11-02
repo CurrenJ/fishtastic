@@ -19,5 +19,5 @@
     "mode": "horizontal_swim"
   },
   "swarm": { "shelter": "lurker" },
-  "world_encounter": { "shape": "solitary" }
+  "world_encounter": { "shape": "solitary", "cruise": "slow" }
 }

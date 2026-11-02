@@ -228,13 +228,13 @@ public final class AmbientFishRuntime {
      * never shrunk or demoted into something the context did not offer.
      */
     private record SpeciesVisual(String species, Identifier id, ItemStack stack, FishSpec spec,
-                                 WaterDomain.BodyBox body, FishAnimationConfig anim) {
+                                 WaterDomain.BodyBox body, FishAnimationConfig anim, grill24.fishtastic.data.FishProfile.CruiseTier cruise) {
     }
 
     /** One shown patch: its fixed frame, its water, its engine, and the individuals in it. */
     static final class DomainState {
         final long patchKey;
-        final FlockEngine engine = new FlockEngine(Tunables.GROUP);
+        final FlockEngine engine = new FlockEngine(Tunables.OPEN_WATER);
         final List<Member> members = new ArrayList<>();
         WaterDiscovery.Patch patch;
         WaterDomain domain;
@@ -561,7 +561,7 @@ public final class AmbientFishRuntime {
             return null;
         }
         SpeciesVisual visual = new SpeciesVisual(species, id, stack, spec,
-                bodyFor(spec.locomotion(), spec.length()), anim);
+                bodyFor(spec.locomotion(), spec.length()), anim, FishVisuals.cruiseTierOf(stack, level));
         visuals.put(species, visual);
         return visual;
     }
@@ -1318,7 +1318,8 @@ public final class AmbientFishRuntime {
         if (visual == null) return false;
         FishSpec spec = visual.spec();
         WaterDomain.BodyBox body = visual.body();
-        spec = new FishSpec(spec.length(), spec.locomotion(), AmbientRoster.mirrored(id), spec.species(), spec.shelterUse());
+        spec = new FishSpec(spec.length(), spec.locomotion(), AmbientRoster.mirrored(id), spec.species(), spec.shelterUse(),
+                AmbientMotion.speedScale(visual.cruise(), spec.length()));
         if (!st.engine.passesGate(spec.locomotion(), spec.length())) {
             retryAfter.put(id, time + OMISSION_RETRY_TICKS);
             stats.omissions++;

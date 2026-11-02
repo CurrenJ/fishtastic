@@ -23,5 +23,5 @@
     "y_range": 0,
     "rotation_jitter": 0
   },
-  "world_encounter": { "shape": "pair" }
+  "world_encounter": { "shape": "pair", "cruise": "normal" }
 }

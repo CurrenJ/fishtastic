@@ -23,6 +23,8 @@ public final class FishtasticClientConfig {
     private static Boolean ambientFishEnabled;
     private static Boolean fishSchoolsVisible;
     private static Boolean fishSchoolArrivals;
+    /** A retired key (the tank cruise-tier trial switch, now always on); {@link #persist} drops it. */
+    private static final String RETIRED_TANK_CRUISE_TIERS_KEY = "tankCruiseTiers";
     private static Integer ambientFishDensity;
     private static Integer ambientDensityTestOverride;
     private static final String TANK_WATER_FILL_KEY = "tankWaterFillEnabled";
@@ -387,6 +389,7 @@ public final class FishtasticClientConfig {
         props.setProperty(HIDE_OTHER_COMPANIONS_KEY, String.valueOf(storedHideOtherCompanions()));
         props.setProperty(HIDE_OWN_COMPANION_FIRST_PERSON_KEY, String.valueOf(storedHideOwnCompanionFirstPerson()));
         props.remove(RETIRED_COMPANION_WAITS_AT_BOBBER_KEY);
+        props.remove(RETIRED_TANK_CRUISE_TIERS_KEY);
         try (var out = Files.newOutputStream(file)) {
             props.store(out, "Fishtastic client-side visual toggles.");
         } catch (IOException ignored) {

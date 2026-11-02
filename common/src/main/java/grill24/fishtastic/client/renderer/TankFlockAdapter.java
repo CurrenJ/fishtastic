@@ -294,7 +294,8 @@ public final class TankFlockAdapter {
                     FishVisuals.locomotionOf(newAnims[idx]),
                     be.isItemMirrored(slot),
                     FishVisuals.speciesId(stack),
-                    FishVisuals.shelterUseOf(stack, level));
+                    FishVisuals.shelterUseOf(stack, level),
+                    FishVisuals.cruiseTierOf(stack, level).tank());
             idx++;
         }
 
@@ -431,7 +432,8 @@ public final class TankFlockAdapter {
             hoverAnims.add(render.animation());
             hoverSlots.add(slot);
             hoverSpecs.add(new FishSpec(length, TankGroupFlock.GroupSplit.stayingHomeAs(locomotion),
-                    be.isItemMirrored(slot), FishVisuals.speciesId(stack)));
+                    be.isItemMirrored(slot), FishVisuals.speciesId(stack), ShelterUse.NONE,
+                    FishVisuals.cruiseTierOf(stack, level).tank()));
         }
         int hoverCount = hoverStacks.size();
         int[] hoverCarry = new int[hoverCount];
