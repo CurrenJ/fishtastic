@@ -78,9 +78,15 @@ dependencies {
     shadowBundle files(forgeCommonJar)
 
     implementation project(':fishsim')
-    implementation 'io.github.llamalad7:mixinextras-forge:0.5.4'
+    // MixinExtras: Forge 52 ships Mixin but not MixinExtras, so it is JarJar'd the way MixinExtras'
+    // own setup guide says and other Forge mods do it: the mixinextras-forge artifact is nested
+    // under META-INF via `include`, FML picks one copy (the newest) across all mods, and that copy
+    // registers its own init mixin config. Shading it (the earlier shadowBundle) put
+    // com.llamalad7.mixinextras.platform.forge inside this module, so any other mod JarJar-ing
+    // MixinExtras crashed the JVM on "main" ("Modules mixinextras and fishtastic export package
+    // ...", found 2026-11-02). forgeRuntimeLibrary keeps it visible to dev runs' module layers.
+    implementation(include('io.github.llamalad7:mixinextras-forge:0.5.4'))
     forgeRuntimeLibrary 'io.github.llamalad7:mixinextras-forge:0.5.4'
-    shadowBundle 'io.github.llamalad7:mixinextras-forge:0.5.4'
     shadowBundle project(':fishsim')
 
     // Forge testmod: main classes plus the compile-only NeoForge annotation stubs required by the
@@ -147,7 +153,7 @@ loom {
     accessWidenerPath = rootProject.file("common/src/main/resources/fishtastic.accesswidener")
 
     forge {
-        mixinConfig "mixinextras.init.mixins.json", "fishtastic.mixins.json", "fishtastic-forge.mixins.json"
+        mixinConfig "fishtastic.mixins.json", "fishtastic-forge.mixins.json"
         convertAccessWideners = true
         extraAccessWideners.add "fishtastic.accesswidener"
     }
