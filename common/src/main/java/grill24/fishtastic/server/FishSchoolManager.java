@@ -290,6 +290,17 @@ public final class FishSchoolManager {
     }
 
     /**
+     * Test only: {@link #onBlockChanged}'s dirty mark, stamped at a test's simulated time. Block
+     * changes are stamped with the level's clock, so a test ticking a school on its own clock
+     * (e.g. {@link #tickVisitForTest} inside a visit window) must report its edits on that clock,
+     * or whether the debounce has elapsed depends on how long the test server has been running.
+     */
+    public void waterChangedForTest(UUID school, long now) {
+        RegionCache cached = waterRegions.get(school);
+        if (cached != null) cached.markDirty(now);
+    }
+
+    /**
      * Windows that were tried and did not produce a visit (or whose visit has ended), by id: when to
      * try again, and when the entry stops mattering. In memory; a restart simply tries again.
      */
