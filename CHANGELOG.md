@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 2.1.16
+
+- Fixed a startup crash on Forge when other mods also bundle MixinExtras.
+
 ## 2.1.15
 
 - Fixed minigame gear detection for the Obsidian Fishing Rod.
