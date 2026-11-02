@@ -68,7 +68,7 @@ import org.joml.Matrix4f;
  * patch (the tank-sim motion, E12: each client moves its own copy of a fish, leashed to the fish's
  * home chunk) and retires individuals whose water moves out from under them. Every tick's work is
  * budgeted: discovery has its own cell and column budgets, at most one chunk is scanned and one
- * domain rebuilt per tick, and at most {@link #MEMBERSHIP_CHANGES_PER_TICK} individuals are added or
+ * domain rebuilt per tick, and at most {@link #membershipChangesPerTick} individuals are added or
  * removed per tick.
  *
  * <p><b>Frames.</b> A patch's origin is chosen by {@link WaterDiscovery} when the patch is first
@@ -97,14 +97,27 @@ public final class AmbientFishRuntime {
     /** How often a live domain is rebuilt from the current columns (geometry edits, fluid edits). */
     public static final int REBUILD_INTERVAL_TICKS = 20;
     /**
+     * A domain whose water only grew (discovery found more of it) is rebuilt at most this often.
+     * While the player travels, discovery adds columns at the leading edge every tick, and a rebuild
+     * per tick allocated a fresh grid and column list every tick (~580 KB a tick at radius 32,
+     * ambientswim). New water joins at most this late: ~1.4 blocks at a 5.6 b/s swim.
+     */
+    public static final int GROWTH_REBUILD_TICKS = 5;
+    /**
      * How long a revived domain may hold its rebuild while it waits for the patch's cache to refill
      * to the size it was last built at. Rediscovery is budgeted, so a large patch takes tens of
      * ticks to come back; the bound is what stops a patch that really did come back smaller from
      * living on as a stale domain forever.
      */
     public static final int REFILL_TIMEOUT_TICKS = 200;
-    /** Membership changes (spawns, retirements) allowed per tick. */
-    public static final int MEMBERSHIP_CHANGES_PER_TICK = 2;
+    /**
+     * Fewest membership changes (spawns, removals) allowed per tick; the budget grows with the cap
+     * ({@link #membershipChangesPerTick}). At a fixed 2, a 10 b/s swim spent ~25% of its ticks
+     * with spawns waiting on this limit (ambientswim).
+     */
+    public static final int MIN_MEMBERSHIP_CHANGES_PER_TICK = 2;
+    /** The cap is divided by this to give the per-tick membership budget. */
+    public static final int MEMBERSHIP_CAP_DIVISOR = 8;
     /** Fade length of a retiring individual, ticks at 20 tps (~1.2 s). */
     public static final int FADE_TICKS = 24;
     /** After a fish cannot be placed because nothing fits, wait this long before trying it again. */
@@ -124,6 +137,17 @@ public final class AmbientFishRuntime {
     public static final int ARRIVAL_WINDOW_TICKS = 120;
     /** Fade-in of an arriving fish, ticks. */
     public static final int ARRIVAL_FADE_TICKS = 40;
+    /**
+     * Fade-in of every other new fish, ticks. A fish already living in the water when the player
+     * comes into range used to appear at full size; it now grows in like an arrival, quicker.
+     */
+    public static final int SPAWN_FADE_TICKS = 30;
+    /** A fish whose spawn spot is in view and nearer than this waits for the player to look away. */
+    public static final float NEAR_VIEW_SPAWN_DISTANCE = 12f;
+    /** The longest a fish waits for that, ticks; after it, it fades in where it is seen. */
+    public static final int MAX_SPAWN_DEFER_TICKS = 60;
+    /** How often a deferred fish's spot is looked at again, ticks. */
+    private static final int DEFER_RETRY_TICKS = 5;
     /** A fish further than this many blocks outside its home chunk's footprint is out of its leash. */
     public static final float LEASH_MARGIN = 8f;
     /** Re-derivation of the roster at most this often when nothing changed it (ticks). */
@@ -139,6 +163,16 @@ public final class AmbientFishRuntime {
     public static final int REASON_EXPIRED = 4;
     /** It swam beyond its leash to the home chunk; it re-enters at its home cell. */
     public static final int REASON_LEASH = 5;
+    /**
+     * Its slot went to a nearer waiting fish: the cap is full, it is out of view and clearly further
+     * from the player than the nearest fish the roster wants drawn. Fades over
+     * {@code POPULATION_FADE_TICKS}; still on the roster, so it can come back when the player does.
+     */
+    public static final int REASON_DISPLACED = 6;
+    /** A resident must be this many blocks further than the waiting fish before it gives up its slot. */
+    public static final float DISPLACE_HYSTERESIS = 4f;
+    /** Extra degrees around the view frustum within which a fish counts as seen (never displaced). */
+    public static final float VIEW_MARGIN_DEGREES = 15f;
 
     /** One spawned individual: its engine index, its spec, and its retirement state. */
     static final class Member {
@@ -174,7 +208,7 @@ public final class AmbientFishRuntime {
             this.bornTick = bornTick;
             this.lifetimeTicks = (int) Math.max(1, Math.min(Integer.MAX_VALUE, lifespan.departureTick() - bornTick));
             this.arriving = arriving;
-            if (arriving) fade = 0f;
+            fade = 0f; // every new fish grows in: an arrival over ARRIVAL_FADE_TICKS, others SPAWN_FADE_TICKS
         }
 
         boolean retiring() {
@@ -298,8 +332,18 @@ public final class AmbientFishRuntime {
         public long unplaceable;
         /** Fish that swam beyond their leash and re-entered. */
         public long retireLeash;
+        /** Out-of-view residents that gave their slot to a nearer waiting fish. */
+        public long retireDisplaced;
         /** Chunk scans done. */
         public long chunkScans;
+        /** Time spent in water discovery, total. */
+        public long discoveryNanos;
+        /** Bytes the ambient tick allocated (self-test only: measured while invariant stats are on). */
+        public long allocBytes;
+        /** The same, by tick section (see {@code allocMark}). */
+        public final long[] allocBySection = new long[7];
+        /** Spawn attempts held back because the spot was in view and near; and fish that waited out the limit. */
+        public long deferrals, deferralsExpired;
 
         public double meanBuildMillis() {
             return domainBuilds == 0 ? 0d : totalBuildMillis / domainBuilds;
@@ -323,6 +367,8 @@ public final class AmbientFishRuntime {
     private final Map<FishingPoolResolver.EnvironmentContext, VisualSampler> samplers = new java.util.HashMap<>();
     /** Fish IDs that could not be placed, until when. */
     private final Map<Long, Long> retryAfter = new java.util.HashMap<>();
+    /** Fish IDs held back because their spot was in view and near, since when. */
+    private final Map<Long, Long> deferredSince = new java.util.HashMap<>();
     /** The latest roster pass, for the debug view and the harness. */
     final List<RosterFish> roster = new ArrayList<>();
     private long lastPrune = Long.MIN_VALUE;
@@ -377,6 +423,10 @@ public final class AmbientFishRuntime {
         this.budget = budget;
         discovery.configure(budget.radius(), WaterDiscovery.DEFAULT_Y_ABOVE,
                 WaterDiscovery.DEFAULT_Y_BELOW, budget.columnsPerTick(), budget.cellsPerTick());
+        // The cache must hold the whole kept window (radius plus eviction slack), or a wide radius
+        // trims columns the sweep then finds again, forever.
+        int side = 2 * (budget.radius() + WaterDiscovery.DEFAULT_EVICT_SLACK) + 1;
+        discovery.setMaxColumns(Math.max(WaterDiscovery.DEFAULT_MAX_COLUMNS, side * side));
     }
 
     public void clear() {
@@ -395,6 +445,7 @@ public final class AmbientFishRuntime {
         speciesById.clear();
         samplers.clear();
         retryAfter.clear();
+        deferredSince.clear();
         roster.clear();
         lastPrune = Long.MIN_VALUE;
         seeded = false;
@@ -429,6 +480,16 @@ public final class AmbientFishRuntime {
 
     public int submitsThisFrame() {
         return worldSubmitsThisFrame;
+    }
+
+    /** Why the last tick's spawn attempt did nothing (diagnosis only). */
+    public String lastSpawnSkip() {
+        return lastSpawnSkip;
+    }
+
+    /** The chunk fluid scans the roster is derived from (diagnosis only). */
+    public AmbientChunkField chunkField() {
+        return field;
     }
 
     public int domainCount() {
@@ -521,6 +582,8 @@ public final class AmbientFishRuntime {
         if (time == lastTick) return;
         lastTick = time;
         long tickStarted = System.nanoTime();
+        long allocStarted = invariantStats ? allocatedBytes() : 0L;
+        allocCursor = allocStarted;
         lastSpawnSkip = "no-spawn";
         if (mc.player == null) return;
         BlockPos player = mc.player.blockPosition();
@@ -529,20 +592,29 @@ public final class AmbientFishRuntime {
         // Discovery's own tick carries the near pass, the budgeted revalidation of known columns —
         // the only path that ever notices an edit inside already-cached water — and the ring sweep,
         // all inside one shared cell budget (see WaterDiscovery.revalidatePass for the split).
+        long discoveryStarted = System.nanoTime();
         discovery.tick(source, px, py, pz, time);
-
+        stats.discoveryNanos += System.nanoTime() - discoveryStarted;
+        allocMark(0);
         syncDomains(time, px, py, pz);
+        allocMark(1);
         deriveRoster(lvl, time, px, py, pz);
+        allocMark(2);
         int changes = reconcileRoster(time, px, py, pz);
         retireAtFaces(time);
         updateFades(time);
         changes += retireFinished(time);
+        allocMark(3);
         spawnRoster(time, px, py, pz, changes);
+        allocMark(4);
         stepEngines();
+        allocMark(5);
         enforceLeash(time);
         dropDeadDomains(time);
         recordStats();
+        allocMark(6);
         double millis = (System.nanoTime() - tickStarted) / 1_000_000.0;
+        if (invariantStats) stats.allocBytes += allocatedBytes() - allocStarted;
         stats.ticks++;
         stats.totalTickMillis += millis;
         stats.peakTickMillis = Math.max(stats.peakTickMillis, millis);
@@ -613,6 +685,7 @@ public final class AmbientFishRuntime {
         for (Plan plan : plans) alive.add(plan.lifespan().fishId());
         speciesById.keySet().retainAll(alive);
         retryAfter.keySet().retainAll(alive);
+        deferredSince.keySet().retainAll(alive);
         if (samplers.size() > 256) samplers.clear();
     }
 
@@ -676,8 +749,11 @@ public final class AmbientFishRuntime {
         for (DomainState st : domains.values()) {
             if (!st.dying && !st.members.isEmpty()) occupied.add(st.patchKey);
         }
+        // An occupied patch keeps its slot while any of its water is in range: at a 32-block range
+        // several bodies of water compete for the slots, and the old 10-block hold let a few steps
+        // swap a populated patch for an empty one, fading its whole population (ambientwalk).
         var selection = AmbientPatchSelection.select(live, discovery.nearestSquaredDistances(px, pz), occupied,
-                budget.domains());
+                budget.domains(), budget.radius() * budget.radius());
         live = selection.patches();
         patchDistances = selection.distances();
 
@@ -730,8 +806,12 @@ public final class AmbientFishRuntime {
             // rebuilt at all.
             boolean inputsMoved = st.builtVersion != discovery.patchVersion(st.patchKey)
                     || st.builtPx != px || st.builtPy != py || st.builtPz != pz;
+            // Growth alone (more columns found, nothing else moved) waits GROWTH_REBUILD_TICKS;
+            // a shrink is a retirement waiting to happen and is never held.
+            boolean grew = st.patch.columns() > st.builtColumns;
             boolean stale = st.builtTick == Long.MIN_VALUE
-                    || st.builtColumns != st.patch.columns()
+                    || (st.builtColumns != st.patch.columns()
+                        && (!grew || !recent(st.builtTick, time, GROWTH_REBUILD_TICKS)))
                     || st.builtTopMargin != st.topMargin
                     || (inputsMoved && !recent(st.builtTick, time, REBUILD_INTERVAL_TICKS));
             if (stale && distance < bestDistance) {
@@ -909,8 +989,9 @@ public final class AmbientFishRuntime {
         m.retireReason = reason;
         // Context-driven retirements get the spec's ~2 s eligibility fade; the water-boundary
         // retirements keep the Phase 2 fade they were tuned with.
-        m.fadeTicks = (reason == REASON_EXCLUDED || reason == REASON_EXPIRED || reason == REASON_LEASH)
-                ? AmbientTuning.POPULATION_FADE_TICKS : FADE_TICKS;
+        m.fadeTicks = (reason == REASON_EXCLUDED || reason == REASON_EXPIRED || reason == REASON_LEASH
+                || reason == REASON_DISPLACED) ? AmbientTuning.POPULATION_FADE_TICKS : FADE_TICKS;
+        if (reason == REASON_DISPLACED) stats.retireDisplaced++;
         if (reason == REASON_OPEN_FACE) stats.retireOpenFace++;
         else if (reason == REASON_INVALID) stats.retireInvalid++;
         else if (reason == REASON_DOMAIN_LOST) stats.retireDomainLost++;
@@ -925,7 +1006,7 @@ public final class AmbientFishRuntime {
         for (DomainState st : domains.values()) {
             scratchMembers.clear();
             for (Member m : st.members) {
-                if (m.retiring() && m.fade <= 0f && removed < MEMBERSHIP_CHANGES_PER_TICK) {
+                if (m.retiring() && m.fade <= 0f && removed < membershipChangesPerTick()) {
                     scratchMembers.add(m);
                     removed++;
                 }
@@ -955,8 +1036,10 @@ public final class AmbientFishRuntime {
             for (int i = 0; i < st.members.size(); i++) {
                 Member m = st.members.get(i);
                 if (!m.retiring()) {
-                    // An arrival swims in from the fluid edge, fading up as it goes.
-                    if (m.arriving && m.fade < 1f) m.fade = Math.min(1f, (time - m.bornTick) / (float) ARRIVAL_FADE_TICKS);
+                    // An arrival swims in from the fluid edge, fading up as it goes; any other new
+                    // fish grows in where it was placed.
+                    if (m.fade < 1f) m.fade = Math.min(1f, (time - m.bornTick)
+                            / (float) (m.arriving ? ARRIVAL_FADE_TICKS : SPAWN_FADE_TICKS));
                     continue;
                 }
                 float timeFade = 1f - (time - m.retireTick) / (float) m.fadeTicks;
@@ -986,19 +1069,22 @@ public final class AmbientFishRuntime {
      */
     private void spawnRoster(long time, int px, int py, int pz, int changes) {
         if (!seeded) return;
-        if (changes >= MEMBERSHIP_CHANGES_PER_TICK) {
+        int changeBudget = membershipChangesPerTick();
+        if (changes >= changeBudget) {
             spawnSkip("changes");
             return;
         }
-        int total = 0;
+        // The cap bounds the living population; fading fish are short-lived and only bounded by the
+        // ceiling, so a displaced fish's slot is free the moment its fade begins.
+        int total = 0, alive = 0;
+        int cap = budget.individuals(), ceiling = cap + Math.max(2, cap / 2);
         java.util.Set<Long> existing = new java.util.HashSet<>();
         for (DomainState st : domains.values()) {
             total += st.members.size();
-            for (Member m : st.members) existing.add(m.id);
-        }
-        if (total >= budget.individuals()) {
-            spawnSkip("cap");
-            return;
+            for (Member m : st.members) {
+                existing.add(m.id);
+                if (!m.retiring()) alive++;
+            }
         }
         List<Plan> pending = new ArrayList<>();
         for (Plan plan : plans) {
@@ -1014,13 +1100,118 @@ public final class AmbientFishRuntime {
             double dx = p.homeX() + 0.5 - px, dz = p.homeZ() + 0.5 - pz;
             return dx * dx + dz * dz;
         }));
+        if (alive >= cap && !pending.isEmpty()) alive -= displaceFor(pending, time, px, pz);
+        if (alive >= cap || total >= ceiling) {
+            spawnSkip(alive >= cap ? "cap" : "ceiling");
+            return;
+        }
         for (Plan plan : pending) {
-            if (changes >= MEMBERSHIP_CHANGES_PER_TICK || total >= budget.individuals()) break;
+            if (changes >= changeBudget || alive >= cap || total >= ceiling) break;
             if (spawnFish(plan, domains.get(plan.patchKey()), time)) {
                 changes++;
                 total++;
+                alive++;
             }
         }
+    }
+
+    /**
+     * With the cap full, hands the slots of the furthest out-of-view residents to the nearest waiting
+     * fish (pending is sorted nearest first). A resident gives up its slot only when it is more than
+     * {@link #DISPLACE_HYSTERESIS} further from the player than the fish taking it, so a still player
+     * holds a stable population and only travel moves the slots along. Returns the residents retired.
+     */
+    private int displaceFor(List<Plan> pending, long time, int px, int pz) {
+        Minecraft mc = Minecraft.getInstance();
+        var camera = mc.gameRenderer == null ? null : mc.gameRenderer.getMainCamera();
+        // Residents are ranked by their home cell, exactly as waiting fish are: a fish's live position
+        // wanders, and ranking it by that would let a slot-holder that drifted away lose its slot to a
+        // fish no nearer than itself, which would then drift and lose it again — endless churn for a
+        // player standing still. Home cells don't move, so every displacement strictly lowers the
+        // furthest resident's distance and a still player's population settles.
+        Map<Long, Plan> homes = new java.util.HashMap<>(plans.size() * 2);
+        for (Plan plan : plans) homes.put(plan.lifespan().fishId(), plan);
+        List<DomainState> owners = new ArrayList<>();
+        List<Member> candidates = new ArrayList<>();
+        List<Double> distances = new ArrayList<>();
+        for (DomainState st : domains.values()) {
+            for (int i = 0; i < st.members.size(); i++) {
+                Member m = st.members.get(i);
+                if (m.retiring() || st.domain == null) continue;
+                double x = st.originX() + st.engine.posL()[i], y = st.originY() + st.engine.posY()[i],
+                        z = st.originZ() + st.engine.posD()[i];
+                if (camera != null && inView(mc, camera, x, y, z)) continue;
+                Plan home = homes.get(m.id);
+                if (home == null) continue; // off the roster: reconcileRoster is already retiring it
+                owners.add(st);
+                candidates.add(m);
+                distances.add(Math.hypot(home.homeX() - px, home.homeZ() - pz));
+            }
+        }
+        Integer[] order = new Integer[candidates.size()];
+        for (int i = 0; i < order.length; i++) order[i] = i;
+        java.util.Arrays.sort(order, (a, b) -> Double.compare(distances.get(b), distances.get(a)));
+        int displaced = 0, k = 0;
+        // Only a fish that can actually be placed may take a slot: one that cannot would free the
+        // slot, fail, and hand it straight back to the resident it evicted — a loop that never ends.
+        int limit = membershipChangesPerTick();
+        for (int p = 0; p < pending.size() && k < order.length && displaced < limit; p++) {
+            Plan plan = pending.get(p);
+            double want = Math.hypot(plan.homeX() - px, plan.homeZ() - pz);
+            int i = order[k];
+            if (distances.get(i) <= want + DISPLACE_HYSTERESIS) break;
+            if (!placeable(plan, time)) continue;
+            beginRetire(owners.get(i), candidates.get(i), REASON_DISPLACED, time);
+            displaced++;
+            k++;
+        }
+        return displaced;
+    }
+
+    /** Whether {@link #spawnFish} would find this fish a place now; a miss is put on the retry clock. */
+    private boolean placeable(Plan plan, long time) {
+        DomainState st = domains.get(plan.patchKey());
+        SpeciesVisual visual = visuals.get(plan.species());
+        if (st == null || st.domain == null || visual == null) return false;
+        FishSpec spec = visual.spec();
+        long id = plan.lifespan().fishId();
+        boolean arriving = time - plan.lifespan().arrivalTick() < ARRIVAL_WINDOW_TICKS;
+        float[] found = new float[3];
+        if (st.engine.passesGate(spec.locomotion(), spec.length())
+                && findPlacement(st, plan, spec, visual.body(), arriving, found)) {
+            // A fish that would be held back (its spot is in view and near) cannot take a slot now
+            // either, or the freed slot would sit empty and go straight back to the fish it evicted.
+            return !nearViewSeen(st, found) || deferExpired(id, time);
+        }
+        retryAfter.put(id, time + OMISSION_RETRY_TICKS);
+        return false;
+    }
+
+    /** Spawns and removals allowed per tick (and displacements): grows with the cap. */
+    int membershipChangesPerTick() {
+        return Math.max(MIN_MEMBERSHIP_CHANGES_PER_TICK, budget.individuals() / MEMBERSHIP_CAP_DIVISOR);
+    }
+
+    /** Whether a world point is inside the camera's view, widened by {@link #VIEW_MARGIN_DEGREES}. */
+    private static boolean inView(Minecraft mc, net.minecraft.client.Camera camera, double x, double y, double z) {
+        Vec3 eye = camera.position();
+        var f = camera.forwardVector();
+        double dx = x - eye.x, dy = y - eye.y, dz = z - eye.z;
+        double depth = dx * f.x() + dy * f.y() + dz * f.z();
+        if (depth <= 0) return false;
+        double rx = -f.z(), rz = f.x();
+        double rl = Math.sqrt(rx * rx + rz * rz);
+        if (rl < 1e-6) return true; // looking straight up or down: treat everything as seen
+        rx /= rl;
+        rz /= rl;
+        double ux = -rz * f.y(), uy = rz * f.x() - rx * f.z(), uz = rx * f.y();
+        double margin = Math.toRadians(VIEW_MARGIN_DEGREES);
+        double halfV = Math.toRadians(mc.options.fov().get()) / 2;
+        double aspect = mc.getWindow().getWidth() / (double) Math.max(1, mc.getWindow().getHeight());
+        double halfH = Math.atan(Math.tan(halfV) * aspect);
+        double tanH = Math.tan(Math.min(Math.toRadians(89), halfH + margin));
+        double tanV = Math.tan(Math.min(Math.toRadians(89), halfV + margin));
+        return Math.abs(dx * rx + dz * rz) <= depth * tanH && Math.abs(dx * ux + dy * uy + dz * uz) <= depth * tanV;
     }
 
     private boolean spawnFish(Plan plan, DomainState st, long time) {
@@ -1045,6 +1236,7 @@ public final class AmbientFishRuntime {
             spawnSkip("nowhere " + spec.species());
             return false;
         }
+        if (deferNearView(st, id, found, time)) return false;
         spawnSkip("spawned " + spec.species());
         Member m = new Member(plan.lifespan(), plan.species(), spec, body, visual.stack().copy(), visual.anim(), time, arriving);
         st.members.add(m);
@@ -1058,6 +1250,46 @@ public final class AmbientFishRuntime {
         }
         stats.spawns++;
         return true;
+    }
+
+    /**
+     * Holds back a fish whose spot is in view and near, so the player does not watch it appear:
+     * it is looked at again every {@link #DEFER_RETRY_TICKS} and spawns the moment the spot is out
+     * of view (or far enough), or after {@link #MAX_SPAWN_DEFER_TICKS} in any case; a fish in water
+     * the player keeps staring at is better faded in than never there.
+     */
+    private boolean deferNearView(DomainState st, long id, float[] found, long time) {
+        if (!nearViewSeen(st, found)) {
+            deferredSince.remove(id);
+            return false;
+        }
+        long since = deferredSince.computeIfAbsent(id, k -> time);
+        if (deferExpired(id, time)) {
+            deferredSince.remove(id);
+            stats.deferralsExpired++;
+            return false;
+        }
+        retryAfter.put(id, time + DEFER_RETRY_TICKS);
+        stats.deferrals++;
+        spawnSkip("deferred");
+        return true;
+    }
+
+    /** Whether a domain-local spot is in view and nearer than {@link #NEAR_VIEW_SPAWN_DISTANCE}. */
+    private boolean nearViewSeen(DomainState st, float[] found) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.gameRenderer == null || mc.player == null) return false;
+        var camera = mc.gameRenderer.getMainCamera();
+        double x = st.originX() + found[0], y = st.originY() + found[1], z = st.originZ() + found[2];
+        Vec3 eye = camera.position();
+        double dx = x - eye.x, dy = y - eye.y, dz = z - eye.z;
+        return dx * dx + dy * dy + dz * dz < NEAR_VIEW_SPAWN_DISTANCE * NEAR_VIEW_SPAWN_DISTANCE
+                && inView(mc, camera, x, y, z);
+    }
+
+    private boolean deferExpired(long id, long time) {
+        Long since = deferredSince.get(id);
+        return since != null && time - since >= MAX_SPAWN_DEFER_TICKS;
     }
 
     /**
@@ -1228,6 +1460,26 @@ public final class AmbientFishRuntime {
      * the probes cost five domain queries per fish per tick, so they run only while it is armed.
      */
     private static boolean invariantStats;
+
+    private static final java.lang.management.ThreadMXBean THREADS = java.lang.management.ManagementFactory.getThreadMXBean();
+
+    private long allocCursor;
+
+    /**
+     * Self-test only: charges what was allocated since the last mark to {@code section} (0 discovery,
+     * 1 domains, 2 roster, 3 reconcile/retire, 4 spawn, 5 engines, 6 the rest).
+     */
+    private void allocMark(int section) {
+        if (!invariantStats) return;
+        long now = allocatedBytes();
+        stats.allocBySection[section] += now - allocCursor;
+        allocCursor = now;
+    }
+
+    /** Bytes this thread has allocated so far, or 0 where the JVM cannot say. */
+    private static long allocatedBytes() {
+        return THREADS instanceof com.sun.management.ThreadMXBean sun ? sun.getCurrentThreadAllocatedBytes() : 0L;
+    }
 
     public static void setInvariantStats(boolean enabled) {
         invariantStats = enabled;

@@ -463,13 +463,14 @@ final class AmbientScenes {
             // domain was dropped under it, is the other direction and only shows as a shortfall.)
             check("ambientwater.accounted",
                     stats.retirements + stats.retiring <= stats.retireOpenFace + stats.retireInvalid
-                            + stats.retireDomainLost + stats.retireExcluded + stats.retireExpired,
+                            + stats.retireDomainLost + stats.retireExcluded + stats.retireExpired
+                            + stats.retireLeash + stats.retireDisplaced,
                     String.format("spawns=%d omissions=%d retirements=%d+fading%d (openFace=%d invalid=%d domainLost=%d"
-                                    + " excluded=%d expired=%d in %d domains)"
+                                    + " excluded=%d expired=%d leash=%d displaced=%d in %d domains)"
                                     + " minSurface=%.3f minBed=%.3f reads=%d columns=%d evicted=%d merges=%d truncated=%d unloaded=%d (last fixture)",
                             stats.spawns, stats.omissions, stats.retirements, stats.retiring,
                             stats.retireOpenFace, stats.retireInvalid, stats.retireDomainLost,
-                            stats.retireExcluded, stats.retireExpired, stats.domainsLost,
+                            stats.retireExcluded, stats.retireExpired, stats.retireLeash, stats.retireDisplaced, stats.domainsLost,
                             stats.minSurfaceClearance, stats.minBedClearance, stats.worldReads,
                             stats.discoveryColumns, stats.columnsEvicted, stats.patchMerges,
                             stats.truncatedColumns, stats.unloadedScans));
@@ -483,10 +484,20 @@ final class AmbientScenes {
         });
     }
 
+    /** The window the ambientwater fixtures were laid out for, with its domain and fish caps. */
+    private static final int FIXTURE_RADIUS = 24;
+
     /** Restarts the natural population where the player is standing; the camera step ran before. */
     private static void ambientWaterStart(String fixture) {
         grill24.fishtastic.client.ambient.ClientAmbientFish.clear();
         boolean started = grill24.fishtastic.client.ambient.ClientAmbientFish.startNatural();
+        // These fixtures were laid out for a 24-block window (the ocean's edge at the window's edge,
+        // the pool trip's walk-away distance); they test the window's mechanics, not the range
+        // policy, which the ambientswim scene measures. Pin the window they were built for.
+        var natural = grill24.fishtastic.client.ambient.ClientAmbientFish.natural();
+        var b = natural.budget();
+        natural.configure(new grill24.fishtastic.client.ambient.AmbientBudget(b.density(), FIXTURE_RADIUS,
+                b.columnsPerTick(), b.cellsPerTick(), 4, 64));
         check("ambientwater." + fixture + ".start", started,
                 grill24.fishtastic.client.ambient.ClientAmbientFish.natural().diagnostics().pool().toString());
     }
@@ -525,8 +536,9 @@ final class AmbientScenes {
         queue(80, mc -> {
             check("ambientisland.submitted", ClientAmbientFish.worldSubmitsThisFrame > 0,
                     "world submissions=" + ClientAmbientFish.worldSubmitsThisFrame);
-            check("ambientisland.budget", ClientAmbientFish.natural().stats().individuals <= 32,
-                    "50% global cap stays thirty-two");
+            check("ambientisland.budget", ClientAmbientFish.natural().stats().active
+                            <= ClientAmbientFish.natural().budget().individuals(),
+                    "living fish stay within the density cap (" + ClientAmbientFish.natural().budget().individuals() + ")");
             screenshot(mc, "ambientisland", "underwater");
             note("ambientisland " + ClientAmbientFish.natural().diagnostics().debugState());
         });
@@ -564,7 +576,7 @@ final class AmbientScenes {
                 .anyMatch(p -> p.species().endsWith("garden_eel") && !p.retiring()), mc -> {
             var runtime = ClientAmbientFish.natural();
             var stats = runtime.stats();
-            check("ambientfloor.population", stats.active >= 8 && stats.individuals <= 64 && stats.rosterDrawn > 0,
+            check("ambientfloor.population", stats.active >= 8 && stats.active <= runtime.budget().individuals() && stats.rosterDrawn > 0,
                     "active=" + stats.active + "/" + stats.individuals + " drawn=" + stats.rosterDrawn
                             + " pending=" + stats.rosterPending + " noDomain=" + stats.rosterNoDomain
                             + " " + runtime.diagnostics().debugState());
@@ -609,7 +621,7 @@ final class AmbientScenes {
         waitFor(10, 900, mc -> ClientAmbientFish.natural().stats().active >= 8, mc -> {
             var runtime = ClientAmbientFish.natural();
             var stats = runtime.stats();
-            check("ambientwalk.populated", stats.active >= 8 && stats.individuals <= 32 && stats.rosterDrawn > 0,
+            check("ambientwalk.populated", stats.active >= 8 && stats.active <= runtime.budget().individuals() && stats.rosterDrawn > 0,
                     "active=" + stats.active + "/" + stats.individuals + " drawn=" + stats.rosterDrawn
                             + " pending=" + stats.rosterPending + " noDomain=" + stats.rosterNoDomain
                             + " " + runtime.diagnostics().debugState());
@@ -671,6 +683,10 @@ final class AmbientScenes {
                 var resident = current.get(fish.id());
                 if (resident != null && !resident.retiring() && resident.patchKey() == fish.patchKey()
                         && resident.species().equals(fish.species())) preserved++;
+                else note(String.format("continuity lost id=%016x species=%s key=%d present=%s retiring=%s reason=%d nowKey=%d departure=%d now=%d",
+                        fish.id(), fish.species(), fish.patchKey(), resident != null,
+                        resident != null && resident.retiring(), resident == null ? -9 : resident.retireReason(),
+                        resident == null ? 0 : resident.patchKey(), departure, now));
             } else if (departure + grill24.fishtastic.client.ambient.AmbientTuning.POPULATION_FADE_TICKS <= now) {
                 completedExpiries++;
             }
@@ -843,11 +859,23 @@ final class AmbientScenes {
     private static void queueAmbientCarryCheck() {
         final java.util.Map<Long, double[]> before = new java.util.LinkedHashMap<>();
         final java.util.Map<Long, int[]> origins = new java.util.LinkedHashMap<>();
-        queue(1, mc -> {
+        // Snapshot only once no domain is going away: a patch merge (the ocean is found as two
+        // patches that later join) drops the absorbed domain and re-hosts its residents under the
+        // winner's key — real, but a merge, not the rebuild carry this checks. When the merge lands
+        // depends on discovery's scan order, so the snapshot waits it out rather than racing it.
+        waitFor(5, 400, mc -> grill24.fishtastic.client.ambient.ClientAmbientFish.natural().diagnostics().individuals()
+                .stream().noneMatch(p -> p.retiring()
+                        && p.retireReason() == grill24.fishtastic.client.ambient.AmbientFishRuntime.REASON_DOMAIN_LOST), mc -> {
             before.clear();
             origins.clear();
             var runtime = grill24.fishtastic.client.ambient.ClientAmbientFish.natural();
-            for (var p : runtime.diagnostics().individuals()) before.put(p.id(), new double[]{p.x(), p.y(), p.z(), p.patchKey()});
+            java.util.Map<Integer, Integer> fadingByReason = new java.util.TreeMap<>();
+            for (var p : runtime.diagnostics().individuals()) {
+                before.put(p.id(), new double[]{p.x(), p.y(), p.z(), p.patchKey()});
+                if (p.retiring()) fadingByReason.merge(p.retireReason(), 1, Integer::sum);
+            }
+            note("ambientwater.carry snapshot fading by reason " + fadingByReason + " "
+                    + runtime.diagnostics().debugState());
             for (var r : runtime.diagnostics().domainReports()) {
                 origins.put(r.patchKey(), new int[]{r.originX(), r.originY(), r.originZ()});
             }
@@ -862,7 +890,12 @@ final class AmbientScenes {
                 double[] was = before.get(p.id());
                 if (was == null) continue;
                 survived++;
-                if ((long) was[3] != p.patchKey()) keyChanged++;
+                if ((long) was[3] != p.patchKey()) {
+                    keyChanged++;
+                    note(String.format("ambientwater.carry key changed id=%016x %d->%d retiring=%s reason=%d born=%d now=%d moved=%.2f",
+                            p.id(), (long) was[3], p.patchKey(), p.retiring(), p.retireReason(), p.bornTick(),
+                            mc.level.getGameTime(), Math.sqrt(Math.pow(p.x() - was[0], 2) + Math.pow(p.z() - was[2], 2))));
+                }
                 double d = Math.sqrt(Math.pow(p.x() - was[0], 2) + Math.pow(p.y() - was[1], 2) + Math.pow(p.z() - was[2], 2));
                 worst = Math.max(worst, d);
                 if (d > 4.0) jumped++;
@@ -894,7 +927,7 @@ final class AmbientScenes {
      */
     private static void queueAmbientBandWatchCheck(int x, int y, int z) {
         final java.util.Set<Long> tracked = new java.util.LinkedHashSet<>();
-        final long[] base = new long[8]; // key, columns, deferred, domainsLost, retireDomainLost, retireInvalid, retireExcluded, retireExpired
+        final long[] base = new long[9]; // key, columns, deferred, domainsLost, retireDomainLost, retireInvalid, retireExcluded, retireExpired, retireDisplaced
         queue(1, mc -> camera(mc, x + 0.5, y - 0.2, z + 0.5, -90f, 2f));
         queue(40, mc -> {
             var runtime = grill24.fishtastic.client.ambient.ClientAmbientFish.natural();
@@ -917,6 +950,7 @@ final class AmbientScenes {
             base[5] = s.retireInvalid;
             base[6] = s.retireExcluded;
             base[7] = s.retireExpired;
+            base[8] = s.retireDisplaced;
             check("ambientwater.bandwatch.snapshot", tracked.size() >= 4 && base[1] >= 4,
                     "tracked=" + tracked.size() + " key=" + base[0] + " columns=" + base[1]
                             + " deferred=" + base[2]);
@@ -932,7 +966,8 @@ final class AmbientScenes {
             }
             var s = runtime.stats();
             int columns = runtime.diagnostics().patchColumns(base[0]);
-            long benign = (s.retireExcluded - base[6]) + (s.retireExpired - base[7]);
+            // A displaced resident (cap full, out of view, a nearer fish waiting) is turnover too.
+            long benign = (s.retireExcluded - base[6]) + (s.retireExpired - base[7]) + (s.retireDisplaced - base[8]);
             // The ocean's corners lie beyond the eviction radius (dx^2+dz^2 > 32^2), so eviction
             // sheds those 24 columns whenever the sweep has just re-cached them and the count
             // breathes between 2377 and 2401. Allow that band — the hazard this watches for is a

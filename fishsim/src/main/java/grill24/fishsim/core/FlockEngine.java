@@ -3426,6 +3426,8 @@ public final class FlockEngine {
      * however decorated the group (§12.3 "Binned").
      */
     private int[][] obstacleBins = new int[0][];
+    /** The single empty bin of a domain without obstacles. */
+    private static final int[][] NO_OBSTACLE_BINS = {new int[0]};
     private float binMinL, binMinY, binMinD;
     private int binsL = 1, binsY = 1, binsD = 1;
     /** This step steers round obstacles: a planar domain with some in it. */
@@ -3445,6 +3447,14 @@ public final class FlockEngine {
         binMinL = domain.minLateral();
         binMinY = domain.minVertical();
         binMinD = domain.minDepth();
+        if (obstacleHulls.length == 0) {
+            // Nothing to bin: one empty bin answers every lookup. Binning an empty list over the
+            // whole domain allocated one array per cubic block — ~39k of them for an ambient
+            // window of radius 32, on every rebuild (ambientswim allocation profile).
+            binsL = binsY = binsD = 1;
+            obstacleBins = NO_OBSTACLE_BINS;
+            return;
+        }
         binsL = obstacleBinning ? Math.max(1, (int) Math.ceil(domain.maxLateral() - binMinL)) : 1;
         binsY = obstacleBinning ? Math.max(1, (int) Math.ceil(domain.maxVertical() - binMinY)) : 1;
         binsD = obstacleBinning ? Math.max(1, (int) Math.ceil(domain.maxDepth() - binMinD)) : 1;

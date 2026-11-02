@@ -184,7 +184,7 @@ public final class RenderSelfTest {
 
     private static final List<String> OPT_IN_SCENES = List.of("matte", "matteclip", "fourwaters", "fishspin", "cathedral",
             "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench", "leaderboard", "encyclopedia", "portrait", "tutorial", "companiontutorial",
-            "companionbond", "companionsim", "companionparty", "companioneel", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld", "companionparticles", "companionworldcost", "ambientparity", "ambientwater", "ambientisland", "ambientfloor", "ambientwalk", "fishschoolgif", "fishschooljump", "legendarybreach", "fishschoolbite", "fishschoolreach", "fishschoolperf", "fishschoolshapes", "fishschoolclasses", "fishschoolcrab", "questbook", "celebrationoverlap", "forgereview", "partyseed", "partyobserver", "partyreturn");
+            "companionbond", "companionsim", "companionparty", "companioneel", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld", "companionparticles", "companionworldcost", "ambientparity", "ambientwater", "ambientisland", "ambientfloor", "ambientwalk", "ambientswim", "fishschoolgif", "fishschooljump", "legendarybreach", "fishschoolbite", "fishschoolreach", "fishschoolperf", "fishschoolshapes", "fishschoolclasses", "fishschoolcrab", "questbook", "celebrationoverlap", "forgereview", "partyseed", "partyobserver", "partyreturn");
 
     static Boolean armed;
     /** Keep ordinary automatic features from interfering with explicitly armed fixture scenes. */
@@ -447,6 +447,7 @@ public final class RenderSelfTest {
             case "ambientisland" -> queueAmbientIslandScene();
             case "ambientfloor" -> queueAmbientFloorScene();
             case "ambientwalk" -> queueAmbientWalkScene();
+            case "ambientswim" -> AmbientSwimScene.queueAmbientSwimScene();
             case "fishschoolgif" -> queueFishSchoolGifScene();
             case "fishschooljump" -> queueFishSchoolJumpScene();
             case "legendarybreach" -> queueLegendaryBreachScene();
