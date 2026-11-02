@@ -226,6 +226,26 @@ loom {
     }
 }
 
+// Forge 47's gameTestServer environment is a full dedicated server that creates its world from
+// <runDir>/server.properties - by default level-type=normal with a random seed - not vanilla's
+// GameTestServer world (flat plains, seed 0, no structures) that Fabric and NeoForge run on. On a
+// random noise world the biome under the test grid changes every run, so habitat-dependent tests
+// (fish schools, visits, bites) failed whenever their plot landed in an ocean ("flaky"). Pin the
+// vanilla test world here; DedicatedServerSettings keeps keys it finds and fills in the rest.
+tasks.matching { it.name == 'runGametest' }.configureEach {
+    doFirst {
+        File props = file("build/gametest/server.properties")
+        props.parentFile.mkdirs()
+        Properties p = new Properties()
+        if (props.exists()) props.withInputStream { p.load(it) }
+        p.setProperty('level-type', 'minecraft:flat')
+        p.setProperty('level-seed', '0')
+        p.setProperty('generate-structures', 'false')
+        p.setProperty('generator-settings', '{}')
+        props.withOutputStream { p.store(it, 'Pinned by forge/build.gradle runGametest (vanilla GameTestServer world)') }
+    }
+}
+
 // JEI's own DistExecutor.safeRunWhenOn(CLIENT, ...) fires during its client init and calls
 // I18n.get(...) by its SRG name; Architectury Loom's runtime remapper doesn't reliably have that
 // name resolved on net.minecraft.client.resources.language.I18n by the time JEI's CONSTRUCT event
