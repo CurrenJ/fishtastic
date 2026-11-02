@@ -59,9 +59,8 @@ dependencies {
     compileOnly("mezz.jei:jei-${rootProject.minecraft_version}-common-api:${rootProject.jei_version}")
 
     // MixinExtras (@WrapOperation/@Local, used by 4 mixins). Fabric Loader bundles this at
-    // runtime already; Forge 47 (unlike NeoForge) doesn't, so it's shaded into the Forge jar
-    // explicitly (forge/build.gradle's shadowBundle) with a manual-bootstrap plugin
-    // (FishtasticMixinExtrasPlugin) — see docs/backport-pass2/track-b-1.20.1.md "B6.1 as built".
+    // runtime already; Forge 47 (unlike NeoForge) doesn't, so the Forge jar JarJars the
+    // mixinextras-forge artifact (forge/build.gradle), which initialises itself.
     // compileOnly here since each platform provides (or bundles) its own copy at runtime.
     compileOnly "io.github.llamalad7:mixinextras-common:0.5.4"
 

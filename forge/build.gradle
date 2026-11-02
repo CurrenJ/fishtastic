@@ -60,18 +60,23 @@ dependencies {
     common(project(path: ':common', configuration: 'namedElements')) { transitive = false }
     shadowBundle project(path: ':common', configuration: 'transformProductionForge')
 
-    // MixinExtras (B6.1, docs/backport-pass2/track-b-1.20.1.md "B6.1 as built"): Forge 47 has no
-    // built-in MixinExtras (unlike NeoForge) and this module doesn't use the JarJar packaging the
-    // published mixinextras-forge artifact expects (a nested jar, meant to be unpacked by FML's
-    // JarJar dependency locator) — so mixinextras-common's flat classes are shaded straight into
-    // the jar instead, bootstrapped manually by FishtasticMixinExtrasPlugin.
-    // forgeRuntimeLibrary is what makes it visible in dev runs: a plain `implementation` jar only
-    // lands on the JVM classpath, which ModLauncher's module layers can't see, so the plugin's
-    // onLoad threw NoClassDefFoundError on "main" — printed only to stderr, never to the log files,
-    // and the JVM then idled forever on FML's non-daemon pool threads (the B6.1 "hang").
-    implementation "io.github.llamalad7:mixinextras-common:0.5.4"
+    // MixinExtras: Forge 47 doesn't ship it, so it is JarJar'd the way MixinExtras' own setup guide
+    // says and every other Forge mod does it (Farmer's Delight, Embeddium, ModernFix, ...): the
+    // published mixinextras-forge artifact is nested under META-INF/jarjar via `include`, FML picks
+    // one copy (the newest) across all mods, and that copy initialises itself — no shading and no
+    // manual MixinExtrasBootstrap.init(). The B6.1 approach (shade mixinextras-common + a bootstrap
+    // plugin) crashed any pack where another mod also JarJars MixinExtras: two JPMS modules exported
+    // com.llamalad7.mixinextras.* and the JVM died on "main" before writing a log line (found
+    // boot-testing a 65-mod pack, 2026-11-02).
+    // forgeRuntimeLibrary keeps it visible in dev runs: a plain `implementation` jar only lands on
+    // the JVM classpath, which ModLauncher's module layers can't see (the B6.1 dev "hang"). Forge
+    // 47's dev runtime also doesn't unpack the MixinExtras jar nested inside the -forge wrapper
+    // (Forge 52's does), so dev additionally needs -common for the classes themselves; without it
+    // runGametest dies with ClassMetadataNotFoundException: ...wrapoperation.Operation. Dev-only:
+    // neither line changes the shipped jar.
+    implementation(include("io.github.llamalad7:mixinextras-forge:0.5.4"))
+    forgeRuntimeLibrary "io.github.llamalad7:mixinextras-forge:0.5.4"
     forgeRuntimeLibrary "io.github.llamalad7:mixinextras-common:0.5.4"
-    shadowBundle "io.github.llamalad7:mixinextras-common:0.5.4"
 
     // Flocking engine (docs/fish-sim-engine-plan.md): runtime code, so it needs BOTH a dev
     // classpath dep and a shadowBundle entry — dev runs resolve the former, the shipped jar only
@@ -185,6 +190,17 @@ loom {
     }
 
     runs {
+        // Dev only: in a real install FML's JarJar locator unpacks the nested mixinextras-forge and
+        // its manifest registers mixinextras.init.mixins.json, whose plugin initialises MixinExtras.
+        // Forge 47's dev runtime never treats the forgeRuntimeLibrary copy that way (Forge 52's
+        // does), so without this nothing initialises MixinExtras in dev and every
+        // @WrapOperation/@Local injector is silently skipped (runGametest's
+        // daytimeadvancesattheappliedrate: "expected 125, got 200"). Run configs only — the shipped
+        // manifest still lists just Fishtastic's own configs.
+        configureEach {
+            programArgs "--mixin.config", "mixinextras.init.mixins.json"
+        }
+
         client {
             programArgs "--width", "1600", "--height", "900"
         }
