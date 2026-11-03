@@ -28,6 +28,11 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void aerationWorksWhileHoldingAnItem(GameTestHelper helper) {
+        MarineCompostGameTests.aerationWorksWhileHoldingAnItem(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void pileRightClickDealsPileIntoOneSlot(GameTestHelper helper) {
         PileOfFishClickGameTests.rightClickDealsPileIntoOneSlot(helper, helper::makeMockServerPlayerInLevel);
     }

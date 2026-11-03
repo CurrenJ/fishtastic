@@ -98,6 +98,8 @@ public class NeoForgeGameTestRegistration {
         // ----- Marine Compost tests -----
         register(event, env, "aeration_cap_at_five", 200,
             MarineCompostGameTests::aerationCapAtFive);
+        register(event, env, "aeration_works_while_holding_an_item", 200,
+            helper -> MarineCompostGameTests.aerationWorksWhileHoldingAnItem(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "pile_right_click_deals_pile_into_one_slot", 200,
             helper -> PileOfFishClickGameTests.rightClickDealsPileIntoOneSlot(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "pile_right_click_merges_identical_fish_onto_slot_stack", 200,

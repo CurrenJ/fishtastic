@@ -32,6 +32,11 @@ public class ForgeFishtasticGameTests {
     }
 
     @GameTest(structure = "fishtastic:empty_testarea")
+    public static void aerationWorksWhileHoldingAnItem(GameTestHelper helper) {
+        MarineCompostGameTests.aerationWorksWhileHoldingAnItem(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
     public static void pileRightClickDealsPileIntoOneSlot(GameTestHelper helper) {
         PileOfFishClickGameTests.rightClickDealsPileIntoOneSlot(helper, helper::makeMockServerPlayerInLevel);
     }
