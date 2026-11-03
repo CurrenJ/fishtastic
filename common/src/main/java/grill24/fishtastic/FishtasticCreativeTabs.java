@@ -26,7 +26,6 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.ARCTIC_CHAR.value());
                     output.accept(FishtasticItems.BETTA.value());
                     output.accept(FishtasticItems.BLACK_GHOST_KNIFEFISH.value());
-                    output.accept(FishtasticItems.BLAZED_GRUB.value());
                     output.accept(FishtasticItems.BLIND_CAVEFISH.value());
                     output.accept(FishtasticItems.BLIND_CAVE_TETRA.value());
                     output.accept(FishtasticItems.BLUEGILL.value());
@@ -53,7 +52,6 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.GOLDEN_TROUT.value());
                     output.accept(FishtasticItems.GREENSTRIPE_BARB.value());
                     output.accept(FishtasticItems.HELLBENDER.value());
-                    output.accept(FishtasticItems.GUMMY_WORMS.value());
                     output.accept(FishtasticItems.INDIAN_GLASSY_FISH.value());
                     output.accept(FishtasticItems.JAPANESE_SPIDER_CRAB.value());
                     output.accept(FishtasticItems.LARGETOOTH_SAWFISH.value());
@@ -87,11 +85,15 @@ public class FishtasticCreativeTabs {
                     output.accept(FishtasticItems.WILLANS_CHROMODORIS.value());
                     output.accept(FishtasticItems.YELLOWLINE_GOBY.value());
                     output.accept(FishtasticItems.YELLOWSTRIPE_GRUNT.value());
+
+                    // Bait
                     output.accept(FishtasticItems.WORMS.value());
                     output.accept(FishtasticItems.SMALL_FISH_BAIT.value());
                     output.accept(FishtasticItems.CALM_BAIT.value());
                     output.accept(FishtasticItems.FRENZY_BAIT.value());
                     output.accept(FishtasticItems.TROPHY_BAIT.value());
+                    output.accept(FishtasticItems.BLAZED_GRUB.value());
+                    output.accept(FishtasticItems.GUMMY_WORMS.value());
                     output.accept(FishtasticItems.HOOK.value());
                     output.accept(FishtasticItems.OLD_COPPER_HOOK.value());
                     output.accept(FishtasticItems.GOLDEN_HOOK.value());
