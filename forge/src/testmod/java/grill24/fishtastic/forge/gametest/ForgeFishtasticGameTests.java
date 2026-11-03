@@ -37,6 +37,11 @@ public class ForgeFishtasticGameTests {
     }
 
     @GameTest(structure = "fishtastic:empty_testarea")
+    public static void assemblyPrefersAnAxe(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.assemblyPrefersAnAxe(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
     public static void pileRightClickDealsPileIntoOneSlot(GameTestHelper helper) {
         PileOfFishClickGameTests.rightClickDealsPileIntoOneSlot(helper, helper::makeMockServerPlayerInLevel);
     }

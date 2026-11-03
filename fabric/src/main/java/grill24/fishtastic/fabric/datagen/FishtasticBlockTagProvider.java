@@ -13,6 +13,7 @@ import java.util.concurrent.CompletableFuture;
  *
  * <ul>
  *   <li>Fish Tank – mineable with axe and pickaxe</li>
+ *   <li>Fish Tank Assembly – mineable with axe (a wooden workbench)</li>
  * </ul>
  */
 public class FishtasticBlockTagProvider extends FabricTagsProvider.BlockTagsProvider {
@@ -24,7 +25,8 @@ public class FishtasticBlockTagProvider extends FabricTagsProvider.BlockTagsProv
     @Override
     protected void addTags(HolderLookup.Provider registries) {
         valueLookupBuilder(BlockTags.MINEABLE_WITH_AXE)
-                .add(FishtasticBlocks.FISH_TANK.value());
+                .add(FishtasticBlocks.FISH_TANK.value())
+                .add(FishtasticBlocks.FISH_TANK_ASSEMBLY.value());
 
         valueLookupBuilder(BlockTags.MINEABLE_WITH_PICKAXE)
                 .add(FishtasticBlocks.FISH_TANK.value());

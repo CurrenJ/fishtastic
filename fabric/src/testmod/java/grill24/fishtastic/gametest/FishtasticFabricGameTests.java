@@ -33,6 +33,11 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void assemblyPrefersAnAxe(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.assemblyPrefersAnAxe(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void pileRightClickDealsPileIntoOneSlot(GameTestHelper helper) {
         PileOfFishClickGameTests.rightClickDealsPileIntoOneSlot(helper, helper::makeMockServerPlayerInLevel);
     }
