@@ -21,6 +21,8 @@ public final class FishEncyclopediaClientCache {
     /** Species seen through a spyglass (world fish exploration E7): name, portrait and habitat open without a catch. */
     private static Set<Identifier> observedSpecies = new HashSet<>();
     private static Consumer<Identifier> observedListener;
+    /** False until the first sync of the session lands; {@link UndiscoveredFish} hides nothing before it. */
+    private static boolean synced;
 
     private FishEncyclopediaClientCache() {}
 
@@ -38,6 +40,7 @@ public final class FishEncyclopediaClientCache {
     public static void update(Map<Identifier, Integer> catchCounts, List<LeaderboardEntry> personalBest,
                                List<LeaderboardEntry> globalBest, List<String> claimedRewards,
                                List<Identifier> observed, List<Identifier> newlyObserved) {
+        synced = true;
         personalCatchCounts = new HashMap<>(catchCounts);
         personalBestSizes = new HashMap<>();
         for (LeaderboardEntry entry : personalBest) {
@@ -59,6 +62,10 @@ public final class FishEncyclopediaClientCache {
     /** The one listener told of each freshly observed species (the HUD banner). */
     public static void setObservedListener(Consumer<Identifier> listener) {
         observedListener = listener;
+    }
+
+    public static boolean hasSynced() {
+        return synced;
     }
 
     public static int getCatchCount(Identifier fishType) {
@@ -91,6 +98,7 @@ public final class FishEncyclopediaClientCache {
     }
 
     public static void reset() {
+        synced = false;
         personalCatchCounts = new HashMap<>();
         personalBestSizes = new HashMap<>();
         globalBestSizes = new HashMap<>();

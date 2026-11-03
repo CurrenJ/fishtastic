@@ -68,6 +68,8 @@ public final class FishtasticFabric implements ModInitializer {
         // Send quest and tutorial state to player on world join
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             QuestSyncPacket.sendToPlayer(handler.getPlayer(), FishCatchSavedData.getOrCreate(server));
+            // Which species are discovered: undiscovered fish show as silhouettes named "???".
+            grill24.fishtastic.network.FishEncyclopediaSyncPacket.sendToPlayer(handler.getPlayer(), FishCatchSavedData.getOrCreate(server));
             grill24.fishtastic.tutorial.TutorialManager.onPlayerJoin(handler.getPlayer());
         });
     }

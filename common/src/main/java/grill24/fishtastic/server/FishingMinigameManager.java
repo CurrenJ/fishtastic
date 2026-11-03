@@ -516,6 +516,12 @@ public class FishingMinigameManager {
         // already sent one it will have announced it, but when no quest moved, this is the
         // only sync of the catch — the unlock banner must not be left waiting for the next one.
         boolean bondBannerPending = catchDb.getOrCreateQuestState(player).hasPendingCompanionBanners();
+        // A first catch reveals the species everywhere on the client (icons stop being silhouettes,
+        // names stop reading "???"), so the encyclopedia cache must learn of it — ahead of the
+        // first-catch banner below.
+        if (!result.firstCatchItems().isEmpty()) {
+            grill24.fishtastic.network.FishEncyclopediaSyncPacket.sendToPlayer(player, catchDb);
+        }
         if (!baitDepletedItem.isEmpty() || !result.firstCatchItems().isEmpty() || bondBannerPending) {
             QuestSyncPacket.sendToPlayer(player, catchDb, Map.of(), 0, baitDepletedItem, result.firstCatchItems());
         }
@@ -665,6 +671,9 @@ public class FishingMinigameManager {
             }
         }
 
+        if (!allFirstCatches.isEmpty()) {
+            grill24.fishtastic.network.FishEncyclopediaSyncPacket.sendToPlayer(player, catchDb);
+        }
         if (!allFirstCatches.isEmpty() || catchDb.getOrCreateQuestState(player).hasPendingCompanionBanners()) {
             QuestSyncPacket.sendToPlayer(player, catchDb, Map.of(), 0, ItemStack.EMPTY, allFirstCatches);
         }

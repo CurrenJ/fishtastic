@@ -107,6 +107,8 @@ public final class FishtasticNeoForge {
         NeoForge.EVENT_BUS.addListener((OnDatapackSyncEvent event) -> {
             if (event.getPlayer() == null) return;
             QuestSyncPacket.sendToPlayer(event.getPlayer(), FishCatchSavedData.getOrCreate(((ServerLevel) event.getPlayer().level()).getServer()));
+            // Which species are discovered: undiscovered fish show as silhouettes named "???".
+            grill24.fishtastic.network.FishEncyclopediaSyncPacket.sendToPlayer(event.getPlayer(), FishCatchSavedData.getOrCreate(((ServerLevel) event.getPlayer().level()).getServer()));
             grill24.fishtastic.tutorial.TutorialManager.onPlayerJoin(event.getPlayer());
         });
 

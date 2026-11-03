@@ -2,10 +2,12 @@ package grill24.fishtastic.mixin;
 
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItemData;
+import grill24.fishtastic.client.UndiscoveredFish;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.component.ItemSize;
 import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.itemeffect.ItemEffectManager;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -24,6 +26,13 @@ public abstract class ItemStackMixin {
     @Inject(method = "getTooltipLines", at = @At("RETURN"))
     public void modifyTooltipLines(Item.TooltipContext tooltipContext, Player player, TooltipFlag tooltipFlag, CallbackInfoReturnable<List<Component>> cir) {
         ItemStack itemStack = (ItemStack)(Object)this;
+        if (UndiscoveredFish.isHidden(itemStack)) {
+            // Name line only (already "???" via getHoverName): size, quality and the advanced
+            // tooltip's registry id would all give the species away.
+            List<Component> lines = cir.getReturnValue();
+            if (lines.size() > 1) cir.setReturnValue(new java.util.ArrayList<>(lines.subList(0, 1)));
+            return;
+        }
         boolean tooltipHidden = FishtasticItemData.isTooltipHidden(itemStack);
         if (player == null || player.isCreative() || !tooltipHidden) {
             List<Component> tooltipLines = cir.getReturnValue();
@@ -45,6 +54,20 @@ public abstract class ItemStackMixin {
             if (shape != null) {
                 shape.addToTooltip(tooltipContext, tooltipLines::add, tooltipFlag, itemStack);
             }
+        }
+    }
+
+    /**
+     * Undiscovered species read "???" wherever the client names them (tooltips, the hotbar
+     * selection popup, JEI). {@link UndiscoveredFish#isHidden} only answers on the client's own
+     * thread, so the integrated server's names (chat, death messages) are untouched. A player's
+     * own custom name is kept: it says nothing the player didn't choose.
+     */
+    @Inject(method = "getHoverName", at = @At("RETURN"), cancellable = true)
+    public void hideUndiscoveredFishName(CallbackInfoReturnable<Component> cir) {
+        ItemStack itemStack = (ItemStack)(Object)this;
+        if (!itemStack.has(DataComponents.CUSTOM_NAME) && UndiscoveredFish.isHidden(itemStack)) {
+            cir.setReturnValue(UndiscoveredFish.hiddenName());
         }
     }
 

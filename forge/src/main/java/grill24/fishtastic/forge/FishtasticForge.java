@@ -93,6 +93,9 @@ public final class FishtasticForge {
             if (event.getEntity() instanceof net.minecraft.server.level.ServerPlayer player) {
                 QuestSyncPacket.sendToPlayer(player,
                         FishCatchSavedData.getOrCreate(player.level().getServer()));
+                // Which species are discovered: undiscovered fish show as silhouettes named "???".
+                grill24.fishtastic.network.FishEncyclopediaSyncPacket.sendToPlayer(player,
+                        FishCatchSavedData.getOrCreate(player.level().getServer()));
                 grill24.fishtastic.tutorial.TutorialManager.onPlayerJoin(player);
                 grill24.fishtastic.network.CompanionPartySyncPacket.onPlayerJoin(player);
             }

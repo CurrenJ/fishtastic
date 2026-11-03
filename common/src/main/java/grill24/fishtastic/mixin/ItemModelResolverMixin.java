@@ -1,5 +1,6 @@
 package grill24.fishtastic.mixin;
 
+import grill24.fishtastic.client.UndiscoveredFish;
 import grill24.fishtastic.client.renderer.FishtasticGlintState;
 import grill24.fishtastic.client.renderer.FishtasticItemStackRenderState;
 import grill24.fishtastic.itemeffect.ItemEffect;
@@ -47,7 +48,10 @@ public class ItemModelResolverMixin {
             FishtasticGlintState.GUI_EFFECT_MAP.remove(output);
         }
 
-        if (Boolean.TRUE.equals(FishtasticGlintState.SILHOUETTE_REQUESTED.get())) {
+        // Never-discovered species are silhouetted in every GUI (creative tabs, JEI, inventories),
+        // not just the encyclopedia that requests it explicitly.
+        if (Boolean.TRUE.equals(FishtasticGlintState.SILHOUETTE_REQUESTED.get())
+                || (displayContext == ItemDisplayContext.GUI && UndiscoveredFish.isHidden(item))) {
             FishtasticGlintState.GUI_SILHOUETTE_MAP.put(output, Boolean.TRUE);
         } else {
             FishtasticGlintState.GUI_SILHOUETTE_MAP.remove(output);
