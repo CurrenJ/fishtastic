@@ -24,6 +24,7 @@ import grill24.fishtastic.gametest.FishingTargetGameTests;
 import grill24.fishtastic.gametest.ItemComponentGameTests;
 import grill24.fishtastic.gametest.ItemEffectConditionGameTests;
 import grill24.fishtastic.gametest.MarineCompostGameTests;
+import grill24.fishtastic.gametest.PileOfFishClickGameTests;
 import grill24.fishtastic.gametest.MathUtilGameTests;
 import grill24.fishtastic.gametest.PacketRoundTripGameTests;
 import grill24.fishtastic.gametest.PlayerQuestStateGameTests;
@@ -97,6 +98,10 @@ public class NeoForgeGameTestRegistration {
         // ----- Marine Compost tests -----
         register(event, env, "aeration_cap_at_five", 200,
             MarineCompostGameTests::aerationCapAtFive);
+        register(event, env, "pile_right_click_deals_pile_into_one_slot", 200,
+            helper -> PileOfFishClickGameTests.rightClickDealsPileIntoOneSlot(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "pile_right_click_merges_identical_fish_onto_slot_stack", 200,
+            helper -> PileOfFishClickGameTests.rightClickMergesIdenticalFishOntoSlotStack(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "conversion_takes_base_ticks", 6100,
             MarineCompostGameTests::conversionTakesBaseTicks);
         register(event, env, "aeration_reduces_conversion_time", 5000,

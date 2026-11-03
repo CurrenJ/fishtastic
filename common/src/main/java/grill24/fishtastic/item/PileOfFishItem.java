@@ -339,23 +339,82 @@ public class PileOfFishItem extends BundleItem {
                 }
             }
 
-            BundleContents updatedContents = contents.toImmutable();
-            if (updatedContents.isEmpty()) {
-                // Pile is now empty — destruct
-                self.shrink(1);
-            } else if (updatedContents.items().size() == 1) {
-                // Only 1 item left — decompose pile into that item
-                ItemStack singleItem = updatedContents.items().get(0).create();
-                self.shrink(1);
-                player.containerMenu.setCarried(singleItem);
-            } else {
-                FishtasticItemData.setBundleContents(self, updatedContents);
+            settleCarriedPile(self, contents.toImmutable(), player);
+            broadcastChangesOnContainerMenu(player);
+            return true;
+        } else if (clickAction == ClickAction.SECONDARY
+                && (canInsertInPile(other) || other.getItem() instanceof PileOfFishItem)) {
+            // Repeated right-clicks over a slot this pile just dropped fish into keep depositing
+            // there instead of falling through to vanilla, which would swap the whole pile into it.
+            if (!slot.allowModification(player) || !depositOneEntry(contents, slot, other)) {
+                playInsertFailSound(player);
+                return true; // consume click; the carried pile is untouched
             }
+            playRemoveOneSound(player);
+            settleCarriedPile(self, contents.toImmutable(), player);
             broadcastChangesOnContainerMenu(player);
             return true;
         }
 
         return false;
+    }
+
+    /**
+     * Moves the carried pile's next entry ({@link BundleContents.Mutable#removeOne}) into an occupied
+     * slot: merged onto an identical stack, added to a slot pile, or combined with the slot's fish
+     * into a new pile. Returns false (leaving the slot unchanged) when nothing could move; the caller
+     * then discards {@code carried}, so a failed attempt never needs undoing.
+     */
+    private static boolean depositOneEntry(BundleContents.Mutable carried, Slot slot, ItemStack slotStack) {
+        ItemStack removed = carried.removeOne();
+        if (removed == null) return false;
+
+        if (ItemStack.isSameItemSameComponents(removed, slotStack)) {
+            int before = removed.getCount();
+            removed = slot.safeInsert(removed);
+            if (removed.getCount() != before) {
+                if (!removed.isEmpty()) carried.tryInsert(removed);
+                return true;
+            }
+            // Full (or unstackable) slot stack: fall through and pile the two together instead.
+        }
+
+        boolean slotIsPile = slotStack.getItem() instanceof PileOfFishItem;
+        BundleContents slotContents = slotIsPile ? FishtasticItemData.bundleContents(slotStack) : BundleContents.EMPTY;
+        if (slotContents == null) return false;
+        BundleContents.Mutable target = new BundleContents.Mutable(slotContents);
+        if (!slotIsPile) {
+            ItemStack slotCopy = slotStack.copy();
+            target.tryInsert(slotCopy);
+            if (!slotCopy.isEmpty()) return false; // the slot's stack alone is too heavy for a pile
+        }
+        if (target.tryInsert(removed) == 0) return false;
+        if (!removed.isEmpty()) carried.tryInsert(removed);
+
+        ItemStack pile = slotIsPile ? slotStack : new ItemStack(FishtasticItems.PILE_OF_FISH.value());
+        FishtasticItemData.setBundleContents(pile, target.toImmutable());
+        if (slotIsPile) {
+            slot.setChanged();
+        } else {
+            if (!slot.mayPlace(pile)) return false;
+            slot.setByPlayer(pile);
+        }
+        return true;
+    }
+
+    /** Writes a carried pile's remaining contents back, destroying or decomposing it as it empties. */
+    private static void settleCarriedPile(ItemStack self, BundleContents updatedContents, Player player) {
+        if (updatedContents.isEmpty()) {
+            // Pile is now empty — destruct
+            self.shrink(1);
+        } else if (updatedContents.items().size() == 1) {
+            // Only 1 item left — decompose pile into that item
+            ItemStack singleItem = updatedContents.items().get(0).create();
+            self.shrink(1);
+            player.containerMenu.setCarried(singleItem);
+        } else {
+            FishtasticItemData.setBundleContents(self, updatedContents);
+        }
     }
 
     @Override
@@ -436,6 +495,20 @@ public class PileOfFishItem extends BundleItem {
                 slot.setByPlayer(singleItem);
             } else {
                 FishtasticItemData.setBundleContents(self, updatedContents);
+            }
+            broadcastChangesOnContainerMenu(player);
+            return true;
+        } else if (clickAction == ClickAction.SECONDARY && canInsertInPile(other)) {
+            // Right-click with a fish on a pile adds one, like right-clicking a stack onto a slot —
+            // the tail end of dealing a carried pile out, once it has decomposed to a single fish.
+            ItemStack one = other.copyWithCount(1);
+            if (slot.allowModification(player) && contents.tryInsert(one) > 0) {
+                other.shrink(1);
+                if (other.isEmpty()) carriedItem.set(ItemStack.EMPTY);
+                FishtasticItemData.setBundleContents(self, contents.toImmutable());
+                playInsertSound(player);
+            } else {
+                playInsertFailSound(player);
             }
             broadcastChangesOnContainerMenu(player);
             return true;

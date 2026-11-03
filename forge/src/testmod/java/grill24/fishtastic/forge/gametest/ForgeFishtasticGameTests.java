@@ -31,6 +31,16 @@ public class ForgeFishtasticGameTests {
         MarineCompostGameTests.aerationCapAtFive(helper);
     }
 
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void pileRightClickDealsPileIntoOneSlot(GameTestHelper helper) {
+        PileOfFishClickGameTests.rightClickDealsPileIntoOneSlot(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void pileRightClickMergesIdenticalFishOntoSlotStack(GameTestHelper helper) {
+        PileOfFishClickGameTests.rightClickMergesIdenticalFishOntoSlotStack(helper, helper::makeMockServerPlayerInLevel);
+    }
+
     @GameTest(structure = "fishtastic:empty_testarea", maxTicks = 6100)
     public static void conversionTakesBaseTicks(GameTestHelper helper) {
         MarineCompostGameTests.conversionTakesBaseTicks(helper);
