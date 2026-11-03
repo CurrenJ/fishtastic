@@ -40,6 +40,20 @@ public final class FishVisuals {
                 .orElse(ResolvedFishRender.DEFAULT);
     }
 
+    /** The species' authored cruise tier (docs/ambient-fish-schools-design-spec.md §5.2), or normal. */
+    public static FishProfile.CruiseTier cruiseTierOf(ItemStack stack, Level level) {
+        if (stack.isEmpty()) return FishProfile.CruiseTier.NORMAL;
+        var itemKey = BuiltInRegistries.ITEM.getResourceKey(stack.getItem());
+        if (itemKey.isEmpty()) return FishProfile.CruiseTier.NORMAL;
+        ResourceKey<FishProfile> profileKey = ResourceKey.create(
+                FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, itemKey.get().location());
+        return level.registryAccess()
+                .registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY)
+                .getOptional(profileKey)
+                .map(FishProfile::cruiseTier)
+                .orElse(FishProfile.CruiseTier.NORMAL);
+    }
+
     public static FishSpec descriptor(ItemStack stack, Level level, boolean mirrored) {
         ResolvedFishRender render = resolve(stack, level);
         return new FishSpec(renderedLength(stack, render.renderCalibration()), locomotionOf(render.animation()),

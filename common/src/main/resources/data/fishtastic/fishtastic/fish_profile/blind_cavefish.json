@@ -17,5 +17,5 @@
     { "phase": "new_moon", "multiplier": 1.5 }
   ],
   "swarm": { "shelter": "visitor" },
-  "world_encounter": { "shape": "loose_group" }
+  "world_encounter": { "shape": "loose_group", "cruise": "slow" }
 }

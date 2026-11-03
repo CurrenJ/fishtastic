@@ -12,5 +12,6 @@
   "temperament": "fishtastic:ghost",
   "animation": {
     "mode": "belly_down"
-  }
+  },
+  "world_encounter": { "cruise": "normal" }
 }

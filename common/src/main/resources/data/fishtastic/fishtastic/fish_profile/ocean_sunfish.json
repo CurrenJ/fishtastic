@@ -11,5 +11,5 @@
     { "weather": "rain", "multiplier": 0.5 }
   ],
   "temperament": "fishtastic:ghost",
-  "world_encounter": { "shape": "solitary" }
+  "world_encounter": { "shape": "solitary", "cruise": "slow" }
 }

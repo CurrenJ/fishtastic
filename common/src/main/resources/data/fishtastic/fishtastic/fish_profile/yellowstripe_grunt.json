@@ -11,5 +11,5 @@
     { "time": "dawn", "multiplier": 2.0 }
   ],
   "swarm": { "shelter": "skittish" },
-  "world_encounter": { "shape": "loose_group" }
+  "world_encounter": { "shape": "loose_group", "cruise": "normal" }
 }

@@ -154,7 +154,7 @@ public final class RenderSelfTest {
             "leaderboard", "encyclopedia", "portrait", "tutorial", "companiontutorial", "companionbond", "companionsim",
             "companionparty", "companioneel", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld",
             "companionparticles", "companionworldcost", "ambientparity", "ambientwater",
-            "ambientisland", "ambientfloor", "ambientwalk", "fishschoolgif", "fishschooljump", "legendarybreach",
+            "ambientisland", "ambientfloor", "ambientwalk", "ambientswim", "fishschoolgif", "fishschooljump", "legendarybreach",
             "fishschoolbite", "fishschoolreach", "fishschoolperf", "fishschoolshapes", "fishschoolclasses", "fishschoolcrab", "questbook",
             "celebrationoverlap", "forgereview", "partyseed", "partyobserver", "partyreturn");
 
@@ -403,6 +403,7 @@ public final class RenderSelfTest {
             case "ambientisland" -> queueAmbientIslandScene();
             case "ambientfloor" -> queueAmbientFloorScene();
             case "ambientwalk" -> queueAmbientWalkScene();
+            case "ambientswim" -> AmbientSwimScene.queueAmbientSwimScene();
             case "fishschoolgif" -> queueFishSchoolGifScene();
             case "fishschooljump" -> queueFishSchoolJumpScene();
             case "legendarybreach" -> queueLegendaryBreachScene();

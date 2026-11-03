@@ -18,5 +18,5 @@
     { "weather": "rain", "multiplier": 0.5 }
   ],
   "swarm": { "shelter": "skittish" },
-  "world_encounter": { "shape": "school" }
+  "world_encounter": { "shape": "school", "cruise": "normal" }
 }

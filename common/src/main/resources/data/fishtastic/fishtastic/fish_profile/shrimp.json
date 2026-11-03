@@ -16,5 +16,6 @@
   "time_weights": [
     { "time": "dusk", "multiplier": 0.4 },
     { "time": "dawn", "multiplier": 0.4 }
-  ]
+  ],
+  "world_encounter": { "cruise": "normal" }
 }

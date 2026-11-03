@@ -57,9 +57,11 @@ public final class WaterDomain implements FlockDomain {
      * allocate. Twice {@link #MAX_COLUMNS} on purpose: the bounding box of a scattered patch is
      * mostly dry land, and a live patch at the column cap can still span a ~65x65 rectangle (the
      * eviction disc's own bbox), so a cap on columns would reject water that is legal to host.
-     * What a build actually allocates is the grid, so that is what is bounded.
+     * What a build actually allocates is the grid, so that is what is bounded. Raised to four
+     * times the column cap so an ambient window of radius up to ~55 (plus its eviction slack)
+     * still builds; ~54 bytes a cell, so the largest build allocates under 1 MB.
      */
-    public static final long MAX_GRID_CELLS = MAX_COLUMNS * 2L;
+    public static final long MAX_GRID_CELLS = MAX_COLUMNS * 4L;
 
     /** Face indices for {@code openFaces}. */
     public static final int FACE_MIN_L = 0;

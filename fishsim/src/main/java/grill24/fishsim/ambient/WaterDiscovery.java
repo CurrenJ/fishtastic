@@ -71,6 +71,20 @@ public final class WaterDiscovery {
     private static final float MERGE_EPSILON = 1e-3f;
     /** Candidate columns examined per tick regardless of how many turn out to be known already. */
     private static final int CURSOR_STEPS_PER_TICK = 512;
+    /** Share of the cell budget always reserved for the sweep (1/N), however much revalidation wants. */
+    private static final int SWEEP_FLOOR_DIVISOR = 4;
+    /**
+     * Most of the cell budget revalidation may take in one tick (1/N). Without a cap it took ~45% of
+     * the spend over open ocean (ambientswim) and the sweep found ~8.5 new columns a tick against
+     * ~10 needed at a 5.6 b/s swim, so the water ahead shrank to 5–9 blocks.
+     */
+    private static final int REVALIDATE_CAP_DIVISOR = 2;
+    /** How far ahead (ticks of the player's recent motion) the sweep centre leads the player. */
+    private static final int LEAD_TICKS = 40;
+    /** Smoothing of the player's per-tick motion that drives the lead. */
+    private static final float MOTION_SMOOTHING = 0.1f;
+    /** A jump larger than this between ticks is a teleport, not motion (an elytra peaks near 3). */
+    private static final int TELEPORT_BLOCKS = 4;
 
     /** One discovered column and the patch it belongs to. */
     public record Column(int x, int z, WaterColumn water, long patchKey, int contextSignature) {}
@@ -182,6 +196,10 @@ public final class WaterDiscovery {
     }
 
     private final Map<Long, Entry> columns = new HashMap<>();
+    /** Most undrained merges kept; an owner that never drains must not grow this forever. */
+    private static final int MAX_PENDING_MERGES = 256;
+    /** Merges not yet drained ({@link #drainMerges}). */
+    private final List<long[]> merges = new ArrayList<>();
     private final Map<Long, Patch> patches = new HashMap<>();
     /**
      * Each patch's columns, kept in step with {@link #columns}, so per-patch queries never scan the
@@ -216,6 +234,8 @@ public final class WaterDiscovery {
     private int ringIndex;
     private int nearCursor;
     private long lastEvictTick = Long.MIN_VALUE;
+    private int lastPx = Integer.MIN_VALUE, lastPz;
+    private float motionX, motionZ;
     private int revalidateCursor;
     private static final int NEAR_RADIUS = 2;
     /** Columns on a side of the near square. */
@@ -299,6 +319,7 @@ public final class WaterDiscovery {
 
     public void reset() {
         columns.clear();
+        merges.clear();
         patches.clear();
         byPatch.clear();
         nearestDistances = null;
@@ -310,6 +331,32 @@ public final class WaterDiscovery {
         nearCursor = 0;
         lastEvictTick = Long.MIN_VALUE;
         revalidateCursor = 0;
+        lastPx = Integer.MIN_VALUE;
+        motionX = motionZ = 0f;
+    }
+
+    /** The sweep centre's lead over the player, x then z, in blocks (never beyond the evict slack). */
+    public int leadX() {
+        return lead(motionX);
+    }
+
+    public int leadZ() {
+        return lead(motionZ);
+    }
+
+    private int lead(float motion) {
+        return Math.max(-evictSlack, Math.min(evictSlack, Math.round(motion * LEAD_TICKS)));
+    }
+
+    private void trackMotion(int px, int pz) {
+        if (lastPx != Integer.MIN_VALUE && Math.abs(px - lastPx) <= TELEPORT_BLOCKS && Math.abs(pz - lastPz) <= TELEPORT_BLOCKS) {
+            motionX += (px - lastPx - motionX) * MOTION_SMOOTHING;
+            motionZ += (pz - lastPz - motionZ) * MOTION_SMOOTHING;
+        } else {
+            motionX = motionZ = 0f;
+        }
+        lastPx = px;
+        lastPz = pz;
     }
 
     // ------------------------------------------------------------------ queries
@@ -435,9 +482,13 @@ public final class WaterDiscovery {
             evict(px, pz, tick);
             lastEvictTick = tick;
         }
+        trackMotion(px, pz);
         nearPass(source, px, py, pz, tick);
         revalidatePass(source, py, tick);
-        sweep(source, px, py, pz, tick);
+        // The sweep centre leads the player along its recent motion (within the evict slack, so the
+        // swept square never reaches past what eviction keeps): water ahead is found before the
+        // player gets there, and the columns behind are already cached.
+        sweep(source, px + leadX(), py, pz + leadZ(), tick);
         // The cap is enforced once per tick, after every scan that could have stored water — not on
         // the scan path, which would trim with a fake tick and re-sort the whole map per store.
         if (columns.size() > maxColumns) trim(px, pz, tick);
@@ -452,13 +503,15 @@ public final class WaterDiscovery {
      * only rescans cells it has never stored. And the residual has to be taken <em>before</em> the
      * sweep, because the sweep spends every cell it can every tick wherever dry land keeps it busy
      * — a caller-side pass over "whatever is left" after {@link #tick} sees a leftover below one
-     * column's band and never runs at all. The sweep floor is the other half of the trade: the
-     * sweep is the only thing that finds new water, so revalidation may slow it, never starve it.
+     * column's band and never runs at all. The sweep floor ({@link #SWEEP_FLOOR_DIVISOR}) and the
+     * revalidation cap ({@link #REVALIDATE_CAP_DIVISOR}) are the other half of the trade: the sweep
+     * is the only thing that finds new water, so revalidation may slow it, never starve it.
      */
     private void revalidatePass(WaterSource source, int py, long tick) {
         int band = scanBandCells();
         int spare = Math.max(0, cellBudget - counters.cellsThisTick);
-        int allowance = Math.max(0, spare - cellBudget / 4) / band;
+        int allowance = Math.min(Math.max(0, spare - cellBudget / SWEEP_FLOOR_DIVISOR),
+                cellBudget / REVALIDATE_CAP_DIVISOR) / band;
         int budget = Math.min(revalidateColumnsPerTick, allowance);
         if (budget > 0) revalidateSome(source, py, budget, tick);
     }
@@ -672,6 +725,22 @@ public final class WaterDiscovery {
         }
         patches.remove(loser);
         bumpPatch(winner, p == null ? 0 : p.columns(), tick);
+        // Anyone holding the loser's key (a domain with fish in it) learns where its water went.
+        for (long[] m : merges) if (m[1] == loser) m[1] = winner;
+        merges.add(new long[]{loser, winner});
+        if (merges.size() > MAX_PENDING_MERGES) merges.remove(0); // an owner that never drains
+    }
+
+    /**
+     * Merges since the last call, oldest first, as {@code {loser, winner}} pairs, and forgets them.
+     * A chain (A into B, then B into C) is already resolved: every pair names the key that survives
+     * now. The caller owns each loser's population; discovery only reports that the water is one.
+     */
+    public List<long[]> drainMerges() {
+        if (merges.isEmpty()) return List.of();
+        List<long[]> out = new ArrayList<>(merges);
+        merges.clear();
+        return out;
     }
 
     /**

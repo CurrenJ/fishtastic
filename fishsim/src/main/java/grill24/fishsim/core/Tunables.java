@@ -335,6 +335,29 @@ public record Tunables(
                         // number: what makes a ray read as a ray is that it cannot whip around
             GROUP.separationLookahead());
 
+    /**
+     * Ambient fish in open water (docs/ambient-fish-schools-design-spec.md §5.1). {@link #GROUP}
+     * was tuned for tanks under a block wide, where 0.10 b/s patrol is right; in open water it
+     * takes a fish ten seconds to cross one block and reads as drifting. Tanks never use this set.
+     *
+     * <ul>
+     *   <li>{@code patrolSpeed} ×3 (0.30): a block in about three seconds.</li>
+     *   <li>{@code maxSpeed} ×3 (0.60): the same headroom over the burst peak GROUP keeps.</li>
+     *   <li>{@code maxForce} ×2 (1.0): at three times the speed the old force limit could not turn
+     *       a fish off a shore or the surface in time.</li>
+     *   <li>{@code wallMargin} 0.45 and {@code wallAvoidSpeed} 1.0: react earlier and out-shove the
+     *       faster patrol, as GROUP's comment requires of the avoidance term.</li>
+     * </ul>
+     * The wander turn authority ({@code cruiseSpeed}) is left as is, so at the higher speed the same
+     * turn drive bends the path less: longer, straighter runs, with no glass to turn at.
+     */
+    public static final Tunables OPEN_WATER = GROUP
+            .withPatrolSpeed(0.30f)
+            .withMaxSpeed(0.60f)
+            .withMaxForce(1.0f)
+            .withWallMargin(0.45f)
+            .withWallAvoidSpeed(1.0f);
+
     /** Squared separation radius, matching the derived {@code SEPARATION_RADIUS2} constant. */
     public float separationRadius2() {
         return separationRadius * separationRadius;

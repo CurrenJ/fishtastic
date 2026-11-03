@@ -10,5 +10,5 @@
   ],
   "temperament": "fishtastic:aggressive",
   "swarm": { "shelter": "lurker" },
-  "world_encounter": { "shape": "pair" }
+  "world_encounter": { "shape": "pair", "cruise": "fast" }
 }

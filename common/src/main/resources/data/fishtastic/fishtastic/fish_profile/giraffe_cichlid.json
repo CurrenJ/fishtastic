@@ -9,5 +9,6 @@
     { "biome": ["minecraft:crimson_forest"], "multiplier": 1.8 }
   ],
   "temperament": "fishtastic:ambusher",
-  "swarm": { "shelter": "lurker" }
+  "swarm": { "shelter": "lurker" },
+  "world_encounter": { "cruise": "normal" }
 }

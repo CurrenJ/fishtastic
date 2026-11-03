@@ -10,5 +10,5 @@
     "pivot_fraction": 0.1875,
     "diagonal_texture": false
   },
-  "world_encounter": { "shape": "pair" }
+  "world_encounter": { "shape": "pair", "cruise": "slow" }
 }
