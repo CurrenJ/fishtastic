@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 2.1.20
+
+- Fish you haven't caught or spotted yet show as black silhouettes named "???" everywhere: the creative menu, JEI, inventories and the hotbar.
+- Blazed Grub and Gummy Worms now sit with the other baits in the creative tab.
+
 ## 2.1.19
 
 - Secret unlisted fish no longer appear as ambient fish in the world, even after you've caught one.
