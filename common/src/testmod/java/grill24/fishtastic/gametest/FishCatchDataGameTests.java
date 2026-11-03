@@ -477,7 +477,8 @@ public final class FishCatchDataGameTests {
         int tokensB = data.getOrCreateQuestState(playerB).getTokenBalance();
         helper.assertTrue(tokensA > 0 && tokensB > 0, "Both contributors must receive some tokens, got A=" + tokensA + " B=" + tokensB);
         helper.assertTrue(tokensA > tokensB, "The 60% contributor must receive more tokens than the 40% contributor, got A=" + tokensA + " B=" + tokensB);
-        helper.assertTrue(tokensA + tokensB == 50, "The full 50-token reward pool for one threshold crossing must be fully distributed, got " + (tokensA + tokensB));
+        int pool = FishCatchSavedData.CLEANUP_GOAL_REWARD_TOKENS;
+        helper.assertTrue(tokensA + tokensB == pool, "The full " + pool + "-token reward pool for one threshold crossing must be fully distributed, got " + (tokensA + tokensB));
         helper.succeed();
     }
 

@@ -564,7 +564,8 @@ public class FishCatchSavedData extends SavedData {
     // -------------------------------------------------------------------------
 
     private static final int CLEANUP_GOAL_THRESHOLD = 200;
-    private static final int CLEANUP_GOAL_REWARD_TOKENS = 50;
+    /** Token pool split across a cycle's contributors; the Cleanup page reads this for its copy. */
+    public static final int CLEANUP_GOAL_REWARD_TOKENS = 250;
 
     /**
      * Records trash caught by a player toward the shared cleanup goal. The goal has no

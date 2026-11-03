@@ -116,7 +116,7 @@ Reroll offers one free use per in-game day, then explains replacement and the cu
 escalating paid cost (25, 50, 100, 200 cap). Keep timers/reroll in the all-sold-out
 state. Data refreshes remain authoritative.
 
-Cleanup awards automatically every 200 trash from a nominal 50-token base pool.
+Cleanup awards automatically every 200 trash from a nominal 250-token base pool.
 Awards are proportional, rounded and at least one per contributor, so totals may
 differ from 50. Offline contributors remain eligible; excess carries into the next
 cycle. There is no manual Claim. Pin the player's exact contribution/share above
