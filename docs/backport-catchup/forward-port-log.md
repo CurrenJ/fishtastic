@@ -139,3 +139,28 @@ changes were found. The target feature commits and separate marker commits are r
 push was made.
 `git diff HEAD --check` passes on both target worktrees. No target-side client visual review or
 two-client owner playtest was run; those owner checks remain open in the feature handoff.
+
+## Catch-up 2026-11-03 (`5bf9c6fc..5174c5e4`)
+
+Both markers now read `5174c5e4` (marker commits 1.21.1 `3bbeb09e`, 1.20.1 `0de700b3`).
+
+| 26.1.2 source commit | Disposition | `port/1.21.1` | `port/1.20.1` |
+|---|---|---|---|
+| `accae9b8` Record committed backport parity through 5bf9c6fc | Excluded: source docs only | — | — |
+| `d5b06e30` Record final backport catch-up checkpoint | Excluded: source docs only | — | — |
+| `b6595f24` Cylindrical bite reach, bump to 2.1.14 | Present at target baselines | `2250cef8` | `f722c5f2` |
+| `469c9a92` Fix Obsidian rod gear detection | Present at target baselines | `208269bb` | `3a314d7a` |
+| `e45cb395` Bump Fishtastic to 2.1.15 | Present at target baselines | `be9a89ca` | `f18e72fe` |
+| `242e37ae` Record 2.1.15 release validation checkpoint | Excluded: source docs only | — | — |
+| `1aa8595d` Record 2.1.15 CurseForge publication | Excluded: source docs only | — | — |
+| `92b2ea85` Bump Fishtastic to 2.1.16 | Present at target baselines | `b5cb2615` | `01c3a0bb` |
+| `4a7b1897` Fix water-edit visit GameTest racing the level clock | Present at target baselines | `279467f1` | `79bf9a12` |
+| `379bf7fe` Record 2.1.16 CurseForge release | Excluded: source docs only | — | — |
+| `e71d8b92` Fill ambient fish ahead of a travelling player | Ported in target-adapted feature commit | `07331bdc` | `d0bbe0d4` |
+| `05206607` Carry ambient fish across water patch merges | Ported in target-adapted feature commit | `07331bdc` | `d0bbe0d4` |
+| `a4321590` Give fish species cruise speeds in open water and tanks | Ported in target-adapted feature commit | `07331bdc` | `d0bbe0d4` |
+| `902eabf8` Spawn ambient fish in species groups | Ported in target-adapted feature commit | `07331bdc` | `d0bbe0d4` |
+| `5174c5e4` Bump Fishtastic to 2.1.17 | Ported (cherry-pick) | `37e45f9d` | `3e7f5489` |
+
+Validation and evidence: `docs/backport-catchup-progress.md` (2026-11-03 entry),
+`build/backport-catchup/2026-11-03/`.

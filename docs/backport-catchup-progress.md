@@ -1,5 +1,40 @@
 # Backport parity progress
 
+## Completed (2026-11-03): catch up both ports through `5174c5e4`
+
+- **Operation:** Account for every source commit after marker `5bf9c6fc` through `5174c5e4` and port
+  the outstanding ones to `port/1.21.1` then `port/1.20.1`. Do not push or publish.
+- **Starting refs:** source `26.1.2` `5174c5e4`; `port/1.21.1` `279467f1`; `port/1.20.1` `ca0bb32c`;
+  both target worktrees clean.
+- **Range accounting:** already mirrored before this pass: `b6595f24` (`2250cef8`/`f722c5f2`),
+  `469c9a92` (`208269bb`/`3a314d7a`), `e45cb395` (`be9a89ca`/`f18e72fe`), `92b2ea85`
+  (`b5cb2615`/`01c3a0bb`), `4a7b1897` (`279467f1`/`79bf9a12`). Excluded (source docs only):
+  `accae9b8`, `d5b06e30`, `242e37ae`, `1aa8595d`, `379bf7fe`. Ported now: `e71d8b92`, `05206607`,
+  `a4321590`, `902eabf8` (one adapted feature commit per target) and `5174c5e4` (2.1.17 bump).
+  Crosswalk: `docs/backport-catchup/forward-port-log.md`.
+- **Conflicts and adaptations:** `RenderSelfTest` opt-in list (kept the port list, added
+  `ambientswim`); `SpeciesVisual`, sampler build and `VisualSampler.build` overloads
+  (`ResourceLocation`, `registryOrThrow`); `Camera.getPosition()/getLookVector()`,
+  `ResourceKey.location()`; `VisualSamplerTest` `ResourceLocation`. 1.20.1 only:
+  `FishProfile.WorldEncounter` keeps its strict optional codec helpers with `cruise` added;
+  `WorldEncounterTest` uses the 1.20 DFU `getOrThrow(false, ..)` and `JsonOps` instead of `JavaOps`.
+- **Gates (evidence `build/backport-catchup/2026-11-03/`):** 1.21.1 common 983 tests (0 failures,
+  3 skipped), fishsim 582 (63 skipped), Fabric/Forge/NeoForge compiles (`1.21.1-test-compile-2.log`);
+  GameTests Fabric, Forge and NeoForge 402/402 each. The first NeoForge run died in a HotSpot C2
+  compiler thread (`EXCEPTION_ACCESS_VIOLATION` compiling the untouched
+  `FishSchoolManager.scanConnectedWater`; `1.21.1-neoforge-hs_err_pid6100.log`) while the 1.20.1
+  suite ran in parallel; the rerun passed (`1.21.1-neoforge-gametest-2.log`). 1.20.1 common 996
+  (0 failures, 3 skipped), fishsim 582 (63 skipped), Fabric/Forge compiles; GameTests Fabric 403/403,
+  Forge 404/404. Datagen not rerun: no provider or generated resource changed in this range.
+- **Commits (hook-gated, not pushed):** 1.21.1 feature `07331bdc`, bump `37e45f9d`, marker
+  `3bbeb09e`; 1.20.1 feature `d0bbe0d4`, bump `3e7f5489`, marker `0de700b3`. The first 1.21.1 marker
+  commit hook failed the intermittent `aWaterEditThatStopsTheWaterMakesALiveVisitDepartAndStayGone`
+  (`water=468`, pond joined outside water; `port-1.21.1-marker-commit.log`), docs-only change; the
+  retry passed (`port-1.21.1-marker-commit-retry.log`). That GameTest is still flaky on the port after
+  the `279467f1` clock fix.
+- **Open:** owner in-game look on both ports (ambient groups/speeds); no client render self-test
+  was run on the ports. **Next action:** none for this pass.
+
 ## Completed (2026-11-02): Forge MixinExtras crash fix and 2.1.16 release
 
 - **Problem:** the published Forge jars for 1.20.1 and 1.21.1 (2.1.14 and 2.1.15) crash on startup
