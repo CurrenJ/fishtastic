@@ -1,5 +1,29 @@
 # Backport parity progress
 
+## Completed (2026-11-03): 2.1.17 release
+
+- **Release source:** the parity heads, all clean: `26.1.2` `25387cdb` (bump `5174c5e4`), `port/1.21.1`
+  `3bbeb09e` (bump `37e45f9d`), `port/1.20.1` `0de700b3` (bump `3e7f5489`). Changes after `5174c5e4` on
+  each line are only doc/marker records.
+- **Evidence:** `build/release-2.1.17/evidence/{26.1.2,1.21.1,1.20.1}/` (`release-build.log`,
+  `publish.log`) and `build/release-2.1.17/evidence/release-smoke/matrix.log`; per-profile summaries and
+  captures under `build/release-smoke/F2_*`.
+- **Release gates:** `assemble` then full `build` passed on all three lines (26.1.2 on JDK 25 via the
+  gradle.properties pin, both ports on JDK 21); test tasks were up to date from the commit-hook runs on the
+  same source. Both Forge port jars contain no `com/llamalad7` classes and carry
+  `META-INF/jarjar/metadata.json`. `run_matrix.py` over all eight profiles: six `PASS`; 26.1.2 Forge and
+  1.21.1 Forge `PASS_WITH_FINDINGS` for the known vanilla experimental-settings screen, accepted with
+  `--accept-experimental` (the `experimental.png` capture came out blank; the world loaded after the
+  accept). Zero fatal lines, zero Fishtastic error lines and no crash reports on any profile; the only
+  ERROR lines are offline auth/Realms fetch failures.
+- **Publication:** `publishCurseForge -Prelease_type=release` exited 0 on all three lines, every jar task
+  `UP-TO-DATE` (the uploads are the smoke-tested jars). Changelog: each `CHANGELOG.md`'s 2.1.17 entry,
+  passed via `ORG_GRADLE_PROJECT_changelog_override`. 26.1.2 and 1.21.1 uploaded Fabric, NeoForge and
+  Forge; 1.20.1 uploaded Fabric and Forge, eight artifacts in total. Shortly after publishing the public
+  files page still listed 2.1.16 as newest (CurseForge processing); confirm the eight files on the author
+  dashboard rather than re-running the task. **Next action:** none. No branches were pushed and no parity
+  markers were advanced.
+
 ## Completed (2026-11-03): catch up both ports through `5174c5e4`
 
 - **Operation:** Account for every source commit after marker `5bf9c6fc` through `5174c5e4` and port
