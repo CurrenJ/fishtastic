@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 2.1.18
+
+- Starting the fishing tutorial now gives the Fishopedia and Leaderboards book along with the Quest Book.
+- Right-clicking a carried Pile of Fish over fish keeps dealing one fish at a time instead of swapping the whole pile into the slot.
+- The quest book's Cleanup page shows contributor player heads again, and each 200-trash cycle now pays a 250-token pool (was 50).
+- The Fish Tank Assembly now mines faster with an axe.
+- Fish schools in deep water now climb all the way to your bobber instead of giving up partway.
+- Marine compost can now be turned with an item in hand.
+
 ## 2.1.17
 
 - Ambient fish now swim in species groups: schools, pairs, loose groups and lone fish, following each species' nature.
