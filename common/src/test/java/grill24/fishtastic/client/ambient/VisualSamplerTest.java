@@ -229,4 +229,45 @@ class VisualSamplerTest {
                 id -> true);
         assertEquals(sampler.shareOf("fishtastic:zero"), sampler.shareOf("fishtastic:one"), 1e-9);
     }
+
+    /**
+     * D2 (docs/ambient-fish-schools-design-spec.md §4.2): a group draw divides each share by the
+     * species' mean group size, so the expected share of individual fish per species is unchanged.
+     */
+    @Test
+    void groupDrawsKeepEachSpeciesShareOfIndividualFish() {
+        java.util.function.ToDoubleFunction<net.minecraft.resources.ResourceLocation> size = id -> switch (id.getPath()) {
+            case "neon_tetra", "blind_cave_tetra", "indian_glassy_fish", "glass_catfish" -> 9.0;
+            case "blind_cavefish", "waterfall_climbing_cave_fish" -> 4.0;
+            default -> 1.0;
+        };
+        VisualSampler grouped = VisualSampler.build(pool(), id -> true, size);
+        VisualSampler single = buildAll();
+        int draws = 400_000;
+        double[] fish = new double[SPECIES.length];
+        double total = 0;
+        for (int k = 0; k < draws; k++) {
+            String species = grouped.sampleAt((k + 0.5) / draws);
+            for (int i = 0; i < SPECIES.length; i++) {
+                if (species.endsWith(":" + SPECIES[i])) {
+                    double m = size.applyAsDouble(Ids.of("fishtastic", SPECIES[i]));
+                    fish[i] += m;
+                    total += m;
+                }
+            }
+        }
+        for (int i = 0; i < SPECIES.length; i++) {
+            assertEquals(single.entries().get(i).share(), fish[i] / total, 0.002, SPECIES[i]);
+        }
+    }
+
+    @Test
+    void unitGroupSizesDrawExactlyAsTheOneFishSampler() {
+        VisualSampler grouped = VisualSampler.build(pool(), id -> true, id -> 1.0);
+        VisualSampler single = buildAll();
+        for (int k = 0; k < 10_000; k++) {
+            double u = k / 10_000.0;
+            assertEquals(single.sampleAt(u), grouped.sampleAt(u));
+        }
+    }
 }

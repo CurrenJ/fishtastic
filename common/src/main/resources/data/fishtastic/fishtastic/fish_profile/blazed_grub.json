@@ -8,5 +8,6 @@
   "biome_weights": [
     { "biome": ["minecraft:basalt_deltas"], "multiplier": 1.8 }
   ],
-  "temperament": "fishtastic:erratic"
+  "temperament": "fishtastic:erratic",
+  "world_encounter": { "cruise": "slow" }
 }

@@ -17,5 +17,5 @@
     "y_range": 0,
     "rotation_jitter": 0
   },
-  "world_encounter": { "shape": "school" }
+  "world_encounter": { "shape": "school", "cruise": "normal" }
 }

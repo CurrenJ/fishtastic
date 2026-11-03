@@ -16,5 +16,6 @@
     "xz_spread": 0.22,
     "y_range": 0.25,
     "rotation_jitter": 5
-  }
+  },
+  "world_encounter": { "cruise": "normal" }
 }

@@ -8,5 +8,6 @@
   "biome_weights": [
     { "biome": ["minecraft:warped_forest"], "multiplier": 1.8 }
   ],
-  "temperament": "fishtastic:skittish"
+  "temperament": "fishtastic:skittish",
+  "world_encounter": { "cruise": "slow" }
 }

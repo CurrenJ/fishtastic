@@ -18,5 +18,6 @@
   "temperament": "fishtastic:trembler",
   "animation": {
     "mode": "belly_down"
-  }
+  },
+  "world_encounter": { "cruise": "normal" }
 }

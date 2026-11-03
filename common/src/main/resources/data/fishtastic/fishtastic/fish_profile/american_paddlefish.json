@@ -8,5 +8,5 @@
     { "time": "night", "multiplier": 1.5 }
   ],
   "temperament": "fishtastic:ghost",
-  "world_encounter": { "shape": "loose_group" }
+  "world_encounter": { "shape": "loose_group", "cruise": "normal" }
 }

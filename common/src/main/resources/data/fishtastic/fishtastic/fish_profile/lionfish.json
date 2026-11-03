@@ -13,5 +13,5 @@
     { "weather": "snow", "multiplier": 2.0 },
     { "weather": "thunder", "multiplier": 1.5 }
   ],
-  "world_encounter": { "shape": "solitary" }
+  "world_encounter": { "shape": "solitary", "cruise": "slow" }
 }

@@ -21,5 +21,5 @@
     "y_range": 0,
     "rotation_jitter": 0
   },
-  "world_encounter": { "shape": "loose_group" }
+  "world_encounter": { "shape": "loose_group", "cruise": "normal" }
 }

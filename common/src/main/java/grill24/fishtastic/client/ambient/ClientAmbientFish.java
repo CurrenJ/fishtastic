@@ -54,6 +54,13 @@ public final class ClientAmbientFish {
         productionTest = enabled;
     }
 
+    /** Development-only reshaping of the density budget, for range/performance sweeps. */
+    private static java.util.function.UnaryOperator<AmbientBudget> budgetOverride;
+
+    public static void budgetOverride(java.util.function.UnaryOperator<AmbientBudget> override) {
+        if (DevEnvironmentCheck.isDevelopmentEnvironment()) budgetOverride = override;
+    }
+
     public static void settingsChanged() { clear(); }
     public static boolean naturalArmed() { return RUNTIME.armed(); }
     public static AmbientFishRuntime natural() { return RUNTIME; }
@@ -95,6 +102,7 @@ public final class ClientAmbientFish {
                 return;
             }
             AmbientBudget budget = AmbientBudget.forDensity(density);
+            if (budgetOverride != null) budget = budgetOverride.apply(budget);
             if (!RUNTIME.armed()) RUNTIME.start(mc.level, budget);
             else RUNTIME.configure(budget);
         }

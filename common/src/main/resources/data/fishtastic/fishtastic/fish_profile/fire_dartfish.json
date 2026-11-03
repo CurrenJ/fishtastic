@@ -9,5 +9,6 @@
     { "biome": ["minecraft:basalt_deltas"], "multiplier": 1.7 }
   ],
   "temperament": "fishtastic:sprinter",
-  "swarm": { "shelter": "skittish" }
+  "swarm": { "shelter": "skittish" },
+  "world_encounter": { "cruise": "fast" }
 }

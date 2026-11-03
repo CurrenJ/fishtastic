@@ -30,9 +30,22 @@ public final class AmbientPatchSelection {
      */
     public static Selection select(List<WaterDiscovery.Patch> patches, Map<Long, Integer> distances,
                                    Set<Long> occupied, int limit) {
+        return select(patches, distances, occupied, limit, DEFAULT_KEEP_SQUARED);
+    }
+
+    /** An occupied patch whose water is within this squared distance keeps its slot (10 blocks). */
+    public static final int DEFAULT_KEEP_SQUARED = 100;
+
+    /**
+     * As {@link #select(List, Map, Set, int)}, with the squared distance within which an occupied
+     * patch keeps its slot ahead of nearer empty ones. The runtime passes its own range: a slot
+     * given up drops a whole domain, and every fish in it fades at once.
+     */
+    public static Selection select(List<WaterDiscovery.Patch> patches, Map<Long, Integer> distances,
+                                   Set<Long> occupied, int limit, int keepSquared) {
         List<WaterDiscovery.Patch> ranked = new ArrayList<>(patches);
         ranked.sort(Comparator.<WaterDiscovery.Patch>comparingInt(p ->
-                        occupied.contains(p.key()) && distances.getOrDefault(p.key(), Integer.MAX_VALUE) <= 100 ? 0 : 1)
+                        occupied.contains(p.key()) && distances.getOrDefault(p.key(), Integer.MAX_VALUE) <= keepSquared ? 0 : 1)
                 .thenComparingInt(p -> distances.getOrDefault(p.key(), Integer.MAX_VALUE))
                 .thenComparing(Comparator.comparingInt(WaterDiscovery.Patch::columns).reversed())
                 .thenComparingLong(WaterDiscovery.Patch::createdTick));

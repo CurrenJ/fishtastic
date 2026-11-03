@@ -7,5 +7,5 @@
   ],
   "temperament": "fishtastic:aggressive",
   "swarm": { "shelter": "visitor" },
-  "world_encounter": { "shape": "pair" }
+  "world_encounter": { "shape": "pair", "cruise": "normal" }
 }

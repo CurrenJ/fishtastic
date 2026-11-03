@@ -17,5 +17,5 @@
   ],
   "temperament": "fishtastic:erratic",
   "swarm": { "shelter": "visitor" },
-  "world_encounter": { "shape": "solitary" }
+  "world_encounter": { "shape": "solitary", "cruise": "slow" }
 }

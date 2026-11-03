@@ -13,6 +13,7 @@ import grill24.fishtastic.ecology.AmbientFluid;
 import grill24.fishtastic.ecology.AmbientRoster;
 import grill24.fishtastic.ecology.EcologyClient;
 import grill24.fishtastic.ecology.NaturalPool;
+import grill24.fishtastic.school.VisitShape;
 import grill24.fishtastic.client.renderer.FishVisuals;
 import grill24.fishtastic.client.renderer.GroupFishDraw;
 import grill24.fishtastic.client.renderer.GroupFishPose;
@@ -68,7 +69,7 @@ import org.joml.Matrix4f;
  * patch (the tank-sim motion, E12: each client moves its own copy of a fish, leashed to the fish's
  * home chunk) and retires individuals whose water moves out from under them. Every tick's work is
  * budgeted: discovery has its own cell and column budgets, at most one chunk is scanned and one
- * domain rebuilt per tick, and at most {@link #MEMBERSHIP_CHANGES_PER_TICK} individuals are added or
+ * domain rebuilt per tick, and at most {@link #membershipChangesPerTick} individuals are added or
  * removed per tick.
  *
  * <p><b>Frames.</b> A patch's origin is chosen by {@link WaterDiscovery} when the patch is first
@@ -97,14 +98,27 @@ public final class AmbientFishRuntime {
     /** How often a live domain is rebuilt from the current columns (geometry edits, fluid edits). */
     public static final int REBUILD_INTERVAL_TICKS = 20;
     /**
+     * A domain whose water only grew (discovery found more of it) is rebuilt at most this often.
+     * While the player travels, discovery adds columns at the leading edge every tick, and a rebuild
+     * per tick allocated a fresh grid and column list every tick (~580 KB a tick at radius 32,
+     * ambientswim). New water joins at most this late: ~1.4 blocks at a 5.6 b/s swim.
+     */
+    public static final int GROWTH_REBUILD_TICKS = 5;
+    /**
      * How long a revived domain may hold its rebuild while it waits for the patch's cache to refill
      * to the size it was last built at. Rediscovery is budgeted, so a large patch takes tens of
      * ticks to come back; the bound is what stops a patch that really did come back smaller from
      * living on as a stale domain forever.
      */
     public static final int REFILL_TIMEOUT_TICKS = 200;
-    /** Membership changes (spawns, retirements) allowed per tick. */
-    public static final int MEMBERSHIP_CHANGES_PER_TICK = 2;
+    /**
+     * Fewest membership changes (spawns, removals) allowed per tick; the budget grows with the cap
+     * ({@link #membershipChangesPerTick}). At a fixed 2, a 10 b/s swim spent ~25% of its ticks
+     * with spawns waiting on this limit (ambientswim).
+     */
+    public static final int MIN_MEMBERSHIP_CHANGES_PER_TICK = 2;
+    /** The cap is divided by this to give the per-tick membership budget. */
+    public static final int MEMBERSHIP_CAP_DIVISOR = 8;
     /** Fade length of a retiring individual, ticks at 20 tps (~1.2 s). */
     public static final int FADE_TICKS = 24;
     /** After a fish cannot be placed because nothing fits, wait this long before trying it again. */
@@ -114,6 +128,14 @@ public final class AmbientFishRuntime {
     /** Readable surface population, rather than eight fish scattered through a deep ocean band. */
     public static final float DISPLAY_DEPTH = 4f;
     private static final int SPAWN_ATTEMPTS = 8;
+    /** Hashed spots tried per group member around its anchor (spec §4.4). */
+    private static final int GROUP_PLACE_ATTEMPTS = 10;
+    /** Least spacing between group members at spawn, in blocks, however small the fish. */
+    static final float MIN_GROUP_SPACING = 0.25f;
+    /** Leash margin of a group's centroid past its home chunk, in blocks (spec §4.5; a lone fish keeps {@link #LEASH_MARGIN}). */
+    public static final float GROUP_LEASH_MARGIN = 16f;
+    /** How far inside its leash a groupmate must be to anchor a re-joining member, in blocks. */
+    private static final double ANCHOR_LEASH_CLEARANCE = 4.0;
     private static final float ROTATION_JITTER = 20f;
 
     /** The seeded roster's slot and lifespan model. */
@@ -124,6 +146,22 @@ public final class AmbientFishRuntime {
     public static final int ARRIVAL_WINDOW_TICKS = 120;
     /** Fade-in of an arriving fish, ticks. */
     public static final int ARRIVAL_FADE_TICKS = 40;
+    /**
+     * Fade-in of every other new fish, ticks. A fish already living in the water when the player
+     * comes into range used to appear at full size; it now grows in like an arrival, quicker.
+     */
+    public static final int SPAWN_FADE_TICKS = 30;
+    /** A fish whose spawn spot is in view and nearer than this waits for the player to look away. */
+    public static final float NEAR_VIEW_SPAWN_DISTANCE = 12f;
+    /** The longest a fish waits for that, ticks; after it, it fades in where it is seen. */
+    public static final int MAX_SPAWN_DEFER_TICKS = 60;
+    /**
+     * How long a domain whose water merged into another body waits for the survivor's domain to be
+     * built before giving up and fading its residents as a lost domain (the old behaviour), ticks.
+     */
+    public static final int MERGE_TIMEOUT_TICKS = 100;
+    /** How often a deferred fish's spot is looked at again, ticks. */
+    private static final int DEFER_RETRY_TICKS = 5;
     /** A fish further than this many blocks outside its home chunk's footprint is out of its leash. */
     public static final float LEASH_MARGIN = 8f;
     /** Re-derivation of the roster at most this often when nothing changed it (ticks). */
@@ -139,6 +177,16 @@ public final class AmbientFishRuntime {
     public static final int REASON_EXPIRED = 4;
     /** It swam beyond its leash to the home chunk; it re-enters at its home cell. */
     public static final int REASON_LEASH = 5;
+    /**
+     * Its slot went to a nearer waiting fish: the cap is full, it is out of view and clearly further
+     * from the player than the nearest fish the roster wants drawn. Fades over
+     * {@code POPULATION_FADE_TICKS}; still on the roster, so it can come back when the player does.
+     */
+    public static final int REASON_DISPLACED = 6;
+    /** A resident must be this many blocks further than the waiting fish before it gives up its slot. */
+    public static final float DISPLACE_HYSTERESIS = 4f;
+    /** Extra degrees around the view frustum within which a fish counts as seen (never displaced). */
+    public static final float VIEW_MARGIN_DEGREES = 15f;
 
     /** One spawned individual: its engine index, its spec, and its retirement state. */
     static final class Member {
@@ -153,6 +201,8 @@ public final class AmbientFishRuntime {
         /** Ticks from spawn to the end of the seeded lifespan. */
         final int lifetimeTicks;
         final AmbientRoster.Lifespan lifespan;
+        /** The roster lifespan's ID: shared by every member of an ambient group (spec §4.1). */
+        final long groupId;
         final boolean arriving;
         Matrix4f retirementPose;
         int engineIndex = -1;
@@ -161,10 +211,11 @@ public final class AmbientFishRuntime {
         int fadeTicks = FADE_TICKS;
         float fade = 1f;
 
-        Member(AmbientRoster.Lifespan lifespan, String species, FishSpec spec, WaterDomain.BodyBox body, ItemStack stack,
-               FishAnimationConfig anim, long bornTick, boolean arriving) {
+        Member(AmbientRoster.Lifespan lifespan, long groupId, String species, FishSpec spec, WaterDomain.BodyBox body,
+               ItemStack stack, FishAnimationConfig anim, long bornTick, boolean arriving) {
             this.lifespan = lifespan;
             this.id = lifespan.fishId();
+            this.groupId = groupId;
             this.species = species;
             this.spec = spec;
             this.body = body;
@@ -173,7 +224,7 @@ public final class AmbientFishRuntime {
             this.bornTick = bornTick;
             this.lifetimeTicks = (int) Math.max(1, Math.min(Integer.MAX_VALUE, lifespan.departureTick() - bornTick));
             this.arriving = arriving;
-            if (arriving) fade = 0f;
+            fade = 0f; // every new fish grows in: an arrival over ARRIVAL_FADE_TICKS, others SPAWN_FADE_TICKS
         }
 
         boolean retiring() {
@@ -188,13 +239,14 @@ public final class AmbientFishRuntime {
      * never shrunk or demoted into something the context did not offer.
      */
     private record SpeciesVisual(String species, ResourceLocation id, ItemStack stack, FishSpec spec,
-                                 WaterDomain.BodyBox body, FishAnimationConfig anim) {
+                                 WaterDomain.BodyBox body, FishAnimationConfig anim, grill24.fishtastic.data.FishProfile.CruiseTier cruise,
+                                 VisitShape shape) {
     }
 
     /** One shown patch: its fixed frame, its water, its engine, and the individuals in it. */
     static final class DomainState {
         final long patchKey;
-        final FlockEngine engine = new FlockEngine(Tunables.GROUP);
+        final FlockEngine engine = new FlockEngine(Tunables.OPEN_WATER);
         final List<Member> members = new ArrayList<>();
         WaterDiscovery.Patch patch;
         WaterDomain domain;
@@ -213,6 +265,13 @@ public final class AmbientFishRuntime {
         long builtVersion = Long.MIN_VALUE;
         /** The player block the current domain's open faces were judged from. */
         int builtPx, builtPy, builtPz;
+        /**
+         * The surviving key when this domain's water was found to be part of a bigger body (a patch
+         * merge), else 0. The domain keeps simulating its residents in the water it already has
+         * until the survivor's domain is built, then hands them over ({@code transferMerged}).
+         */
+        long mergedInto;
+        long mergedAt;
         double waterVolume;
 
         DomainState(WaterDiscovery.Patch patch) {
@@ -295,10 +354,28 @@ public final class AmbientFishRuntime {
         public long speciesDraws;
         /** Fish a pass could not place (no body fit near the home cell), counted per attempt. */
         public long unplaceable;
+        /** Group members no spot near their anchor fitted, at a group spawn (spec §4.4). */
+        public long groupMembersDropped;
+        /** Whole groups that waited because spawning them would pass the cap. */
+        public long groupsHeldAtCap;
+        /** Leash retirements of a group member left behind its group (the rest are whole-group or lone-fish leashes). */
+        public long retireStraggler;
         /** Fish that swam beyond their leash and re-entered. */
         public long retireLeash;
+        /** Out-of-view residents that gave their slot to a nearer waiting fish. */
+        public long retireDisplaced;
         /** Chunk scans done. */
         public long chunkScans;
+        /** Time spent in water discovery, total. */
+        public long discoveryNanos;
+        /** Patch merges that reached a domain with residents; residents carried across; residents faded instead. */
+        public long merges, mergeTransfers, mergeFallbacks;
+        /** Bytes the ambient tick allocated (self-test only: measured while invariant stats are on). */
+        public long allocBytes;
+        /** The same, by tick section (see {@code allocMark}). */
+        public final long[] allocBySection = new long[7];
+        /** Spawn attempts held back because the spot was in view and near; and fish that waited out the limit. */
+        public long deferrals, deferralsExpired;
 
         public double meanBuildMillis() {
             return domainBuilds == 0 ? 0d : totalBuildMillis / domainBuilds;
@@ -322,6 +399,10 @@ public final class AmbientFishRuntime {
     private final Map<FishingPoolResolver.EnvironmentContext, VisualSampler> samplers = new java.util.HashMap<>();
     /** Fish IDs that could not be placed, until when. */
     private final Map<Long, Long> retryAfter = new java.util.HashMap<>();
+    /** Recent merges, loser key to the key that absorbed it, for the harness (bounded). */
+    final Map<Long, Long> mergeHistory = new LinkedHashMap<>();
+    /** Fish IDs held back because their spot was in view and near, since when. */
+    private final Map<Long, Long> deferredSince = new java.util.HashMap<>();
     /** The latest roster pass, for the debug view and the harness. */
     final List<RosterFish> roster = new ArrayList<>();
     private long lastPrune = Long.MIN_VALUE;
@@ -376,6 +457,10 @@ public final class AmbientFishRuntime {
         this.budget = budget;
         discovery.configure(budget.radius(), WaterDiscovery.DEFAULT_Y_ABOVE,
                 WaterDiscovery.DEFAULT_Y_BELOW, budget.columnsPerTick(), budget.cellsPerTick());
+        // The cache must hold the whole kept window (radius plus eviction slack), or a wide radius
+        // trims columns the sweep then finds again, forever.
+        int side = 2 * (budget.radius() + WaterDiscovery.DEFAULT_EVICT_SLACK) + 1;
+        discovery.setMaxColumns(Math.max(WaterDiscovery.DEFAULT_MAX_COLUMNS, side * side));
     }
 
     public void clear() {
@@ -394,6 +479,8 @@ public final class AmbientFishRuntime {
         speciesById.clear();
         samplers.clear();
         retryAfter.clear();
+        deferredSince.clear();
+        mergeHistory.clear();
         roster.clear();
         lastPrune = Long.MIN_VALUE;
         seeded = false;
@@ -428,6 +515,16 @@ public final class AmbientFishRuntime {
 
     public int submitsThisFrame() {
         return worldSubmitsThisFrame;
+    }
+
+    /** Why the last tick's spawn attempt did nothing (diagnosis only). */
+    public String lastSpawnSkip() {
+        return lastSpawnSkip;
+    }
+
+    /** The chunk fluid scans the roster is derived from (diagnosis only). */
+    public AmbientChunkField chunkField() {
+        return field;
     }
 
     public int domainCount() {
@@ -482,9 +579,17 @@ public final class AmbientFishRuntime {
             return null;
         }
         SpeciesVisual visual = new SpeciesVisual(species, id, stack, spec,
-                bodyFor(spec.locomotion(), spec.length()), anim);
+                bodyFor(spec.locomotion(), spec.length()), anim, FishVisuals.cruiseTierOf(stack, level),
+                AmbientGroups.shapeFor(shapeOf(id, level), spec.locomotion()));
         visuals.put(species, visual);
         return visual;
+    }
+
+    /** The species' authored visit shape (or its rarity fallback); solitary for a species with no profile. */
+    private static VisitShape shapeOf(ResourceLocation id, net.minecraft.world.level.Level level) {
+        return level.registryAccess().registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY)
+                .getOptional(net.minecraft.resources.ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, id))
+                .map(FishProfile::visitShape).orElse(VisitShape.SOLITARY);
     }
 
     /** Profile-driven mean size in cm — the same size the item renders at. */
@@ -531,6 +636,8 @@ public final class AmbientFishRuntime {
         if (time == lastTick) return;
         lastTick = time;
         long tickStarted = System.nanoTime();
+        long allocStarted = invariantStats ? allocatedBytes() : 0L;
+        allocCursor = allocStarted;
         lastSpawnSkip = "no-spawn";
         if (mc.player == null) return;
         BlockPos player = mc.player.blockPosition();
@@ -539,20 +646,29 @@ public final class AmbientFishRuntime {
         // Discovery's own tick carries the near pass, the budgeted revalidation of known columns —
         // the only path that ever notices an edit inside already-cached water — and the ring sweep,
         // all inside one shared cell budget (see WaterDiscovery.revalidatePass for the split).
+        long discoveryStarted = System.nanoTime();
         discovery.tick(source, px, py, pz, time);
-
+        stats.discoveryNanos += System.nanoTime() - discoveryStarted;
+        allocMark(0);
         syncDomains(time, px, py, pz);
+        allocMark(1);
         deriveRoster(lvl, time, px, py, pz);
+        allocMark(2);
         int changes = reconcileRoster(time, px, py, pz);
         retireAtFaces(time);
         updateFades(time);
         changes += retireFinished(time);
+        allocMark(3);
         spawnRoster(time, px, py, pz, changes);
+        allocMark(4);
         stepEngines();
+        allocMark(5);
         enforceLeash(time);
         dropDeadDomains(time);
         recordStats();
+        allocMark(6);
         double millis = (System.nanoTime() - tickStarted) / 1_000_000.0;
+        if (invariantStats) stats.allocBytes += allocatedBytes() - allocStarted;
         stats.ticks++;
         stats.totalTickMillis += millis;
         stats.peakTickMillis = Math.max(stats.peakTickMillis, millis);
@@ -561,8 +677,13 @@ public final class AmbientFishRuntime {
     // ------------------------------------------------------------------ the seeded roster
 
     /** One fish of the roster at this pass, with what the runtime knows about showing it. */
+    /**
+     * One member of an ambient group (spec §4): {@code lifespan} carries the member's own fish ID,
+     * {@code groupId} the roster lifespan's; every member of a group shares its home column,
+     * species, patch and density draw.
+     */
     private record Plan(AmbientRoster.Lifespan lifespan, AmbientChunkField.Scan scan, int column, String species,
-                        long patchKey, boolean drawn) {
+                        long patchKey, boolean drawn, long groupId, int member, int groupSize) {
         int homeX() { return scan.blockX(column); }
         int homeZ() { return scan.blockZ(column); }
     }
@@ -592,26 +713,35 @@ public final class AmbientFishRuntime {
         int density = budget.density();
         for (AmbientChunkField.Scan scan : field.all()) {
             if (Math.abs(scan.chunkX() - (px >> 4)) > radius || Math.abs(scan.chunkZ() - (pz >> 4)) > radius) continue;
-            int slots = AmbientRoster.slotCount(scan.usableCells(), ROSTER);
+            int allowance = AmbientRoster.slotCount(scan.usableCells(), ROSTER);
+            int slots = AmbientGroups.groupSlots(allowance);
             if (slots == 0 || scan.columnCount() == 0) continue;
-            for (AmbientRoster.Lifespan lifespan : AmbientRoster.present(seed, scan.chunkX(), scan.chunkZ(), slots, time, ROSTER)) {
-                stats.rosterPresent++;
-                int column = AmbientRoster.homeColumn(lifespan.fishId(), scan.columnCount());
-                String species = speciesFor(lvl, lifespan, scan, column);
+            for (AmbientRoster.Lifespan group : AmbientRoster.present(seed, scan.chunkX(), scan.chunkZ(), slots, time, ROSTER)) {
+                long groupId = group.fishId();
+                int column = AmbientRoster.homeColumn(groupId, scan.columnCount());
+                String species = speciesFor(lvl, group, scan, column);
                 long patchKey = discovery.patchKeyAt(scan.blockX(column), scan.blockZ(column));
-                boolean drawn = AmbientRoster.drawn(lifespan.fishId(), density);
-                plans.add(new Plan(lifespan, scan, column, species, patchKey, drawn));
+                // D5: density draws whole groups, so a lower setting shows fewer groups at full size.
+                boolean drawn = AmbientRoster.drawn(groupId, density);
+                SpeciesVisual visual = species == null ? null : visuals.get(species);
+                int size = visual == null ? 1 : AmbientGroups.size(groupId, visual.shape(), allowance);
+                for (int i = 0; i < size; i++) {
+                    AmbientRoster.Lifespan lifespan = i == 0 ? group : new AmbientRoster.Lifespan(
+                            AmbientGroups.memberId(groupId, i), group.chunkX(), group.chunkZ(), group.slot(),
+                            group.index(), group.arrivalTick(), group.departureTick());
+                    plans.add(new Plan(lifespan, scan, column, species, patchKey, drawn, groupId, i, size));
+                }
+                stats.rosterPresent += size;
                 if (!drawn) {
-                    stats.rosterHiddenDensity++;
+                    stats.rosterHiddenDensity += size;
                     continue;
                 }
-                stats.rosterDrawn++;
+                stats.rosterDrawn += size;
                 DomainState st = patchKey == 0L ? null : domains.get(patchKey);
                 if (st == null || st.dying || species == null) {
-                    stats.rosterNoDomain++;
+                    stats.rosterNoDomain += size;
                     continue;
                 }
-                SpeciesVisual visual = visuals.get(species);
                 if (visual != null && visual.body().above() > st.topMargin) st.topMargin = visual.body().above();
             }
         }
@@ -620,9 +750,13 @@ public final class AmbientFishRuntime {
     /** Forgets memoised draws of fish no longer on the roster, so the maps stay bounded. */
     private void pruneMemos() {
         java.util.Set<Long> alive = new java.util.HashSet<>(plans.size() * 2);
-        for (Plan plan : plans) alive.add(plan.lifespan().fishId());
+        for (Plan plan : plans) {
+            alive.add(plan.lifespan().fishId());
+            alive.add(plan.groupId());
+        }
         speciesById.keySet().retainAll(alive);
         retryAfter.keySet().retainAll(alive);
+        deferredSince.keySet().retainAll(alive);
         if (samplers.size() > 256) samplers.clear();
     }
 
@@ -644,7 +778,12 @@ public final class AmbientFishRuntime {
         if (sampler == null) {
             var profiles = lvl.registryAccess().registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
             var pool = NaturalPool.resolve(lvl.registryAccess().registryOrThrow(Registries.ITEM), profiles, env);
-            sampler = VisualSampler.build(NaturalPool.ambientCandidates(profiles, pool), id -> visualFor(id, lvl) != null);
+            // D2: one draw per group, weighted so each species keeps its share of individual fish.
+            sampler = VisualSampler.build(NaturalPool.ambientCandidates(profiles, pool), id -> visualFor(id, lvl) != null,
+                    id -> {
+                        SpeciesVisual v = visualFor(id, lvl);
+                        return v == null ? 1.0 : AmbientGroups.meanMembers(v.shape());
+                    });
             samplers.put(env, sampler);
         }
         String species = sampler.sampleAt(AmbientRoster.speciesUnit(lifespan.fishId()));
@@ -678,20 +817,32 @@ public final class AmbientFishRuntime {
      * from the current columns each tick.
      */
     private void syncDomains(long time, int px, int py, int pz) {
+        noteMerges(time);
         List<WaterDiscovery.Patch> live = new ArrayList<>();
         for (WaterDiscovery.Patch p : discovery.livePatches()) {
             if (p.columns() >= MIN_PATCH_COLUMNS) live.add(p);
         }
         var occupied = new java.util.HashSet<Long>();
         for (DomainState st : domains.values()) {
-            if (!st.dying && !st.members.isEmpty()) occupied.add(st.patchKey);
+            // A merging domain's residents are bound for the survivor, so the survivor holds a slot.
+            if (st.mergedInto != 0L) occupied.add(st.mergedInto);
+            else if (!st.dying && !st.members.isEmpty()) occupied.add(st.patchKey);
         }
+        // An occupied patch keeps its slot while any of its water is in range: at a 32-block range
+        // several bodies of water compete for the slots, and the old 10-block hold let a few steps
+        // swap a populated patch for an empty one, fading its whole population (ambientwalk).
         var selection = AmbientPatchSelection.select(live, discovery.nearestSquaredDistances(px, pz), occupied,
-                budget.domains());
+                budget.domains(), budget.radius() * budget.radius());
         live = selection.patches();
         patchDistances = selection.distances();
 
         for (DomainState st : domains.values()) {
+            if (st.mergedInto != 0L) {
+                // Its key is gone by design; it lives on until the survivor can take its residents.
+                if (time - st.mergedAt < MERGE_TIMEOUT_TICKS) continue;
+                stats.mergeFallbacks += st.members.size();
+                st.mergedInto = 0L;
+            }
             boolean stillLive = false;
             for (WaterDiscovery.Patch p : live) {
                 if (p.key() == st.patchKey) {
@@ -705,11 +856,15 @@ public final class AmbientFishRuntime {
             }
             if (!stillLive) beginDying(st, time);
         }
+        // A merging domain does not hold a slot of its own: its water is the survivor's now.
+        int slots = 0;
+        for (DomainState st : domains.values()) if (st.mergedInto == 0L) slots++;
         for (WaterDiscovery.Patch p : live) {
             DomainState st = domains.get(p.key());
             if (st != null) continue;
-            if (domains.size() >= budget.domains()) break;
+            if (slots >= budget.domains()) break;
             domains.put(p.key(), new DomainState(p));
+            slots++;
         }
 
         // A revived domain waits for its patch's cache to refill before it is rebuilt. Rediscovery
@@ -730,7 +885,7 @@ public final class AmbientFishRuntime {
         DomainState dirtiest = null;
         int bestDistance = Integer.MAX_VALUE;
         for (DomainState st : domains.values()) {
-            if (st.dying || st.refilling) continue;
+            if (st.dying || st.refilling || st.mergedInto != 0L) continue;
             int distance = patchDistance(st.patch);
             // A margin the domain was not built with is as much a staleness as a moved column:
             // the reserved head-room is what keeps a tall species' spawns inside the water.
@@ -740,8 +895,12 @@ public final class AmbientFishRuntime {
             // rebuilt at all.
             boolean inputsMoved = st.builtVersion != discovery.patchVersion(st.patchKey)
                     || st.builtPx != px || st.builtPy != py || st.builtPz != pz;
+            // Growth alone (more columns found, nothing else moved) waits GROWTH_REBUILD_TICKS;
+            // a shrink is a retirement waiting to happen and is never held.
+            boolean grew = st.patch.columns() > st.builtColumns;
             boolean stale = st.builtTick == Long.MIN_VALUE
-                    || st.builtColumns != st.patch.columns()
+                    || (st.builtColumns != st.patch.columns()
+                        && (!grew || !recent(st.builtTick, time, GROWTH_REBUILD_TICKS)))
                     || st.builtTopMargin != st.topMargin
                     || (inputsMoved && !recent(st.builtTick, time, REBUILD_INTERVAL_TICKS));
             if (stale && distance < bestDistance) {
@@ -750,6 +909,74 @@ public final class AmbientFishRuntime {
             }
         }
         if (dirtiest != null) rebuild(dirtiest, time, px, py, pz);
+        transferMerged(time);
+    }
+
+    /**
+     * Marks every domain whose water discovery just merged into another body. Its residents are
+     * not lost: they stay where they are, in water that is still there, and move to the survivor
+     * once the survivor's domain covers it. A merge used to retire the whole absorbed domain, which
+     * faded every fish in it at once and respawned them a moment later.
+     */
+    private void noteMerges(long time) {
+        for (long[] merge : discovery.drainMerges()) {
+            long loser = merge[0], winner = merge[1];
+            mergeHistory.put(loser, winner);
+            if (mergeHistory.size() > 64) mergeHistory.remove(mergeHistory.keySet().iterator().next());
+            for (DomainState st : domains.values()) {
+                if (st.mergedInto == loser) st.mergedInto = winner; // a chain: follow the survivor
+            }
+            DomainState st = domains.get(loser);
+            if (st == null || st.dying || st.mergedInto != 0L || st.members.isEmpty()) continue;
+            st.mergedInto = winner;
+            st.mergedAt = time;
+            st.refilling = false;
+            stats.merges++;
+        }
+    }
+
+    /**
+     * Moves each merged domain's residents into the survivor once the survivor's domain has been
+     * built from the joined water: same world position, motion, phases and individuality
+     * ({@link FlockEngine#adopt}), so nothing visibly changes. A resident whose body the new water
+     * cannot hold, or one already fading, stays behind and fades with the old domain.
+     */
+    private void transferMerged(long time) {
+        for (DomainState from : domains.values()) {
+            if (from.mergedInto == 0L) continue;
+            DomainState to = domains.get(from.mergedInto);
+            if (to == null || to.dying || to.domain == null || to.builtTick == Long.MIN_VALUE
+                    || to.builtTick < from.mergedAt || from.domain == null) continue;
+            float dl = from.originX() - to.originX();
+            float dy = from.originY() - to.originY();
+            float dd = from.originZ() - to.originZ();
+            List<Member> moving = new ArrayList<>();
+            List<Integer> sources = new ArrayList<>();
+            for (int i = 0; i < from.members.size(); i++) {
+                Member m = from.members.get(i);
+                if (m.retiring()) continue;
+                float l = from.engine.posL()[i] + dl, y = from.engine.posY()[i] + dy, d = from.engine.posD()[i] + dd;
+                if (!to.domain.bodyFits(l, y, d, m.body)) continue;
+                moving.add(m);
+                sources.add(i);
+            }
+            if (!moving.isEmpty()) {
+                int first = to.members.size();
+                for (Member m : moving) {
+                    m.engineIndex = -1;
+                    to.members.add(m);
+                }
+                reseed(to);
+                for (int k = 0; k < moving.size(); k++) {
+                    to.engine.adopt(first + k, moving.get(k).spec, from.engine, sources.get(k), dl, dy, dd);
+                }
+                from.members.removeAll(moving);
+                stats.mergeTransfers += moving.size();
+            }
+            from.mergedInto = 0L;
+            reseed(from);
+            beginDying(from, time);
+        }
     }
 
     /** Starts a domain's one-way exit: everyone fades out, the state goes when the last one has. */
@@ -919,8 +1146,9 @@ public final class AmbientFishRuntime {
         m.retireReason = reason;
         // Context-driven retirements get the spec's ~2 s eligibility fade; the water-boundary
         // retirements keep the Phase 2 fade they were tuned with.
-        m.fadeTicks = (reason == REASON_EXCLUDED || reason == REASON_EXPIRED || reason == REASON_LEASH)
-                ? AmbientTuning.POPULATION_FADE_TICKS : FADE_TICKS;
+        m.fadeTicks = (reason == REASON_EXCLUDED || reason == REASON_EXPIRED || reason == REASON_LEASH
+                || reason == REASON_DISPLACED) ? AmbientTuning.POPULATION_FADE_TICKS : FADE_TICKS;
+        if (reason == REASON_DISPLACED) stats.retireDisplaced++;
         if (reason == REASON_OPEN_FACE) stats.retireOpenFace++;
         else if (reason == REASON_INVALID) stats.retireInvalid++;
         else if (reason == REASON_DOMAIN_LOST) stats.retireDomainLost++;
@@ -935,7 +1163,7 @@ public final class AmbientFishRuntime {
         for (DomainState st : domains.values()) {
             scratchMembers.clear();
             for (Member m : st.members) {
-                if (m.retiring() && m.fade <= 0f && removed < MEMBERSHIP_CHANGES_PER_TICK) {
+                if (m.retiring() && m.fade <= 0f && removed < membershipChangesPerTick()) {
                     scratchMembers.add(m);
                     removed++;
                 }
@@ -965,8 +1193,10 @@ public final class AmbientFishRuntime {
             for (int i = 0; i < st.members.size(); i++) {
                 Member m = st.members.get(i);
                 if (!m.retiring()) {
-                    // An arrival swims in from the fluid edge, fading up as it goes.
-                    if (m.arriving && m.fade < 1f) m.fade = Math.min(1f, (time - m.bornTick) / (float) ARRIVAL_FADE_TICKS);
+                    // An arrival swims in from the fluid edge, fading up as it goes; any other new
+                    // fish grows in where it was placed.
+                    if (m.fade < 1f) m.fade = Math.min(1f, (time - m.bornTick)
+                            / (float) (m.arriving ? ARRIVAL_FADE_TICKS : SPAWN_FADE_TICKS));
                     continue;
                 }
                 float timeFade = 1f - (time - m.retireTick) / (float) m.fadeTicks;
@@ -996,78 +1226,385 @@ public final class AmbientFishRuntime {
      */
     private void spawnRoster(long time, int px, int py, int pz, int changes) {
         if (!seeded) return;
-        if (changes >= MEMBERSHIP_CHANGES_PER_TICK) {
+        int changeBudget = membershipChangesPerTick();
+        if (changes >= changeBudget) {
             spawnSkip("changes");
             return;
         }
-        int total = 0;
+        // The cap bounds the living population; fading fish are short-lived and only bounded by the
+        // ceiling, so a displaced fish's slot is free the moment its fade begins.
+        int total = 0, alive = 0;
+        int cap = budget.individuals(), ceiling = cap + Math.max(2, cap / 2);
         java.util.Set<Long> existing = new java.util.HashSet<>();
         for (DomainState st : domains.values()) {
             total += st.members.size();
-            for (Member m : st.members) existing.add(m.id);
+            for (Member m : st.members) {
+                existing.add(m.id);
+                if (!m.retiring()) alive++;
+            }
         }
-        if (total >= budget.individuals()) {
-            spawnSkip("cap");
-            return;
-        }
-        List<Plan> pending = new ArrayList<>();
+        // Pending work is per group (spec §4.4): its missing members spawn together, or not at all.
+        Map<Long, List<Plan>> missing = new LinkedHashMap<>();
         for (Plan plan : plans) {
             if (!plan.drawn() || plan.species() == null || existing.contains(plan.lifespan().fishId())) continue;
             DomainState st = plan.patchKey() == 0L ? null : domains.get(plan.patchKey());
             if (st == null || st.dying || st.domain == null) continue;
-            Long after = retryAfter.get(plan.lifespan().fishId());
+            Long after = retryAfter.get(plan.groupId());
             if (after != null && time < after) continue;
-            pending.add(plan);
+            missing.computeIfAbsent(plan.groupId(), k -> new ArrayList<>()).add(plan);
         }
-        stats.rosterPending = pending.size();
-        pending.sort(Comparator.comparingDouble(p -> {
+        List<List<Plan>> pending = new ArrayList<>(missing.values());
+        stats.rosterPending = 0;
+        for (List<Plan> group : pending) stats.rosterPending += group.size();
+        pending.sort(Comparator.comparingDouble(g -> {
+            Plan p = g.get(0);
             double dx = p.homeX() + 0.5 - px, dz = p.homeZ() + 0.5 - pz;
             return dx * dx + dz * dz;
         }));
-        for (Plan plan : pending) {
-            if (changes >= MEMBERSHIP_CHANGES_PER_TICK || total >= budget.individuals()) break;
-            if (spawnFish(plan, domains.get(plan.patchKey()), time)) {
-                changes++;
-                total++;
+        if (!pending.isEmpty() && alive >= cap) alive -= displaceFor(pending, time, px, pz, cap - alive);
+        if (alive >= cap || total >= ceiling) {
+            spawnSkip(alive >= cap ? "cap" : "ceiling");
+            return;
+        }
+        for (List<Plan> group : pending) {
+            int need = group.size();
+            // A group bigger than one tick's budget still spawns whole, but only as the tick's first change.
+            if (changes > 0 && changes + need > changeBudget) break;
+            // A group spawns while the population is under the cap, overshooting by at most one
+            // group; requiring an exact fit held the population ~15% under the cap (spec §11.4).
+            if (alive >= cap || total + need > ceiling) {
+                stats.groupsHeldAtCap++;
+                break;
             }
+            int spawned = spawnGroup(group, domains.get(group.get(0).patchKey()), time);
+            changes += spawned;
+            total += spawned;
+            alive += spawned;
+            if (changes >= changeBudget) break;
         }
     }
 
-    private boolean spawnFish(Plan plan, DomainState st, long time) {
-        long id = plan.lifespan().fishId();
-        SpeciesVisual visual = visuals.get(plan.species());
-        if (visual == null) return false;
-        FishSpec spec = visual.spec();
-        WaterDomain.BodyBox body = visual.body();
-        spec = new FishSpec(spec.length(), spec.locomotion(), AmbientRoster.mirrored(id), spec.species(), spec.shelterUse());
-        if (!st.engine.passesGate(spec.locomotion(), spec.length())) {
-            retryAfter.put(id, time + OMISSION_RETRY_TICKS);
-            stats.omissions++;
-            spawnSkip("gate " + spec.species());
-            return false;
+    /**
+     * With the cap full, hands the slots of the furthest out-of-view residents to the nearest waiting
+     * fish (pending is sorted nearest first). A resident gives up its slot only when it is more than
+     * {@link #DISPLACE_HYSTERESIS} further from the player than the fish taking it, so a still player
+     * holds a stable population and only travel moves the slots along. Returns the residents retired.
+     */
+    private int displaceFor(List<List<Plan>> pending, long time, int px, int pz, int free) {
+        Minecraft mc = Minecraft.getInstance();
+        var camera = mc.gameRenderer == null ? null : mc.gameRenderer.getMainCamera();
+        // Residents are ranked by their home cell, exactly as waiting fish are: a fish's live position
+        // wanders, and ranking it by that would let a slot-holder that drifted away lose its slot to a
+        // fish no nearer than itself, which would then drift and lose it again — endless churn for a
+        // player standing still. Home cells don't move, so every displacement strictly lowers the
+        // furthest resident's distance and a still player's population settles.
+        //
+        // A group gives up its slots together (spec §4.4), and only when none of it is in view.
+        Map<Long, Plan> homes = new java.util.HashMap<>(plans.size() * 2);
+        for (Plan plan : plans) homes.put(plan.lifespan().fishId(), plan);
+        Map<Long, List<Member>> groups = new LinkedHashMap<>();
+        Map<Long, DomainState> owners = new java.util.HashMap<>();
+        Map<Long, Double> distances = new java.util.HashMap<>();
+        java.util.Set<Long> seen = new java.util.HashSet<>();
+        for (DomainState st : domains.values()) {
+            for (int i = 0; i < st.members.size(); i++) {
+                Member m = st.members.get(i);
+                if (m.retiring() || st.domain == null) continue;
+                Plan home = homes.get(m.id);
+                if (home == null) continue; // off the roster: reconcileRoster is already retiring it
+                double x = st.originX() + st.engine.posL()[i], y = st.originY() + st.engine.posY()[i],
+                        z = st.originZ() + st.engine.posD()[i];
+                if (camera != null && inView(mc, camera, x, y, z)) seen.add(m.groupId);
+                groups.computeIfAbsent(m.groupId, k -> new ArrayList<>()).add(m);
+                owners.put(m.groupId, st);
+                distances.put(m.groupId, Math.hypot(home.homeX() - px, home.homeZ() - pz));
+            }
         }
+        List<Long> order = new ArrayList<>();
+        for (Long g : groups.keySet()) if (!seen.contains(g)) order.add(g);
+        order.sort((a, b) -> Double.compare(distances.get(b), distances.get(a)));
+        int displaced = 0, k = 0;
+        // Only a group that can actually be placed may take slots: one that cannot would free them,
+        // fail, and hand them straight back to the residents it evicted — a loop that never ends.
+        int limit = Math.max(membershipChangesPerTick(), pending.get(0).size());
+        for (int p = 0; p < pending.size() && displaced < limit; p++) {
+            List<Plan> group = pending.get(p);
+            int need = group.size() - free;
+            if (need <= 0) {
+                free -= group.size();
+                continue;
+            }
+            Plan plan = group.get(0);
+            double want = Math.hypot(plan.homeX() - px, plan.homeZ() - pz);
+            // Enough furthest groups to make room, all further than this one by the hysteresis.
+            int freed = 0, j = k;
+            while (freed < need && j < order.size() && distances.get(order.get(j)) > want + DISPLACE_HYSTERESIS) {
+                freed += groups.get(order.get(j)).size();
+                j++;
+            }
+            if (freed < need) break;
+            if (!placeable(group, time)) continue;
+            for (; k < j; k++) {
+                long g = order.get(k);
+                for (Member m : groups.get(g)) beginRetire(owners.get(g), m, REASON_DISPLACED, time);
+                displaced += groups.get(g).size();
+            }
+            free += freed - group.size();
+        }
+        return displaced;
+    }
+
+    /** Whether {@link #spawnFish} would find this fish a place now; a miss is put on the retry clock. */
+    private boolean placeable(List<Plan> group, long time) {
+        Plan plan = group.get(0);
+        DomainState st = domains.get(plan.patchKey());
+        SpeciesVisual visual = visuals.get(plan.species());
+        if (st == null || st.domain == null || visual == null) return false;
+        FishSpec spec = visual.spec();
+        long id = plan.groupId();
         boolean arriving = time - plan.lifespan().arrivalTick() < ARRIVAL_WINDOW_TICKS;
         float[] found = new float[3];
-        if (!findPlacement(st, plan, spec, body, arriving, found)) {
-            retryAfter.put(id, time + OMISSION_RETRY_TICKS);
+        if (st.engine.passesGate(spec.locomotion(), spec.length())
+                && (anchorOf(st, plan.groupId(), found) || findPlacement(st, plan, spec, visual.body(), arriving, found))) {
+            // A fish that would be held back (its spot is in view and near) cannot take a slot now
+            // either, or the freed slot would sit empty and go straight back to the fish it evicted.
+            return !nearViewSeen(st, found) || deferExpired(id, time);
+        }
+        retryAfter.put(id, time + OMISSION_RETRY_TICKS);
+        return false;
+    }
+
+    /** Spawns and removals allowed per tick (and displacements): grows with the cap. */
+    int membershipChangesPerTick() {
+        return Math.max(MIN_MEMBERSHIP_CHANGES_PER_TICK, budget.individuals() / MEMBERSHIP_CAP_DIVISOR);
+    }
+
+    /** Whether a world point is inside the camera's view, widened by {@link #VIEW_MARGIN_DEGREES}. */
+    private static boolean inView(Minecraft mc, net.minecraft.client.Camera camera, double x, double y, double z) {
+        Vec3 eye = camera.getPosition();
+        var f = camera.getLookVector();
+        double dx = x - eye.x, dy = y - eye.y, dz = z - eye.z;
+        double depth = dx * f.x() + dy * f.y() + dz * f.z();
+        if (depth <= 0) return false;
+        double rx = -f.z(), rz = f.x();
+        double rl = Math.sqrt(rx * rx + rz * rz);
+        if (rl < 1e-6) return true; // looking straight up or down: treat everything as seen
+        rx /= rl;
+        rz /= rl;
+        double ux = -rz * f.y(), uy = rz * f.x() - rx * f.z(), uz = rx * f.y();
+        double margin = Math.toRadians(VIEW_MARGIN_DEGREES);
+        double halfV = Math.toRadians(mc.options.fov().get()) / 2;
+        double aspect = mc.getWindow().getWidth() / (double) Math.max(1, mc.getWindow().getHeight());
+        double halfH = Math.atan(Math.tan(halfV) * aspect);
+        double tanH = Math.tan(Math.min(Math.toRadians(89), halfH + margin));
+        double tanV = Math.tan(Math.min(Math.toRadians(89), halfV + margin));
+        return Math.abs(dx * rx + dz * rz) <= depth * tanH && Math.abs(dx * ux + dy * uy + dz * uz) <= depth * tanV;
+    }
+
+    /**
+     * Spawns a group's missing members together (spec §4.4): the first at the group's home cell (or
+     * an arrival at the patch edge), or beside a living member when some of the group is already
+     * here; the rest clustered around it at the shape's spacing, a school sharing one heading. A
+     * member nothing fits near is dropped from this spawn, not the group. Returns the members spawned.
+     */
+    private int spawnGroup(List<Plan> group, DomainState st, long time) {
+        Plan first = group.get(0);
+        long groupId = first.groupId();
+        SpeciesVisual visual = visuals.get(first.species());
+        if (visual == null) return 0;
+        FishSpec base = visual.spec();
+        WaterDomain.BodyBox body = visual.body();
+        if (!st.engine.passesGate(base.locomotion(), base.length())) {
+            retryAfter.put(groupId, time + OMISSION_RETRY_TICKS);
+            stats.omissions++;
+            spawnSkip("gate " + base.species());
+            return 0;
+        }
+        boolean arriving = time - first.lifespan().arrivalTick() < ARRIVAL_WINDOW_TICKS;
+        float[] anchor = new float[3];
+        boolean joining = anchorOf(st, groupId, anchor);
+        if (!joining && !findPlacement(st, first, base, body, arriving, anchor)) {
+            retryAfter.put(groupId, time + OMISSION_RETRY_TICKS);
             stats.omissions++;
             stats.unplaceable++;
-            spawnSkip("nowhere " + spec.species());
+            spawnSkip("nowhere " + base.species());
+            return 0;
+        }
+        if (deferNearView(st, groupId, anchor, time)) return 0;
+        VisitShape shape = visual.shape();
+        float spacing = Math.max(MIN_GROUP_SPACING, AmbientGroups.spacingLengths(shape) * base.length());
+        float separation = Math.min(SPAWN_SEPARATION, Math.max(MIN_GROUP_SPACING, 0.8f * spacing));
+        boolean shared = AmbientGroups.sharedHeading(shape);
+        float speed = AmbientMotion.speedScale(visual.cruise(), base.length());
+        List<float[]> spots = new ArrayList<>(group.size());
+        for (int k = 0; k < group.size(); k++) {
+            Plan plan = group.get(k);
+            float[] spot = new float[3];
+            boolean placed;
+            if (k == 0 && !joining) {
+                System.arraycopy(anchor, 0, spot, 0, 3);
+                placed = true;
+            } else {
+                placed = placeNear(st, base, body, anchor, spacing, separation, plan, spots, spot);
+            }
+            if (placed) spots.add(spot);
+            else spots.add(null);
+        }
+        int spawned = 0;
+        int firstIndex = st.members.size();
+        List<float[]> at = new ArrayList<>(group.size());
+        for (int k = 0; k < group.size(); k++) {
+            float[] spot = spots.get(k);
+            if (spot == null) continue;
+            Plan plan = group.get(k);
+            long id = plan.lifespan().fishId();
+            boolean mirrored = AmbientRoster.mirrored(shared ? groupId : id);
+            FishSpec spec = new FishSpec(base.length(), base.locomotion(), mirrored, base.species(), base.shelterUse(), speed);
+            spawnSkip("spawned " + spec.species());
+            st.members.add(new Member(plan.lifespan(), groupId, plan.species(), spec, body, visual.stack().copy(),
+                    visual.anim(), time, arriving));
+            at.add(spot);
+        }
+        if (at.isEmpty()) {
+            retryAfter.put(groupId, time + OMISSION_RETRY_TICKS);
+            return 0;
+        }
+        reseed(st); // once for the whole group, then each member is put on its spot
+        for (int j = 0; j < at.size(); j++) {
+            int index = firstIndex + j;
+            float[] spot = at.get(j);
+            st.engine.placeFish(index, spot[0], spot[1], spot[2]);
+            if (invariantStats) {
+                stats.spawnFitChecks++;
+                if (!st.domain.bodyFits(st.engine.posL()[index], st.engine.posY()[index],
+                        st.engine.posD()[index], body)) stats.spawnFitFailures++;
+            }
+            stats.spawns++;
+            spawned++;
+        }
+        if (spawned < group.size()) {
+            // The rest of the group found no room this time; it tries again on the retry clock.
+            retryAfter.put(groupId, time + OMISSION_RETRY_TICKS);
+            stats.omissions += group.size() - spawned;
+            stats.groupMembersDropped += group.size() - spawned;
+        }
+        return spawned;
+    }
+
+    /**
+     * The domain-local position of a living member of {@code groupId} into {@code out}, if one is here
+     * and well inside its leash. A groupmate near the leash edge is no anchor: a member placed beside
+     * it would cross the leash at once, fade, and be placed there again, round and round.
+     */
+    private boolean anchorOf(DomainState st, long groupId, float[] out) {
+        for (int i = 0; i < st.members.size(); i++) {
+            Member m = st.members.get(i);
+            if (m.groupId != groupId || m.retiring()) continue;
+            double x = st.originX() + st.engine.posL()[i], z = st.originZ() + st.engine.posD()[i];
+            double inner = GROUP_LEASH_MARGIN - ANCHOR_LEASH_CLEARANCE;
+            double x0 = (m.lifespan.chunkX() << 4) - inner, z0 = (m.lifespan.chunkZ() << 4) - inner;
+            if (x < x0 || x > x0 + 16 + 2 * inner || z < z0 || z > z0 + 16 + 2 * inner) continue;
+            out[0] = st.engine.posL()[i];
+            out[1] = st.engine.posY()[i];
+            out[2] = st.engine.posD()[i];
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * One member's spot near the group's anchor: hashed offsets on a widening disc (radius grows
+     * with the group, about {@code spacing} between neighbours) and a shallow vertical spread, each
+     * checked like any spawn — whole body in water, clear of open faces — and kept {@code separation}
+     * from residents and from the members already placed this spawn.
+     */
+    private boolean placeNear(DomainState st, FishSpec spec, WaterDomain.BodyBox body, float[] anchor, float spacing,
+                              float separation, Plan plan, List<float[]> placed, float[] out) {
+        WaterDomain d = st.domain;
+        if (d == null) return false;
+        long id = plan.lifespan().fishId();
+        float radius = spacing * (float) Math.sqrt(Math.max(2, plan.groupSize()));
+        boolean grounded = spec.locomotion() == Locomotion.BENTHIC || spec.locomotion() == Locomotion.ANCHORED;
+        for (int k = 0; k < GROUP_PLACE_ATTEMPTS; k++) {
+            float r = radius * (0.35f + 0.65f * (float) Math.sqrt(AmbientGroups.offsetUnit(id, k, 0))) * (1f + 0.25f * k);
+            float a = (float) (AmbientGroups.offsetUnit(id, k, 1) * Math.PI * 2);
+            float l = anchor[0] + r * (float) Math.cos(a), dep = anchor[2] + r * (float) Math.sin(a);
+            float y;
+            if (grounded) {
+                float bed = d.bedAt(l, dep);
+                if (!Float.isFinite(bed)) continue;
+                float bottom = d.bottomAt(l, dep), surface = d.surfaceAt(l, dep);
+                if (!Float.isFinite(bottom) || !Float.isFinite(surface)) continue;
+                float lo = bottom + body.below() + 0.02f, hi = surface - body.above() - 0.02f;
+                if (hi <= lo) continue;
+                y = AmbientPlacement.height(spec.locomotion(), bed, lo, hi, 0.5f);
+            } else {
+                y = anchor[1] + (float) (AmbientGroups.offsetUnit(id, k, 2) - 0.5) * spacing;
+            }
+            if (!d.bodyFits(l, y, dep, body)) continue;
+            if (d.openFaceDistance(l, y, dep) <= WaterDomain.OPEN_FACE_MARGIN + 0.05f) continue;
+            if (discovery.patchKeyAt((int) Math.floor(l + st.originX()), (int) Math.floor(dep + st.originZ())) != st.patchKey) continue;
+            if (!clearOf(st, placed, l, y, dep, separation)) continue;
+            out[0] = l;
+            out[1] = y;
+            out[2] = dep;
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean clearOf(DomainState st, List<float[]> placed, float l, float y, float dep, float separation) {
+        float s2 = separation * separation;
+        for (int i = 0; i < st.members.size(); i++) {
+            float dl = st.engine.posL()[i] - l, dy = st.engine.posY()[i] - y, dd = st.engine.posD()[i] - dep;
+            if (dl * dl + dy * dy + dd * dd < s2) return false;
+        }
+        for (float[] p : placed) {
+            if (p == null) continue;
+            float dl = p[0] - l, dy = p[1] - y, dd = p[2] - dep;
+            if (dl * dl + dy * dy + dd * dd < s2) return false;
+        }
+        return true;
+    }
+
+    /**
+     * Holds back a fish whose spot is in view and near, so the player does not watch it appear:
+     * it is looked at again every {@link #DEFER_RETRY_TICKS} and spawns the moment the spot is out
+     * of view (or far enough), or after {@link #MAX_SPAWN_DEFER_TICKS} in any case; a fish in water
+     * the player keeps staring at is better faded in than never there.
+     */
+    private boolean deferNearView(DomainState st, long id, float[] found, long time) {
+        if (!nearViewSeen(st, found)) {
+            deferredSince.remove(id);
             return false;
         }
-        spawnSkip("spawned " + spec.species());
-        Member m = new Member(plan.lifespan(), plan.species(), spec, body, visual.stack().copy(), visual.anim(), time, arriving);
-        st.members.add(m);
-        reseed(st);
-        int index = st.members.size() - 1;
-        st.engine.placeFish(index, found[0], found[1], found[2]);
-        if (invariantStats) {
-            stats.spawnFitChecks++;
-            if (!st.domain.bodyFits(st.engine.posL()[index], st.engine.posY()[index],
-                    st.engine.posD()[index], body)) stats.spawnFitFailures++;
+        long since = deferredSince.computeIfAbsent(id, k -> time);
+        if (deferExpired(id, time)) {
+            deferredSince.remove(id);
+            stats.deferralsExpired++;
+            return false;
         }
-        stats.spawns++;
+        retryAfter.put(id, time + DEFER_RETRY_TICKS);
+        stats.deferrals++;
+        spawnSkip("deferred");
         return true;
+    }
+
+    /** Whether a domain-local spot is in view and nearer than {@link #NEAR_VIEW_SPAWN_DISTANCE}. */
+    private boolean nearViewSeen(DomainState st, float[] found) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.gameRenderer == null || mc.player == null) return false;
+        var camera = mc.gameRenderer.getMainCamera();
+        double x = st.originX() + found[0], y = st.originY() + found[1], z = st.originZ() + found[2];
+        Vec3 eye = camera.getPosition();
+        double dx = x - eye.x, dy = y - eye.y, dz = z - eye.z;
+        return dx * dx + dy * dy + dz * dz < NEAR_VIEW_SPAWN_DISTANCE * NEAR_VIEW_SPAWN_DISTANCE
+                && inView(mc, camera, x, y, z);
+    }
+
+    private boolean deferExpired(long id, long time) {
+        Long since = deferredSince.get(id);
+        return since != null && time - since >= MAX_SPAWN_DEFER_TICKS;
     }
 
     /**
@@ -1144,12 +1681,33 @@ public final class AmbientFishRuntime {
     private void enforceLeash(long time) {
         for (DomainState st : domains.values()) {
             if (st.domain == null) continue;
+            // Groups (spec §4.5) are leashed by their centroid with a wider margin, so a school can
+            // travel as one; a member that strays far past that box fades alone.
+            Map<Long, double[]> centroids = new java.util.HashMap<>();
+            for (int i = 0; i < st.members.size(); i++) {
+                Member m = st.members.get(i);
+                if (m.retiring()) continue;
+                double[] c = centroids.computeIfAbsent(m.groupId, k -> new double[3]);
+                c[0] += st.originX() + st.engine.posL()[i];
+                c[1] += st.originZ() + st.engine.posD()[i];
+                c[2]++;
+            }
             for (int i = 0; i < st.members.size(); i++) {
                 Member m = st.members.get(i);
                 if (m.retiring()) continue;
                 double x = st.originX() + st.engine.posL()[i], z = st.originZ() + st.engine.posD()[i];
-                double x0 = (m.lifespan.chunkX() << 4) - LEASH_MARGIN, z0 = (m.lifespan.chunkZ() << 4) - LEASH_MARGIN;
-                if (x < x0 || x > x0 + 16 + 2 * LEASH_MARGIN || z < z0 || z > z0 + 16 + 2 * LEASH_MARGIN) {
+                double[] c = centroids.get(m.groupId);
+                boolean grouped = c != null && c[2] > 1;
+                double margin = grouped ? GROUP_LEASH_MARGIN : LEASH_MARGIN;
+                double cx = grouped ? c[0] / c[2] : x, cz = grouped ? c[1] / c[2] : z;
+                double x0 = (m.lifespan.chunkX() << 4) - margin, z0 = (m.lifespan.chunkZ() << 4) - margin;
+                boolean out = cx < x0 || cx > x0 + 16 + 2 * margin || cz < z0 || cz > z0 + 16 + 2 * margin;
+                // A member that wandered off is leashed by its own position, LEASH_MARGIN past the
+                // group's box: loose groups spread freely, and only a true stray fades alone.
+                double sx0 = x0 - LEASH_MARGIN, sz0 = z0 - LEASH_MARGIN, span = 16 + 2 * (margin + LEASH_MARGIN);
+                boolean straggling = grouped && (x < sx0 || x > sx0 + span || z < sz0 || z > sz0 + span);
+                if (out || straggling) {
+                    if (!out) stats.retireStraggler++;
                     beginRetire(st, m, REASON_LEASH, time);
                 }
             }
@@ -1169,7 +1727,7 @@ public final class AmbientFishRuntime {
             else if (!plan.drawn()) status = Status.HIDDEN_DENSITY;
             else if (plan.species() == null) status = Status.NO_SPECIES;
             else if (plan.patchKey() == 0L || domains.get(plan.patchKey()) == null) status = Status.NO_DOMAIN;
-            else if (retryAfter.containsKey(l.fishId()) && now < retryAfter.get(l.fishId())) status = Status.UNPLACEABLE;
+            else if (retryAfter.containsKey(plan.groupId()) && now < retryAfter.get(plan.groupId())) status = Status.UNPLACEABLE;
             else status = Status.PENDING;
             out.add(new RosterFish(l.fishId(), l.chunkX(), l.chunkZ(), l.slot(), plan.species(), l.phaseAt(now),
                     l.arrivalTick(), l.departureTick(), plan.homeX(), plan.homeZ(), plan.patchKey(), status));
@@ -1197,9 +1755,11 @@ public final class AmbientFishRuntime {
                 if (m.retiring() || m.fade < 0.75f) continue;
                 AmbientChunkField.Scan scan = field.get(m.lifespan.chunkX(), m.lifespan.chunkZ());
                 if (scan == null || scan.columnCount() == 0) continue;
-                int column = AmbientRoster.homeColumn(m.id, scan.columnCount());
+                // Every member reports its group: the server re-derives the roster lifespan's ID
+                // (FishObservation), and a group is one sighting of its species at its home cell.
+                int column = AmbientRoster.homeColumn(m.groupId, scan.columnCount());
                 BlockPos home = new BlockPos(scan.blockX(column), scan.topY()[column], scan.blockZ(column));
-                out.add(new Observable(m.id, m.species, m.lifespan.chunkX(), m.lifespan.chunkZ(), m.lifespan.slot(),
+                out.add(new Observable(m.groupId, m.species, m.lifespan.chunkX(), m.lifespan.chunkZ(), m.lifespan.slot(),
                         m.lifespan.index(), home, st.originX() + st.engine.posL()[i],
                         st.originY() + st.engine.posY()[i], st.originZ() + st.engine.posD()[i]));
             }
@@ -1238,6 +1798,26 @@ public final class AmbientFishRuntime {
      * the probes cost five domain queries per fish per tick, so they run only while it is armed.
      */
     private static boolean invariantStats;
+
+    private static final java.lang.management.ThreadMXBean THREADS = java.lang.management.ManagementFactory.getThreadMXBean();
+
+    private long allocCursor;
+
+    /**
+     * Self-test only: charges what was allocated since the last mark to {@code section} (0 discovery,
+     * 1 domains, 2 roster, 3 reconcile/retire, 4 spawn, 5 engines, 6 the rest).
+     */
+    private void allocMark(int section) {
+        if (!invariantStats) return;
+        long now = allocatedBytes();
+        stats.allocBySection[section] += now - allocCursor;
+        allocCursor = now;
+    }
+
+    /** Bytes this thread has allocated so far, or 0 where the JVM cannot say. */
+    private static long allocatedBytes() {
+        return THREADS instanceof com.sun.management.ThreadMXBean sun ? sun.getCurrentThreadAllocatedBytes() : 0L;
+    }
 
     public static void setInvariantStats(boolean enabled) {
         invariantStats = enabled;

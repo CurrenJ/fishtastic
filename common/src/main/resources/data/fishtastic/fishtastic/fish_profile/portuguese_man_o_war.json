@@ -20,5 +20,5 @@
     "mode": "upright_float",
     "spin_rate": 0.25
   },
-  "world_encounter": { "shape": "loose_group" }
+  "world_encounter": { "shape": "loose_group", "cruise": "slow" }
 }

@@ -17,5 +17,5 @@
   },
   "companion_gait": "crawl",
   "swarm": { "shelter": "lurker" },
-  "world_encounter": { "shape": "solitary" }
+  "world_encounter": { "shape": "solitary", "cruise": "slow" }
 }

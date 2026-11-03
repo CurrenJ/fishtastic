@@ -102,17 +102,19 @@ class WorldEncounterTest {
                 boolean nether = json.getAsJsonArray("zones").toString().contains("nether");
                 JsonObject animation = json.has("animation") ? json.getAsJsonObject("animation") : new JsonObject();
                 String mode = animation.has("mode") ? animation.get("mode").getAsString() : "horizontal_swim";
-                if (block == null) {
-                    // Only species outside this phase may go without: nether (lava), gliders
-                    // (parked) and the items that never appear.
+                FishProfile.WorldEncounter encounter = block == null ? null
+                        : FishProfile.WorldEncounter.CODEC.parse(JsonOps.INSTANCE, block)
+                                .getOrThrow(false, message -> { throw new IllegalStateException(name + ": " + message); });
+                if (encounter == null || encounter.shape().isEmpty()) {
+                    // Only species outside this phase may go without a shape: nether (lava), gliders
+                    // (parked) and the items that never appear. (Every species has a block for its
+                    // cruise tier, so the block alone no longer says a shape is authored.)
                     if (!nether && !"belly_down".equals(mode) && !NOT_ENCOUNTERS.contains(name)) {
                         missing.put(name, mode);
                     }
                     continue;
                 }
-                FishProfile.WorldEncounter encounter = FishProfile.WorldEncounter.CODEC.parse(JsonOps.INSTANCE, block)
-                        .getOrThrow(false, message -> { throw new IllegalStateException(name + ": " + message); });
-                VisitShape shape = encounter.shape().orElseThrow(() -> new IllegalStateException(name + " has no shape"));
+                VisitShape shape = encounter.shape().get();
                 assertTrue(shape != VisitShape.SCHOOL || "horizontal_swim".equals(mode),
                         name + " is not a free swimmer, so it cannot school");
                 counts.merge(shape, 1, Integer::sum);
@@ -124,5 +126,36 @@ class WorldEncounterTest {
         assertEquals(14, counts.getOrDefault(VisitShape.LOOSE_GROUP, 0));
         assertEquals(9, counts.getOrDefault(VisitShape.PAIR, 0));
         assertEquals(22, counts.getOrDefault(VisitShape.SOLITARY, 0));
+    }
+
+    @Test
+    void parsesTheCruiseTier() {
+        assertEquals(Optional.of(FishProfile.CruiseTier.FAST), parse(Map.of("cruise", "fast")).cruise());
+        assertEquals(Optional.empty(), parse(Map.of()).cruise());
+        assertTrue(FishProfile.WorldEncounter.CODEC.parse(JsonOps.INSTANCE, new Gson().toJsonTree(Map.of("cruise", "zippy"))).error().isPresent());
+        assertEquals(FishProfile.CruiseTier.NORMAL, profile(10, Optional.empty()).cruiseTier(),
+                "a third-party profile without a tier still loads, at normal");
+    }
+
+    /** D4 (docs/ambient-fish-schools-design-spec.md §10): every shipped species authors its cruise tier. */
+    @Test
+    void shippedProfilesAuthorACruiseTier() throws IOException {
+        Map<String, String> missing = new TreeMap<>();
+        Map<FishProfile.CruiseTier, Integer> counts = new EnumMap<>(FishProfile.CruiseTier.class);
+        try (Stream<Path> files = Files.list(PROFILES)) {
+            for (Path file : files.filter(f -> f.toString().endsWith(".json")).sorted().toList()) {
+                String name = file.getFileName().toString().replace(".json", "");
+                JsonObject json = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
+                JsonElement block = json.get("world_encounter");
+                Optional<FishProfile.CruiseTier> tier = block == null ? Optional.empty()
+                        : FishProfile.WorldEncounter.CODEC.parse(JsonOps.INSTANCE, block)
+                                .getOrThrow(false, message -> { throw new IllegalStateException(name + ": " + message); }).cruise();
+                if (tier.isEmpty()) missing.put(name, "no cruise");
+                else counts.merge(tier.get(), 1, Integer::sum);
+            }
+        }
+        assertTrue(missing.isEmpty(), "species without an authored cruise tier: " + missing);
+        assertTrue(counts.getOrDefault(FishProfile.CruiseTier.FAST, 0) > 0 && counts.getOrDefault(FishProfile.CruiseTier.SLOW, 0) > 0,
+                "the tiers should actually vary: " + counts);
     }
 }

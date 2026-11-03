@@ -18,5 +18,5 @@
   "animation": {
     "mode": "horizontal_swim"
   },
-  "world_encounter": { "shape": "solitary" }
+  "world_encounter": { "shape": "solitary", "cruise": "slow" }
 }

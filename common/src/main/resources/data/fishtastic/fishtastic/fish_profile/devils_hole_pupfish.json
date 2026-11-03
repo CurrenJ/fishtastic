@@ -8,5 +8,6 @@
   "biome_weights": [
     { "biome": ["minecraft:soul_sand_valley"], "multiplier": 2.0 }
   ],
-  "temperament": "fishtastic:aggressive"
+  "temperament": "fishtastic:aggressive",
+  "world_encounter": { "cruise": "normal" }
 }
