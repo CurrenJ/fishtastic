@@ -511,6 +511,12 @@ public class FishingMinigameManager {
         // Extra lightweight sync just for the one-shot banners above — QuestTracker's own
         // sync (if it fired) predates bait consumption/first-catch detection, so it can't
         // carry these fields.
+        // A first catch reveals the species everywhere on the client (icons stop being silhouettes,
+        // names stop reading "???"), so the encyclopedia cache must learn of it - ahead of the
+        // first-catch banner below.
+        if (!result.firstCatchItems().isEmpty()) {
+            grill24.fishtastic.network.FishEncyclopediaSyncPacket.sendToPlayer(player, catchDb);
+        }
         if (!baitDepletedItem.isEmpty() || !result.firstCatchItems().isEmpty()) {
             QuestSyncPacket.sendToPlayer(player, catchDb, Map.of(), 0, baitDepletedItem, result.firstCatchItems());
         }
@@ -660,6 +666,9 @@ public class FishingMinigameManager {
             }
         }
 
+        if (!allFirstCatches.isEmpty()) {
+            grill24.fishtastic.network.FishEncyclopediaSyncPacket.sendToPlayer(player, catchDb);
+        }
         if (!allFirstCatches.isEmpty()) {
             QuestSyncPacket.sendToPlayer(player, catchDb, Map.of(), 0, ItemStack.EMPTY, allFirstCatches);
         }

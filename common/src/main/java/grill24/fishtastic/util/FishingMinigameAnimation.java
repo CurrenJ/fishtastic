@@ -697,7 +697,15 @@ public class FishingMinigameAnimation implements ItemActivationAnimation {
         int x = screenWidth / 2;
         int y = screenHeight / 2;
 
-        render(minecraft, guiGraphics, partialTick, progress, x, y, screenWidth, screenHeight);
+        // The minigame shows the real fish: the first-catch celebration stages its own silhouette
+        // and reveal, which the global undiscovered-fish hiding would otherwise hold back until the
+        // server's encyclopedia sync lands.
+        grill24.fishtastic.client.UndiscoveredFish.SUPPRESSED.set(Boolean.TRUE);
+        try {
+            render(minecraft, guiGraphics, partialTick, progress, x, y, screenWidth, screenHeight);
+        } finally {
+            grill24.fishtastic.client.UndiscoveredFish.SUPPRESSED.remove();
+        }
 //        renderRewardsDisplay(guiGraphics, x, y, screenWidth, screenHeight);
     }
 

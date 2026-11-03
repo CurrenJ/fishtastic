@@ -20,6 +20,8 @@ public final class FishEncyclopediaClientCache {
     private static Set<String> claimedRewardKeys = new HashSet<>();
     private static Set<ResourceLocation> observedSpecies = new HashSet<>();
     private static Consumer<ResourceLocation> observedListener;
+    /** False until the first sync of the session lands; {@link UndiscoveredFish} hides nothing before it. */
+    private static boolean synced;
 
     private FishEncyclopediaClientCache() {}
 
@@ -36,6 +38,7 @@ public final class FishEncyclopediaClientCache {
     public static void update(Map<ResourceLocation, Integer> catchCounts, List<LeaderboardEntry> personalBest,
                               List<LeaderboardEntry> globalBest, List<String> claimedRewards,
                               List<ResourceLocation> observed, List<ResourceLocation> newlyObserved) {
+        synced = true;
         personalCatchCounts = new HashMap<>(catchCounts);
         personalBestSizes = new HashMap<>();
         for (LeaderboardEntry entry : personalBest) {
@@ -52,6 +55,10 @@ public final class FishEncyclopediaClientCache {
 
     public static void setObservedListener(Consumer<ResourceLocation> listener) {
         observedListener = listener;
+    }
+
+    public static boolean hasSynced() {
+        return synced;
     }
 
     public static int getCatchCount(ResourceLocation fishType) {
@@ -79,6 +86,7 @@ public final class FishEncyclopediaClientCache {
     }
 
     public static void reset() {
+        synced = false;
         personalCatchCounts = new HashMap<>();
         personalBestSizes = new HashMap<>();
         globalBestSizes = new HashMap<>();
