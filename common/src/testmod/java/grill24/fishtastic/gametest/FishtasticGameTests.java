@@ -50,6 +50,16 @@ public class FishtasticGameTests {
         MarineCompostGameTests.aerationCapAtFive(helper);
     }
 
+    @GameTest(template = "fishtastic_empty")
+    public void pileRightClickDealsPileIntoOneSlot(GameTestHelper helper) {
+        PileOfFishClickGameTests.rightClickDealsPileIntoOneSlot(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void pileRightClickMergesIdenticalFishOntoSlotStack(GameTestHelper helper) {
+        PileOfFishClickGameTests.rightClickMergesIdenticalFishOntoSlotStack(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
     @GameTest(template = "fishtastic_empty", timeoutTicks = 6100)
     public void conversionTakesBaseTicks(GameTestHelper helper) {
         MarineCompostGameTests.conversionTakesBaseTicks(helper);
