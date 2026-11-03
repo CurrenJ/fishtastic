@@ -1,5 +1,32 @@
 # Backport parity progress
 
+## Completed (2026-11-03): catch up both ports through `f82996cc`
+
+- **Operation:** Account for every source commit after marker `5174c5e4` through `f82996cc` (2.1.20)
+  on `port/1.21.1` and `port/1.20.1`. Ports were made commit-for-commit during the day; this entry
+  records the ledger and advances both markers. Not pushed or published.
+- **Range accounting (15 commits):** excluded (source docs only): `7ed38a0b`. Ported one-for-one on
+  both targets: `fa25df82`, `839d1fab`, `702e00f7`, `ae8d68a4`, `4bc9c6e3`, `b15e0e2d`, `a232f620`,
+  `c0b3c1a0`, `37c8c87a` (2.1.18), `55fc6022`, `45ca48e5` (2.1.19), `c65f3cf4`, `f92e92db`, `f82996cc`
+  (2.1.20). Crosswalk: `docs/backport-catchup/forward-port-log.md`.
+- **Adaptations:** 1.20.1 only: the `702e00f7` marine-compost GameTest was red on 1.20.1, because
+  `MarineCompostBlock#use` returned PASS for any held item (1.21.1 runs `useWithoutItem` for the
+  main hand regardless). `7a7fb38c` answers the main hand only and adds the test; the axe-block port
+  `a35e84ac` follows it. Other commits needed the usual API adaptations (`range-diff` shows only
+  `a232f620` identical on both targets and `c0b3c1a0` identical on 1.21.1).
+- **Gates:** every target commit went through the pre-commit hook (`:common:test`, `:fishsim:test`,
+  `:tools:tank-shape-gen:test`, `:fabric:runGametest`). Last hook run at each tip: 1.21.1 `205d21ff`
+  common 985 (0 failures, 3 skipped), Fabric GameTests 407/407; 1.20.1 `e9953c66` common 998
+  (0 failures, 3 skipped), Fabric GameTests 408/408 (worktree `common/build/test-results`,
+  `fabric/build/junit.xml`). Forge and NeoForge GameTests, datagen and client self-tests were not run
+  in this pass; the `ae8d68a4` tag change adds no new generated resources beyond the committed
+  tag file.
+- **Markers:** `docs/backport-pass2/checklist.md` rows on both ports now read `f82996cc`
+  (marker commits 1.21.1 `53829127`, 1.20.1 `3748b09b`; both hook-gated, Fabric GameTests green).
+- **Open:** Forge/NeoForge GameTest runs before the next release; owner in-game look on both ports
+  (silhouettes, Cleanup heads, bait tab order). **Next action:** next pass starts from
+  `git log --oneline f82996cc..26.1.2`.
+
 ## Completed (2026-11-03): 2.1.17 release
 
 - **Release source:** the parity heads, all clean: `26.1.2` `25387cdb` (bump `5174c5e4`), `port/1.21.1`

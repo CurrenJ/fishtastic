@@ -164,3 +164,27 @@ Both markers now read `5174c5e4` (marker commits 1.21.1 `3bbeb09e`, 1.20.1 `0de7
 
 Validation and evidence: `docs/backport-catchup-progress.md` (2026-11-03 entry),
 `build/backport-catchup/2026-11-03/`.
+
+## Catch-up 2026-11-03 PM (`5174c5e4..f82996cc`)
+
+Both markers now read `f82996cc` (marker commits 1.21.1 `53829127`, 1.20.1 `3748b09b`).
+
+| 26.1.2 source commit | Disposition | `port/1.21.1` | `port/1.20.1` |
+|---|---|---|---|
+| `7ed38a0b` Record 2.1.17 CurseForge release | Excluded: source docs only | — | — |
+| `fa25df82` Keep dealing a carried fish pile into the same slot | Ported | `d401f0ce` | `41c7158f` |
+| `839d1fab` Show player heads on the Cleanup page and raise its payout to 250 | Ported | `3b3497e8` | `35363e2a` |
+| `702e00f7` Cover turning marine compost with an item in hand | Ported; 1.20.1 adapted into a fix (test was red there) | `ff345d2d` | `7a7fb38c` |
+| `ae8d68a4` Make the fish tank assembly an axe block | Ported | `611ae014` | `a35e84ac` |
+| `4bc9c6e3` Reach the real surface in a deep visit's water | Ported | `2ddd1dd1` | `507c6a16` |
+| `b15e0e2d` Climb to the bobber at full speed on a school errand | Ported | `6e53f3bf` | `e8560ae2` |
+| `a232f620` Cast the deep-visit GameTest straight over a fish | Ported (identical) | `3810f439` | `adb03459` |
+| `c0b3c1a0` Give every Fishtastic book when the fishing tutorial begins | Ported | `b1d56f83` | `afb5c4cb` |
+| `37c8c87a` Bump Fishtastic to 2.1.18 | Ported | `0bfe34f4` | `9cd5cf5b` |
+| `55fc6022` Keep unlisted fish out of the ambient roster | Ported | `7ac7c5b9` | `7019e499` |
+| `45ca48e5` Bump Fishtastic to 2.1.19 | Ported | `1d82746b` | `c5a954ba` |
+| `c65f3cf4` Silhouette undiscovered fish and name them ??? in every GUI | Ported | `4e6e5b41` | `08b065f0` |
+| `f92e92db` Group Blazed Grub and Gummy Worms with the other baits in the creative tab | Ported | `3f28ce7c` | `db9a8e22` |
+| `f82996cc` Bump Fishtastic to 2.1.20 | Ported | `205d21ff` | `e9953c66` |
+
+Validation and evidence: `docs/backport-catchup-progress.md` (2026-11-03 `f82996cc` entry).
