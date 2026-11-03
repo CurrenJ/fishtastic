@@ -25,7 +25,8 @@ import java.util.List;
  * nothing about the drawing has to survive a save.
  *
  * <ul>
- *   <li>Chains, pointed dripstone, weeping vines and glow berries grow by adding more of the same.</li>
+ *   <li>Chains, pointed dripstone, weeping vines, glow berries and pale hanging moss grow by adding
+ *       more of the same.</li>
  *   <li>A lantern hangs from the lid on its own; adding chain lowers it one link at a time, and a
  *       lantern added to a bare chain hangs from its end.</li>
  *   <li>Everything else (hanging roots, spore blossoms) is a single piece.</li>
@@ -47,7 +48,7 @@ public final class HangingCosmetics {
     /** A strand of the same block, grown by adding more of it. */
     private static boolean selfStacking(Block block) {
         return block == Blocks.IRON_CHAIN || block == Blocks.POINTED_DRIPSTONE
-                || block == Blocks.WEEPING_VINES || block == Blocks.CAVE_VINES;
+                || block == Blocks.WEEPING_VINES || block == Blocks.CAVE_VINES || block == Blocks.PALE_HANGING_MOSS;
     }
 
     private static boolean isLantern(Block block) {
@@ -110,6 +111,13 @@ public final class HangingCosmetics {
         if (pendant == Blocks.WEEPING_VINES) {
             for (int i = 0; i < height - 1; i++) out.add(Blocks.WEEPING_VINES_PLANT.defaultBlockState());
             out.add(Blocks.WEEPING_VINES.defaultBlockState());
+            return out;
+        }
+        if (pendant == Blocks.PALE_HANGING_MOSS) {
+            for (int i = 0; i < height - 1; i++) {
+                out.add(Blocks.PALE_HANGING_MOSS.defaultBlockState().setValue(BlockStateProperties.TIP, false));
+            }
+            out.add(Blocks.PALE_HANGING_MOSS.defaultBlockState().setValue(BlockStateProperties.TIP, true));
             return out;
         }
         if (pendant == Blocks.CAVE_VINES) {

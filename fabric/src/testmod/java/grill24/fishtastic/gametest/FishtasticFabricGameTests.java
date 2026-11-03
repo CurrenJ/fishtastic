@@ -655,6 +655,11 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void plantsPlaceAsFloorCosmetics(GameTestHelper helper) {
+        CosmeticPlacementGameTests.plantsPlaceAsFloorCosmetics(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void openFacesRoundTrip(GameTestHelper helper) {
         FishTankGameTests.openFacesRoundTrip(helper);
     }

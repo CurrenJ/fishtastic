@@ -7,6 +7,8 @@ import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.CosmeticPlacement;
 import grill24.fishtastic.fishtank.CosmeticStructure;
 import grill24.fishtastic.fishtank.CosmeticTransforms;
+import grill24.fishtastic.fishtank.FloorCosmetics;
+import grill24.fishtastic.fishtank.HangingCosmetics;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
 import grill24.fishtastic.fishtank.SpanStructures;
 import grill24.fishtastic.fishtank.TankColumns;
@@ -18,9 +20,14 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -274,6 +281,56 @@ public final class CosmeticPlacementGameTests {
         CosmeticPlacement.Plan level = CosmeticPlacement.plan(player, tank, kelp);
         helper.assertTrue(level.cells().equals(List.of(new CosmeticPlacement.TankCell(tank, front))),
                 "a level aim that reaches no sand must fall back to the strand's box, got " + level.cells());
+        helper.succeed();
+    }
+
+    /**
+     * Vanilla plants place as floor cosmetics: every flower, sapling and coral the vanilla tags
+     * name is accepted; pink petals stack one per click to four, survive a reload with their count,
+     * and come back out one petal at a time; a sweet berry bush is drawn grown with berries even
+     * after a reload; a sunflower is stored as its lower half (the mesh draws the top).
+     */
+    public static void plantsPlaceAsFloorCosmetics(GameTestHelper helper) {
+        FishTankBlockEntity tank = row(helper, 1, 1).get(0);
+        for (Item item : new Item[]{Items.POPPY, Items.OAK_SAPLING, Items.TUBE_CORAL, Items.SUNFLOWER,
+                Items.SHORT_GRASS, Items.SWEET_BERRIES, Items.PINK_PETALS, Items.BAMBOO, Items.RED_MUSHROOM}) {
+            helper.assertTrue(CosmeticPlacement.cosmeticBlockOf(new ItemStack(item)) != null, item + " must be a floor cosmetic");
+        }
+        helper.assertTrue(HangingCosmetics.blockOf(new ItemStack(Items.PALE_HANGING_MOSS)) != null,
+                "pale hanging moss must hang from the lid");
+
+        Player player = helper.makeMockPlayer(GameType.CREATIVE);
+        CosmeticGridCell cell = new CosmeticGridCell(1, 1);
+        BlockPos pos = tank.getBlockPos();
+        Vec3 eye = new Vec3(pos.getX() + cell.localX(), pos.getY() + 0.9, pos.getZ() + cell.localZ());
+        look(player, eye, sand(tank, cell));
+        ItemStack petals = new ItemStack(Items.PINK_PETALS);
+        for (int i = 0; i < 4; i++) {
+            CosmeticPlacement.Plan plan = CosmeticPlacement.plan(player, tank, petals);
+            helper.assertTrue(plan.valid(), "petal " + (i + 1) + " must place");
+            plan.apply().run();
+        }
+        helper.assertTrue(!CosmeticPlacement.plan(player, tank, petals).valid(), "a fifth petal must be refused");
+        reload(helper, tank);
+        helper.assertTrue(tank.getCosmetics().get(cell).blockState().getValue(BlockStateProperties.FLOWER_AMOUNT) == 4,
+                "four petals must survive a reload");
+        ItemStack back = tank.removeCosmeticEntry(cell);
+        helper.assertTrue(back.is(Items.PINK_PETALS) && tank.getCosmetics().get(cell).blockState().getValue(BlockStateProperties.FLOWER_AMOUNT) == 3,
+                "removal must refund one petal and leave three");
+
+        CosmeticGridCell bushCell = new CosmeticGridCell(0, 0);
+        look(player, new Vec3(pos.getX() + bushCell.localX(), pos.getY() + 0.9, pos.getZ() + bushCell.localZ()), sand(tank, bushCell));
+        CosmeticPlacement.plan(player, tank, new ItemStack(Items.SWEET_BERRIES)).apply().run();
+        reload(helper, tank);
+        helper.assertTrue(tank.getCosmetics().get(bushCell).blockState().getValue(BlockStateProperties.AGE_3) == 3,
+                "a sweet berry bush must show berries, before and after a reload");
+        helper.assertTrue(tank.removeCosmeticEntry(bushCell).is(Items.SWEET_BERRIES), "the bush must refund sweet berries");
+
+        BlockState sunflower = Blocks.SUNFLOWER.defaultBlockState();
+        helper.assertTrue(sunflower.getValue(BlockStateProperties.DOUBLE_BLOCK_HALF) == DoubleBlockHalf.LOWER
+                        && FloorCosmetics.upperHalf(sunflower).getValue(BlockStateProperties.DOUBLE_BLOCK_HALF) == DoubleBlockHalf.UPPER
+                        && FloorCosmetics.upperHalf(Blocks.POPPY.defaultBlockState()) == null,
+                "two-tall plants must have an upper half drawn above them, single plants none");
         helper.succeed();
     }
 }

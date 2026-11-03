@@ -13,6 +13,7 @@ import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.CosmeticStructure;
 import grill24.fishtastic.fishtank.CosmeticStructures;
 import grill24.fishtastic.fishtank.FishTankShape;
+import grill24.fishtastic.fishtank.FloorCosmetics;
 import grill24.fishtastic.fishtank.TankDiagonal;
 import grill24.fishtastic.fishtank.TankEdgeDiagonal;
 import grill24.fishtastic.fishtank.TankGroups;
@@ -50,8 +51,8 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.SeaPickleBlock;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
@@ -568,8 +569,10 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
             child.putInt("GridX", cell.gridX());
             child.putInt("GridZ", cell.gridZ());
             child.putString("Block", blockId);
-            if (cosmetic.block() instanceof SeaPickleBlock) {
-                child.putInt("Pickles", cosmetic.blockState().getValue(BlockStateProperties.PICKLES));
+            // Sea pickles keep their original "Pickles" key so older saves (and older builds) agree.
+            IntegerProperty count = FloorCosmetics.stackProperty(cosmetic.blockState());
+            if (count != null) {
+                child.putInt(count == BlockStateProperties.PICKLES ? "Pickles" : "Count", cosmetic.blockState().getValue(count));
             }
             if (cosmetic.blockState().hasProperty(BlockStateProperties.HORIZONTAL_FACING)) {
                 child.putString("Facing", cosmetic.blockState().getValue(BlockStateProperties.HORIZONTAL_FACING).getSerializedName());
@@ -762,10 +765,11 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
                 if (blockId != null) {
                     Block b = BuiltInRegistries.BLOCK.getValue(blockId);
                     if (b != null) {
-                        BlockState state = b.defaultBlockState();
-                        if (b instanceof SeaPickleBlock) {
-                            int pickles = child.getIntOr("Pickles", 1);
-                            state = state.setValue(BlockStateProperties.PICKLES, Math.min(pickles, SeaPickleBlock.MAX_PICKLES));
+                        BlockState state = FloorCosmetics.displayState(b.defaultBlockState());
+                        IntegerProperty count = FloorCosmetics.stackProperty(state);
+                        if (count != null) {
+                            int stored = child.getIntOr(count == BlockStateProperties.PICKLES ? "Pickles" : "Count", 1);
+                            state = state.setValue(count, Math.max(1, Math.min(stored, FloorCosmetics.maxCount(count))));
                         }
                         if (state.hasProperty(BlockStateProperties.HORIZONTAL_FACING)) {
                             String facingStr = child.getStringOr("Facing", "");
@@ -1288,7 +1292,8 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
     }
 
     /**
-     * Removes one unit of the single-cell cosmetic at {@code cell} — one sea pickle, one kelp
+     * Removes one unit of the single-cell cosmetic at {@code cell} — one sea pickle (or petal,
+     * or leaf litter segment — see {@link FloorCosmetics#stackProperty}), one kelp
      * segment, or the whole cosmetic for anything else — and returns the item that should be
      * given back to the player, or {@link ItemStack#EMPTY} if the cell held nothing. Mirrors the
      * old edit-mode removal branch's per-unit behavior (see docs/fish-tanks.md).
@@ -1302,10 +1307,11 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
         if (returnItem == null) {
             returnItem = existing.block().asItem();
         }
-        if (existing.block() instanceof SeaPickleBlock) {
-            int current = existing.blockState().getValue(BlockStateProperties.PICKLES);
+        IntegerProperty count = FloorCosmetics.stackProperty(existing.blockState());
+        if (count != null) {
+            int current = existing.blockState().getValue(count);
             if (current > 1) {
-                setCosmetic(cell, new PlacedCosmetic(existing.blockState().setValue(BlockStateProperties.PICKLES, current - 1)));
+                setCosmetic(cell, new PlacedCosmetic(existing.blockState().setValue(count, current - 1)));
             } else {
                 removeCosmetic(cell);
             }
