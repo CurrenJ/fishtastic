@@ -51,6 +51,11 @@ public class FishtasticGameTests {
     }
 
     @GameTest(template = "fishtastic_empty")
+    public void aerationWorksWhileHoldingAnItem(GameTestHelper helper) {
+        MarineCompostGameTests.aerationWorksWhileHoldingAnItem(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
     public void pileRightClickDealsPileIntoOneSlot(GameTestHelper helper) {
         PileOfFishClickGameTests.rightClickDealsPileIntoOneSlot(helper, FishtasticTestSupport.playerSupplier(helper));
     }
