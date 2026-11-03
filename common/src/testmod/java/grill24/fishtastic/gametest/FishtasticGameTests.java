@@ -56,6 +56,11 @@ public class FishtasticGameTests {
     }
 
     @GameTest(template = "fishtastic_empty")
+    public void assemblyPrefersAnAxe(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.assemblyPrefersAnAxe(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
     public void pileRightClickDealsPileIntoOneSlot(GameTestHelper helper) {
         PileOfFishClickGameTests.rightClickDealsPileIntoOneSlot(helper, FishtasticTestSupport.playerSupplier(helper));
     }
