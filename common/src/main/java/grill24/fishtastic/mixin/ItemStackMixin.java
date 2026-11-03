@@ -21,7 +21,7 @@ import java.util.List;
 @Mixin(ItemStack.class)
 public abstract class ItemStackMixin {
 
-    @Inject(method = "getTooltipLines", at = @At("RETURN"))
+    @Inject(method = "getTooltipLines", at = @At("RETURN"), cancellable = true)
     public void modifyTooltipLines(Item.TooltipContext tooltipContext, Player player, TooltipFlag tooltipFlag, CallbackInfoReturnable<List<Component>> cir) {
         ItemStack itemStack = (ItemStack)(Object)this;
         if (grill24.fishtastic.client.UndiscoveredFish.isHidden(itemStack)) {
