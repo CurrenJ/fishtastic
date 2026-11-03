@@ -22,9 +22,9 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Rotation;
-import net.minecraft.world.level.block.SeaPickleBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
@@ -341,13 +341,14 @@ public final class CosmeticPlacement {
     // ── Rules ───────────────────────────────────────────────────────────────────
 
     /**
-     * A single-cell floor cosmetic: an empty cell takes it; a sea pickle takes another pickle; kelp
+     * A single-cell floor cosmetic: an empty cell takes it; a stacking cosmetic (sea pickles, petals —
+     * {@link FloorCosmetics#stackProperty}) takes one more of itself; kelp
      * takes another segment while its column has room ({@link TankColumns#maxSegments}) — kelp
      * roots only on sand, so the target is always a column's bottom tank, and in a stack of open
      * tanks a strand carries on up through every storey.
      *
      * <p>Forced, an occupied cell — a covering structure, or a cosmetic that can't combine (a
-     * different block, a full pickle cluster, a kelp column that has hit the ceiling) — is cleared
+     * different block, a full stack, a kelp column that has hit the ceiling) — is cleared
      * away and the new cosmetic put down fresh.
      */
     private static Plan planFloor(Player player, FishTankBlockEntity clicked, Block block, boolean force) {
@@ -357,7 +358,7 @@ public final class CosmeticPlacement {
         CosmeticGridCell cell = target.cell();
         Level level = tank.getLevel();
 
-        BlockState fresh = block.defaultBlockState();
+        BlockState fresh = FloorCosmetics.displayState(block.defaultBlockState());
         // Any cosmetic with a horizontal-facing property (e.g. the treasure chest) orients
         // toward the placing player, mirroring firstItemRotation for fish.
         if (fresh.hasProperty(BlockStateProperties.HORIZONTAL_FACING)) {
@@ -372,10 +373,11 @@ public final class CosmeticPlacement {
         if (!covering) {
             if (existing == null) {
                 placed = new PlacedCosmetic(fresh);
-            } else if (existing.block() instanceof SeaPickleBlock && block instanceof SeaPickleBlock) {
-                int current = existing.blockState().getValue(BlockStateProperties.PICKLES);
-                if (current < SeaPickleBlock.MAX_PICKLES) {
-                    placed = new PlacedCosmetic(existing.blockState().setValue(BlockStateProperties.PICKLES, current + 1));
+            } else if (existing.block() == block && FloorCosmetics.stackProperty(existing.blockState()) != null) {
+                IntegerProperty count = FloorCosmetics.stackProperty(existing.blockState());
+                int current = existing.blockState().getValue(count);
+                if (current < FloorCosmetics.maxCount(count)) {
+                    placed = new PlacedCosmetic(existing.blockState().setValue(count, current + 1));
                 }
             } else if (existing.block() == Blocks.KELP && block == Blocks.KELP) {
                 if (level != null && existing.height() < TankColumns.maxSegments(TankColumns.storeys(level, tank.getBlockPos()))) {

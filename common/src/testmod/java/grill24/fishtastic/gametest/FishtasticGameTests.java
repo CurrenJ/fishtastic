@@ -678,6 +678,11 @@ public class FishtasticGameTests {
     }
 
     @GameTest(template = "fishtastic_empty")
+    public void plantsPlaceAsFloorCosmetics(GameTestHelper helper) {
+        CosmeticPlacementGameTests.plantsPlaceAsFloorCosmetics(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
     public void openFacesRoundTrip(GameTestHelper helper) {
         FishTankGameTests.openFacesRoundTrip(helper);
     }

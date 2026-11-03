@@ -446,10 +446,21 @@ Distinct from both axes: cosmetics are decorations *placed inside* the tank, not
   plants or grows the strand in the bottom tank.
 - `HangingCosmetics` — a second 3×3 grid on the lid (`getCeilingCosmetics()`), for blocks tagged
   `#fishtastic:tank_hanging_cosmetics` (iron chain, lantern, soul lantern, pointed dripstone,
-  hanging roots, spore blossom, weeping vines, glow berries). They hang from the column's top tank
-  and may drop as far as kelp may rise. Chains, dripstone and vines grow by adding more of the
-  same; chain added to a lantern lowers it a link, and a lantern added to a bare chain hangs from
+  hanging roots, spore blossom, weeping vines, glow berries). They hang from the
+  column's top tank and may drop as far as kelp may rise. Chains, dripstone and vines grow by
+  adding more of the same; chain added to a lantern lowers it a link, and a lantern added to a bare chain hangs from
   its end. Only block and segment count are saved; each segment's state is derived.
+- `FloorCosmetics` — the floor-side rules for vanilla items in `#fishtastic:tank_cosmetics` (coral,
+  sea plants, and every land flower, sapling, grass, bush, fungus and cane-like plant; the tag
+  pulls in `#minecraft:small_flowers`, `#minecraft:saplings` and `#minecraft:coral_plants`, plus
+  the loader convention tags `#c:flowers/small` and `#c:flowers/tall` as `required: false`, so
+  modded flowers that tag themselves come along; a modded tall flower only draws its top half if
+  it uses vanilla's `half` property).
+  Sea pickles and pink petals stack one per click and refund one per
+  removal (saved as `Pickles` for pickles, `Count` otherwise). Two-tall plants are stored as their
+  lower half and the mesh draws the upper half one scaled block above. A sweet berry bush is always
+  shown grown with berries — derived at placement and load, never saved. Crops (seeds), lily pads,
+  wall-attached vines/lichen and leaf blocks are deliberately left out.
 
 Placement rules and targeting live in `CosmeticPlacement`, which returns a `Plan` (target tank,
 cells, and the mutation if the placement is allowed). The server applies it on click; the client

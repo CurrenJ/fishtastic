@@ -8,6 +8,7 @@ import grill24.fishtastic.fishtank.CosmeticGridCell;
 import grill24.fishtastic.fishtank.CosmeticStructure;
 import grill24.fishtastic.fishtank.CosmeticStructures;
 import grill24.fishtastic.fishtank.CosmeticTransforms;
+import grill24.fishtastic.fishtank.FloorCosmetics;
 import grill24.fishtastic.fishtank.HangingCosmetics;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
 import grill24.fishtastic.fishtank.SpanStructures;
@@ -145,8 +146,13 @@ public final class TankCosmeticMesh {
             if (cosmetic.block() == Blocks.KELP || rendersDynamically(cosmetic.blockState())) continue;
             CosmeticGridCell cell = entry.getKey();
             CosmeticTransforms.Transform t = CosmeticTransforms.get(cosmetic.block());
-            out.add(new Piece(cosmetic.blockState(),
-                    cosmeticPose(cell.localX() + t.offsetX(), CosmeticGridCell.FLOOR_Y + t.offsetY(), cell.localZ() + t.offsetZ(), t), 0));
+            Matrix4f pose = cosmeticPose(cell.localX() + t.offsetX(), CosmeticGridCell.FLOOR_Y + t.offsetY(), cell.localZ() + t.offsetZ(), t);
+            out.add(new Piece(cosmetic.blockState(), pose, 0));
+            // A two-tall plant is stored as its lower half; its top sits one (scaled) block above.
+            BlockState upper = FloorCosmetics.upperHalf(cosmetic.blockState());
+            if (upper != null) {
+                out.add(new Piece(upper, new Matrix4f(pose).translate(0f, 1f, 0f), 0));
+            }
         }
     }
 
