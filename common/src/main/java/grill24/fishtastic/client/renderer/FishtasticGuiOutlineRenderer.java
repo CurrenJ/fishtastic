@@ -48,7 +48,10 @@ public final class FishtasticGuiOutlineRenderer {
      * origin ({@code IGuiGraphicsExtension#fishtastic$renderItem}), so it passes (0, 0, 1, 0).
      */
     public static boolean renderAround(GuiGraphics guiGraphics, ItemStack stack, float cx, float cy, float size, float z) {
-        if (Boolean.TRUE.equals(FishtasticGlintState.SILHOUETTE_REQUESTED.get())) {
+        // Never-discovered species are silhouetted in every GUI (creative tabs, JEI, inventories),
+        // not just the encyclopedia that requests it explicitly.
+        if (Boolean.TRUE.equals(FishtasticGlintState.SILHOUETTE_REQUESTED.get())
+                || grill24.fishtastic.client.UndiscoveredFish.isHidden(stack)) {
             // Replaces the item entirely, like 26.1.2's cancelled blit. Until the mask is baked
             // (the next frame) nothing is drawn, so the species never shows for a frame.
             FishtasticSilhouetteEffect.render(guiGraphics, stack, cx, cy, size, z);

@@ -24,6 +24,13 @@ public abstract class ItemStackMixin {
     @Inject(method = "getTooltipLines", at = @At("RETURN"))
     public void modifyTooltipLines(Item.TooltipContext tooltipContext, Player player, TooltipFlag tooltipFlag, CallbackInfoReturnable<List<Component>> cir) {
         ItemStack itemStack = (ItemStack)(Object)this;
+        if (grill24.fishtastic.client.UndiscoveredFish.isHidden(itemStack)) {
+            // Name line only (already "???" via getHoverName): size, quality and the advanced
+            // tooltip's registry id would all give the species away.
+            List<Component> lines = cir.getReturnValue();
+            if (lines.size() > 1) cir.setReturnValue(new java.util.ArrayList<>(lines.subList(0, 1)));
+            return;
+        }
         boolean tooltipHidden = FishtasticItemData.isTooltipHidden(itemStack);
         if (player == null || player.isCreative() || !tooltipHidden) {
             List<Component> tooltipLines = cir.getReturnValue();
@@ -45,6 +52,20 @@ public abstract class ItemStackMixin {
             if (shape != null) {
                 shape.addToTooltip(tooltipContext, tooltipLines::add, tooltipFlag);
             }
+        }
+    }
+
+    /**
+     * Undiscovered species read "???" wherever the client names them (tooltips, the hotbar
+     * selection popup, JEI). {@link grill24.fishtastic.client.UndiscoveredFish#isHidden} only answers
+     * on the client's own thread, so the integrated server's names (chat, death messages) are
+     * untouched. A player's own custom name is kept: it says nothing the player didn't choose.
+     */
+    @Inject(method = "getHoverName", at = @At("RETURN"), cancellable = true)
+    public void hideUndiscoveredFishName(CallbackInfoReturnable<Component> cir) {
+        ItemStack itemStack = (ItemStack)(Object)this;
+        if (!itemStack.has(net.minecraft.core.component.DataComponents.CUSTOM_NAME) && grill24.fishtastic.client.UndiscoveredFish.isHidden(itemStack)) {
+            cir.setReturnValue(grill24.fishtastic.client.UndiscoveredFish.hiddenName());
         }
     }
 
