@@ -99,6 +99,32 @@ class AmbientRosterSpeciesTest {
     }
 
     @Test
+    void unlistedFishAreNeverAmbientInAnyLocationPoolOrCondition() throws IOException {
+        var data = AmbientPresenceReportTest.load();
+        assertFalse(data.unlisted().isEmpty(), "the shipped unlisted tag is empty");
+        Holder<Biome> biome = FishingPoolFixture.riverBiome();
+        Set<String> inCatchPool = new java.util.TreeSet<>();
+        for (Set<FishProfile.Zone> zones : EncyclopediaTiers.LOCATION_POOLS) {
+            for (var time : FishProfile.TimeOfDay.values()) {
+                for (var weather : FishProfile.WeatherCondition.values()) {
+                    for (var moon : FishMoonPhase.values()) {
+                        var env = new FishingPoolResolver.EnvironmentContext(biome, time, weather, moon, Set.copyOf(zones));
+                        var pool = NaturalPool.resolve(data.items(), data.profiles(), env);
+                        for (var f : pool.candidates()) {
+                            String path = f.item().unwrapKey().orElseThrow().location().getPath();
+                            if (data.unlisted().contains(path)) inCatchPool.add(path);
+                        }
+                        for (var c : NaturalPool.ambientCandidates(data.profiles(), pool)) {
+                            assertFalse(data.unlisted().contains(c.species().getPath()), "unlisted leaked: " + c.species());
+                        }
+                    }
+                }
+            }
+        }
+        assertFalse(inCatchPool.isEmpty(), "no unlisted fish reached a natural pool, so the sweep proved nothing");
+    }
+
+    @Test
     void theNetherRosterIsTheShippedNetherPoolAndSwimsInLava() throws IOException {
         var data = AmbientPresenceReportTest.load();
         assertEquals(AmbientFluid.LAVA, AmbientFluid.forDimension("minecraft:the_nether"));
