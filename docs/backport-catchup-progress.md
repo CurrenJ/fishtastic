@@ -1,5 +1,28 @@
 # Backport parity progress
 
+## Completed (2026-11-03): 2.1.18 release
+
+- **Release source:** published after the branches had moved on to 2.1.20, so each line was built from
+  its 2.1.18 bump commit in a temporary detached worktree (`fishtastic-worktrees/rel-2.1.18-*`, removed
+  afterwards): `26.1.2` `715c16f1`, `port/1.21.1` `70549e12`, `port/1.20.1` `12c1fc4b`. No branch moved.
+  2.1.19 (`dc982089`) and 2.1.20 (`09135555`) remain unreleased.
+- **Evidence:** `build/release-2.1.18/evidence/{26.1.2,1.21.1,1.20.1}/` (`release-build.log`,
+  `publish.log`) and `build/release-2.1.18/evidence/release-smoke/matrix.log`; per-profile summaries and
+  captures under `build/release-smoke/F2_*`.
+- **Release gates:** fresh `assemble build` passed on all three lines with every task executed (26.1.2 on
+  JDK 25 via the gradle.properties pin, both ports on JDK 21). Both Forge port jars contain no
+  `com/llamalad7` classes and carry `META-INF/jarjar/metadata.json`. The smoke matrix (`release_smoke.py`
+  per profile with the worktree jars, same profiles/worlds/flags as `matrix.json`) gave a plain `PASS` on
+  all eight profiles with zero findings: the two modern Forge profiles did not park on the
+  experimental-settings screen this time. Zero fatal lines, zero Fishtastic error lines and no crash
+  reports; the only ERROR lines are offline auth/Realms fetch failures.
+- **Publication:** `publishCurseForge -Prelease_type=release` exited 0 on all three lines, every jar task
+  `UP-TO-DATE` (the uploads are the smoke-tested jars). Changelog: each worktree's `CHANGELOG.md` 2.1.18
+  entry via `ORG_GRADLE_PROJECT_changelog_override` (1.20.1's carries an extra marine-compost line).
+  26.1.2 and 1.21.1 uploaded Fabric, NeoForge and Forge; 1.20.1 uploaded Fabric and Forge, eight
+  artifacts in total. Confirm the eight files on the author dashboard rather than re-running the task.
+  **Next action:** none. No branches were pushed and no parity markers were advanced.
+
 ## Completed (2026-11-03): catch up both ports through `c95859e2`
 
 - **Operation:** Account for `09135555..c95859e2` on `port/1.21.1` and `port/1.20.1`. Not pushed or
