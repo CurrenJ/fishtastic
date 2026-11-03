@@ -1,11 +1,11 @@
 # Backport parity progress
 
-## Completed (2026-11-03): catch up both ports through `c47d4dae`
+## Completed (2026-11-03): catch up both ports through `c95859e2`
 
-- **Operation:** Account for `f82996cc..c47d4dae` on `port/1.21.1` and `port/1.20.1`. Not pushed or
+- **Operation:** Account for `09135555..c95859e2` on `port/1.21.1` and `port/1.20.1`. Not pushed or
   published.
-- **Range accounting (2 commits):** excluded (source docs only): `ee7d70c0`. Ported, adapted:
-  `c47d4dae` (plant tank cosmetics) as 1.21.1 `be1ea645`, 1.20.1 `5ed62392`. Crosswalk:
+- **Range accounting (2 commits):** excluded (source docs only): `42e42db0`. Ported, adapted:
+  `c95859e2` (plant tank cosmetics) as 1.21.1 `56d23bb4`, 1.20.1 `27e0699f`. Crosswalk:
   `docs/backport-catchup/forward-port-log.md`.
 - **Adaptations:** both ports drop tag entries for blocks the version lacks (wildflowers, cactus
   flower, short/tall dry grass, bush, firefly bush, leaf litter; pale hanging moss on the lid, with
@@ -14,47 +14,47 @@
   `FishtasticGameTests` (NeoForge registration file kept as the port's own on 1.21.1, removed on
   1.20.1). 1.20.1 only: `minecraft:grass` for short grass, `makeMockPlayer()`, and no `#c:flowers/*`
   entries (neither 1.20.1 Fabric API 0.92 nor Forge 47 defines flower convention tags).
-- **Gates:** 26.1.2 `c47d4dae`: Fabric 414/414, NeoForge 408/408 GameTests, hook green (the hook's
+- **Gates:** 26.1.2 `c95859e2`: Fabric 414/414, NeoForge 408/408 GameTests, hook green (the hook's
   `java17ApiGuard` caught a `Math.clamp` before commit; replaced). 1.21.1: Fabric, NeoForge and Forge
-  408/408 each, hook green at `be1ea645` and `07228b14`. 1.20.1: Fabric 409/409, Forge 410/410, hook
-  green at `5ed62392` and `879f9daf`. Datagen not rerun (only hand-written tag files changed); no
+  408/408 each, hook green at `56d23bb4` and `87006629`. 1.20.1: Fabric 409/409, Forge 410/410, hook
+  green at `27e0699f` and `1ef48d11`. Datagen not rerun (only hand-written tag files changed); no
   client self-tests.
-- **Markers:** `docs/backport-pass2/checklist.md` rows read `c47d4dae` (1.21.1 `07228b14`, 1.20.1
-  `879f9daf`).
+- **Markers:** `docs/backport-pass2/checklist.md` rows read `c95859e2` (1.21.1 `87006629`, 1.20.1
+  `1ef48d11`).
 - **Open:** owner in-game look on all three lines (tall-plant upper halves, plant scale, grass tint
-  in tanks, petal stacking). **Next action:** next pass starts from `git log --oneline c47d4dae..26.1.2`.
+  in tanks, petal stacking). **Next action:** next pass starts from `git log --oneline c95859e2..26.1.2`.
 
-## Completed (2026-11-03): catch up both ports through `f82996cc`
+## Completed (2026-11-03): catch up both ports through `09135555`
 
-- **Operation:** Account for every source commit after marker `5174c5e4` through `f82996cc` (2.1.20)
+- **Operation:** Account for every source commit after marker `ab9d675f` through `09135555` (2.1.20)
   on `port/1.21.1` and `port/1.20.1`. Ports were made commit-for-commit during the day; this entry
   records the ledger and advances both markers. Not pushed or published.
-- **Range accounting (15 commits):** excluded (source docs only): `7ed38a0b`. Ported one-for-one on
-  both targets: `fa25df82`, `839d1fab`, `702e00f7`, `ae8d68a4`, `4bc9c6e3`, `b15e0e2d`, `a232f620`,
-  `c0b3c1a0`, `37c8c87a` (2.1.18), `55fc6022`, `45ca48e5` (2.1.19), `c65f3cf4`, `f92e92db`, `f82996cc`
+- **Range accounting (15 commits):** excluded (source docs only): `169323be`. Ported one-for-one on
+  both targets: `098d5d2a`, `a3f9713e`, `c5dad8b6`, `6efdde0f`, `3106d794`, `07828200`, `15b870f8`,
+  `13c3d794`, `715c16f1` (2.1.18), `1a3194e7`, `dc982089` (2.1.19), `87919639`, `a20c5c0d`, `09135555`
   (2.1.20). Crosswalk: `docs/backport-catchup/forward-port-log.md`.
-- **Adaptations:** 1.20.1 only: the `702e00f7` marine-compost GameTest was red on 1.20.1, because
+- **Adaptations:** 1.20.1 only: the `c5dad8b6` marine-compost GameTest was red on 1.20.1, because
   `MarineCompostBlock#use` returned PASS for any held item (1.21.1 runs `useWithoutItem` for the
-  main hand regardless). `7a7fb38c` answers the main hand only and adds the test; the axe-block port
-  `a35e84ac` follows it. Other commits needed the usual API adaptations (`range-diff` shows only
-  `a232f620` identical on both targets and `c0b3c1a0` identical on 1.21.1).
+  main hand regardless). `8f0a4687` answers the main hand only and adds the test; the axe-block port
+  `a1e8471f` follows it. Other commits needed the usual API adaptations (`range-diff` shows only
+  `15b870f8` identical on both targets and `13c3d794` identical on 1.21.1).
 - **Gates:** every target commit went through the pre-commit hook (`:common:test`, `:fishsim:test`,
-  `:tools:tank-shape-gen:test`, `:fabric:runGametest`). Last hook run at each tip: 1.21.1 `205d21ff`
-  common 985 (0 failures, 3 skipped), Fabric GameTests 407/407; 1.20.1 `e9953c66` common 998
+  `:tools:tank-shape-gen:test`, `:fabric:runGametest`). Last hook run at each tip: 1.21.1 `abbaea7b`
+  common 985 (0 failures, 3 skipped), Fabric GameTests 407/407; 1.20.1 `226faaa7` common 998
   (0 failures, 3 skipped), Fabric GameTests 408/408 (worktree `common/build/test-results`,
   `fabric/build/junit.xml`). Forge and NeoForge GameTests, datagen and client self-tests were not run
-  in this pass; the `ae8d68a4` tag change adds no new generated resources beyond the committed
+  in this pass; the `6efdde0f` tag change adds no new generated resources beyond the committed
   tag file.
-- **Markers:** `docs/backport-pass2/checklist.md` rows on both ports now read `f82996cc`
-  (marker commits 1.21.1 `53829127`, 1.20.1 `3748b09b`; both hook-gated, Fabric GameTests green).
+- **Markers:** `docs/backport-pass2/checklist.md` rows on both ports now read `09135555`
+  (marker commits 1.21.1 `df501cf4`, 1.20.1 `627cf77f`; both hook-gated, Fabric GameTests green).
 - **Open:** Forge/NeoForge GameTest runs before the next release; owner in-game look on both ports
   (silhouettes, Cleanup heads, bait tab order). **Next action:** next pass starts from
-  `git log --oneline f82996cc..26.1.2`.
+  `git log --oneline 09135555..26.1.2`.
 
 ## Completed (2026-11-03): 2.1.17 release
 
-- **Release source:** the parity heads, all clean: `26.1.2` `25387cdb` (bump `5174c5e4`), `port/1.21.1`
-  `3bbeb09e` (bump `37e45f9d`), `port/1.20.1` `0de700b3` (bump `3e7f5489`). Changes after `5174c5e4` on
+- **Release source:** the parity heads, all clean: `26.1.2` `43c22dff` (bump `ab9d675f`), `port/1.21.1`
+  `16f537aa` (bump `f1d8e0b8`), `port/1.20.1` `db220af6` (bump `8a2c7da3`). Changes after `ab9d675f` on
   each line are only doc/marker records.
 - **Evidence:** `build/release-2.1.17/evidence/{26.1.2,1.21.1,1.20.1}/` (`release-build.log`,
   `publish.log`) and `build/release-2.1.17/evidence/release-smoke/matrix.log`; per-profile summaries and
@@ -75,17 +75,17 @@
   dashboard rather than re-running the task. **Next action:** none. No branches were pushed and no parity
   markers were advanced.
 
-## Completed (2026-11-03): catch up both ports through `5174c5e4`
+## Completed (2026-11-03): catch up both ports through `ab9d675f`
 
-- **Operation:** Account for every source commit after marker `5bf9c6fc` through `5174c5e4` and port
+- **Operation:** Account for every source commit after marker `5bf9c6fc` through `ab9d675f` and port
   the outstanding ones to `port/1.21.1` then `port/1.20.1`. Do not push or publish.
-- **Starting refs:** source `26.1.2` `5174c5e4`; `port/1.21.1` `279467f1`; `port/1.20.1` `ca0bb32c`;
+- **Starting refs:** source `26.1.2` `ab9d675f`; `port/1.21.1` `5f2661d0`; `port/1.20.1` `e92e25ea`;
   both target worktrees clean.
 - **Range accounting:** already mirrored before this pass: `b6595f24` (`2250cef8`/`f722c5f2`),
-  `469c9a92` (`208269bb`/`3a314d7a`), `e45cb395` (`be9a89ca`/`f18e72fe`), `92b2ea85`
-  (`b5cb2615`/`01c3a0bb`), `4a7b1897` (`279467f1`/`79bf9a12`). Excluded (source docs only):
-  `accae9b8`, `d5b06e30`, `242e37ae`, `1aa8595d`, `379bf7fe`. Ported now: `e71d8b92`, `05206607`,
-  `a4321590`, `902eabf8` (one adapted feature commit per target) and `5174c5e4` (2.1.17 bump).
+  `469c9a92` (`208269bb`/`3a314d7a`), `e45cb395` (`be9a89ca`/`f18e72fe`), `532b266c`
+  (`7556a7dd`/`d98a37f4`), `b00530f7` (`5f2661d0`/`6f5292df`). Excluded (source docs only):
+  `accae9b8`, `d5b06e30`, `242e37ae`, `1aa8595d`, `d1a3150c`. Ported now: `eeef4183`, `d2e3bb94`,
+  `9137491e`, `3bd9f653` (one adapted feature commit per target) and `ab9d675f` (2.1.17 bump).
   Crosswalk: `docs/backport-catchup/forward-port-log.md`.
 - **Conflicts and adaptations:** `RenderSelfTest` opt-in list (kept the port list, added
   `ambientswim`); `SpeciesVisual`, sampler build and `VisualSampler.build` overloads
@@ -101,12 +101,12 @@
   suite ran in parallel; the rerun passed (`1.21.1-neoforge-gametest-2.log`). 1.20.1 common 996
   (0 failures, 3 skipped), fishsim 582 (63 skipped), Fabric/Forge compiles; GameTests Fabric 403/403,
   Forge 404/404. Datagen not rerun: no provider or generated resource changed in this range.
-- **Commits (hook-gated, not pushed):** 1.21.1 feature `07331bdc`, bump `37e45f9d`, marker
-  `3bbeb09e`; 1.20.1 feature `d0bbe0d4`, bump `3e7f5489`, marker `0de700b3`. The first 1.21.1 marker
+- **Commits (hook-gated, not pushed):** 1.21.1 feature `1cd1990e`, bump `f1d8e0b8`, marker
+  `16f537aa`; 1.20.1 feature `523daecb`, bump `8a2c7da3`, marker `db220af6`. The first 1.21.1 marker
   commit hook failed the intermittent `aWaterEditThatStopsTheWaterMakesALiveVisitDepartAndStayGone`
   (`water=468`, pond joined outside water; `port-1.21.1-marker-commit.log`), docs-only change; the
   retry passed (`port-1.21.1-marker-commit-retry.log`). That GameTest is still flaky on the port after
-  the `279467f1` clock fix.
+  the `5f2661d0` clock fix.
 - **Open:** owner in-game look on both ports (ambient groups/speeds); no client render self-test
   was run on the ports. **Next action:** none for this pass.
 
@@ -124,8 +124,8 @@
   copy, which initialises itself. No shading, no `FishtasticMixinExtrasPlugin`, no copied init config.
   1.20.1 dev runs additionally need `mixinextras-common` + `--mixin.config mixinextras.init.mixins.json`
   (Forge 47 dev doesn't unpack the nested jar); the shipped jar is unchanged by that.
-- **Commits:** `port/1.20.1` `bdf902ae` (fix) + `01c3a0bb` (2.1.16); `port/1.21.1` `77eef7a9` (fix) +
-  `b5cb2615` (2.1.16); source `26.1.2` bumped to 2.1.16 to keep versions in lockstep (no code change).
+- **Commits:** `port/1.20.1` `46f4c036` (fix) + `d98a37f4` (2.1.16); `port/1.21.1` `6b4f4f8a` (fix) +
+  `7556a7dd` (2.1.16); source `26.1.2` bumped to 2.1.16 to keep versions in lockstep (no code change).
 - **Gates passed:** release_smoke boots of both fixed Forge jars alone and beside a JarJar-ing probe mod
   (one "Initializing MixinExtras (0.5.4)"); published jars beside the probe reproduce the crash; the
   65-mod pack boots with 1.20.1 2.1.16; runGametest 1.20.1 Forge 403/403, 1.20.1 Fabric 402/402,
@@ -133,10 +133,10 @@
   is intermittently failing on the ports independent of this change (A/B: untouched port/1.20.1 failed
   2 of 3 Fabric runs) and blocked two hook runs before a retry passed.
 - **Release source:** published from the three version-bump commits, checked out detached so no branch
-  moved: source `26.1.2` `92b2ea85`, `port/1.21.1` `b5cb2615`, `port/1.20.1` `01c3a0bb`. Commits made
+  moved: source `26.1.2` `532b266c`, `port/1.21.1` `7556a7dd`, `port/1.20.1` `d98a37f4`. Commits made
   after the bumps are **not** in 2.1.16 and ship in the next release: the water-edit GameTest clock fix
-  on all three lines (`4a7b1897` / `279467f1` / `79bf9a12`, which also touches `FishSchoolManager`),
-  the Forge 1.20.1 flat gametest world pin `e709dd75`, and the 1.20.1 Pile of Fish tooltip fix `ca0bb32c`.
+  on all three lines (`b00530f7` / `5f2661d0` / `6f5292df`, which also touches `FishSchoolManager`),
+  the Forge 1.20.1 flat gametest world pin `72525e1e`, and the 1.20.1 Pile of Fish tooltip fix `e92e25ea`.
 - **Evidence:** `build/release-2.1.16/evidence/{26.1.2,1.21.1,1.20.1}/` (`release-build.log`,
   `publish.log`) and `build/release-2.1.16/evidence/release-smoke/matrix.log`; per-profile summaries and
   captures under `build/release-smoke/F2_*`.

@@ -140,9 +140,9 @@ push was made.
 `git diff HEAD --check` passes on both target worktrees. No target-side client visual review or
 two-client owner playtest was run; those owner checks remain open in the feature handoff.
 
-## Catch-up 2026-11-03 (`5bf9c6fc..5174c5e4`)
+## Catch-up 2026-11-03 (`5bf9c6fc..ab9d675f`)
 
-Both markers now read `5174c5e4` (marker commits 1.21.1 `3bbeb09e`, 1.20.1 `0de700b3`).
+Both markers now read `ab9d675f` (marker commits 1.21.1 `16f537aa`, 1.20.1 `db220af6`).
 
 | 26.1.2 source commit | Disposition | `port/1.21.1` | `port/1.20.1` |
 |---|---|---|---|
@@ -153,49 +153,49 @@ Both markers now read `5174c5e4` (marker commits 1.21.1 `3bbeb09e`, 1.20.1 `0de7
 | `e45cb395` Bump Fishtastic to 2.1.15 | Present at target baselines | `be9a89ca` | `f18e72fe` |
 | `242e37ae` Record 2.1.15 release validation checkpoint | Excluded: source docs only | — | — |
 | `1aa8595d` Record 2.1.15 CurseForge publication | Excluded: source docs only | — | — |
-| `92b2ea85` Bump Fishtastic to 2.1.16 | Present at target baselines | `b5cb2615` | `01c3a0bb` |
-| `4a7b1897` Fix water-edit visit GameTest racing the level clock | Present at target baselines | `279467f1` | `79bf9a12` |
-| `379bf7fe` Record 2.1.16 CurseForge release | Excluded: source docs only | — | — |
-| `e71d8b92` Fill ambient fish ahead of a travelling player | Ported in target-adapted feature commit | `07331bdc` | `d0bbe0d4` |
-| `05206607` Carry ambient fish across water patch merges | Ported in target-adapted feature commit | `07331bdc` | `d0bbe0d4` |
-| `a4321590` Give fish species cruise speeds in open water and tanks | Ported in target-adapted feature commit | `07331bdc` | `d0bbe0d4` |
-| `902eabf8` Spawn ambient fish in species groups | Ported in target-adapted feature commit | `07331bdc` | `d0bbe0d4` |
-| `5174c5e4` Bump Fishtastic to 2.1.17 | Ported (cherry-pick) | `37e45f9d` | `3e7f5489` |
+| `532b266c` Bump Fishtastic to 2.1.16 | Present at target baselines | `7556a7dd` | `d98a37f4` |
+| `b00530f7` Fix water-edit visit GameTest racing the level clock | Present at target baselines | `5f2661d0` | `6f5292df` |
+| `d1a3150c` Record 2.1.16 CurseForge release | Excluded: source docs only | — | — |
+| `eeef4183` Fill ambient fish ahead of a travelling player | Ported in target-adapted feature commit | `1cd1990e` | `523daecb` |
+| `d2e3bb94` Carry ambient fish across water patch merges | Ported in target-adapted feature commit | `1cd1990e` | `523daecb` |
+| `9137491e` Give fish species cruise speeds in open water and tanks | Ported in target-adapted feature commit | `1cd1990e` | `523daecb` |
+| `3bd9f653` Spawn ambient fish in species groups | Ported in target-adapted feature commit | `1cd1990e` | `523daecb` |
+| `ab9d675f` Bump Fishtastic to 2.1.17 | Ported (cherry-pick) | `f1d8e0b8` | `8a2c7da3` |
 
 Validation and evidence: `docs/backport-catchup-progress.md` (2026-11-03 entry),
 `build/backport-catchup/2026-11-03/`.
 
-## Catch-up 2026-11-03 PM (`5174c5e4..f82996cc`)
+## Catch-up 2026-11-03 PM (`ab9d675f..09135555`)
 
-Both markers now read `f82996cc` (marker commits 1.21.1 `53829127`, 1.20.1 `3748b09b`).
-
-| 26.1.2 source commit | Disposition | `port/1.21.1` | `port/1.20.1` |
-|---|---|---|---|
-| `7ed38a0b` Record 2.1.17 CurseForge release | Excluded: source docs only | — | — |
-| `fa25df82` Keep dealing a carried fish pile into the same slot | Ported | `d401f0ce` | `41c7158f` |
-| `839d1fab` Show player heads on the Cleanup page and raise its payout to 250 | Ported | `3b3497e8` | `35363e2a` |
-| `702e00f7` Cover turning marine compost with an item in hand | Ported; 1.20.1 adapted into a fix (test was red there) | `ff345d2d` | `7a7fb38c` |
-| `ae8d68a4` Make the fish tank assembly an axe block | Ported | `611ae014` | `a35e84ac` |
-| `4bc9c6e3` Reach the real surface in a deep visit's water | Ported | `2ddd1dd1` | `507c6a16` |
-| `b15e0e2d` Climb to the bobber at full speed on a school errand | Ported | `6e53f3bf` | `e8560ae2` |
-| `a232f620` Cast the deep-visit GameTest straight over a fish | Ported (identical) | `3810f439` | `adb03459` |
-| `c0b3c1a0` Give every Fishtastic book when the fishing tutorial begins | Ported | `b1d56f83` | `afb5c4cb` |
-| `37c8c87a` Bump Fishtastic to 2.1.18 | Ported | `0bfe34f4` | `9cd5cf5b` |
-| `55fc6022` Keep unlisted fish out of the ambient roster | Ported | `7ac7c5b9` | `7019e499` |
-| `45ca48e5` Bump Fishtastic to 2.1.19 | Ported | `1d82746b` | `c5a954ba` |
-| `c65f3cf4` Silhouette undiscovered fish and name them ??? in every GUI | Ported | `4e6e5b41` | `08b065f0` |
-| `f92e92db` Group Blazed Grub and Gummy Worms with the other baits in the creative tab | Ported | `3f28ce7c` | `db9a8e22` |
-| `f82996cc` Bump Fishtastic to 2.1.20 | Ported | `205d21ff` | `e9953c66` |
-
-Validation and evidence: `docs/backport-catchup-progress.md` (2026-11-03 `f82996cc` entry).
-
-## Catch-up 2026-11-03 evening (`f82996cc..c47d4dae`)
-
-Both markers now read `c47d4dae` (marker commits 1.21.1 `07228b14`, 1.20.1 `879f9daf`).
+Both markers now read `09135555` (marker commits 1.21.1 `df501cf4`, 1.20.1 `627cf77f`).
 
 | 26.1.2 source commit | Disposition | `port/1.21.1` | `port/1.20.1` |
 |---|---|---|---|
-| `ee7d70c0` Record backport parity through f82996cc | Excluded: source docs only | — | — |
-| `c47d4dae` Make vanilla flowers, shrubs and plants placeable as tank cosmetics | Ported, adapted (version block lists) | `be1ea645` | `5ed62392` |
+| `169323be` Record 2.1.17 CurseForge release | Excluded: source docs only | — | — |
+| `098d5d2a` Keep dealing a carried fish pile into the same slot | Ported | `fee03791` | `e183defd` |
+| `a3f9713e` Show player heads on the Cleanup page and raise its payout to 250 | Ported | `d11ce974` | `2480fb93` |
+| `c5dad8b6` Cover turning marine compost with an item in hand | Ported; 1.20.1 adapted into a fix (test was red there) | `31a83d86` | `8f0a4687` |
+| `6efdde0f` Make the fish tank assembly an axe block | Ported | `02ba4647` | `a1e8471f` |
+| `3106d794` Reach the real surface in a deep visit's water | Ported | `43662fcc` | `2a20770c` |
+| `07828200` Climb to the bobber at full speed on a school errand | Ported | `1d77740c` | `f3bf7ee2` |
+| `15b870f8` Cast the deep-visit GameTest straight over a fish | Ported (identical) | `d3208938` | `ca61d3e4` |
+| `13c3d794` Give every Fishtastic book when the fishing tutorial begins | Ported | `7e54b03a` | `4d917bcf` |
+| `715c16f1` Bump Fishtastic to 2.1.18 | Ported | `70549e12` | `12c1fc4b` |
+| `1a3194e7` Keep unlisted fish out of the ambient roster | Ported | `261b1873` | `f3d0e0e0` |
+| `dc982089` Bump Fishtastic to 2.1.19 | Ported | `7d0bd45a` | `ccbbc2dc` |
+| `87919639` Silhouette undiscovered fish and name them ??? in every GUI | Ported | `e73ed16e` | `6a94fd46` |
+| `a20c5c0d` Group Blazed Grub and Gummy Worms with the other baits in the creative tab | Ported | `826e86b5` | `bf67448b` |
+| `09135555` Bump Fishtastic to 2.1.20 | Ported | `abbaea7b` | `226faaa7` |
 
-Validation and evidence: `docs/backport-catchup-progress.md` (2026-11-03 `c47d4dae` entry).
+Validation and evidence: `docs/backport-catchup-progress.md` (2026-11-03 `09135555` entry).
+
+## Catch-up 2026-11-03 evening (`09135555..c95859e2`)
+
+Both markers now read `c95859e2` (marker commits 1.21.1 `87006629`, 1.20.1 `1ef48d11`).
+
+| 26.1.2 source commit | Disposition | `port/1.21.1` | `port/1.20.1` |
+|---|---|---|---|
+| `42e42db0` Record backport parity through 09135555 | Excluded: source docs only | — | — |
+| `c95859e2` Make vanilla flowers, shrubs and plants placeable as tank cosmetics | Ported, adapted (version block lists) | `56d23bb4` | `27e0699f` |
+
+Validation and evidence: `docs/backport-catchup-progress.md` (2026-11-03 `c95859e2` entry).
