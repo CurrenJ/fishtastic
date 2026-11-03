@@ -166,6 +166,18 @@ seeded and shared by every client, and a spyglass observation unlocks Fishopedia
   of the surface (`FishSchoolManager.java:120, 529-549`). Exact world, species, and command output
   were not captured. The owner wants cave fish to remain in underwater caves; a blanket surface-only
   placement rule is out. The owner chose to revisit open-water findability after duration tuning settles.
+- **Deep-anchor false surface (fixed 2026-11-03, all three branches; placement unchanged).** Owner
+  playtest on Forge 1.20.1: school fish jumped under the surface, swam toward a bobber and stopped
+  below it, and never bit. Root cause, proven red by `deepVisitReachesTheSurfaceAndBites` on Fabric
+  26.1.2 and Forge 1.20.1: `scanConnectedWater` reached only `WATER_UP` (4) above the anchor, so a
+  visit anchored deeper had a region that stopped inside the water. `addSpan` then wrote that cut as
+  the column's surface (jumps launched there) and a floating bobber's cell was outside the school's
+  water (never offered). Fix: the upward bound is now the top of the anchor's own water column
+  (`topOfWaterColumn`, climb cap 64), and the cell bound scales with the column height
+  (`MAX_WATER_COLUMNS` × search depth; 6800 as before for a shallow anchor). The anchor and the
+  member seating are untouched, so cave and deep visits keep their depth, per the owner's rule above.
+  A lift-to-surface variant was built first and discarded for breaking that rule.
+  - Live schools pick up the new bound at their next region scan; nothing persisted changes.
 - `ambient-render-smoke-first-attempt.log` and `ambient-render-smoke-cache-denied.log` retain the
   incomplete startup and sandbox-denied attempt evidence. The latter required the explicit Java 25
   path because the shell's Oracle Java shim hung.

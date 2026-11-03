@@ -1492,6 +1492,11 @@ public class FishtasticFabricGameTests {
         FishSchoolGameTests.crawlerTakesABottomBite(helper, helper::makeMockServerPlayerInLevel);
     }
 
+    @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 800)
+    public void deepVisitReachesTheSurfaceAndBites(GameTestHelper helper) {
+        FishSchoolGameTests.deepVisitReachesTheSurfaceAndBites(helper, helper::makeMockServerPlayerInLevel);
+    }
+
     @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 1100)
     public void drifterIsCarriedToTheBait(GameTestHelper helper) {
         FishSchoolGameTests.drifterIsCarriedToTheBait(helper, helper::makeMockServerPlayerInLevel);
