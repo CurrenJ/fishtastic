@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 2.1.17
+
+- Ambient fish now swim in species groups: schools, pairs, loose groups and lone fish, following each species' nature.
+- Fish swim at species-specific speeds, faster and more varied in open water; tank fish use their species' speed too.
+- Ambient fish are already in place as you travel and reach out to 32 blocks, with no pop-in when bodies of water merge.
+- Every fish species now declares a cruise speed tier (slow, normal or fast) in its profile.
+
 ## 2.1.16
 
 - Fixed a startup crash on Forge 1.20.1 and 1.21.1 when other mods also bundle MixinExtras (e.g. Farmer's Delight, Embeddium, ModernFix). No changes for 26.1.2; version kept in step with the ports.
