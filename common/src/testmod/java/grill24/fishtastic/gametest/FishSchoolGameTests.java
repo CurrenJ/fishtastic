@@ -265,10 +265,9 @@ public final class FishSchoolGameTests {
             }
         }
         FishSchoolManager schools = FishSchoolManager.get(helper.getLevel());
-        // Five down: past WATER_UP (4), so the old search stopped a block under the surface, while
-        // its fish (±2 rows) start 3-7 down, where a sent fish reliably noses in (from about 8
-        // down a near-vertical climb can stall short of the anchor; see the fix notes).
-        BlockPos deep = top.below(5);
+        // Eight down: past WATER_UP (4), so the old search stopped inside the water, and its fish
+        // (±2 rows) start 6-9 under the bobber, the climb the old vertical damping made too slow.
+        BlockPos deep = top.below(8);
         String spawned = schools.spawnForDebug(deep, Fishtastic.id("bluegill"));
         helper.assertTrue(spawned.startsWith("Spawned"), "A deep start cell must still form a visit: " + spawned);
         FishSchoolSavedData.School school = FishSchoolSavedData.get(helper.getLevel()).schoolsForTest().stream()
@@ -288,7 +287,7 @@ public final class FishSchoolGameTests {
         // Drained before success: a 10-deep pond left standing is water other tests' visits can
         // start in when their test area shares its chunk (VisitWindowGameTests' drain test did).
         BlockPos floor = top.below(depth);
-        awaitOwnedBite(helper, player, hook, schools, school, 0, 600, () -> {
+        awaitOwnedBite(helper, player, hook, schools, school, 0, 900, () -> {
             for (int x = -6; x <= 6; x++) {
                 for (int z = -6; z <= 6; z++) {
                     for (int y = 1; y <= depth; y++) {

@@ -1293,7 +1293,7 @@ public class FishtasticGameTests {
         FishSchoolGameTests.crawlerTakesABottomBite(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
-    @GameTest(template = "fishtastic_empty", timeoutTicks = 800)
+    @GameTest(template = "fishtastic_empty", timeoutTicks = 1100)
     public void deepVisitReachesTheSurfaceAndBites(GameTestHelper helper) {
         FishSchoolGameTests.deepVisitReachesTheSurfaceAndBites(helper, FishtasticTestSupport.playerSupplier(helper));
     }
