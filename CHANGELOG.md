@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 2.1.19
+
+- Secret unlisted fish no longer appear as ambient fish in the world, even after you've caught one.
+
 ## 2.1.18
 
 - Starting the fishing tutorial now gives the Fishopedia and Leaderboards book along with the Quest Book.
