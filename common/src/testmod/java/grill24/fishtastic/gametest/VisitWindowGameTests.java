@@ -73,7 +73,8 @@ public final class VisitWindowGameTests {
     }
 
     /** A window that reveals in the pond: its id and window start, its full roster at the start, and the hash base. */
-    private record Found(VisitId id, long start, long base, Shot full) {
+    /** {@code anchor}: where the revealed visit formed, so a test can insist on its own pond. */
+    private record Found(VisitId id, long start, long base, Shot full, BlockPos anchor) {
         long length() {
             return full.activeUntil() - start;
         }
@@ -101,6 +102,12 @@ public final class VisitWindowGameTests {
             }
         }
         return center;
+    }
+
+    /** Whether {@code pos} is a water cell of the {@link #pond} centred on {@code center}. */
+    private static boolean inPond(BlockPos pos, BlockPos center) {
+        return Math.abs(pos.getX() - center.getX()) <= 6 && Math.abs(pos.getZ() - center.getZ()) <= 6
+                && pos.getY() >= center.getY() - 2 && pos.getY() <= center.getY();
     }
 
     private static String dimension(ServerLevel level) {
@@ -134,7 +141,7 @@ public final class VisitWindowGameTests {
             long start = id.start(seed, params);
             FishSchoolSavedData.School probe = schools.revealWindowForTest(id, start);
             if (probe == null) continue;
-            Found found = new Found(id, start, VisitDerivation.base(seed, id), Shot.of(probe));
+            Found found = new Found(id, start, VisitDerivation.base(seed, id), Shot.of(probe), probe.anchor());
             schools.forgetVisitForTest(probe);
             if (want.test(found)) return found;
         }
@@ -602,7 +609,9 @@ public final class VisitWindowGameTests {
         FishSchoolSavedData data = FishSchoolSavedData.get(level);
         schools.setCapsForTest(NO_CAPS);
         try {
-            Found found = findWindow(helper, schools, chunk, true, f -> true);
+            // A visit's start is any water of its chunk, and a neighbouring test's pond can share
+            // this chunk: draining this pond only stops a visit that formed in it.
+            Found found = findWindow(helper, schools, chunk, true, f -> inPond(f.anchor(), center));
             long t = found.start() + found.length() / 20;
             FishSchoolSavedData.School school = schools.revealWindowForTest(found.id(), t);
             helper.assertTrue(school != null, "the visit reveals: " + schools.lastRevealNoteForTest());

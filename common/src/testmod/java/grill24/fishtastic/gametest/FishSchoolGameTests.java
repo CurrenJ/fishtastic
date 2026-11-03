@@ -242,6 +242,63 @@ public final class FishSchoolGameTests {
         liveVisitBites(helper, mockPlayer, "garden_eel", new int[][]{{1, 0}, {-4, 4}}, 300);
     }
 
+    /**
+     * A visit whose start cell lies deep in a lake (a natural visit's start is any source cell of
+     * its chunk) must still own the water up to the real surface: otherwise its engine's surface is
+     * a false one inside the water — jumps breach under the real surface — and a floating bobber's
+     * cell is outside the school's water, so no fish ever bites (playtest, Forge 1.20.1).
+     */
+    public static void deepVisitReachesTheSurfaceAndBites(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerPlayer player = mockPlayer.get();
+        player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(FishtasticItems.COPPER_FISHING_ROD.value()));
+        BlockPos testOrigin = helper.absolutePos(new BlockPos(1, 1, 1));
+        // Built up from sea level: the GameTest world is superflat, whose sea level sits on the world floor.
+        int waterY = helper.getLevel().getSeaLevel();
+        int depth = 10;
+        BlockPos top = new BlockPos(testOrigin.getX() + 2, waterY + depth - 1, testOrigin.getZ() + 2);
+        for (int x = -6; x <= 6; x++) {
+            for (int z = -6; z <= 6; z++) {
+                helper.getLevel().setBlock(top.offset(x, -depth, z), Blocks.SAND.defaultBlockState(), 3);
+                for (int y = -depth + 1; y <= 0; y++) {
+                    helper.getLevel().setBlock(top.offset(x, y, z), Blocks.WATER.defaultBlockState(), 3);
+                }
+            }
+        }
+        FishSchoolManager schools = FishSchoolManager.get(helper.getLevel());
+        // Five down: past WATER_UP (4), so the old search stopped a block under the surface, while
+        // its fish (±2 rows) start 3-7 down, where a sent fish reliably noses in (from about 8
+        // down a near-vertical climb can stall short of the anchor; see the fix notes).
+        BlockPos deep = top.below(5);
+        String spawned = schools.spawnForDebug(deep, Fishtastic.id("bluegill"));
+        helper.assertTrue(spawned.startsWith("Spawned"), "A deep start cell must still form a visit: " + spawned);
+        FishSchoolSavedData.School school = FishSchoolSavedData.get(helper.getLevel()).schoolsForTest().stream()
+                .filter(s -> spawned.contains(s.id().toString())).findFirst().orElseThrow();
+        Vec3 near = Vec3.atCenterOf(school.anchor());
+        helper.assertTrue(schools.inSchoolWaterForTest(near, top),
+                "The visit's water must reach the real surface " + top.toShortString()
+                        + " from its anchor " + school.anchor().toShortString());
+
+        player.setPos(top.getX() + 0.5, top.getY() + 1.0, top.getZ() + 0.5);
+        FishingHook hook = new FishingHook(player, helper.getLevel(), 0, 0);
+        hook.setPos(top.getX() + 0.5, top.getY() + 0.5, top.getZ() + 0.5);
+        hook.setDeltaMovement(Vec3.ZERO);
+        helper.getLevel().addFreshEntity(hook);
+        player.fishing = hook;
+        schools.tick();
+        // Drained before success: a 10-deep pond left standing is water other tests' visits can
+        // start in when their test area shares its chunk (VisitWindowGameTests' drain test did).
+        BlockPos floor = top.below(depth);
+        awaitOwnedBite(helper, player, hook, schools, school, 0, 600, () -> {
+            for (int x = -6; x <= 6; x++) {
+                for (int z = -6; z <= 6; z++) {
+                    for (int y = 1; y <= depth; y++) {
+                        helper.getLevel().setBlock(floor.offset(x, y, z), Blocks.AIR.defaultBlockState(), 3);
+                    }
+                }
+            }
+        });
+    }
+
     /** Waits for whichever member the school's engine brings to the bobber; which one is the swim's business. */
     private static void awaitOwnedBite(GameTestHelper helper, ServerPlayer player, FishingHook hook,
                                        FishSchoolManager schools, FishSchoolSavedData.School school,
@@ -252,6 +309,12 @@ public final class FishSchoolGameTests {
     private static void awaitOwnedBite(GameTestHelper helper, ServerPlayer player, FishingHook hook,
                                        FishSchoolManager schools, FishSchoolSavedData.School school,
                                        int ticksWaited, int limit) {
+        awaitOwnedBite(helper, player, hook, schools, school, ticksWaited, limit, () -> {});
+    }
+
+    private static void awaitOwnedBite(GameTestHelper helper, ServerPlayer player, FishingHook hook,
+                                       FishSchoolManager schools, FishSchoolSavedData.School school,
+                                       int ticksWaited, int limit, Runnable beforeSuccess) {
         // The mock player can drop its bobber link between ticks when many fixtures run at once;
         // restore it every check, as the 1.20.1 port does (backport-catchup-progress).
         player.fishing = hook;
@@ -274,6 +337,7 @@ public final class FishSchoolGameTests {
             helper.assertTrue(member.state() == FishSchoolSavedData.MemberState.RECOVERING
                             && schools.memberInWaterForTest(school.id(), member.id()),
                     "A member that got away must be back in the school's water, recovering");
+            beforeSuccess.run();
             helper.succeed();
             return;
         }
@@ -290,7 +354,7 @@ public final class FishSchoolGameTests {
                         + ", activeSession=" + fishing.isPlayerInActiveSession(player.getUUID())
                         + ", ownedBite=" + schools.ownsBite(hook)
                         + ", " + schools.debugState(school.id()));
-        helper.runAfterDelay(1, () -> awaitOwnedBite(helper, player, hook, schools, school, ticksWaited + 1, limit));
+        helper.runAfterDelay(1, () -> awaitOwnedBite(helper, player, hook, schools, school, ticksWaited + 1, limit, beforeSuccess));
     }
 
     /**
