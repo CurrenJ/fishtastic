@@ -243,4 +243,14 @@ public final class FishTankAssemblyRefitGameTests {
         helper.assertTrue(!slot.mayPlace(new ItemStack(Blocks.OAK_PLANKS)), "Other blocks must be rejected");
         helper.succeed();
     }
+
+    /** The assembly is a wooden workbench: an axe is its preferred tool, and mines it faster than a hand. */
+    public static void assemblyPrefersAnAxe(GameTestHelper helper) {
+        net.minecraft.world.level.block.state.BlockState state = FishtasticBlocks.FISH_TANK_ASSEMBLY.value().defaultBlockState();
+        helper.assertTrue(state.is(net.minecraft.tags.BlockTags.MINEABLE_WITH_AXE),
+                "fish_tank_assembly must be in #minecraft:mineable/axe");
+        float axe = new ItemStack(net.minecraft.world.item.Items.IRON_AXE).getDestroySpeed(state);
+        helper.assertTrue(axe > 1.0f, "An iron axe must mine the assembly faster than a hand, speed " + axe);
+        helper.succeed();
+    }
 }
