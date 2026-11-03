@@ -277,9 +277,14 @@ public final class FishSchoolGameTests {
                 "The visit's water must reach the real surface " + top.toShortString()
                         + " from its anchor " + school.anchor().toShortString());
 
-        player.setPos(top.getX() + 0.5, top.getY() + 1.0, top.getZ() + 0.5);
+        // Cast straight over a member: a bite is offered only inside a narrow cylinder under the
+        // bobber, and waiting for a fish to wander under the pond's centre made the climb's time a
+        // coin toss (1.21.1 Fabric: the approach began at tick 711 of 900).
+        FishSchoolSavedData.Position over = school.members().get(0).position();
+        double castX = Math.floor(over.x()) + 0.5, castZ = Math.floor(over.z()) + 0.5;
+        player.setPos(castX, top.getY() + 1.0, castZ);
         FishingHook hook = new FishingHook(player, helper.getLevel(), 0, 0);
-        hook.setPos(top.getX() + 0.5, top.getY() + 0.5, top.getZ() + 0.5);
+        hook.setPos(castX, top.getY() + 0.5, castZ);
         hook.setDeltaMovement(Vec3.ZERO);
         helper.getLevel().addFreshEntity(hook);
         player.fishing = hook;
