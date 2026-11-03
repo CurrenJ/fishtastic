@@ -1,6 +1,6 @@
 # Ambient fish schools and speed variety: design spec
 
-**Status:** Design accepted 2026-11-02; owner decisions D1–D7 in §10. Steps 0–2b accepted in the owner playtest 2026-11-02 and committed (a4321590); step 3 and the step 4 group leash accepted in game 2026-11-03 and committed; measurements in §11.
+**Status:** Design accepted 2026-11-02; owner decisions D1–D7 in §10. Steps 0–2b accepted in the owner playtest 2026-11-02 and committed (9137491e); step 3 and the step 4 group leash accepted in game 2026-11-03 and committed; measurements in §11.
 The step table in §9 tracks progress.
 
 **Related:** [ambient fish](fish-in-world.md),
@@ -409,7 +409,7 @@ Reading:
 
 Regression scenes (`ambientwater`, `ambientisland`, `ambientfloor`, `ambientwalk`): 67/67 pass
 (`build/ambientschools-step3d.log`); leash retirements are 10, against 1 before grouping.
-- `ambientwater.carry.anchored` failed on the committed build too (a4321590, 5.56 blocks). The cause
+- `ambientwater.carry.anchored` failed on the committed build too (9137491e, 5.56 blocks). The cause
   was the check, not a teleport: a fish that faded after the snapshot re-entered under the same ID
   elsewhere. The check now skips any fish whose birth tick changed.
 
