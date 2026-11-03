@@ -97,14 +97,16 @@ public final class FishSchoolManager {
      * self-test, 2026-10-25: 9/32 bobber cells at 2 blocks, 13/32 at 3).
      */
     private static final int MAX_WATER_COLUMNS = 400;
-    /** Safety bound on the search itself: 400 columns of the full 17-block search depth fit. */
-    private static final int MAX_WATER_CELLS = 6800;
+    // The search's cell bound is per scan: MAX_WATER_COLUMNS columns of that scan's full search
+    // depth (6800 for the usual 17-block box; more where the water reaches up to a far surface).
     private static final int MIN_WATER_CELLS = 6;
     private static final int MAX_HOOK_CHECKS_PER_TICK = 8;
     private static final int MAX_PLAYERS_PER_SNAPSHOT_TICK = 32;
     private static final int WATER_RADIUS = 16;
     private static final int WATER_DOWN = 12;
     private static final int WATER_UP = 4;
+    /** How far above its anchor a school's water may reach to find its column's surface. */
+    private static final int MAX_COLUMN_CLIMB = 64;
     private static final int SCHOOL_FORMATION_RADIUS = 4;
     private static final int SCHOOL_MEMBER_SYNC_TICKS = 10;
     /**
@@ -1582,6 +1584,18 @@ public final class FishSchoolManager {
         return best;
     }
 
+    /** The highest valid water cell reached straight up from {@code pos} through valid water cells. */
+    private BlockPos topOfWaterColumn(BlockPos pos) {
+        BlockPos top = pos;
+        // validWaterCell stops at unloaded chunks and the build limit (no fluid there).
+        for (int i = 0; i < MAX_COLUMN_CLIMB; i++) {
+            BlockPos above = top.above();
+            if (!validWaterCell(above)) break;
+            top = above;
+        }
+        return top;
+    }
+
     private @Nullable FishSchoolSavedData.School tryCreateSchool(BlockPos seed, long now) {
         return tryCreateSchool(seed, now, null, null, null);
     }
@@ -2268,19 +2282,27 @@ public final class FishSchoolManager {
         if (!validWaterCell(seed)) return new WaterScan(Set.of(), !level.hasChunkAt(seed));
         Registry<FishProfile> profiles = level.registryAccess().registryOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
         boolean incomplete = false;
+        // Upward the search reaches at least the top of the anchor's own water column. A natural
+        // visit's start is any source cell of its chunk (E2), often deep; capped at WATER_UP, its
+        // water stopped inside the lake, so the engine took that cut for the surface (jumps breached
+        // under the real one) and a floating bobber was outside the school's water (no bite, ever).
+        // The anchor itself stays where it was derived: deep and cave visits keep their depth.
+        int topY = Math.max(seed.getY() + WATER_UP, topOfWaterColumn(seed).getY());
+        // The cell bound grows with the column, so a tall region keeps the full column reach.
+        int maxCells = MAX_WATER_COLUMNS * (topY - seed.getY() + WATER_DOWN + 1);
         ArrayDeque<BlockPos> queue = new ArrayDeque<>();
         Set<BlockPos> seen = new HashSet<>();
         Set<Long> columns = new HashSet<>();
         queue.add(seed.immutable());
         seen.add(seed.immutable());
         columns.add(columnKey(seed));
-        while (!queue.isEmpty() && seen.size() < MAX_WATER_CELLS) {
+        while (!queue.isEmpty() && seen.size() < maxCells) {
             BlockPos current = queue.removeFirst();
             for (Direction direction : Direction.values()) {
                 BlockPos next = current.relative(direction);
                 if (Math.abs(next.getX() - seed.getX()) > WATER_RADIUS
                         || Math.abs(next.getZ() - seed.getZ()) > WATER_RADIUS
-                        || next.getY() < seed.getY() - WATER_DOWN || next.getY() > seed.getY() + WATER_UP
+                        || next.getY() < seed.getY() - WATER_DOWN || next.getY() > topY
                         || seen.contains(next)) continue;
                 // Once the column budget is spent, the search only deepens the columns it has.
                 long column = columnKey(next);
