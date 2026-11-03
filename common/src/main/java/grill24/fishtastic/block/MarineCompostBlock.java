@@ -65,13 +65,15 @@ public class MarineCompostBlock extends Block implements EntityBlock {
 
     /**
      * MC20 has one {@code use} override, not 1.21.1's {@code useItemOn}/{@code useWithoutItem}
-     * split; a held item falls through to PASS, matching 1.21.1's unoverridden {@code useItemOn}
-     * default for this block (only a bare-hand click aerates the bin).
+     * split. 1.21.1's unoverridden {@code useItemOn} returns PASS_TO_DEFAULT_BLOCK_INTERACTION,
+     * which runs {@code useWithoutItem} for the main hand whatever it holds, so the bin turns
+     * with an item in hand there; matched here by answering the main hand only (vanilla 1.20.1
+     * already skips {@code use} when sneaking with an item, as 1.21.1 does).
      */
     @Override
     public InteractionResult use(BlockState state, Level level, BlockPos pos,
             Player player, InteractionHand hand, BlockHitResult hit) {
-        if (!player.getItemInHand(hand).isEmpty()) return InteractionResult.PASS;
+        if (hand != InteractionHand.MAIN_HAND) return InteractionResult.PASS;
         MarineCompostPhase phase = state.getValue(PHASE);
         boolean willAerate = phase == MarineCompostPhase.DRY;
 

@@ -49,6 +49,32 @@ public final class MarineCompostGameTests {
     // -------------------------------------------------------------------------
 
     /**
+     * Turning a DRY bin must work while holding an item, through the real server interaction
+     * dispatch (ServerPlayerGameMode#useItemOn) rather than a direct block-method call — the
+     * held-item path is where loaders/versions differ (1.20.1 has a single {@code use} override).
+     */
+    public static void aerationWorksWhileHoldingAnItem(GameTestHelper helper, java.util.function.Supplier<net.minecraft.server.level.ServerPlayer> mockPlayer) {
+        MarineCompostBlockEntity bin = placeMarineCompost(helper);
+        bin.initialize(FishQuality.Quality.COMMON);
+        BlockPos abs = helper.absolutePos(BIN_POS);
+        helper.getLevel().setBlockAndUpdate(abs,
+            helper.getBlockState(BIN_POS).setValue(MarineCompostBlock.PHASE, MarineCompostPhase.DRY));
+
+        net.minecraft.server.level.ServerPlayer player = mockPlayer.get();
+        net.minecraft.world.item.ItemStack held = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.DIRT);
+        player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, held);
+        net.minecraft.world.phys.BlockHitResult hit = new net.minecraft.world.phys.BlockHitResult(
+            net.minecraft.world.phys.Vec3.atCenterOf(abs), net.minecraft.core.Direction.UP, abs, false);
+        player.gameMode.useItemOn(player, helper.getLevel(), held, net.minecraft.world.InteractionHand.MAIN_HAND, hit);
+
+        helper.assertTrue(helper.getBlockState(BIN_POS).getValue(MarineCompostBlock.PHASE) == MarineCompostPhase.WET,
+            "Right-clicking a DRY bin while holding dirt must turn it (WET), got "
+                + helper.getBlockState(BIN_POS).getValue(MarineCompostBlock.PHASE));
+        helper.assertTrue(held.getCount() == 1, "Turning the bin must not use the held item");
+        helper.succeed();
+    }
+
+    /**
      * canAerate() returns false after 5 aerations (MAX_AERATION_TURNS = 5).
      */
     public static void aerationCapAtFive(GameTestHelper helper) {
