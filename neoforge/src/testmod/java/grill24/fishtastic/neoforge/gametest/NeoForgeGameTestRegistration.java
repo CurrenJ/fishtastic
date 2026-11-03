@@ -701,7 +701,7 @@ public class NeoForgeGameTestRegistration {
             VisitWindowGameTests::weatherCommandsAreLoggedFromTheAuthoritativeFlags);
         register(event, env, "crawler_takes_a_bottom_bite", 900,
             helper -> FishSchoolGameTests.crawlerTakesABottomBite(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "deep_visit_reaches_the_surface_and_bites", 800,
+        register(event, env, "deep_visit_reaches_the_surface_and_bites", 1100,
             helper -> FishSchoolGameTests.deepVisitReachesTheSurfaceAndBites(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "drifter_is_carried_to_the_bait", 1100,
             helper -> FishSchoolGameTests.drifterIsCarriedToTheBait(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));

@@ -1980,7 +1980,8 @@ public final class FishSchoolManager {
                 : anchorPoint == null ? "no anchor"
                 : horizontalDistanceSqr(hook.position(), anchorPoint) > ANCHOR_DRIFT * ANCHOR_DRIFT ? "bobber drifted"
                 : !touched && !runtime.sim.errandActive(anchor) ? "fish gave up"
-                : now - reservation.startedAt() > approachLimitTicks(runtime) ? "too slow"
+                // The lease carries the approach's own limit (see approachLimitTicks), then the bite window.
+                : now > reservation.leaseUntil() - FishtasticServerConfig.fishSchoolBiteWindowTicks() ? "too slow"
                 : null;
         if (failure != null) {
             if (runtime != null) runtime.lastFailure = failure + " @" + now;
@@ -2052,13 +2053,23 @@ public final class FishSchoolManager {
      * How long a member of {@code school} may take to reach a bobber, ticks: the configured limit,
      * longer for the slow classes (a crawler walking the floor, a drifter carried over).
      */
-    private long approachLimitTicks(@Nullable SchoolRuntime runtime) {
+    /**
+     * Free climb before a swimmer's approach is given extra time, blocks, and the time added per
+     * block beyond it. A sent swimmer rises about 40 ticks a block (headless probe, 2026-11-03: worst
+     * of 40 seeds 107 ticks from level with the bobber, 584 from twelve under it), so a flat limit
+     * passed a deep fish that was still on its way up as "too slow".
+     */
+    private static final double FREE_CLIMB_BLOCKS = 6.0;
+    private static final int CLIMB_TICKS_PER_BLOCK = 40;
+
+    /** How long an approach may take before it is called off, for a fish starting {@code climb} blocks under its bobber. */
+    private long approachLimitTicks(@Nullable SchoolRuntime runtime, double climb) {
         long base = FishtasticServerConfig.fishSchoolApproachMaxTicks();
         if (runtime == null) return base;
         return switch (runtime.sim.spec().locomotion()) {
             case BENTHIC -> base * 2;
             case DRIFT -> base * 3;
-            default -> base;
+            default -> base + (long) Math.ceil(Math.max(0.0, climb - FREE_CLIMB_BLOCKS) * CLIMB_TICKS_PER_BLOCK);
         };
     }
 
@@ -2123,7 +2134,8 @@ public final class FishSchoolManager {
             runtime.touched.remove(hook.getUUID());
             chosenMember.setState(FishSchoolSavedData.MemberState.APPROACHING);
             chosenMember.setReservation(new FishSchoolSavedData.Reservation(player.getUUID(), hook.getUUID(), now,
-                    now + approachLimitTicks(runtime) + FishtasticServerConfig.fishSchoolBiteWindowTicks(),
+                    now + approachLimitTicks(runtime, hook.getY() - vec(chosenMember.position()).y)
+                            + FishtasticServerConfig.fishSchoolBiteWindowTicks(),
                     0, -1));
         }
     }

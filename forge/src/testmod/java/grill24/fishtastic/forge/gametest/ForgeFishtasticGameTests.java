@@ -1454,7 +1454,7 @@ public class ForgeFishtasticGameTests {
         FishSchoolGameTests.crawlerTakesABottomBite(helper, helper::makeMockServerPlayerInLevel);
     }
 
-    @GameTest(structure = "fishtastic:empty_testarea", maxTicks = 800)
+    @GameTest(structure = "fishtastic:empty_testarea", maxTicks = 1100)
     public static void deep_visit_reaches_the_surface_and_bites(GameTestHelper helper) {
         FishSchoolGameTests.deepVisitReachesTheSurfaceAndBites(helper, helper::makeMockServerPlayerInLevel);
     }

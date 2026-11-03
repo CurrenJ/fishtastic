@@ -177,6 +177,20 @@ seeded and shared by every client, and a spyglass observation unlocks Fishopedia
   (`MAX_WATER_COLUMNS` × search depth; 6800 as before for a shallow anchor). The anchor and the
   member seating are untouched, so cave and deep visits keep their depth, per the owner's rule above.
   A lift-to-surface variant was built first and discarded for breaking that rule.
+  - **Deep climbs too slow (fixed 2026-11-03, owner asked).** Headless probe (40 seeds, bobber at the
+    surface, approach speed 2.5): from 8 under the bobber only 31/40 sent fish touched within the
+    server's 600-tick approach limit, and from 10 or 12 under 0/40. Not a nose-in stall (a first
+    reading said so): a per-step trace showed the fish still climbing at a flat 0.276 blocks/s when
+    time ran out. `FlockEngine`'s calm-slab `verticalDamp` (1.2/s) against `steeringGain` (2.0/s)
+    settles a sustained climb at 2.0/3.2 = 62.5% of the errand's planned speed. Fix: no vertical
+    damping while an eager host errand (`errandSpeedScale > 1`, school bobbers only) approaches or
+    noses in (`hostErrandApproaching`); structure-clock errands (scale 1) and all tank and companion
+    motion are unchanged: golden trajectories, parity and invariant suites pass. After: 40/40 at 0, 3,
+    6, 8, 10 and 12 under, worst times 107/188/316/405/494/584 ticks, worst overshoot 0.09 above the
+    anchor (before 0.03). Since 12 under still needed up to 584 of 600 ticks, the server's limit for a
+    swimmer now adds 40 ticks a block past a 6-block free climb (`approachLimitTicks(runtime, climb)`,
+    stored in the reservation's lease). Guarded by `FishSchoolSimTest#aFishSentFromTwelveBelowRisesToTheBobber`
+    and the GameTest `deepVisitReachesTheSurfaceAndBites` (fish 6-9 under).
   - Live schools pick up the new bound at their next region scan; nothing persisted changes.
 - `ambient-render-smoke-first-attempt.log` and `ambient-render-smoke-cache-denied.log` retain the
   incomplete startup and sandbox-denied attempt evidence. The latter required the explicit Java 25
