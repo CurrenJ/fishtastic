@@ -79,9 +79,10 @@ public final class TutorialManagerGameTests {
                 player.fishing = null;
             }
             helper.assertTrue(countItem(player, FishtasticItems.WORMS.value()) == 0, "Declining gives no bait");
-            helper.assertTrue(countItem(player, FishtasticItems.QUEST_BOOK.value()) == 1, "Quest access does not require accepting help");
-            helper.assertTrue(countItem(player, FishtasticItems.FISHOPEDIA.value()) == 0
-                    && countItem(player, FishtasticItems.LEADERBOARDS_BOOK.value()) == 0, "No unrelated books");
+            for (Item book : java.util.List.of(FishtasticItems.QUEST_BOOK.value(),
+                    FishtasticItems.FISHOPEDIA.value(), FishtasticItems.LEADERBOARDS_BOOK.value())) {
+                helper.assertTrue(countItem(player, book) == 1, "Book access does not require accepting help, and is granted once");
+            }
             TutorialManager.replay(player);
             helper.assertTrue(TutorialManager.getStep(player) == TutorialStep.BAIT_LOAD, "Explicit replay starts practice");
             helper.assertTrue(countItem(player, FishtasticItems.WORMS.value()) == 0, "Replay grants no items");
@@ -135,7 +136,7 @@ public final class TutorialManagerGameTests {
     // onItemCrafted
     // -------------------------------------------------------------------------
 
-    /** Accepting the initial offer grants bait and a Quest Book. */
+    /** Accepting the initial offer grants bait and every Fishtastic book. */
     public static void craftingRodFromDefaultStepGrantsWormsAndAdvances(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
         ServerPlayer player = mockPlayer.get();
         helper.assertTrue(
@@ -152,7 +153,8 @@ public final class TutorialManagerGameTests {
         );
         int wormCount = countItem(player, FishtasticItems.WORMS.value());
         helper.assertTrue(wormCount == 8, "Crafting the starter rod must grant exactly 8 worms, got " + wormCount);
-        for (Item book : java.util.List.of(FishtasticItems.QUEST_BOOK.value())) {
+        for (Item book : java.util.List.of(FishtasticItems.QUEST_BOOK.value(),
+                FishtasticItems.FISHOPEDIA.value(), FishtasticItems.LEADERBOARDS_BOOK.value())) {
             helper.assertTrue(countItem(player, book) == 1, "Starting must grant each access book once");
         }
         helper.succeed();
