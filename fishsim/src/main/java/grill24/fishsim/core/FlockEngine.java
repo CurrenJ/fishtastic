@@ -2729,6 +2729,15 @@ public final class FlockEngine {
         return s >= 0 && s < triggerFish.length && triggerFish[s] == i ? triggerSpeed[s] : 1f;
     }
 
+    /**
+     * Whether fish #{@code i} is approaching, or nosing in on, an eager host errand
+     * ({@link #sendToTrigger(int, int, float)} with a speed scale above 1): the same test the
+     * errand's raised speed cap uses. A structure clock's own errands (scale 1) are not.
+     */
+    private boolean hostErrandApproaching(int i) {
+        return (shelterState[i] == SHELTER_APPROACH || shelterState[i] == SHELTER_ENTER) && errandSpeedScale(i) > 1f;
+    }
+
     /** Whether fish #{@code i} is on an errand a structure's clock sent it on. */
     private boolean sentByTrigger(int i) {
         int s = shelterIndex[i];
@@ -3984,7 +3993,12 @@ public final class FlockEngine {
         float oldVelL = velL[i], oldVelY = velY[i], oldVelD = velD[i];
         velL[i] += aL * p.dt();
         velY[i] += aY * p.dt();
-        velY[i] *= (1f - p.verticalDamp() * p.dt());
+        // The calm-slab damping is for drifting, not for an eager host errand's climb to its bait:
+        // damped, a sustained climb settled at steeringGain / (steeringGain + verticalDamp) of its
+        // planned speed (62% in a school), so the approach's speed and brake curve never held
+        // vertically and a fish sent from eight blocks under a bobber took the whole 30 s errand
+        // window to rise (headless probe: 31/40 touched, against 40/40 from seven down).
+        if (!(shelterSim && hostErrandApproaching(i))) velY[i] *= (1f - p.verticalDamp() * p.dt());
         velD[i] += aD * p.dt();
 
         // The ceiling is this fish's own, not the shoal's: a school where every member tops out

@@ -75,6 +75,39 @@ class FishSchoolSimTest {
         }
     }
 
+    /**
+     * A fish sent from twelve blocks under a floating bobber — the deepest the server sends one
+     * (schools.biteReachDepth) — rises and touches it, at the errand's speed, without overshooting.
+     * The calm-slab vertical damping once held such a climb to 62% of its planned speed: from ten
+     * or twelve down, 0/40 seeds touched within the server's 30 s (headless probe, 2026-11-03).
+     */
+    @Test
+    void aFishSentFromTwelveBelowRisesToTheBobber() {
+        for (long seed = 1; seed <= 8; seed++) {
+            FishSchoolSim sim = FishSchoolSim.create(new FishSchoolSim.Setup(ORIGIN, shallow(14),
+                    FishSchoolSim.spec(LENGTH, Locomotion.FREE_SWIM, ShelterUse.VISITOR), seed, List.of(
+                            new FishSchoolSim.Placement(A, 2.5f, 1.5f, 0.5f),
+                            new FishSchoolSim.Placement(B, -1.5f, 1.5f, 0.5f),
+                            new FishSchoolSim.Placement(C, 0.5f, 1.5f, 3.5f)), VisitShape.SCHOOL));
+            assertNotNull(sim);
+            run(sim, 30, null);
+            float[] at = sim.anchorPoint(0.5f, 13.75f, 0.5f);
+            assertNotNull(at, "seed " + seed);
+            UUID bobber = UUID.randomUUID();
+            assertTrue(sim.apply(new FishSchoolSim.Approach(bobber, B, at[0], at[1], at[2], 2.5f, 8f)), "seed " + seed);
+            boolean[] touched = new boolean[1];
+            float highest = Float.NEGATIVE_INFINITY;
+            int i = sim.indexOf(B);
+            for (int t = 0; t < 600 && !touched[0]; t++) {
+                sim.step(e -> touched[0] |= e.touch() && e.anchor().equals(bobber));
+                highest = Math.max(highest, sim.engine().posY()[i] - at[1]);
+            }
+            assertTrue(touched[0], "a fish sent from twelve below never reached its bobber in 30 s, seed " + seed
+                    + "; it got to " + sim.engine().posY()[i] + " for an anchor at " + at[1]);
+            assertTrue(highest <= 0.15f, "the climb overshot its anchor by " + highest + ", seed " + seed);
+        }
+    }
+
     @Test
     void noAnchorIsOfferedOutOfTheWater() {
         FishSchoolSim sim = school(1, shallow(1));
