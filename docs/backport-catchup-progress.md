@@ -1,5 +1,29 @@
 # Backport parity progress
 
+## Completed (2026-11-03): catch up both ports through `c47d4dae`
+
+- **Operation:** Account for `f82996cc..c47d4dae` on `port/1.21.1` and `port/1.20.1`. Not pushed or
+  published.
+- **Range accounting (2 commits):** excluded (source docs only): `ee7d70c0`. Ported, adapted:
+  `c47d4dae` (plant tank cosmetics) as 1.21.1 `be1ea645`, 1.20.1 `5ed62392`. Crosswalk:
+  `docs/backport-catchup/forward-port-log.md`.
+- **Adaptations:** both ports drop tag entries for blocks the version lacks (wildflowers, cactus
+  flower, short/tall dry grass, bush, firefly bush, leaf litter; pale hanging moss on the lid, with
+  its strand code), `FloorCosmetics` stacks only `PICKLES`/`FLOWER_AMOUNT` (no `SEGMENT_AMOUNT`),
+  load reads counts through `BlockEntityNbt.getIntOr`, and the GameTest registers in the shared
+  `FishtasticGameTests` (NeoForge registration file kept as the port's own on 1.21.1, removed on
+  1.20.1). 1.20.1 only: `minecraft:grass` for short grass, `makeMockPlayer()`, and no `#c:flowers/*`
+  entries (neither 1.20.1 Fabric API 0.92 nor Forge 47 defines flower convention tags).
+- **Gates:** 26.1.2 `c47d4dae`: Fabric 414/414, NeoForge 408/408 GameTests, hook green (the hook's
+  `java17ApiGuard` caught a `Math.clamp` before commit; replaced). 1.21.1: Fabric, NeoForge and Forge
+  408/408 each, hook green at `be1ea645` and `07228b14`. 1.20.1: Fabric 409/409, Forge 410/410, hook
+  green at `5ed62392` and `879f9daf`. Datagen not rerun (only hand-written tag files changed); no
+  client self-tests.
+- **Markers:** `docs/backport-pass2/checklist.md` rows read `c47d4dae` (1.21.1 `07228b14`, 1.20.1
+  `879f9daf`).
+- **Open:** owner in-game look on all three lines (tall-plant upper halves, plant scale, grass tint
+  in tanks, petal stacking). **Next action:** next pass starts from `git log --oneline c47d4dae..26.1.2`.
+
 ## Completed (2026-11-03): catch up both ports through `f82996cc`
 
 - **Operation:** Account for every source commit after marker `5174c5e4` through `f82996cc` (2.1.20)

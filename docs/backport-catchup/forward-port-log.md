@@ -188,3 +188,14 @@ Both markers now read `f82996cc` (marker commits 1.21.1 `53829127`, 1.20.1 `3748
 | `f82996cc` Bump Fishtastic to 2.1.20 | Ported | `205d21ff` | `e9953c66` |
 
 Validation and evidence: `docs/backport-catchup-progress.md` (2026-11-03 `f82996cc` entry).
+
+## Catch-up 2026-11-03 evening (`f82996cc..c47d4dae`)
+
+Both markers now read `c47d4dae` (marker commits 1.21.1 `07228b14`, 1.20.1 `879f9daf`).
+
+| 26.1.2 source commit | Disposition | `port/1.21.1` | `port/1.20.1` |
+|---|---|---|---|
+| `ee7d70c0` Record backport parity through f82996cc | Excluded: source docs only | — | — |
+| `c47d4dae` Make vanilla flowers, shrubs and plants placeable as tank cosmetics | Ported, adapted (version block lists) | `be1ea645` | `5ed62392` |
+
+Validation and evidence: `docs/backport-catchup-progress.md` (2026-11-03 `c47d4dae` entry).
