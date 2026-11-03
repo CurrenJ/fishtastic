@@ -1,6 +1,7 @@
 package grill24.fishtastic.ecology;
 
 import grill24.FishtasticRegistries;
+import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.component.BaitEffect;
 import grill24.fishtastic.data.FishMoonPhase;
 import grill24.fishtastic.client.ambient.VisualSampler;
@@ -92,12 +93,15 @@ public final class NaturalPool {
      * The pool's candidates an ambient fish may be: Fishtastic species with a {@code fish_profile}.
      * Vanilla fish (cod, salmon, tropical fish, pufferfish: no profile, outside {@code #fishtastic:fish})
      * stay in the catch and visit pools but are never ambient (owner decision 2026-10-30).
+     * {@code #fishtastic:unlisted_fish} secret variants are never ambient either, whether or not the
+     * player has caught one (owner decision 2026-11-03).
      */
     public static List<VisualSampler.Candidate> ambientCandidates(Registry<FishProfile> profiles,
                                                                  FishingPoolResolver.SpeciesContext pool) {
         List<VisualSampler.Candidate> out = new ArrayList<>(pool.candidates().size());
         for (FishingPoolResolver.WeightedFish fish : pool.candidates()) {
             if (!(fish.item().value() instanceof FishtasticFishItem)) continue;
+            if (fish.item().is(FishtasticItemTags.UNLISTED_FISH)) continue;
             var key = fish.item().unwrapKey();
             if (key.isEmpty() || !profiles.containsKey(net.minecraft.resources.ResourceKey.create(
                     FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, key.get().identifier()))) continue;
