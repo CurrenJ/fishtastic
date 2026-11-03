@@ -2206,7 +2206,7 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         place(summary, copy("cleanup.left", COLOR_MUTED, threshold - cycle), 248, 19);
         place(summary, new ThinProgressBar(296, 5).flatColor(COLOR_PROGRESS)
                 .progressImmediate((float) cycle / threshold), 10, 37);
-        place(summary, copy("cleanup.pool", COLOR_SELECTION), 10, 47);
+        place(summary, copy("cleanup.pool", COLOR_SELECTION, grill24.fishtastic.server.FishCatchSavedData.CLEANUP_GOAL_REWARD_TOKENS), 10, 47);
         place(page, summary, 0, 0);
         place(page, copy("cleanup.eligibility", 0xFFFFFFFF), 0, 67);
         place(page, copy("cleanup.proportional", COLOR_MUTED), 0, 79);
@@ -2219,19 +2219,28 @@ public class QuestLogScreen extends GelatinUIScreen<GelatinMenu> {
         String ownText = own.map(c -> translated("screen.fishtastic.quest_log.cleanup.personal", c.amount(),
                 cycle > 0 ? Math.round(c.amount() * 100f / cycle) : 0))
                 .orElse(translated("screen.fishtastic.quest_log.cleanup.personal_unavailable"));
-        place(personal, new Label(ownText, 0xFFFFFFFF).init(tempContext), 10, 6);
-        place(personal, copy("cleanup.rollover", COLOR_MUTED, threshold), 10, 20);
+        int personalTextX = 10;
+        if (mc.player != null) {
+            place(personal, UI.itemRenderer(PlayerHeadItems.headStack(mc.player.getUUID(),
+                    mc.player.getName().getString())).showCount(false), 8, 8);
+            personalTextX = 28;
+        }
+        place(personal, new Label(ownText, 0xFFFFFFFF).init(tempContext), personalTextX, 6);
+        place(personal, copy("cleanup.rollover", COLOR_MUTED, threshold), personalTextX, 20);
         place(page, personal, 0, 96);
         place(page, copy("cleanup.contributors", 0xFFFFFFFF), 0, 137);
-        VBox rows = UI.vbox().spacing(3).alignment(VBox.Alignment.LEFT);
+        // 12px rows with 1px spacing keep three contributors visible in the 39px viewport.
+        VBox rows = UI.vbox().spacing(1).alignment(VBox.Alignment.LEFT);
         for (var contributor : contributors) {
             if (own.isPresent() && contributor.playerUuid().equals(own.get().playerUuid())) continue;
-            ManualContainer row = UI.manualContainer().setSize(QUEST_PAGE_WIDTH - QUEST_SCROLL_GUTTER, 10);
-            place(row, new Label(contributor.playerName(), COLOR_MUTED).maxWidth(65).init(tempContext), 4, 0);
+            ManualContainer row = UI.manualContainer().setSize(QUEST_PAGE_WIDTH - QUEST_SCROLL_GUTTER, 12);
+            place(row, UI.itemRenderer(PlayerHeadItems.headStack(contributor.playerUuid(), contributor.playerName()))
+                    .itemScale(0.75f).showCount(false), 4, 0);
+            place(row, new Label(contributor.playerName(), COLOR_MUTED).maxWidth(57).init(tempContext), 19, 2);
             int percent = cycle > 0 ? Math.round(contributor.amount() * 100f / cycle) : 0;
             place(row, new ThinProgressBar(151, 5).flatColor(COLOR_PROGRESS)
-                    .progressImmediate(cycle > 0 ? (float) contributor.amount() / cycle : 0), 77, 3);
-            place(row, new Label(contributor.amount() + " (" + percent + "%)", COLOR_MUTED).init(tempContext), 239, 0);
+                    .progressImmediate(cycle > 0 ? (float) contributor.amount() / cycle : 0), 77, 4);
+            place(row, new Label(contributor.amount() + " (" + percent + "%)", COLOR_MUTED).init(tempContext), 239, 2);
             rows.addChild(row);
         }
         QuestViewport contributorViewport = new QuestViewport(QUEST_PAGE_WIDTH, 39);

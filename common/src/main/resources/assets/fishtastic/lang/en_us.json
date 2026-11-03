@@ -208,7 +208,7 @@
   "screen.fishtastic.quest_log.cleanup.milestone": "Next milestone: %s trash",
   "screen.fishtastic.quest_log.cleanup.removed": "%s / %s removed",
   "screen.fishtastic.quest_log.cleanup.left": "%s left",
-  "screen.fishtastic.quest_log.cleanup.pool": "50-token pool; paid automatically",
+  "screen.fishtastic.quest_log.cleanup.pool": "%s-token pool; paid automatically",
   "screen.fishtastic.quest_log.cleanup.eligibility": "Contribute this cycle to receive a share.",
   "screen.fishtastic.quest_log.cleanup.proportional": "Proportional payout; at least 1 token each.",
   "screen.fishtastic.quest_log.cleanup.personal": "Your contribution: %s trash (%s%%)",
