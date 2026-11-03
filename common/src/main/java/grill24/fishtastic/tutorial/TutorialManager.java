@@ -90,19 +90,23 @@ public class TutorialManager {
      */
     public static void onItemCrafted(ServerPlayer player) {
         if (getStep(player) == TutorialStep.NOT_STARTED) {
-            giveQuestBook(player);
+            giveBooks(player);
             setStep(player, TutorialStep.FISHING_OFFER);
         }
     }
 
     private static void giveStarterItems(ServerPlayer player) {
         give(player, new ItemStack(FishtasticItems.WORMS.value(), 8));
-        giveQuestBook(player);
+        giveBooks(player);
     }
 
-    private static void giveQuestBook(ServerPlayer player) {
-        var book = FishtasticItems.QUEST_BOOK.value();
-        if (!hasStack(player, stack -> stack.is(book))) give(player, new ItemStack(book));
+    /** Hands out every Fishtastic book the player is missing (quest book, Fishopedia, leaderboards). */
+    private static void giveBooks(ServerPlayer player) {
+        for (var holder : List.of(FishtasticItems.QUEST_BOOK, FishtasticItems.FISHOPEDIA, FishtasticItems.LEADERBOARDS_BOOK)) {
+            var book = holder.value();
+            if (hasStack(player, stack -> stack.is(book))) continue;
+            give(player, new ItemStack(book));
+        }
     }
 
     private static void give(ServerPlayer player, ItemStack stack) {
@@ -127,7 +131,7 @@ public class TutorialManager {
         if (!rod.is(FishtasticItems.COPPER_FISHING_ROD.value())) return;
         TutorialStep step = getStep(player);
         if (step == TutorialStep.NOT_STARTED) {
-            giveQuestBook(player);
+            giveBooks(player);
             setStep(player, TutorialStep.FISHING_OFFER);
             return;
         }
