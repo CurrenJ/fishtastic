@@ -1,6 +1,6 @@
 # Ambient fish schools and speed variety: design spec
 
-**Status:** Design accepted 2026-11-02; owner decisions D1–D7 in §10. Steps 0–2b built and accepted in the owner playtest 2026-11-02 (uncommitted); measurements in §11. Grouping (steps 3–4) is next.
+**Status:** Design accepted 2026-11-02; owner decisions D1–D7 in §10. Steps 0–2b accepted in the owner playtest 2026-11-02 and committed (a4321590); step 3 and the step 4 group leash accepted in game 2026-11-03 and committed; measurements in §11.
 The step table in §9 tracks progress.
 
 **Related:** [ambient fish](fish-in-world.md),
@@ -320,8 +320,8 @@ Order (D6, decided): speed first (steps 1–2), then grouping (steps 3–4).
 | 1 | Built 2026-11-02, uncommitted. `Tunables.OPEN_WATER`; the ambient engines run it (the A/B commands used for the look are removed). Accepted in game 2026-11-02 |
 | 2 | Built 2026-11-02, uncommitted. `FishSpec.speedScale` (engine field `cruise[]`, x1 bit-identical); tier × size term in `AmbientMotion`; `cruise` on all 66 profiles (11 fast, 27 normal, 28 slow); skill checklist + `WorldEncounterTest`. Accepted in game 2026-11-02: reads as swimming, no hops or twitches |
 | 2b | Built 2026-11-02, uncommitted. Tank adapters apply `CruiseTier.tank()` (0.8/1.0/1.25); `HeadlessRunner --cruise-tiers` for headless comparison. Accepted in game 2026-11-02 (single tanks and groups); adopted as a full feature, no switch |
-| 3 | Not started |
-| 4 | Not started |
+| 3 | Built 2026-11-02/03, committed. `AmbientGroups` (sizes, member IDs, spacing); roster slots are groups (`SLOT_DIVISOR` 2 after §11.4, at least two slots for small water, size capped by the chunk allowance); species once per group, fish-weighted sampler (D2); density draws groups (D5); whole-group spawn, deferral, retry and displacement; members cluster round an anchor (or a living groupmate well inside the leash), schools and pairs share a heading; observations report the group ID. Owner look 2026-11-03: groups look natural; water felt thin, retuned in §11.4 (density cap 224→288, groups fill to the cap). Re-look passed 2026-11-03 |
+| 4 | Partly built with step 3: the group leash (centroid, `GROUP_LEASH_MARGIN` 16; a member fades alone only past that box plus `LEASH_MARGIN`). Needed because groups travelling together tripped the 8-block per-fish leash 267 times; a 6-block distance-to-centroid straggler rule was tried and dropped (it faded loose-group members, which spread without the stronger cohesion). Per-shape cohesion not started |
 | 5 | Not started |
 | 6 | Not started |
 
@@ -381,3 +381,72 @@ GIFs: `fishsim/build/tank-cruise-trial/` (`<domain>-n12-s42.gif` off, `<domain>-
 
 With the trial off, `:fishsim` goldens and parity pass bit-identically (579 tests, 0 failures).
 `SpeedScaleTest` pins x1 bit-identity and a proportional speed change.
+
+### 11.3 Grouping, step 3 (density 50, same fixture and seed as §11.1)
+
+Log: `build/ambientschools-step3c.log`.
+
+| Metric | Steps 1+2 (leg 0 / 1) | Step 3 (leg 0 / 1) |
+|---|---|---|
+| `nnSame` vs random `nnChance` | 0.073 vs 0.102; 0.038 vs 0.061 | **0.639 vs 0.146; 0.740 vs 0.085** |
+| Same-species fish within 3 blocks | 0.06 / 0.02 | 3.93 / 3.33 |
+| Mean fish alive while stationary | 95.6 / 108.4 | 77.2 / 104.1 |
+| Stationary fish in view | 17.28 / 14.71 | 6.02 / 12.86 |
+| Fish in view while swimming | 14.53 / 16.15 | 17.52 / 13.74 |
+| Pops seen while swimming | 0 / 0 | 0 / 0 |
+| Tick ms | 0.89 / 0.80 | 0.73 / 0.75 |
+| Allocation KB/tick | 582 / 584 | 529 / 536 |
+| Render submit ms/frame | 0.17 / 0.18 | 0.11 / 0.09 |
+| Rate p99 relative to mean speed | 1.14 / 1.13 | 0.93 / 1.03 |
+
+Reading:
+- Fish now sit with their own species about 6–9× more often than a random mix would give.
+- Cost went down slightly, because there are fewer slots and fewer separate placements.
+- The leg-0 stationary view is the expected price of clumping. The fish in view arrive as a few
+  groups, so a view can hold a school or nothing.
+- Leg 0 also holds fewer fish (77 vs 96). A group only spawns whole, so near the cap a 12-fish
+  school waits for room. Check this in the owner's look.
+
+Regression scenes (`ambientwater`, `ambientisland`, `ambientfloor`, `ambientwalk`): 67/67 pass
+(`build/ambientschools-step3d.log`); leash retirements are 10, against 1 before grouping.
+- `ambientwater.carry.anchored` failed on the committed build too (a4321590, 5.56 blocks). The cause
+  was the check, not a teleport: a fish that faded after the snapshot re-entered under the same ID
+  elsewhere. The check now skips any fish whose birth tick changed.
+
+### 11.4 Thin-water retune (owner look 2026-11-03)
+
+The owner found the water thinner: a stationary view showed about 6 fish where it had shown 17, and
+asked to split the difference. Two causes were measured (`groupDropped` and `heldAtCap` on the
+`MOTION` line):
+- A whole group spawned only if it fit under the cap exactly, so the population sat about 15%
+  under it. Groups were held at the cap 98 times in leg 0 and 953 times in leg 1.
+- Leg 0 had too few groups nearby: 106 of 144 alive with nothing held at the cap.
+
+Members failing to place was not a cause (0–9 dropped).
+
+Changes:
+- A group may spawn while the population is under the cap, overshooting by at most one group;
+  the hard ceiling still holds.
+- `AmbientBudget.MAX_INDIVIDUALS` 224 → 288 (density 50: 112 → 144).
+- `AmbientGroups.SLOT_DIVISOR` 3 → 2.
+
+| Metric (leg 0 / 1) | Before grouping (§11.1) | Step 3 (§11.3) | Retuned |
+|---|---|---|---|
+| Stationary fish in view | 17.28 / 14.71 | 6.02 / 12.86 | 8.22–8.59 / 11.99–18.47 |
+| Fish in view while swimming | 14.53 / 16.15 | 17.52 / 13.74 | 24.8–25.8 / 20.0–21.7 |
+| Mean fish alive while stationary | 95.6 / 108.4 | 77.2 / 104.1 | 96–107 / 136–139 |
+| `nnSame` | 0.073 / 0.038 | 0.639 / 0.740 | 0.62–0.64 / 0.67–0.73 |
+| Tick ms | 0.89 / 0.80 | 0.73 / 0.75 | 0.78–0.91 / 0.81–0.83 |
+| Allocation KB/tick | 582 / 584 | 529 / 536 | 615–621 / 631–644 |
+| Render submit ms/frame | 0.17 / 0.18 | 0.11 / 0.09 | 0.22–0.26 / 0.20–0.23 |
+
+Ranges span two runs (`build/ambientschools-step3-div2.log`, `build/ambientschools-step3f.log`).
+- The stationary view averages about 10–13 across the two legs, about the midpoint asked for.
+- Tick time is back at the pre-grouping level.
+- Render submit is up about 0.05 ms a frame for the extra fish.
+
+Regression scenes 67/67 (`build/ambientschools-step3g.log`). Two fixture expectations changed with
+the design:
+- `irregular` now expects 2 fish, not 3: its small water holds one or two groups.
+- `bandwatch.kept` counts an open-face exit as turnover. Faster fish reach the horizon inside the
+  40-tick window; the column count still guards the hazard it watches for.

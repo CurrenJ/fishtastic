@@ -17,8 +17,12 @@ package grill24.fishtastic.client.ambient;
  */
 public record AmbientBudget(int density, int radius, int columnsPerTick, int cellsPerTick,
                             int domains, int individuals) {
-    /** Fish alive at density 100 (112 at the default 50): the old 64 at radius 24, held per area at {@link #RADIUS}. */
-    public static final int MAX_INDIVIDUALS = 224;
+    /**
+     * Fish alive at density 100 (144 at the default 50). Was 224, the old 64 at radius 24 held per
+     * area at {@link #RADIUS}; raised when grouping (docs/ambient-fish-schools-design-spec.md §11.4)
+     * clumped the same fish into fewer views and cut the tick cost enough to pay for more of them.
+     */
+    public static final int MAX_INDIVIDUALS = 288;
     /**
      * Bodies of water simulated at once at density 100 (4 at 50). Was 4 at a 24-block range; a
      * 32-block window holds more separate water, and each slot costs one engine step a tick.

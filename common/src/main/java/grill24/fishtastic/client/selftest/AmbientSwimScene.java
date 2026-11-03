@@ -492,11 +492,14 @@ final class AmbientSwimScene {
         double k = Math.max(1, st.mNnSamples);
         note(String.format(Locale.ROOT,
                 "ambientswim leg=%d MOTION fish=%d meanSpeed=%.3f speed[p10=%.3f p50=%.3f p90=%.3f max=%.3f] acrossCv=%.3f withinCv=%.3f "
-                        + "rate[p95=%.3f p99=%.3f max=%.3f] nnSame=%.3f nnChance=%.3f sameWithin3=%.2f meanAlive=%.1f species=%s",
+                        + "rate[p95=%.3f p99=%.3f max=%.3f] nnSame=%.3f nnChance=%.3f sameWithin3=%.2f meanAlive=%.1f "
+                        + "groupDropped=%d heldAtCap=%d species=%s",
                 st.leg, means.size(), pooled, pctD(means, 10), pctD(means, 50), pctD(means, 90),
                 means.isEmpty() ? -1 : means.get(means.size() - 1), across, cvN > 0 ? cvSum / cvN : 0,
                 pctD(rates, 95), pctD(rates, 99), rates.isEmpty() ? -1 : rates.get(rates.size() - 1),
-                st.mNnSame / k, st.mNnChance / k, st.mSameNear / k, st.mNnN / k, species.toString().trim()));
+                st.mNnSame / k, st.mNnChance / k, st.mSameNear / k, st.mNnN / k,
+                ClientAmbientFish.natural().stats().groupMembersDropped, ClientAmbientFish.natural().stats().groupsHeldAtCap,
+                species.toString().trim()));
         st.mPrev.clear();
         st.mFish.clear();
         st.mSpeciesOf.clear();

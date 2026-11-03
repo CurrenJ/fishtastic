@@ -5,6 +5,7 @@ import net.minecraft.resources.Identifier;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.function.ToDoubleFunction;
 
 /**
  * The visual species sampler (Fish in World, Phase 5): turns one authoritative species context —
@@ -27,10 +28,11 @@ import java.util.function.Predicate;
  * shares sum to one. Every removal is recorded in {@link #omitted()} — never silently shrunk,
  * demoted or re-weighted.
  *
- * <h2>One draw, one individual</h2>
- * {@link #sample(AmbientRandom)} consumes exactly one uniform draw per individual slot, from the
- * caller's own stream. There is no "pick a species then a school": the spec's requirement is that
- * each individual is sampled independently, so a rare species' sightings are its own draws.
+ * <h2>One draw, one group</h2>
+ * {@link #sample(AmbientRandom)} consumes exactly one uniform draw per roster slot, from the
+ * caller's own stream. Ambient slots are groups (docs/ambient-fish-schools-design-spec.md §4):
+ * a group sampler divides each share by the species' mean group size, so a schooler is drawn
+ * less often but arrives several at a time, and every species keeps its share of individual fish.
  *
  * <p>Pure Java: no world, no engine, no rendering — the mixture and its statistical behaviour are
  * pinned by plain JUnit tests.
@@ -70,6 +72,18 @@ public final class VisualSampler {
      * @param representable whether the caller can represent one species id at all
      */
     public static VisualSampler build(List<Candidate> candidates, Predicate<Identifier> representable) {
+        return build(candidates, representable, id -> 1.0);
+    }
+
+    /**
+     * As {@link #build(List, Predicate)}, but each draw picks a <em>group</em> of
+     * {@code meanGroupSize} fish on average (docs/ambient-fish-schools-design-spec.md §4.2, D2):
+     * the group distribution is {@code share_i / m_i}, renormalised, so the expected share of
+     * <em>individual fish</em> per species is still the mixture {@link Entry#share()}. With every
+     * size 1 the draws are exactly those of the one-fish sampler.
+     */
+    public static VisualSampler build(List<Candidate> candidates, Predicate<Identifier> representable,
+                                      ToDoubleFunction<Identifier> meanGroupSize) {
         List<Candidate> kept = new ArrayList<>(candidates.size());
         List<String> omitted = new ArrayList<>(0);
         for (Candidate candidate : candidates) {
@@ -89,15 +103,23 @@ public final class VisualSampler {
         List<Entry> entries = new ArrayList<>(kept.size());
         double[] cumulative = new double[kept.size()];
         double accumulated = 0;
+        boolean grouped = false;
         for (int i = 0; i < kept.size(); i++) {
             Candidate candidate = kept.get(i);
             int weight = Math.max(1, candidate.weight());
             double raw = weight / (double) totalWeight;
             double flattened = totalRoot == 0 ? 0 : Math.sqrt(weight) / totalRoot;
             float share = (float) (AmbientTuning.RAW_SHARE * raw + AmbientTuning.FLATTENED_SHARE * flattened);
-            accumulated += share;
+            double size = Math.max(1.0, meanGroupSize.applyAsDouble(candidate.species()));
+            if (size != 1.0) grouped = true;
+            accumulated += size == 1.0 ? share : share / size;
             cumulative[i] = accumulated;
             entries.add(new Entry(candidate.species(), weight, (float) raw, (float) flattened, share));
+        }
+        // The one-fish sampler keeps its cumulative exactly as it always was; a group sampler
+        // renormalises, since dividing by the sizes no longer sums to one.
+        if (grouped && accumulated > 0) {
+            for (int i = 0; i < cumulative.length; i++) cumulative[i] /= accumulated;
         }
         return new VisualSampler(entries, omitted, cumulative);
     }

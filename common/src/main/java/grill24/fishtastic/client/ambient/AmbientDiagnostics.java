@@ -106,7 +106,7 @@ public final class AmbientDiagnostics {
                 .append(" retired[face=").append(rt.stats.retireOpenFace).append(" invalid=").append(rt.stats.retireInvalid)
                 .append(" domain=").append(rt.stats.retireDomainLost).append(" excluded=").append(rt.stats.retireExcluded)
                 .append(" expired=").append(rt.stats.retireExpired)
-                .append(" displaced=").append(rt.stats.retireDisplaced).append(" leash=").append(rt.stats.retireLeash).append(']')
+                .append(" displaced=").append(rt.stats.retireDisplaced).append(" leash=").append(rt.stats.retireLeash).append(" straggler=").append(rt.stats.retireStraggler).append(']')
                 .append(" merges[").append(rt.stats.merges).append(" carried=").append(rt.stats.mergeTransfers)
                 .append(" faded=").append(rt.stats.mergeFallbacks).append(']')
                 .append(" known=").append(rt.discovery.columns().size())

@@ -287,7 +287,9 @@ final class AmbientScenes {
             run(s, "setblock " + irrX + " " + (gy - 3) + " " + (irrZ + 2) + " minecraft:oak_fence[waterlogged=true]");
             fill(s, irrX - 6, gy - 3, irrZ - 6, irrX + 6, gy - 1, irrZ + 6, "minecraft:water keep");
         }));
-        queue(150, mc -> ambientWaterFixture("irregular", 1, 3, 1, false));
+        // Two fish, not three: the fixture's small water holds one or two groups now
+        // (docs/ambient-fish-schools-design-spec.md §4.3), and a pair or two loners is a full house.
+        queue(150, mc -> ambientWaterFixture("irregular", 1, 2, 1, false));
         queue(1, mc -> camera(mc, irrX + 0.5, gy + 4.5, irrZ + 0.5, -90f, 55f));
         queue(3, mc -> screenshot(mc, "ambientwater", "floor_plan"));
         queue(1, mc -> camera(mc, irrX + 1.5, gy - 0.5, irrZ - 4.5, 0f, 8f));
@@ -871,7 +873,7 @@ final class AmbientScenes {
             var runtime = grill24.fishtastic.client.ambient.ClientAmbientFish.natural();
             java.util.Map<Integer, Integer> fadingByReason = new java.util.TreeMap<>();
             for (var p : runtime.diagnostics().individuals()) {
-                before.put(p.id(), new double[]{p.x(), p.y(), p.z(), p.patchKey()});
+                before.put(p.id(), new double[]{p.x(), p.y(), p.z(), p.patchKey(), p.bornTick()});
                 if (p.retiring()) fadingByReason.merge(p.retireReason(), 1, Integer::sum);
             }
             note("ambientwater.carry snapshot fading by reason " + fadingByReason + " "
@@ -889,6 +891,9 @@ final class AmbientScenes {
             for (var p : runtime.diagnostics().individuals()) {
                 double[] was = before.get(p.id());
                 if (was == null) continue;
+                // Same ID, later birth: the snapshot's fish faded and its roster slot re-entered
+                // elsewhere. That is a new instance, not a carry, so it cannot have "jumped".
+                if ((long) was[4] != p.bornTick()) continue;
                 survived++;
                 // A merge changes a carried fish's key to the survivor's on purpose: same water.
                 if ((long) was[3] != p.patchKey() && runtime.diagnostics().survivorOf((long) was[3]) != p.patchKey()) {
@@ -899,7 +904,11 @@ final class AmbientScenes {
                 }
                 double d = Math.sqrt(Math.pow(p.x() - was[0], 2) + Math.pow(p.y() - was[1], 2) + Math.pow(p.z() - was[2], 2));
                 worst = Math.max(worst, d);
-                if (d > 4.0) jumped++;
+                if (d > 4.0) {
+                    jumped++;
+                    note(String.format("ambientwater.carry jumped id=%016x species=%s moved=%.2f retiring=%s reason=%d born=%d now=%d",
+                            p.id(), p.species(), d, p.retiring(), p.retireReason(), p.bornTick(), mc.level.getGameTime()));
+                }
             }
             for (var r : runtime.diagnostics().domainReports()) {
                 int[] was = origins.get(r.patchKey());
@@ -928,7 +937,7 @@ final class AmbientScenes {
      */
     private static void queueAmbientBandWatchCheck(int x, int y, int z) {
         final java.util.Set<Long> tracked = new java.util.LinkedHashSet<>();
-        final long[] base = new long[9]; // key, columns, deferred, domainsLost, retireDomainLost, retireInvalid, retireExcluded, retireExpired, retireDisplaced
+        final long[] base = new long[10]; // key, columns, deferred, domainsLost, retireDomainLost, retireInvalid, retireExcluded, retireExpired, retireDisplaced, retireOpenFace
         queue(1, mc -> camera(mc, x + 0.5, y - 0.2, z + 0.5, -90f, 2f));
         queue(40, mc -> {
             var runtime = grill24.fishtastic.client.ambient.ClientAmbientFish.natural();
@@ -952,6 +961,7 @@ final class AmbientScenes {
             base[6] = s.retireExcluded;
             base[7] = s.retireExpired;
             base[8] = s.retireDisplaced;
+            base[9] = s.retireOpenFace;
             check("ambientwater.bandwatch.snapshot", tracked.size() >= 4 && base[1] >= 4,
                     "tracked=" + tracked.size() + " key=" + base[0] + " columns=" + base[1]
                             + " deferred=" + base[2]);
@@ -968,7 +978,11 @@ final class AmbientScenes {
             var s = runtime.stats();
             int columns = runtime.diagnostics().patchColumns(base[0]);
             // A displaced resident (cap full, out of view, a nearer fish waiting) is turnover too.
-            long benign = (s.retireExcluded - base[6]) + (s.retireExpired - base[7]) + (s.retireDisplaced - base[8]);
+            // So is a fish swimming out through the open face at the horizon: the faster open-water
+            // speeds (docs/ambient-fish-schools-design-spec.md §5) reach it within the window. The
+            // hazard is the band deleting columns, which the column count below still catches.
+            long faces = s.retireOpenFace - base[9];
+            long benign = (s.retireExcluded - base[6]) + (s.retireExpired - base[7]) + (s.retireDisplaced - base[8]) + faces;
             // The ocean's corners lie beyond the eviction radius (dx^2+dz^2 > 32^2), so eviction
             // sheds those 24 columns whenever the sweep has just re-cached them and the count
             // breathes between 2377 and 2401. Allow that band — the hazard this watches for is a
@@ -984,7 +998,7 @@ final class AmbientScenes {
                             && s.domainsLost == base[3] && s.retireDomainLost == base[4]
                             && s.retireInvalid == base[5],
                     "columns=" + columns + "/" + base[1] + " present=" + present + "/" + tracked.size()
-                            + " retiring=" + retiring + " benign=+" + benign
+                            + " retiring=" + retiring + " benign=+" + benign + " (openFace=+" + faces + ")"
                             + " domainsLost=+" + (s.domainsLost - base[3])
                             + " retireDomainLost=+" + (s.retireDomainLost - base[4])
                             + " retireInvalid=+" + (s.retireInvalid - base[5]));

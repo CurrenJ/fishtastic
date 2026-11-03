@@ -31,7 +31,7 @@ class AmbientBudgetTest {
         assertEquals(1, AmbientBudget.forDensity(100).target(6));
         assertEquals(8, AmbientBudget.forDensity(100).target(100));
         assertEquals(4, AmbientBudget.forDensity(50).target(100));
-        assertEquals(224, AmbientBudget.forDensity(100).target(10000));
-        assertEquals(112, AmbientBudget.forDensity(50).target(10000));
+        assertEquals(288, AmbientBudget.forDensity(100).target(10000));
+        assertEquals(144, AmbientBudget.forDensity(50).target(10000));
     }
 }
