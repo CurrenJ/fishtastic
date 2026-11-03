@@ -6,6 +6,7 @@ import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
 import com.mojang.serialization.Lifecycle;
 import grill24.FishtasticRegistries;
+import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.client.ambient.VisualSampler;
 import grill24.fishtastic.data.EncyclopediaTiers;
 import grill24.fishtastic.data.FishMoonPhase;
@@ -144,11 +145,14 @@ class AmbientPresenceReportTest {
         Map<TagKey<Item>, List<Holder<Item>>> tags = new HashMap<>();
         tags.put(ItemTags.FISHES, poolOrder.stream()
                 .<Holder<Item>>map(id -> items.getHolderOrThrow(FishingPoolFixture.itemKey(id))).toList());
+        Set<String> unlisted = tagValues(RESOURCES.resolve("tags/item/unlisted_fish.json"));
+        tags.put(FishtasticItemTags.UNLISTED_FISH, unlisted.stream()
+                .<Holder<Item>>map(name -> items.getHolderOrThrow(FishingPoolFixture.itemKey(FishingPoolFixture.id("fishtastic", name)))).toList());
         items.bindTags(tags);
         items.freeze();
 
         loaded = new Loaded(items, profiles, byName, biomeWeightCounts,
-                tagValues(RESOURCES.resolve("tags/item/unlisted_fish.json")));
+                unlisted);
         return loaded;
     }
 
