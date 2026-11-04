@@ -1,14 +1,15 @@
 # Backport parity progress
 
-## Pending (2026-11-04): 2.1.20 CurseForge release
+## Completed (2026-11-04): 2.1.20 CurseForge release
 
 - **Operation:** release the pinned 2.1.20 snapshots after the branches advanced to 2.1.21:
   26.1.2 `6ad0be04`, 1.21.1 `cc8a7a59`, and 1.20.1 `9c2e878f`. Build each snapshot in a separate
   temporary worktree, run the full release build and eight-profile release-smoke matrix, then publish
   the matching smoke-tested jars. Pass each snapshot's 2.1.20 changelog through
   `ORG_GRADLE_PROJECT_changelog_override`. The active tips at the start were 26.1.2 `995072ad`,
-  1.21.1 `c63d73dd`, and 1.20.1 `fd324d1c`; the user-requested ledger commit `ab0e3671` is the only
-  source-branch movement, and it changes documentation only. All three release builds use detached
+  1.21.1 `c63d73dd`, and 1.20.1 `fd324d1c`; the user-requested ledger commit `ab0e3671` was the first
+  source-branch movement and changed documentation only. Two later release ledger commits also
+  changed documentation only. All three release builds use detached
   worktrees at the pinned version commits; no ahead-of-2.1.20 code was included.
 - **Evidence:** `build/release-2.1.20/evidence/{26.1.2,1.21.1,1.20.1}/` for release/pre-publish build
   logs, jar hashes and publish logs; `build/release-2.1.20/evidence/release-smoke/matrix.log` for the
@@ -32,12 +33,22 @@
   All eight joined and settled for 30 seconds; zero fatal lines, Fishtastic errors or crash reports.
   Remaining ERROR log lines are offline authentication/user-properties/Realms fetches. Each smoke-tested
   jar SHA-256 matches its clean-build value. Evidence: `evidence/release-smoke/matrix.log`, each
-  profile's `summary.json`/`stdout.log`, and `jars-smoked.sha256` for each line. Nothing has been
-  uploaded. The pre-publish `:fishsim:jar assemble build --no-parallel` passed on all three snapshots;
-  every task was `UP-TO-DATE`, and post-build hashes still match the smoked jars. Logs are
+  profile's `summary.json`/`stdout.log`, and `jars-smoked.sha256` for each line. The pre-publish
+  `:fishsim:jar assemble build --no-parallel` passed on all three snapshots; every task was
+  `UP-TO-DATE`, and post-build hashes still match the smoked jars. Logs are
   `build/release-2.1.20/evidence/{26.1.2,1.21.1,1.20.1}/pre-publish-build.log`.
-- **Next action:** publish the matching eight artifacts to CurseForge and save each result before
-  ending the release operation.
+- **Publication:** `publishCurseForge -Prelease_type=release` completed successfully for all three
+  pinned snapshots. 26.1.2 and 1.21.1 uploaded Fabric, NeoForge and Forge; 1.20.1 uploaded Fabric and
+  Forge, eight artifacts total. Each publish task's jar tasks were `UP-TO-DATE`, and the hashes still
+  match the smoke-tested jars. Changelogs came from each pinned snapshot's 2.1.20 entry. Logs:
+  `build/release-2.1.20/evidence/{26.1.2,1.21.1,1.20.1}/publish.log`. The read-only CurseForge API
+  verification request returned HTTP 403, so author-dashboard file states were not independently
+  confirmed. No branches were pushed and no parity markers were advanced.
+- **Ledger:** the pending operation/evidence and validation checkpoint were committed first as
+  `ab0e3671` and `dfaed7ee`. This completed release record is a further documentation-only commit on
+  26.1.2. Port refs remain at their starting tips.
+- **Next action:** none for this release. Check the author dashboard for processing/approval state
+  before treating the files as public; do not rerun the upload tasks.
 
 ## Completed (2026-11-04): undiscovered-fish tooltip crash fix placed in 2.1.20
 
