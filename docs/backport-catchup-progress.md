@@ -1,5 +1,17 @@
 # Backport parity progress
 
+## Pending (2026-11-04): 2.1.20 CurseForge release
+
+- **Operation:** release the pinned 2.1.20 snapshots after the branches advanced to 2.1.21:
+  26.1.2 `6ad0be04`, 1.21.1 `cc8a7a59`, and 1.20.1 `9c2e878f`. Build each snapshot in a separate
+  temporary worktree, run the full release build and eight-profile release-smoke matrix, then publish
+  the matching smoke-tested jars. Pass each snapshot's 2.1.20 changelog through
+  `ORG_GRADLE_PROJECT_changelog_override`. Keep the three branch refs unchanged.
+- **Evidence:** `build/release-2.1.20/evidence/{26.1.2,1.21.1,1.20.1}/` for release/pre-publish build
+  logs, jar hashes and publish logs; `build/release-2.1.20/evidence/release-smoke/matrix.log` for the
+  profile matrix; per-profile smoke output under `build/release-smoke/`.
+- **State:** pending; no release builds or uploads started.
+
 ## Completed (2026-11-04): undiscovered-fish tooltip crash fix placed in 2.1.20
 
 - **Bug:** the silhouette commit's `getTooltipLines` handler called `setReturnValue` from a non-cancellable
@@ -8,12 +20,38 @@
   on 2.1.21; 2.1.19 and earlier never had it.
 - **Fix:** `cancellable = true`, as `4cb9572a` (1.21.1 `4e83e88f`, 1.20.1 `fb01c8a9`), placed directly after the
   silhouette commit so it ships in 2.1.20. Every later commit was rebased with its dates kept, and the SHAs in
-  these ledgers were remapped. Pre-rewrite tips are at `refs/backup/pre-tooltip-fix/<branch>`. The rewrite
-  needs a force-push to reach `origin`.
+  these ledgers were remapped. Pre-rewrite tips are at `refs/backup/pre-tooltip-fix/<branch>` (local only). All
+  three branches were force-pushed on 2026-11-04.
 - **Evidence:** each tree matches the fix committed at the old tip (empty diff); hook green at each (Fabric
   GameTests 414 / 408 / 409). A temporary, uncommitted probe in a 1.20.1 Fabric dev client: without the fix
   `getTooltipLines` threw for Blazed Grub and for advanced-tooltip parrotfish; with it, all four cases returned
   the single line `???`. Not run in a client on 26.1.2 or 1.21.1. No committed test covers this path.
+
+## Completed (2026-11-03): 2.1.19 release
+
+- **Release source:** published after the branches had moved on, so each line was built from its 2.1.19
+  bump commit in a temporary detached worktree (`fishtastic-worktrees/rel-2.1.19-*`, removed afterwards):
+  `26.1.2` `dc982089`, `port/1.21.1` `7d0bd45a`, `port/1.20.1` `ccbbc2dc`. No branch moved. 2.1.20
+  (`6ad0be04`) and the plant cosmetics (`25648221`) remain unreleased.
+- **Evidence:** `build/release-2.1.19/evidence/{26.1.2,1.21.1,1.20.1}/` (`release-build.log`,
+  `pre-publish-build.log`, `jars-smoked.sha256`, `publish.log`) and
+  `build/release-2.1.19/evidence/release-smoke/matrix.log`; per-profile summaries and captures under
+  `build/release-smoke/F2_*`.
+- **Release gates:** fresh `assemble build` passed on all three lines with every task executed (26.1.2 on
+  JDK 25 via the gradle.properties pin, both ports on JDK 21), unit tests 0 failures. GameTests are not
+  part of `build` and were not rerun for this release. Mod classes are major 69 / 65 / 61 on 26.1.2 /
+  1.21.1 / 1.20.1. Both Forge port jars contain no `com/llamalad7` classes and carry
+  `META-INF/jarjar/metadata.json`. Smoke matrix: six `PASS`; 26.1.2 Forge and 1.21.1 Forge
+  `PASS_WITH_FINDINGS` for the known experimental-settings screen, accepted with
+  `--accept-experimental` (the screen came back after not appearing on 2.1.18, cause not investigated).
+  Zero fatal lines, zero Fishtastic error lines and no crash reports; the only ERROR lines are offline
+  auth/Realms fetch failures.
+- **Publication:** `publishCurseForge -Prelease_type=release` exited 0 on all three lines, every jar task
+  `UP-TO-DATE` and SHA-256 unchanged from the smoke-tested jars. Changelog: each worktree's `CHANGELOG.md`
+  2.1.19 entry via `ORG_GRADLE_PROJECT_changelog_override`. The author dashboard lists all eight files as
+  `R` with no duplicates (file count 174 to 182); right after upload seven read `Processing File` and
+  26.1.2 Forge `Under Review`, so none was approved or public yet. **Next action:** confirm approval on
+  the dashboard; do not re-run the task. No branches were pushed and no parity markers were advanced.
 
 ## Completed (2026-11-03): 2.1.18 release
 
