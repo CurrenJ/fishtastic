@@ -6,11 +6,38 @@
   26.1.2 `6ad0be04`, 1.21.1 `cc8a7a59`, and 1.20.1 `9c2e878f`. Build each snapshot in a separate
   temporary worktree, run the full release build and eight-profile release-smoke matrix, then publish
   the matching smoke-tested jars. Pass each snapshot's 2.1.20 changelog through
-  `ORG_GRADLE_PROJECT_changelog_override`. Keep the three branch refs unchanged.
+  `ORG_GRADLE_PROJECT_changelog_override`. The active tips at the start were 26.1.2 `995072ad`,
+  1.21.1 `c63d73dd`, and 1.20.1 `fd324d1c`; the user-requested ledger commit `ab0e3671` is the only
+  source-branch movement, and it changes documentation only. All three release builds use detached
+  worktrees at the pinned version commits; no ahead-of-2.1.20 code was included.
 - **Evidence:** `build/release-2.1.20/evidence/{26.1.2,1.21.1,1.20.1}/` for release/pre-publish build
   logs, jar hashes and publish logs; `build/release-2.1.20/evidence/release-smoke/matrix.log` for the
   profile matrix; per-profile smoke output under `build/release-smoke/`.
-- **State:** pending; no release builds or uploads started.
+- **Checkpoint:** the first 26.1.2 attempt failed at `:common:transformProductionFabric` with
+  `Type grill24/fishsim/companion/PartyLayer not present`. The targeted diagnostic passed after
+  `:fishsim:jar` was built first. A clean `:fishsim:jar assemble build --no-parallel` then passed on
+  JDK 25, including unit suites (fishsim and tank-shape-gen). The same clean build passed for 1.21.1
+  and 1.20.1 on JDK 21. Test totals (failures/skips): 26.1.2 common 1007 (0/3), fishsim 582 (0/63);
+  1.21.1 common 985 (0/3), fishsim 582 (0/63); 1.20.1 common 998 (0/3), fishsim 582 (0/63).
+  `tools:tank-shape-gen:test` passed 21,955/21,955 on all three. Evidence:
+  `build/release-2.1.20/evidence/{26.1.2,1.21.1,1.20.1}/release-build.log`, with the initial source
+  failure preserved as `26.1.2/release-build-initial-failure.log` and the targeted run in
+  `26.1.2/transform-diagnostic.log`. All eight release jars are present with the expected version and
+  Java class major; self-test/testmod/GameTest classes are absent, and the two legacy Forge jars have
+  JarJar metadata without embedded MixinExtras classes. Hashes are in
+  `build/release-2.1.20/evidence/{26.1.2,1.21.1,1.20.1}/jars-built.sha256`; package checks are in
+  `evidence/package-checks.txt`. The first smoke run, 26.1.2 Fabric, passed after joining its template
+  world and settling for 30 seconds. The full matrix completed: six PASS and two PASS_WITH_FINDINGS
+  (26.1.2 Forge and 1.21.1 Forge, both confirmed through the documented experimental-settings screen).
+  All eight joined and settled for 30 seconds; zero fatal lines, Fishtastic errors or crash reports.
+  Remaining ERROR log lines are offline authentication/user-properties/Realms fetches. Each smoke-tested
+  jar SHA-256 matches its clean-build value. Evidence: `evidence/release-smoke/matrix.log`, each
+  profile's `summary.json`/`stdout.log`, and `jars-smoked.sha256` for each line. Nothing has been
+  uploaded. The pre-publish `:fishsim:jar assemble build --no-parallel` passed on all three snapshots;
+  every task was `UP-TO-DATE`, and post-build hashes still match the smoked jars. Logs are
+  `build/release-2.1.20/evidence/{26.1.2,1.21.1,1.20.1}/pre-publish-build.log`.
+- **Next action:** publish the matching eight artifacts to CurseForge and save each result before
+  ending the release operation.
 
 ## Completed (2026-11-04): undiscovered-fish tooltip crash fix placed in 2.1.20
 
