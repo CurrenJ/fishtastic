@@ -1,11 +1,26 @@
 # Backport parity progress
 
+## Completed (2026-11-04): undiscovered-fish tooltip crash fix placed in 2.1.20
+
+- **Bug:** the silhouette commit's `getTooltipLines` handler called `setReturnValue` from a non-cancellable
+  `@Inject`, so an undiscovered fish with a second tooltip line (Blazed Grub's bait lines, or any species with
+  advanced tooltips on) threw `CancellationException` and crashed the client. Found in the Slow Waters playtest
+  on 2.1.21; 2.1.19 and earlier never had it.
+- **Fix:** `cancellable = true`, as `4cb9572a` (1.21.1 `4e83e88f`, 1.20.1 `fb01c8a9`), placed directly after the
+  silhouette commit so it ships in 2.1.20. Every later commit was rebased with its dates kept, and the SHAs in
+  these ledgers were remapped. Pre-rewrite tips are at `refs/backup/pre-tooltip-fix/<branch>`. The rewrite
+  needs a force-push to reach `origin`.
+- **Evidence:** each tree matches the fix committed at the old tip (empty diff); hook green at each (Fabric
+  GameTests 414 / 408 / 409). A temporary, uncommitted probe in a 1.20.1 Fabric dev client: without the fix
+  `getTooltipLines` threw for Blazed Grub and for advanced-tooltip parrotfish; with it, all four cases returned
+  the single line `???`. Not run in a client on 26.1.2 or 1.21.1. No committed test covers this path.
+
 ## Completed (2026-11-03): 2.1.18 release
 
 - **Release source:** published after the branches had moved on to 2.1.20, so each line was built from
   its 2.1.18 bump commit in a temporary detached worktree (`fishtastic-worktrees/rel-2.1.18-*`, removed
   afterwards): `26.1.2` `715c16f1`, `port/1.21.1` `70549e12`, `port/1.20.1` `12c1fc4b`. No branch moved.
-  2.1.19 (`dc982089`) and 2.1.20 (`09135555`) remain unreleased.
+  2.1.19 (`dc982089`) and 2.1.20 (`6ad0be04`) remain unreleased.
 - **Evidence:** `build/release-2.1.18/evidence/{26.1.2,1.21.1,1.20.1}/` (`release-build.log`,
   `publish.log`) and `build/release-2.1.18/evidence/release-smoke/matrix.log`; per-profile summaries and
   captures under `build/release-smoke/F2_*`.
@@ -23,12 +38,12 @@
   artifacts in total. Confirm the eight files on the author dashboard rather than re-running the task.
   **Next action:** none. No branches were pushed and no parity markers were advanced.
 
-## Completed (2026-11-03): catch up both ports through `c95859e2`
+## Completed (2026-11-03): catch up both ports through `25648221`
 
-- **Operation:** Account for `09135555..c95859e2` on `port/1.21.1` and `port/1.20.1`. Not pushed or
+- **Operation:** Account for `6ad0be04..25648221` on `port/1.21.1` and `port/1.20.1`. Not pushed or
   published.
-- **Range accounting (2 commits):** excluded (source docs only): `42e42db0`. Ported, adapted:
-  `c95859e2` (plant tank cosmetics) as 1.21.1 `56d23bb4`, 1.20.1 `27e0699f`. Crosswalk:
+- **Range accounting (2 commits):** excluded (source docs only): `1fd903e1`. Ported, adapted:
+  `25648221` (plant tank cosmetics) as 1.21.1 `67259cfb`, 1.20.1 `9dd1e220`. Crosswalk:
   `docs/backport-catchup/forward-port-log.md`.
 - **Adaptations:** both ports drop tag entries for blocks the version lacks (wildflowers, cactus
   flower, short/tall dry grass, bush, firefly bush, leaf litter; pale hanging moss on the lid, with
@@ -37,24 +52,24 @@
   `FishtasticGameTests` (NeoForge registration file kept as the port's own on 1.21.1, removed on
   1.20.1). 1.20.1 only: `minecraft:grass` for short grass, `makeMockPlayer()`, and no `#c:flowers/*`
   entries (neither 1.20.1 Fabric API 0.92 nor Forge 47 defines flower convention tags).
-- **Gates:** 26.1.2 `c95859e2`: Fabric 414/414, NeoForge 408/408 GameTests, hook green (the hook's
+- **Gates:** 26.1.2 `25648221`: Fabric 414/414, NeoForge 408/408 GameTests, hook green (the hook's
   `java17ApiGuard` caught a `Math.clamp` before commit; replaced). 1.21.1: Fabric, NeoForge and Forge
-  408/408 each, hook green at `56d23bb4` and `87006629`. 1.20.1: Fabric 409/409, Forge 410/410, hook
-  green at `27e0699f` and `1ef48d11`. Datagen not rerun (only hand-written tag files changed); no
+  408/408 each, hook green at `67259cfb` and `a0349bb6`. 1.20.1: Fabric 409/409, Forge 410/410, hook
+  green at `9dd1e220` and `1c3adcf6`. Datagen not rerun (only hand-written tag files changed); no
   client self-tests.
-- **Markers:** `docs/backport-pass2/checklist.md` rows read `c95859e2` (1.21.1 `87006629`, 1.20.1
-  `1ef48d11`).
+- **Markers:** `docs/backport-pass2/checklist.md` rows read `25648221` (1.21.1 `a0349bb6`, 1.20.1
+  `1c3adcf6`).
 - **Open:** owner in-game look on all three lines (tall-plant upper halves, plant scale, grass tint
-  in tanks, petal stacking). **Next action:** next pass starts from `git log --oneline c95859e2..26.1.2`.
+  in tanks, petal stacking). **Next action:** next pass starts from `git log --oneline 25648221..26.1.2`.
 
-## Completed (2026-11-03): catch up both ports through `09135555`
+## Completed (2026-11-03): catch up both ports through `6ad0be04`
 
-- **Operation:** Account for every source commit after marker `ab9d675f` through `09135555` (2.1.20)
+- **Operation:** Account for every source commit after marker `ab9d675f` through `6ad0be04` (2.1.20)
   on `port/1.21.1` and `port/1.20.1`. Ports were made commit-for-commit during the day; this entry
   records the ledger and advances both markers. Not pushed or published.
-- **Range accounting (15 commits):** excluded (source docs only): `169323be`. Ported one-for-one on
+- **Range accounting (16 commits):** excluded (source docs only): `169323be`. Ported one-for-one on
   both targets: `098d5d2a`, `a3f9713e`, `c5dad8b6`, `6efdde0f`, `3106d794`, `07828200`, `15b870f8`,
-  `13c3d794`, `715c16f1` (2.1.18), `1a3194e7`, `dc982089` (2.1.19), `87919639`, `a20c5c0d`, `09135555`
+  `13c3d794`, `715c16f1` (2.1.18), `1a3194e7`, `dc982089` (2.1.19), `87919639`, `4cb9572a`, `b2eb2d7f`, `6ad0be04`
   (2.1.20). Crosswalk: `docs/backport-catchup/forward-port-log.md`.
 - **Adaptations:** 1.20.1 only: the `c5dad8b6` marine-compost GameTest was red on 1.20.1, because
   `MarineCompostBlock#use` returned PASS for any held item (1.21.1 runs `useWithoutItem` for the
@@ -62,17 +77,17 @@
   `a1e8471f` follows it. Other commits needed the usual API adaptations (`range-diff` shows only
   `15b870f8` identical on both targets and `13c3d794` identical on 1.21.1).
 - **Gates:** every target commit went through the pre-commit hook (`:common:test`, `:fishsim:test`,
-  `:tools:tank-shape-gen:test`, `:fabric:runGametest`). Last hook run at each tip: 1.21.1 `abbaea7b`
-  common 985 (0 failures, 3 skipped), Fabric GameTests 407/407; 1.20.1 `226faaa7` common 998
+  `:tools:tank-shape-gen:test`, `:fabric:runGametest`). Last hook run at each tip: 1.21.1 `cc8a7a59`
+  common 985 (0 failures, 3 skipped), Fabric GameTests 407/407; 1.20.1 `9c2e878f` common 998
   (0 failures, 3 skipped), Fabric GameTests 408/408 (worktree `common/build/test-results`,
   `fabric/build/junit.xml`). Forge and NeoForge GameTests, datagen and client self-tests were not run
   in this pass; the `6efdde0f` tag change adds no new generated resources beyond the committed
   tag file.
-- **Markers:** `docs/backport-pass2/checklist.md` rows on both ports now read `09135555`
-  (marker commits 1.21.1 `df501cf4`, 1.20.1 `627cf77f`; both hook-gated, Fabric GameTests green).
+- **Markers:** `docs/backport-pass2/checklist.md` rows on both ports now read `6ad0be04`
+  (marker commits 1.21.1 `2ffdb071`, 1.20.1 `e9d303ec`; both hook-gated, Fabric GameTests green).
 - **Open:** Forge/NeoForge GameTest runs before the next release; owner in-game look on both ports
   (silhouettes, Cleanup heads, bait tab order). **Next action:** next pass starts from
-  `git log --oneline 09135555..26.1.2`.
+  `git log --oneline 6ad0be04..26.1.2`.
 
 ## Completed (2026-11-03): 2.1.17 release
 

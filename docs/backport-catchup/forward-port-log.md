@@ -165,9 +165,9 @@ Both markers now read `ab9d675f` (marker commits 1.21.1 `16f537aa`, 1.20.1 `db22
 Validation and evidence: `docs/backport-catchup-progress.md` (2026-11-03 entry),
 `build/backport-catchup/2026-11-03/`.
 
-## Catch-up 2026-11-03 PM (`ab9d675f..09135555`)
+## Catch-up 2026-11-03 PM (`ab9d675f..6ad0be04`)
 
-Both markers now read `09135555` (marker commits 1.21.1 `df501cf4`, 1.20.1 `627cf77f`).
+Both markers now read `6ad0be04` (marker commits 1.21.1 `2ffdb071`, 1.20.1 `e9d303ec`).
 
 | 26.1.2 source commit | Disposition | `port/1.21.1` | `port/1.20.1` |
 |---|---|---|---|
@@ -184,18 +184,19 @@ Both markers now read `09135555` (marker commits 1.21.1 `df501cf4`, 1.20.1 `627c
 | `1a3194e7` Keep unlisted fish out of the ambient roster | Ported | `261b1873` | `f3d0e0e0` |
 | `dc982089` Bump Fishtastic to 2.1.19 | Ported | `7d0bd45a` | `ccbbc2dc` |
 | `87919639` Silhouette undiscovered fish and name them ??? in every GUI | Ported | `e73ed16e` | `6a94fd46` |
-| `a20c5c0d` Group Blazed Grub and Gummy Worms with the other baits in the creative tab | Ported | `826e86b5` | `bf67448b` |
-| `09135555` Bump Fishtastic to 2.1.20 | Ported | `abbaea7b` | `226faaa7` |
+| `4cb9572a` Let the undiscovered-fish tooltip trim replace getTooltipLines' result | Ported | `4e83e88f` | `fb01c8a9` |
+| `b2eb2d7f` Group Blazed Grub and Gummy Worms with the other baits in the creative tab | Ported | `3c9f8fa0` | `f189d7e9` |
+| `6ad0be04` Bump Fishtastic to 2.1.20 | Ported | `cc8a7a59` | `9c2e878f` |
 
-Validation and evidence: `docs/backport-catchup-progress.md` (2026-11-03 `09135555` entry).
+Validation and evidence: `docs/backport-catchup-progress.md` (2026-11-03 `6ad0be04` entry).
 
-## Catch-up 2026-11-03 evening (`09135555..c95859e2`)
+## Catch-up 2026-11-03 evening (`6ad0be04..25648221`)
 
-Both markers now read `c95859e2` (marker commits 1.21.1 `87006629`, 1.20.1 `1ef48d11`).
+Both markers now read `25648221` (marker commits 1.21.1 `a0349bb6`, 1.20.1 `1c3adcf6`).
 
 | 26.1.2 source commit | Disposition | `port/1.21.1` | `port/1.20.1` |
 |---|---|---|---|
-| `42e42db0` Record backport parity through 09135555 | Excluded: source docs only | — | — |
-| `c95859e2` Make vanilla flowers, shrubs and plants placeable as tank cosmetics | Ported, adapted (version block lists) | `56d23bb4` | `27e0699f` |
+| `1fd903e1` Record backport parity through 6ad0be04 | Excluded: source docs only | — | — |
+| `25648221` Make vanilla flowers, shrubs and plants placeable as tank cosmetics | Ported, adapted (version block lists) | `67259cfb` | `9dd1e220` |
 
-Validation and evidence: `docs/backport-catchup-progress.md` (2026-11-03 `c95859e2` entry).
+Validation and evidence: `docs/backport-catchup-progress.md` (2026-11-03 `25648221` entry).
