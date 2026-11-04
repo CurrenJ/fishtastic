@@ -1,0 +1,844 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GIF cutter</title>
+<style>
+  :root {
+    --mat: #123b36;
+    --mat-raised: #1b4c45;
+    --mat-line: #33695f;
+    --paper: #eef3e8;
+    --soft: #a9c2b6;
+    --tape: #f5c518;
+    --ink: #0f2a26;
+    --error: #ffb4a2;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--mat);
+    color: var(--paper);
+    font: 16px/1.45 Bahnschrift, "DIN Alternate", "Segoe UI", system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+  }
+  main { max-width: 1180px; margin: 0 auto; padding: 20px 24px 32px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 40px; margin-bottom: 16px; }
+  h1 { margin: 0; font-size: 22px; font-weight: 600; }
+  button, input { font: inherit; color: inherit; }
+  :focus-visible { outline: 3px solid var(--tape); outline-offset: 2px; }
+
+  button {
+    background: var(--mat-raised);
+    border: 1px solid var(--mat-line);
+    border-radius: 4px;
+    padding: 6px 12px;
+    cursor: pointer;
+  }
+  button:hover:not(:disabled) { border-color: var(--soft); }
+  button:disabled { opacity: .5; cursor: default; }
+  .primary {
+    background: var(--tape);
+    border-color: var(--tape);
+    color: var(--ink);
+    font-weight: 600;
+    padding: 10px 22px;
+  }
+  .primary:hover:not(:disabled) { background: #ffd83b; border-color: #ffd83b; }
+  .link-button { display: inline-block; text-decoration: none; }
+
+  /* Empty state */
+  #drop {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+    min-height: 70vh;
+    border: 2px dashed var(--mat-line);
+    border-radius: 6px;
+    text-align: center;
+    padding: 24px;
+  }
+  body.dragging #drop { border-color: var(--tape); background: var(--mat-raised); }
+  #drop p { margin: 0; }
+  #drop .big { font-size: 28px; font-weight: 600; }
+  .note { color: var(--soft); font-size: 14px; }
+  .error { color: var(--error); max-width: 60ch; }
+
+  /* Screens */
+  #stage { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  #stage.has-result { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  figure { margin: 0; min-width: 0; }
+  .screen {
+    display: flex; align-items: center; justify-content: center;
+    height: min(50vh, 520px);
+    background: #000;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .screen video, .screen img { max-width: 100%; max-height: 100%; display: block; }
+  /* Upscale the GIF only when it is tiny, and keep pixels crisp. */
+  .screen img { image-rendering: auto; }
+  figcaption { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; min-height: 44px; padding-top: 8px; }
+
+  /* Filmstrip: the sprocket rows are part of the strip, the handles sit on top. */
+  #strip {
+    position: relative;
+    height: 112px;
+    margin: 4px 12px 18px;
+    background: #000;
+    touch-action: none;
+    cursor: pointer;
+    user-select: none;
+  }
+  #strip::before, #strip::after {
+    content: ""; position: absolute; left: 0; right: 0; height: 16px; z-index: 1; pointer-events: none;
+    background: #000 repeating-linear-gradient(90deg, transparent 0 6px, var(--mat-raised) 6px 16px, transparent 16px 22px) center / 100% 8px no-repeat;
+  }
+  #strip::before { top: 0; }
+  #strip::after { bottom: 0; }
+  #frames { position: absolute; inset: 16px 0; display: flex; overflow: hidden; gap: 1px; }
+  #frames canvas { flex: 1 1 0; min-width: 0; height: 100%; object-fit: cover; background: #0a1f1c; }
+  .shade { position: absolute; top: 0; bottom: 0; z-index: 2; background: rgba(5, 25, 22, .78); pointer-events: none; }
+  #shade-l { left: 0; }
+  #shade-r { right: 0; }
+  #selection { position: absolute; top: 0; bottom: 0; z-index: 2; border-top: 4px solid var(--tape); border-bottom: 4px solid var(--tape); pointer-events: none; }
+  #playhead { position: absolute; top: -6px; bottom: -6px; width: 2px; margin-left: -1px; z-index: 3; background: var(--paper); pointer-events: none; }
+  .handle {
+    position: absolute; top: -8px; bottom: -8px; width: 24px; margin-left: -12px; z-index: 4;
+    display: flex; align-items: center; justify-content: center;
+    background: none; border: 0; padding: 0; border-radius: 0;
+    cursor: ew-resize; touch-action: none;
+  }
+  .handle::before {
+    content: ""; display: block; width: 14px; height: 100%;
+    border-radius: 3px;
+    background: var(--tape) repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 4px) center / 6px 22px no-repeat;
+  }
+
+  /* Controls */
+  fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+  #controls { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px 40px; }
+  .group { min-width: 0; }
+  .group h2 { margin: 0 0 6px; font-size: 14px; font-weight: 600; color: var(--soft); }
+  .row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+  label.field { display: inline-flex; align-items: center; gap: 6px; }
+  input[type=number] {
+    width: 84px; padding: 6px 8px;
+    background: var(--ink);
+    border: 1px solid var(--mat-line);
+    border-radius: 4px;
+  }
+  input[type=checkbox] { accent-color: var(--tape); width: 16px; height: 16px; margin: 0; }
+  .chips { margin-top: 8px; gap: 4px; }
+  .chips button { padding: 2px 8px; font-size: 14px; }
+  .check { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; margin-top: 8px; }
+
+  #make { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--mat-line); }
+  #summary { color: var(--soft); }
+  #progress { flex: 1 1 220px; min-width: 160px; height: 12px; background: var(--ink); border-radius: 2px; overflow: hidden; }
+  #progress div { height: 100%; width: 0; background: var(--tape); }
+  #hint { margin: 12px 0 0; }
+  @media (max-width: 760px) {
+    main { padding: 12px 12px 24px; }
+    #stage.has-result { grid-template-columns: minmax(0, 1fr); }
+    .screen { height: 36vh; }
+    #controls { gap: 16px 24px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>GIF cutter</h1>
+    <button id="another" hidden>Open another video</button>
+  </header>
+
+  <section id="drop">
+    <p class="big">Drop an MP4 here</p>
+    <button id="choose" class="primary">Choose a video</button>
+    <p class="note">The video stays on this computer. Nothing is uploaded.</p>
+    <p id="load-error" class="error" role="alert" hidden></p>
+  </section>
+  <input id="file" type="file" accept="video/*,.mp4,.m4v,.mov,.webm" hidden>
+
+  <section id="editor" hidden>
+    <div id="stage">
+      <figure>
+        <div class="screen"><video id="preview" muted playsinline preload="auto"></video></div>
+        <figcaption>
+          <button id="play">Play selection</button>
+          <span id="now" class="note"></span>
+        </figcaption>
+      </figure>
+      <figure id="result" hidden>
+        <div class="screen"><img id="gif" alt="The GIF you made"></div>
+        <figcaption>
+          <span id="result-info"></span>
+          <a id="download" class="primary link-button" role="button">Download GIF</a>
+        </figcaption>
+      </figure>
+    </div>
+
+    <div id="strip">
+      <div id="frames"></div>
+      <div id="shade-l" class="shade"></div>
+      <div id="shade-r" class="shade"></div>
+      <div id="selection"></div>
+      <div id="playhead"></div>
+      <button id="h-start" class="handle" type="button" role="slider" aria-label="Start of GIF"></button>
+      <button id="h-end" class="handle" type="button" role="slider" aria-label="End of GIF"></button>
+    </div>
+
+    <fieldset id="settings">
+      <div id="controls">
+        <div class="group">
+          <h2>Trim, in seconds</h2>
+          <div class="row">
+            <label class="field">Start <input id="start" type="number" min="0" step="0.05"></label>
+            <label class="field">End <input id="end" type="number" min="0" step="0.05"></label>
+          </div>
+        </div>
+        <div class="group">
+          <h2>Resolution, in pixels</h2>
+          <div class="row">
+            <label class="field">Width <input id="width" type="number" min="1" max="3840" step="1"></label>
+            <label class="field">Height <input id="height" type="number" min="1" max="3840" step="1"></label>
+          </div>
+          <div class="row chips" id="width-chips">
+            <button type="button" data-width="320">320</button>
+            <button type="button" data-width="480">480</button>
+            <button type="button" data-width="640">640</button>
+            <button type="button" data-width="800">800</button>
+            <button type="button" data-width="source">Source</button>
+          </div>
+          <label class="check"><input id="lock" type="checkbox" checked> Keep proportions</label>
+        </div>
+        <div class="group">
+          <h2>Frame rate, per second</h2>
+          <div class="row">
+            <label class="field">Rate <input id="fps" type="number" min="1" max="50" step="1" value="15"></label>
+          </div>
+          <div class="row chips" id="fps-chips">
+            <button type="button" data-fps="10">10</button>
+            <button type="button" data-fps="15">15</button>
+            <button type="button" data-fps="24">24</button>
+            <button type="button" data-fps="30">30</button>
+            <button type="button" data-fps="50">50</button>
+          </div>
+          <label class="check"><input id="dither" type="checkbox" checked> Smooth gradients (bigger file)</label>
+        </div>
+      </div>
+    </fieldset>
+
+    <div id="make">
+      <button id="render" class="primary">Make GIF</button>
+      <button id="cancel" hidden>Cancel</button>
+      <div id="progress" hidden><div></div></div>
+      <span id="summary" role="status"></span>
+    </div>
+    <p id="render-error" class="error" role="alert" hidden></p>
+    <p id="hint" class="note">Drag the yellow handles to trim. Space plays, I sets the start at the white line, O sets the end.</p>
+  </section>
+</main>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+const MIN_LENGTH = 0.05;
+const MAX_FPS = 50; // GIF delays below 2/100 s get slowed down by browsers.
+
+const preview = $('preview');
+const scanner = document.createElement('video'); // Off-screen copy: thumbnails and rendering seek this one.
+scanner.muted = true;
+scanner.preload = 'auto';
+scanner.playsInline = true;
+
+const state = {
+  name: 'clip', url: null, resultUrl: null,
+  duration: 0, vw: 0, vh: 0,
+  start: 0, end: 0,
+  rendering: false, cancelled: false,
+  thumbRun: 0, thumbsDone: Promise.resolve(),
+};
+
+/* ---------- Opening a file ---------- */
+
+function showLoadError(message) {
+  $('load-error').textContent = message;
+  $('load-error').hidden = false;
+  $('drop').hidden = false;
+  $('editor').hidden = true;
+  $('another').hidden = true;
+}
+
+function openFile(file) {
+  if (!file || state.rendering) return;
+  state.thumbRun++;
+  clearResult();
+  if (state.url) URL.revokeObjectURL(state.url);
+  state.url = URL.createObjectURL(file);
+  state.name = file.name.replace(/\.[^.]+$/, '').replace(/[\\/:*?"<>|]+/g, '_') || 'clip';
+  $('load-error').hidden = true;
+  preview.src = state.url;
+  scanner.src = state.url;
+}
+
+preview.addEventListener('loadedmetadata', () => {
+  if (!preview.videoWidth || !isFinite(preview.duration)) {
+    showLoadError('This file has no playable video track. Try an H.264 MP4.');
+    return;
+  }
+  state.duration = preview.duration;
+  state.vw = preview.videoWidth;
+  state.vh = preview.videoHeight;
+  state.start = 0;
+  state.end = state.duration;
+  $('drop').hidden = true;
+  $('editor').hidden = false;
+  $('another').hidden = false;
+  setWidth(Math.min(480, state.vw));
+  syncSelection();
+  state.thumbsDone = buildThumbnails().catch(() => {});
+});
+
+preview.addEventListener('error', () => {
+  if (!preview.getAttribute('src')) return;
+  showLoadError('This browser can’t decode that video. H.264 MP4s work everywhere; for HEVC, convert it first or try another browser.');
+});
+
+$('choose').onclick = $('another').onclick = () => $('file').click();
+$('file').onchange = e => { openFile(e.target.files[0]); e.target.value = ''; };
+addEventListener('dragover', e => { e.preventDefault(); document.body.classList.add('dragging'); });
+addEventListener('dragleave', e => { if (!e.relatedTarget) document.body.classList.remove('dragging'); });
+addEventListener('drop', e => {
+  e.preventDefault();
+  document.body.classList.remove('dragging');
+  openFile(e.dataTransfer.files[0]);
+});
+
+/* ---------- Seeking and thumbnails ---------- */
+
+function seek(video, t) {
+  return new Promise((resolve, reject) => {
+    const target = clamp(t, 0, Math.max(0, video.duration - 0.001));
+    if (Math.abs(video.currentTime - target) < 1e-4 && video.readyState >= 2) return resolve();
+    const finish = fn => arg => {
+      clearTimeout(timer);
+      video.removeEventListener('seeked', onSeeked);
+      video.removeEventListener('error', onError);
+      fn(arg);
+    };
+    const onSeeked = finish(resolve);
+    const onError = finish(() => reject(new Error('The video could not be read at ' + target.toFixed(2) + ' s.')));
+    const timer = setTimeout(onError, 15000);
+    video.addEventListener('seeked', onSeeked);
+    video.addEventListener('error', onError);
+    video.currentTime = target;
+  });
+}
+
+function whenLoaded(video) {
+  if (video.readyState >= 1) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    video.addEventListener('loadedmetadata', resolve, { once: true });
+    video.addEventListener('error', reject, { once: true });
+  });
+}
+
+async function buildThumbnails() {
+  const run = ++state.thumbRun;
+  const box = $('frames');
+  box.replaceChildren();
+  const aspect = state.vw / state.vh;
+  const count = clamp(Math.ceil(box.clientWidth / (box.clientHeight * aspect)), 4, 30);
+  const canvases = [];
+  for (let i = 0; i < count; i++) {
+    const c = document.createElement('canvas');
+    c.height = 96;
+    c.width = Math.max(1, Math.round(96 * aspect));
+    box.append(c);
+    canvases.push(c);
+  }
+  await whenLoaded(scanner);
+  for (let i = 0; i < count; i++) {
+    if (run !== state.thumbRun) return;
+    await seek(scanner, (i + 0.5) * state.duration / count);
+    if (run !== state.thumbRun) return;
+    canvases[i].getContext('2d').drawImage(scanner, 0, 0, canvases[i].width, canvases[i].height);
+  }
+}
+
+/* ---------- Trim selection ---------- */
+
+const pct = t => (state.duration ? t / state.duration * 100 : 0) + '%';
+const fmt = t => t.toFixed(2);
+
+function syncSelection() {
+  $('start').value = fmt(state.start);
+  $('end').value = fmt(state.end);
+  $('shade-l').style.width = pct(state.start);
+  $('shade-r').style.width = (100 - state.end / state.duration * 100) + '%';
+  $('selection').style.left = pct(state.start);
+  $('selection').style.right = (100 - state.end / state.duration * 100) + '%';
+  $('h-start').style.left = pct(state.start);
+  $('h-end').style.left = pct(state.end);
+  for (const [id, value] of [['h-start', state.start], ['h-end', state.end]]) {
+    $(id).setAttribute('aria-valuemin', '0');
+    $(id).setAttribute('aria-valuemax', fmt(state.duration));
+    $(id).setAttribute('aria-valuenow', fmt(value));
+    $(id).setAttribute('aria-valuetext', fmt(value) + ' seconds');
+  }
+  updateSummary();
+}
+
+function setEdge(which, t, seekPreview = true) {
+  const gap = Math.min(MIN_LENGTH, state.duration);
+  if (which === 'start') state.start = clamp(t, 0, state.end - gap);
+  else state.end = clamp(t, state.start + gap, state.duration);
+  syncSelection();
+  if (seekPreview) {
+    preview.pause();
+    preview.currentTime = which === 'start' ? state.start : state.end;
+  }
+}
+
+const timeAt = clientX => {
+  const r = $('strip').getBoundingClientRect();
+  return clamp((clientX - r.left) / r.width, 0, 1) * state.duration;
+};
+
+for (const [id, which] of [['h-start', 'start'], ['h-end', 'end']]) {
+  const el = $(id);
+  el.addEventListener('pointerdown', e => {
+    if (state.rendering) return;
+    e.stopPropagation();
+    e.preventDefault();
+    el.focus();
+    el.setPointerCapture(e.pointerId);
+  });
+  el.addEventListener('pointermove', e => {
+    if (el.hasPointerCapture(e.pointerId)) setEdge(which, timeAt(e.clientX));
+  });
+  el.addEventListener('keydown', e => {
+    if (state.rendering || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+    e.preventDefault();
+    const step = e.shiftKey ? 1 : 1 / clamp(+$('fps').value || 15, 1, MAX_FPS);
+    setEdge(which, state[which] + (e.key === 'ArrowLeft' ? -step : step));
+  });
+}
+
+const strip = $('strip');
+strip.addEventListener('pointerdown', e => {
+  if (state.rendering) return;
+  strip.setPointerCapture(e.pointerId);
+  preview.pause();
+  preview.currentTime = timeAt(e.clientX);
+});
+strip.addEventListener('pointermove', e => {
+  if (strip.hasPointerCapture(e.pointerId)) preview.currentTime = timeAt(e.clientX);
+});
+
+$('start').addEventListener('change', e => { setEdge('start', parseFloat(e.target.value) || 0); });
+$('end').addEventListener('change', e => { setEdge('end', parseFloat(e.target.value) || state.duration); });
+
+/* ---------- Playback ---------- */
+
+function togglePlay() {
+  if (state.rendering) return;
+  if (!preview.paused) { preview.pause(); return; }
+  if (preview.currentTime < state.start || preview.currentTime >= state.end - 0.01) preview.currentTime = state.start;
+  preview.play();
+}
+$('play').onclick = togglePlay;
+preview.onclick = togglePlay;
+preview.addEventListener('play', () => { $('play').textContent = 'Pause'; });
+preview.addEventListener('pause', () => { $('play').textContent = 'Play selection'; });
+
+(function tick() {
+  if (state.duration) {
+    if (!preview.paused && preview.currentTime >= state.end) preview.currentTime = state.start;
+    $('playhead').style.left = pct(preview.currentTime);
+    const text = fmt(preview.currentTime) + ' s of ' + fmt(state.duration) + ' s';
+    if ($('now').textContent !== text) $('now').textContent = text;
+  }
+  requestAnimationFrame(tick);
+})();
+
+addEventListener('keydown', e => {
+  if (!state.duration || $('editor').hidden || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.target instanceof HTMLInputElement) return;
+  if (e.code === 'Space' && !(e.target instanceof HTMLButtonElement)) { e.preventDefault(); togglePlay(); }
+  if (state.rendering) return;
+  if (e.key === 'i' || e.key === 'I') setEdge('start', preview.currentTime, false);
+  if (e.key === 'o' || e.key === 'O') setEdge('end', preview.currentTime, false);
+});
+
+/* ---------- Output settings ---------- */
+
+function setWidth(w) {
+  $('width').value = w;
+  if ($('lock').checked) $('height').value = Math.max(1, Math.round(w * state.vh / state.vw));
+  updateSummary();
+}
+$('width').addEventListener('input', e => { if (+e.target.value > 0) setWidth(+e.target.value); else updateSummary(); });
+$('height').addEventListener('input', e => {
+  const h = +e.target.value;
+  if (h > 0 && $('lock').checked) $('width').value = Math.max(1, Math.round(h * state.vw / state.vh));
+  updateSummary();
+});
+$('lock').addEventListener('change', () => { if ($('lock').checked) setWidth(+$('width').value || Math.min(480, state.vw)); });
+$('fps').addEventListener('input', updateSummary);
+$('width-chips').addEventListener('click', e => {
+  const w = e.target.dataset.width;
+  if (!w) return;
+  if (w === 'source' && !$('lock').checked) $('height').value = state.vh;
+  setWidth(w === 'source' ? state.vw : +w);
+});
+$('fps-chips').addEventListener('click', e => {
+  if (e.target.dataset.fps) { $('fps').value = e.target.dataset.fps; updateSummary(); }
+});
+
+function readSettings() {
+  const w = Math.round(+$('width').value), h = Math.round(+$('height').value), fps = +$('fps').value;
+  if (!(w >= 1 && w <= 3840 && h >= 1 && h <= 3840)) return { problem: 'Set width and height between 1 and 3840 pixels.' };
+  if (!(fps >= 1 && fps <= MAX_FPS)) return { problem: 'Set a frame rate between 1 and ' + MAX_FPS + '. GIF players slow down anything faster.' };
+  return { w, h, fps, frames: Math.max(1, Math.round((state.end - state.start) * fps)) };
+}
+
+function updateSummary() {
+  if (state.rendering || !state.duration) return;
+  const s = readSettings();
+  $('render').disabled = !!s.problem;
+  $('summary').textContent = s.problem ||
+    fmt(state.end - state.start) + ' s, ' + s.frames + ' frames at ' + s.w + ' × ' + s.h;
+}
+
+/* ---------- Colour palette: one per GIF, so colours don't flicker between frames ---------- */
+
+const HIST_SIZE = 1 << 15;
+function newHistogram() {
+  return { n: new Float64Array(HIST_SIZE), r: new Float64Array(HIST_SIZE), g: new Float64Array(HIST_SIZE), b: new Float64Array(HIST_SIZE) };
+}
+function addToHistogram(h, data) {
+  for (let p = 0; p < data.length; p += 4) {
+    const r = data[p], g = data[p + 1], b = data[p + 2];
+    const k = (r >> 3) << 10 | (g >> 3) << 5 | b >> 3;
+    h.n[k]++; h.r[k] += r; h.g[k] += g; h.b[k] += b;
+  }
+}
+
+// Median cut. Reserves slot 255 for "unchanged since the last frame".
+function buildPalette(h) {
+  const LUMA = [1.4, 2, 1.7];
+  const all = [];
+  for (let k = 0; k < HIST_SIZE; k++) {
+    if (h.n[k]) all.push({ n: h.n[k], c: [h.r[k] / h.n[k], h.g[k] / h.n[k], h.b[k] / h.n[k]] });
+  }
+  const measure = items => {
+    const lo = [255, 255, 255], hi = [0, 0, 0];
+    let weight = 0;
+    for (const it of items) {
+      weight += it.n;
+      for (let i = 0; i < 3; i++) { if (it.c[i] < lo[i]) lo[i] = it.c[i]; if (it.c[i] > hi[i]) hi[i] = it.c[i]; }
+    }
+    let axis = 0, spread = 0;
+    for (let i = 0; i < 3; i++) { const s = (hi[i] - lo[i]) * LUMA[i]; if (s > spread) { spread = s; axis = i; } }
+    return { items, axis, spread, score: items.length > 1 ? Math.sqrt(weight) * spread : 0 };
+  };
+  const boxes = [measure(all)];
+  while (boxes.length < 255) {
+    let best = -1, top = 0;
+    boxes.forEach((b, i) => { if (b.score > top) { top = b.score; best = i; } });
+    if (best < 0) break;
+    const box = boxes[best];
+    const axis = box.axis;
+    box.items.sort((a, b) => a.c[axis] - b.c[axis]);
+    const half = box.items.reduce((s, it) => s + it.n, 0) / 2;
+    let run = 0, cut = 1;
+    for (let i = 0; i < box.items.length - 1; i++) {
+      run += box.items[i].n;
+      if (run >= half) { cut = i + 1; break; }
+      cut = i + 1;
+    }
+    boxes[best] = measure(box.items.slice(0, cut));
+    boxes.push(measure(box.items.slice(cut)));
+  }
+  const palette = new Uint8Array(256 * 3);
+  boxes.forEach((box, i) => {
+    let n = 0, r = 0, g = 0, b = 0;
+    for (const it of box.items) { n += it.n; r += it.c[0] * it.n; g += it.c[1] * it.n; b += it.c[2] * it.n; }
+    if (!n) return;
+    palette[i * 3] = Math.round(r / n);
+    palette[i * 3 + 1] = Math.round(g / n);
+    palette[i * 3 + 2] = Math.round(b / n);
+  });
+  return { palette, size: Math.max(1, boxes.length) };
+}
+
+function makeMapper({ palette, size }) {
+  const cache = new Int16Array(1 << 18).fill(-1);
+  return (r, g, b) => {
+    const k = (r >> 2) << 12 | (g >> 2) << 6 | b >> 2;
+    let hit = cache[k];
+    if (hit >= 0) return hit;
+    const cr = (r >> 2) * 4 + 2, cg = (g >> 2) * 4 + 2, cb = (b >> 2) * 4 + 2;
+    let bestD = Infinity;
+    for (let i = 0; i < size; i++) {
+      const dr = palette[i * 3] - cr, dg = palette[i * 3 + 1] - cg, db = palette[i * 3 + 2] - cb;
+      const d = 2 * dr * dr + 4 * dg * dg + 3 * db * db;
+      if (d < bestD) { bestD = d; hit = i; }
+    }
+    cache[k] = hit;
+    return hit;
+  };
+}
+
+/* Ordered dither: a pixel that doesn't change stays the same, which keeps files small and stops shimmer. */
+const BAYER = (() => {
+  const m = new Float32Array(64);
+  for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) {
+    let v = 0, xc = x ^ y, yc = y;
+    for (let bit = 0; bit < 3; bit++) {
+      v = v << 2 | (xc >> bit & 1) << 1 | yc >> bit & 1;
+    }
+    m[y << 3 | x] = ((v + 0.5) / 64 - 0.5) * 28;
+  }
+  return m;
+})();
+
+/* ---------- GIF file writing ---------- */
+
+const TRANSPARENT = 255;
+const KEEP_THRESHOLD = 108; // Squared distance under which video noise is ignored and the old pixel stays.
+
+class ByteOut {
+  constructor(size = 1 << 16) { this.buf = new Uint8Array(size); this.len = 0; this.chunks = []; }
+  room(n) {
+    if (this.len + n <= this.buf.length) return;
+    const bigger = new Uint8Array(Math.max(this.buf.length * 2, this.len + n));
+    bigger.set(this.buf.subarray(0, this.len));
+    this.buf = bigger;
+  }
+  byte(v) { this.room(1); this.buf[this.len++] = v; }
+  u16(v) { this.room(2); this.buf[this.len++] = v & 255; this.buf[this.len++] = v >> 8 & 255; }
+  bytes(a) { this.room(a.length); this.buf.set(a, this.len); this.len += a.length; }
+  flush() { if (this.len) { this.chunks.push(this.buf.slice(0, this.len)); this.len = 0; } }
+}
+
+function lzwEncode(out, pixels, count) {
+  const MIN = 8, CLEAR = 1 << MIN, EOI = CLEAR + 1, HASH = 16411;
+  const keys = new Int32Array(HASH).fill(-1), vals = new Int16Array(HASH);
+  let next = EOI + 1, size = MIN + 1, bits = 0, nbits = 0;
+  const block = new Uint8Array(255);
+  let fill = 0;
+  const flushBlock = () => { if (fill) { out.byte(fill); out.bytes(block.subarray(0, fill)); fill = 0; } };
+  const emit = code => {
+    bits |= code << nbits;
+    nbits += size;
+    while (nbits >= 8) {
+      block[fill++] = bits & 255;
+      if (fill === 255) flushBlock();
+      bits >>>= 8;
+      nbits -= 8;
+    }
+  };
+  out.byte(MIN);
+  emit(CLEAR);
+  let cur = pixels[0];
+  for (let i = 1; i < count; i++) {
+    const k = pixels[i], key = cur << 8 | k;
+    let h = (key * 2654435761 >>> 0) % HASH;
+    while (keys[h] !== -1 && keys[h] !== key) { if (++h === HASH) h = 0; }
+    if (keys[h] === key) { cur = vals[h]; continue; }
+    emit(cur);
+    if (next === 4096) {
+      emit(CLEAR);
+      keys.fill(-1);
+      next = EOI + 1;
+      size = MIN + 1;
+    } else {
+      if (next >= 1 << size) size++;
+      keys[h] = key;
+      vals[h] = next++;
+    }
+    cur = k;
+  }
+  emit(cur);
+  emit(EOI);
+  if (nbits > 0) { block[fill++] = bits & 255; if (fill === 255) flushBlock(); }
+  flushBlock();
+  out.byte(0);
+}
+
+class GifWriter {
+  constructor(w, h, pal, dither) {
+    this.w = w; this.h = h; this.pal = pal.palette; this.dither = dither;
+    this.map = makeMapper(pal);
+    this.prev = null;
+    this.cur = new Uint8Array(w * h);
+    this.crop = new Uint8Array(w * h);
+    this.frame = 0;
+    const o = this.out = new ByteOut();
+    for (const ch of 'GIF89a') o.byte(ch.charCodeAt(0));
+    o.u16(w); o.u16(h);
+    o.byte(0xF7); o.byte(0); o.byte(0);
+    o.bytes(this.pal);
+    o.bytes(Uint8Array.of(0x21, 0xFF, 11));
+    for (const ch of 'NETSCAPE2.0') o.byte(ch.charCodeAt(0));
+    o.bytes(Uint8Array.of(3, 1, 0, 0, 0)); // Loop forever.
+  }
+
+  add(rgba, delay) {
+    const { w, h, pal, map, prev, cur, dither } = this;
+    let minX = w, minY = h, maxX = -1, maxY = -1;
+    for (let y = 0, p = 0, k = 0; y < h; y++) {
+      for (let x = 0; x < w; x++, p += 4, k++) {
+        const r = rgba[p], g = rgba[p + 1], b = rgba[p + 2];
+        let idx;
+        if (dither) {
+          const d = BAYER[(y & 7) << 3 | (x & 7)];
+          idx = map(clamp(r + d, 0, 255) | 0, clamp(g + d, 0, 255) | 0, clamp(b + d, 0, 255) | 0);
+        } else {
+          idx = map(r, g, b);
+        }
+        if (prev) {
+          const old = prev[k];
+          if (old === idx) { cur[k] = idx; continue; }
+          const dr = pal[old * 3] - r, dg = pal[old * 3 + 1] - g, db = pal[old * 3 + 2] - b;
+          if (dr * dr + dg * dg + db * db < KEEP_THRESHOLD) { cur[k] = old; continue; }
+        }
+        cur[k] = idx;
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+    const o = this.out;
+    const first = !prev;
+    if (maxX < 0) { minX = 0; minY = 0; maxX = 0; maxY = 0; } // Nothing moved: one see-through pixel.
+    const cw = maxX - minX + 1, ch = maxY - minY + 1;
+    for (let y = 0, i = 0; y < ch; y++) {
+      const row = (y + minY) * w + minX;
+      for (let x = 0; x < cw; x++, i++) {
+        const v = cur[row + x];
+        this.crop[i] = !first && v === prev[row + x] ? TRANSPARENT : v;
+      }
+    }
+    o.bytes(Uint8Array.of(0x21, 0xF9, 4, first ? 1 << 2 : 1 << 2 | 1));
+    o.u16(delay);
+    o.byte(TRANSPARENT); o.byte(0);
+    o.byte(0x2C);
+    o.u16(minX); o.u16(minY); o.u16(cw); o.u16(ch);
+    o.byte(0);
+    lzwEncode(o, this.crop, cw * ch);
+    o.flush();
+    this.prev = cur;
+    this.cur = prev || new Uint8Array(w * h);
+    this.frame++;
+  }
+
+  finish() {
+    this.out.byte(0x3B);
+    this.out.flush();
+    return new Blob(this.out.chunks, { type: 'image/gif' });
+  }
+}
+
+/* ---------- Rendering ---------- */
+
+function clearResult() {
+  if (state.resultUrl) URL.revokeObjectURL(state.resultUrl);
+  state.resultUrl = null;
+  $('gif').removeAttribute('src');
+  $('result').hidden = true;
+  $('stage').classList.remove('has-result');
+}
+
+const formatSize = n => n < 1048576 ? Math.max(1, Math.round(n / 1024)) + ' KB' : (n / 1048576).toFixed(1) + ' MB';
+
+function setRendering(on) {
+  state.rendering = on;
+  state.cancelled = false;
+  $('settings').disabled = on;
+  $('render').hidden = on;
+  $('cancel').hidden = !on;
+  $('progress').hidden = !on;
+  $('another').disabled = on;
+  $('play').disabled = on;
+  $('hint').hidden = on;
+  if (on) { $('progress').firstElementChild.style.width = '0'; preview.pause(); }
+}
+
+function reportProgress(done, total, text) {
+  $('progress').firstElementChild.style.width = (done / total * 100) + '%';
+  $('summary').textContent = text;
+}
+
+async function render() {
+  const s = readSettings();
+  if (s.problem) return;
+  const { w, h, fps, frames } = s;
+  const start = state.start, length = state.end - state.start;
+  $('render-error').hidden = true;
+  setRendering(true);
+  const began = performance.now();
+  try {
+    state.thumbRun++;              // Stop thumbnails: they share the off-screen video.
+    await state.thumbsDone;
+    await whenLoaded(scanner);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.imageSmoothingQuality = 'high';
+    const grab = async t => {
+      await seek(scanner, t);
+      ctx.drawImage(scanner, 0, 0, w, h);
+      return ctx.getImageData(0, 0, w, h).data;
+    };
+
+    const samples = Math.min(frames, 24);
+    const hist = newHistogram();
+    for (let i = 0; i < samples; i++) {
+      if (state.cancelled) return;
+      addToHistogram(hist, await grab(start + (i + 0.5) * length / samples));
+      reportProgress((i + 1) * 0.1, samples, 'Choosing colors');
+    }
+    const gif = new GifWriter(w, h, buildPalette(hist), $('dither').checked);
+
+    for (let i = 0; i < frames; i++) {
+      if (state.cancelled) return;
+      // Whole hundredths only, so spread the rounding to keep the overall speed exact.
+      const delay = Math.round((i + 1) * 100 / fps) - Math.round(i * 100 / fps);
+      gif.add(await grab(start + i / fps + 0.001), delay);
+      reportProgress(samples * 0.1 + (i + 1) / frames * samples * 0.9, samples, 'Frame ' + (i + 1) + ' of ' + frames);
+    }
+
+    const blob = gif.finish();
+    clearResult();
+    state.resultUrl = URL.createObjectURL(blob);
+    $('gif').src = state.resultUrl;
+    $('result').hidden = false;
+    $('stage').classList.add('has-result');
+    $('download').href = state.resultUrl;
+    $('download').download = state.name + '-' + w + 'x' + h + '-' + fps + 'fps.gif';
+    $('result-info').textContent = formatSize(blob.size) + ', ' + w + ' × ' + h + ', ' + frames + ' frames';
+    console.debug('GIF made in', Math.round(performance.now() - began), 'ms');
+  } catch (err) {
+    $('render-error').textContent = err.message + ' Try a different trim or a re-encoded copy of the video.';
+    $('render-error').hidden = false;
+  } finally {
+    setRendering(false);
+    updateSummary();
+  }
+}
+
+$('render').onclick = render;
+$('cancel').onclick = () => { state.cancelled = true; };
+</script>
+</body>
+</html>

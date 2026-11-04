@@ -17,6 +17,7 @@ ignored; editable source designs and generators are retained.
 | Profile Studio | Open [fish-profile-studio.html](fish-profile-studio.html); choose the local repo/resources folder. Reads/writes fishing data; review exported diffs. It is not a complete editor for every newer simulation field |
 | GUI workbench | `node tools/mc-gui-designer/serve.mjs`; see its [README](mc-gui-designer/README.md). `companions.json` is editable source; `mc-gui-designer.html` is the intentionally checked-in portable distribution, rebuilt with `build.mjs` |
 | Sticker sheet | Open [sticker_sheet.html](sticker_sheet.html); optional block-folder input from `pwsh tools/extract-block-textures.ps1 -Version <mc>`. Extracted Mojang textures stay ignored |
+| GIF cutter | Open [gif-cutter.html](gif-cutter.html); drop an MP4, trim it, set resolution and frame rate, download the GIF. Runs entirely in the browser with no dependencies |
 | MCP bridge | `npm ci --prefix tools/mcp-bridge`, then `node tools/mcp-bridge/index.js`; local `.env` follows `.env.example` and the in-game MCP session. Tokens/settings remain local |
 
 Structure/preview rendering uses Pillow, NumPy and Matplotlib where imported; install
