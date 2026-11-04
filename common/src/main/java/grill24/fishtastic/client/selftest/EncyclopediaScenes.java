@@ -639,6 +639,24 @@ final class EncyclopediaScenes {
         queue(5, mc -> {
             check("tutorial.help_accessible", mc.screen instanceof grill24.fishtastic.client.TutorialHelpScreen, "No custom keys required");
             screenshot(mc, "tutorial", "help");
+            pressHelpButton(mc, "tutorial.fishtastic.help.faq");
+        });
+        queue(5, mc -> {
+            check("tutorial.faq_opens", mc.screen instanceof grill24.fishtastic.client.TutorialFaqScreen, "FAQ button opens the FAQ");
+            screenshot(mc, "tutorial", "faq_top");
+            for (var child : mc.screen.children()) {
+                if (child instanceof net.minecraft.client.gui.components.FittingMultiLineTextWidget area) {
+                    check("tutorial.faq_scrolls", area.showingScrollBar(), "FAQ is longer than one screen");
+                    area.setScrollAmount(area.maxScrollAmount());
+                }
+            }
+        });
+        queue(5, mc -> {
+            screenshot(mc, "tutorial", "faq_bottom");
+            mc.screen.onClose();
+        });
+        queue(5, mc -> {
+            check("tutorial.faq_returns", mc.screen instanceof grill24.fishtastic.client.TutorialHelpScreen, "Done returns to help");
             pressHelpButton(mc, "tutorial.fishtastic.help.fishing");
         });
         queue(15, mc -> {
