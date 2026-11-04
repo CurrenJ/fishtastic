@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 2.1.21
+
+- Vanilla flowers, saplings, grasses, ferns, mushrooms and other plants can now be placed as fish tank cosmetics.
+
 ## 2.1.20
 
 - Fish you haven't caught or spotted yet show as black silhouettes named "???" everywhere: the creative menu, JEI, inventories and the hotbar.
