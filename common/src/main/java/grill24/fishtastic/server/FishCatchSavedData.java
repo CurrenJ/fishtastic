@@ -7,6 +7,7 @@ import grill24.fishtastic.blockentity.FishPileBlockEntity;
 import grill24.fishtastic.component.FishQuality;
 import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.QuestCategory;
+import grill24.fishtastic.data.VanillaFish;
 import grill24.fishtastic.network.RecentCatch;
 import grill24.fishtastic.tutorial.CompanionTutorialStep;
 import grill24.fishtastic.tutorial.EncyclopediaTutorialStep;
@@ -145,8 +146,18 @@ public class FishCatchSavedData extends SavedData {
             }
         }
 
+        /**
+         * The species that count. Older saves can hold vanilla fish from before they left progression;
+         * those records stay on disk but read as if they were never made.
+         */
+        Map<Identifier, FishTypeData> countedFish() {
+            Map<Identifier, FishTypeData> counted = new HashMap<>(perFish);
+            counted.keySet().removeIf(VanillaFish::is);
+            return counted;
+        }
+
         int totalCatches() {
-            return perFish.values().stream().mapToInt(d -> d.totalCatches).sum();
+            return countedFish().values().stream().mapToInt(d -> d.totalCatches).sum();
         }
 
         static final Codec<PlayerCatchData> CODEC = RecordCodecBuilder.create(instance ->
@@ -246,9 +257,13 @@ public class FishCatchSavedData extends SavedData {
     // Recording API
     // -------------------------------------------------------------------------
 
-    /** @return true if this was the player's first-ever catch of this fish species. */
+    /**
+     * Vanilla fish are not recorded (see {@link VanillaFish}).
+     *
+     * @return true if this was the player's first-ever catch of this fish species.
+     */
     public boolean recordCatch(UUID playerUuid, String playerName, ItemStack stack) {
-        if (stack.isEmpty() || !stack.is(ItemTags.FISHES)) return false;
+        if (stack.isEmpty() || !stack.is(ItemTags.FISHES) || VanillaFish.is(stack)) return false;
 
         float size = ItemSizeHelper.getSize(stack);
         if (size <= 0f) return false;
@@ -320,7 +335,7 @@ public class FishCatchSavedData extends SavedData {
                                                             Comparator<PersonalBestSizeEntry> order) {
         PlayerCatchData data = playerData.get(playerUuid);
         if (data == null) return List.of();
-        return data.perFish.entrySet().stream()
+        return data.countedFish().entrySet().stream()
                 .map(e -> new PersonalBestSizeEntry(e.getKey(), e.getValue().bestSize, e.getValue().bestQuality))
                 .sorted(order)
                 .toList();
@@ -329,7 +344,7 @@ public class FishCatchSavedData extends SavedData {
     public List<GlobalBestSizeEntry> getGlobalBestSizes(Comparator<GlobalBestSizeEntry> order) {
         Map<Identifier, GlobalBestSizeEntry> bestPerFish = new HashMap<>();
         for (PlayerCatchData pd : playerData.values()) {
-            for (Map.Entry<Identifier, FishTypeData> e : pd.perFish.entrySet()) {
+            for (Map.Entry<Identifier, FishTypeData> e : pd.countedFish().entrySet()) {
                 Identifier fishType = e.getKey();
                 FishTypeData ftd = e.getValue();
                 GlobalBestSizeEntry existing = bestPerFish.get(fishType);
@@ -346,7 +361,7 @@ public class FishCatchSavedData extends SavedData {
                                                                 Comparator<PersonalCatchCountEntry> order) {
         PlayerCatchData data = playerData.get(playerUuid);
         if (data == null) return List.of();
-        return data.perFish.entrySet().stream()
+        return data.countedFish().entrySet().stream()
                 .map(e -> new PersonalCatchCountEntry(e.getKey(), e.getValue().totalCatches))
                 .sorted(order)
                 .toList();
@@ -355,7 +370,7 @@ public class FishCatchSavedData extends SavedData {
     /** Direct single-fish catch count lookup, 0 if the player has never caught it. */
     public int getCatchCount(UUID playerUuid, Identifier fishType) {
         PlayerCatchData data = playerData.get(playerUuid);
-        if (data == null) return 0;
+        if (data == null || VanillaFish.is(fishType)) return 0;
         FishTypeData ftd = data.perFish.get(fishType);
         return ftd == null ? 0 : ftd.totalCatches;
     }
@@ -374,7 +389,7 @@ public class FishCatchSavedData extends SavedData {
         PlayerCatchData data = playerData.get(playerUuid);
         if (data == null) return 0;
         int total = 0;
-        for (Map.Entry<Identifier, FishTypeData> e : data.perFish.entrySet()) {
+        for (Map.Entry<Identifier, FishTypeData> e : data.countedFish().entrySet()) {
             if (speciesFilter.test(e.getKey())) total += e.getValue().totalCatches;
         }
         return total;
@@ -401,6 +416,7 @@ public class FishCatchSavedData extends SavedData {
         PlayerCatchData data = playerData.get(playerUuid);
         if (data == null || data.recentCatches.isEmpty() || limit <= 0) return List.of();
         List<RecentCatch> newestFirst = new ArrayList<>(data.recentCatches);
+        newestFirst.removeIf(recent -> VanillaFish.is(recent.fishType()));
         Collections.reverse(newestFirst);
         return List.copyOf(newestFirst.subList(0, Math.min(limit, newestFirst.size())));
     }
@@ -658,7 +674,7 @@ public class FishCatchSavedData extends SavedData {
             out.add(new PlayerSummary(key,
                     pd != null ? pd.lastKnownName : displayNameForKey(key),
                     pd != null ? pd.totalCatches() : 0,
-                    pd != null ? pd.perFish.size() : 0,
+                    pd != null ? pd.countedFish().size() : 0,
                     completed, claimed,
                     qs != null ? qs.getTokenBalance() : 0));
         }

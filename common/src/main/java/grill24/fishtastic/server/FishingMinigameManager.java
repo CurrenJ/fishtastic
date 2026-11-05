@@ -1095,7 +1095,9 @@ public class FishingMinigameManager {
 
     private static void addIfUndiscovered(FishCatchSavedData catchDb, UUID playerKey,
                                           ItemStack stack, Set<Identifier> out) {
-        if (stack.isEmpty()) return;
+        // Vanilla fish are never recorded, so their count stays 0: without this every cast of one
+        // would replay the discovery celebration.
+        if (stack.isEmpty() || grill24.fishtastic.data.VanillaFish.is(stack)) return;
         Identifier id = BuiltInRegistries.ITEM.getKey(stack.getItem());
         if (catchDb.getCatchCount(playerKey, id) == 0) out.add(id);
     }

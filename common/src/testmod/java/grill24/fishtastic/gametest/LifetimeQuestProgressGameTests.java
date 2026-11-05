@@ -1,5 +1,6 @@
 package grill24.fishtastic.gametest;
 
+import grill24.fishtastic.FishtasticItems;
 import grill24.fishtastic.data.QuestObjective;
 import grill24.fishtastic.server.FishCatchSavedData;
 import grill24.fishtastic.util.FishQualityHelper;
@@ -47,18 +48,18 @@ public final class LifetimeQuestProgressGameTests {
         FishCatchSavedData data = new FishCatchSavedData();
         UUID player = UUID.randomUUID();
 
-        for (int i = 0; i < 7; i++) data.recordCatch(player, "tester", fish(Items.COD));
-        for (int i = 0; i < 3; i++) data.recordCatch(player, "tester", fish(Items.SALMON));
+        for (int i = 0; i < 7; i++) data.recordCatch(player, "tester", fish(FishtasticItems.BLUEGILL.value()));
+        for (int i = 0; i < 3; i++) data.recordCatch(player, "tester", fish(FishtasticItems.ARCTIC_CHAR.value()));
 
-        Identifier cod = Ids.withDefaultNamespace("cod");
-        Identifier salmon = Ids.withDefaultNamespace("salmon");
+        Identifier bluegill = Ids.of("fishtastic", "bluegill");
+        Identifier arcticChar = Ids.of("fishtastic", "arctic_char");
 
-        helper.assertTrue(data.getCatchCount(player, cod) == 7,
-                "Cod lifetime count must be 7, was " + data.getCatchCount(player, cod));
-        helper.assertTrue(data.getCatchCountMatching(player, id -> id.equals(cod)) == 7,
-                "Filtered lifetime count must isolate cod");
-        helper.assertTrue(data.getCatchCountMatching(player, id -> id.equals(salmon)) == 3,
-                "Filtered lifetime count must isolate salmon");
+        helper.assertTrue(data.getCatchCount(player, bluegill) == 7,
+                "Bluegill lifetime count must be 7, was " + data.getCatchCount(player, bluegill));
+        helper.assertTrue(data.getCatchCountMatching(player, id -> id.equals(bluegill)) == 7,
+                "Filtered lifetime count must isolate bluegill");
+        helper.assertTrue(data.getCatchCountMatching(player, id -> id.equals(arcticChar)) == 3,
+                "Filtered lifetime count must isolate arctic char");
         helper.assertTrue(data.getTotalCatchCount(player) == 10,
                 "Total lifetime count must sum every species, was " + data.getTotalCatchCount(player));
         helper.succeed();
@@ -70,8 +71,8 @@ public final class LifetimeQuestProgressGameTests {
         UUID first = UUID.randomUUID();
         UUID second = UUID.randomUUID();
 
-        for (int i = 0; i < 5; i++) data.recordCatch(first, "first", fish(Items.COD));
-        data.recordCatch(second, "second", fish(Items.COD));
+        for (int i = 0; i < 5; i++) data.recordCatch(first, "first", fish(FishtasticItems.BLUEGILL.value()));
+        data.recordCatch(second, "second", fish(FishtasticItems.BLUEGILL.value()));
 
         helper.assertTrue(data.getTotalCatchCount(first) == 5, "First player must have 5 lifetime catches");
         helper.assertTrue(data.getTotalCatchCount(second) == 1, "Second player must have 1 lifetime catch");
@@ -88,9 +89,9 @@ public final class LifetimeQuestProgressGameTests {
     public static void oneLifetimeTotalSatisfiesEveryTierItHasPassed(GameTestHelper helper) {
         FishCatchSavedData data = new FishCatchSavedData();
         UUID player = UUID.randomUUID();
-        for (int i = 0; i < 50; i++) data.recordCatch(player, "tester", fish(Items.COD));
+        for (int i = 0; i < 50; i++) data.recordCatch(player, "tester", fish(FishtasticItems.BLUEGILL.value()));
 
-        int lifetime = data.getCatchCount(player, Ids.withDefaultNamespace("cod"));
+        int lifetime = data.getCatchCount(player, Ids.of("fishtastic", "bluegill"));
 
         helper.assertTrue(lifetime >= 10, "Tier 1 (10) must be satisfied by 50 lifetime catches");
         helper.assertTrue(lifetime >= 25, "Tier 2 (25) must be satisfied by the same 50 lifetime catches");
@@ -108,7 +109,7 @@ public final class LifetimeQuestProgressGameTests {
         FishCatchSavedData data = new FishCatchSavedData();
         UUID player = UUID.randomUUID();
 
-        data.recordCatch(player, "tester", fish(Items.COD));
+        data.recordCatch(player, "tester", fish(FishtasticItems.BLUEGILL.value()));
         data.recordCatch(player, "tester", new ItemStack(Items.SADDLE));
         data.recordCatch(player, "tester", new ItemStack(Items.LEATHER_BOOTS));
 

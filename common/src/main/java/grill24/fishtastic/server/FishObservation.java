@@ -126,6 +126,7 @@ public final class FishObservation {
 
     /** A species with a fish profile that the Fishopedia lists (secret one-off variants are not observable). */
     public static boolean isObservableSpecies(ServerLevel level, Identifier species) {
+        if (grill24.fishtastic.data.VanillaFish.is(species)) return false;
         Registry<FishProfile> profiles = level.registryAccess().lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
         if (!profiles.containsKey(ResourceKey.create(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY, species))) return false;
         return BuiltInRegistries.ITEM.getOptional(species)

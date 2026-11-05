@@ -117,33 +117,33 @@ public final class QuestTrackerGameTests {
     // -------------------------------------------------------------------------
 
     public static void targetSpeciesGatesMatchWhenPresent(GameTestHelper helper) {
-        ItemStack cod = new ItemStack(Items.COD);
+        ItemStack bluegill = new ItemStack(FishtasticItems.BLUEGILL.value());
         Holder<Biome> anyBiome = biome(helper, Biomes.PLAINS);
 
         helper.assertTrue(
-            QuestTracker.matchesObjective(targetSpeciesObjective(keyOf(Items.COD)), cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
+            QuestTracker.matchesObjective(targetSpeciesObjective(keyOf(FishtasticItems.BLUEGILL.value())), bluegill, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "A catch matching the required species must match"
         );
         helper.assertTrue(
-            !QuestTracker.matchesObjective(targetSpeciesObjective(keyOf(Items.DIAMOND)), cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
+            !QuestTracker.matchesObjective(targetSpeciesObjective(keyOf(Items.DIAMOND)), bluegill, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "A catch of a different species must not match"
         );
         helper.assertTrue(
-            QuestTracker.matchesObjective(wildcardObjective(), cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
+            QuestTracker.matchesObjective(wildcardObjective(), bluegill, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "An absent targetSpecies condition must not block the match"
         );
         helper.succeed();
     }
 
     public static void targetSpeciesTagGatesMatchWhenPresent(GameTestHelper helper) {
-        ItemStack cod = new ItemStack(Items.COD);
+        ItemStack bluegill = new ItemStack(FishtasticItems.BLUEGILL.value());
         ItemStack diamond = new ItemStack(Items.DIAMOND);
         Holder<Biome> anyBiome = biome(helper, Biomes.PLAINS);
         QuestObjective fishesTag = targetSpeciesTagObjective(ItemTags.FISHES);
 
         helper.assertTrue(
-            QuestTracker.matchesObjective(fishesTag, cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
-            "Cod must match the vanilla fishes tag condition"
+            QuestTracker.matchesObjective(fishesTag, bluegill, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
+            "Bluegill must match the vanilla fishes tag condition"
         );
         helper.assertTrue(
             !QuestTracker.matchesObjective(fishesTag, diamond, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
@@ -157,28 +157,28 @@ public final class QuestTrackerGameTests {
         Holder<Biome> anyBiome = biome(helper, Biomes.PLAINS);
         QuestObjective requiresRare = minQualityObjective(FishQuality.Quality.RARE);
 
-        ItemStack uncommon = new ItemStack(Items.COD);
+        ItemStack uncommon = new ItemStack(FishtasticItems.BLUEGILL.value());
         FishQualityHelper.setQuality(uncommon, FishQuality.Quality.UNCOMMON);
         helper.assertTrue(
             !QuestTracker.matchesObjective(requiresRare, uncommon, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "A catch one tier below the required quality must not match"
         );
 
-        ItemStack rare = new ItemStack(Items.COD);
+        ItemStack rare = new ItemStack(FishtasticItems.BLUEGILL.value());
         FishQualityHelper.setQuality(rare, FishQuality.Quality.RARE);
         helper.assertTrue(
             QuestTracker.matchesObjective(requiresRare, rare, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "A catch exactly at the required quality must match"
         );
 
-        ItemStack epic = new ItemStack(Items.COD);
+        ItemStack epic = new ItemStack(FishtasticItems.BLUEGILL.value());
         FishQualityHelper.setQuality(epic, FishQuality.Quality.EPIC);
         helper.assertTrue(
             QuestTracker.matchesObjective(requiresRare, epic, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "A catch above the required quality must match"
         );
 
-        ItemStack noQuality = new ItemStack(Items.COD);
+        ItemStack noQuality = new ItemStack(FishtasticItems.BLUEGILL.value());
         helper.assertTrue(
             !QuestTracker.matchesObjective(requiresRare, noQuality, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "A catch with no quality component must not match a minQuality requirement"
@@ -187,47 +187,47 @@ public final class QuestTrackerGameTests {
     }
 
     public static void biomeConditionGatesMatchWhenPresent(GameTestHelper helper) {
-        ItemStack cod = new ItemStack(Items.COD);
+        ItemStack bluegill = new ItemStack(FishtasticItems.BLUEGILL.value());
         QuestObjective requiresOcean = biomeObjective(BiomeTags.IS_OCEAN);
 
         helper.assertTrue(
-            QuestTracker.matchesObjective(requiresOcean, cod, biome(helper, Biomes.OCEAN), FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
+            QuestTracker.matchesObjective(requiresOcean, bluegill, biome(helper, Biomes.OCEAN), FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "Catching in an ocean biome must match an is_ocean biome condition"
         );
         helper.assertTrue(
-            !QuestTracker.matchesObjective(requiresOcean, cod, biome(helper, Biomes.PLAINS), FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
+            !QuestTracker.matchesObjective(requiresOcean, bluegill, biome(helper, Biomes.PLAINS), FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "Catching in plains must not match an is_ocean biome condition"
         );
         helper.succeed();
     }
 
     public static void timeConditionGatesMatchWhenPresent(GameTestHelper helper) {
-        ItemStack cod = new ItemStack(Items.COD);
+        ItemStack bluegill = new ItemStack(FishtasticItems.BLUEGILL.value());
         Holder<Biome> anyBiome = biome(helper, Biomes.PLAINS);
         QuestObjective requiresDay = timeObjective(FishProfile.TimeOfDay.DAY);
 
         helper.assertTrue(
-            QuestTracker.matchesObjective(requiresDay, cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
+            QuestTracker.matchesObjective(requiresDay, bluegill, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "Catching during the required time of day must match"
         );
         helper.assertTrue(
-            !QuestTracker.matchesObjective(requiresDay, cod, anyBiome, FishProfile.TimeOfDay.NIGHT, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
+            !QuestTracker.matchesObjective(requiresDay, bluegill, anyBiome, FishProfile.TimeOfDay.NIGHT, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "Catching at a different time of day must not match"
         );
         helper.succeed();
     }
 
     public static void weatherConditionGatesMatchWhenPresent(GameTestHelper helper) {
-        ItemStack cod = new ItemStack(Items.COD);
+        ItemStack bluegill = new ItemStack(FishtasticItems.BLUEGILL.value());
         Holder<Biome> anyBiome = biome(helper, Biomes.PLAINS);
         QuestObjective requiresClear = weatherObjective(FishProfile.WeatherCondition.CLEAR);
 
         helper.assertTrue(
-            QuestTracker.matchesObjective(requiresClear, cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
+            QuestTracker.matchesObjective(requiresClear, bluegill, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "Catching in the required weather must match"
         );
         helper.assertTrue(
-            !QuestTracker.matchesObjective(requiresClear, cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.RAIN, ANY_ZONES),
+            !QuestTracker.matchesObjective(requiresClear, bluegill, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.RAIN, ANY_ZONES),
             "Catching in different weather must not match"
         );
         helper.succeed();
@@ -239,20 +239,20 @@ public final class QuestTrackerGameTests {
      * the player was fishing in an ordinary river.
      */
     public static void zoneConditionGatesMatchWhenPresent(GameTestHelper helper) {
-        ItemStack cod = new ItemStack(Items.COD);
+        ItemStack bluegill = new ItemStack(FishtasticItems.BLUEGILL.value());
         Holder<Biome> anyBiome = biome(helper, Biomes.PLAINS);
         QuestObjective requiresCave = zoneObjective(FishProfile.Zone.CAVE);
 
         helper.assertTrue(
-            QuestTracker.matchesObjective(requiresCave, cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, Set.of(FishProfile.Zone.CAVE)),
+            QuestTracker.matchesObjective(requiresCave, bluegill, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, Set.of(FishProfile.Zone.CAVE)),
             "Catching while the hook's zone set contains the required zone must match"
         );
         helper.assertTrue(
-            QuestTracker.matchesObjective(requiresCave, cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, Set.of(FishProfile.Zone.RIVER, FishProfile.Zone.CAVE)),
+            QuestTracker.matchesObjective(requiresCave, bluegill, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, Set.of(FishProfile.Zone.RIVER, FishProfile.Zone.CAVE)),
             "A dual-zone catch (e.g. river+cave) must still match as long as the required zone is one of them"
         );
         helper.assertTrue(
-            !QuestTracker.matchesObjective(requiresCave, cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, Set.of(FishProfile.Zone.RIVER)),
+            !QuestTracker.matchesObjective(requiresCave, bluegill, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, Set.of(FishProfile.Zone.RIVER)),
             "A river-only catch of a fish that also happens to be cave-tagged must not match a cave zone requirement"
         );
         helper.succeed();
@@ -263,21 +263,21 @@ public final class QuestTrackerGameTests {
         Holder<Biome> anyBiome = biome(helper, Biomes.PLAINS);
         QuestObjective requires40 = minSizeObjective(40.0f);
 
-        ItemStack small = new ItemStack(Items.COD);
+        ItemStack small = new ItemStack(FishtasticItems.BLUEGILL.value());
         ItemSizeHelper.setSize(small, 39.9f);
         helper.assertTrue(
             !QuestTracker.matchesObjective(requires40, small, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "A catch smaller than the required size must not match"
         );
 
-        ItemStack exact = new ItemStack(Items.COD);
+        ItemStack exact = new ItemStack(FishtasticItems.BLUEGILL.value());
         ItemSizeHelper.setSize(exact, 40.0f);
         helper.assertTrue(
             QuestTracker.matchesObjective(requires40, exact, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "A catch exactly at the required size must match"
         );
 
-        ItemStack noSize = new ItemStack(Items.COD);
+        ItemStack noSize = new ItemStack(FishtasticItems.BLUEGILL.value());
         helper.assertTrue(
             !QuestTracker.matchesObjective(requires40, noSize, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "A catch with no size component must not match a minSize requirement"
@@ -293,13 +293,13 @@ public final class QuestTrackerGameTests {
     public static void minSessionCatchesDoesNotAffectPerStackMatching(GameTestHelper helper) {
         Holder<Biome> anyBiome = biome(helper, Biomes.PLAINS);
         QuestObjective requiresTwoPerSession = new QuestObjective(
-            Optional.of(keyOf(Items.COD)), Optional.empty(), Optional.empty(), false, Optional.of(1), Optional.empty(), Optional.empty(),
+            Optional.of(keyOf(FishtasticItems.BLUEGILL.value())), Optional.empty(), Optional.empty(), false, Optional.of(1), Optional.empty(), Optional.empty(),
             Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(2), 1, false
         );
-        ItemStack cod = new ItemStack(Items.COD);
+        ItemStack bluegill = new ItemStack(FishtasticItems.BLUEGILL.value());
 
         helper.assertTrue(
-            QuestTracker.matchesObjective(requiresTwoPerSession, cod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
+            QuestTracker.matchesObjective(requiresTwoPerSession, bluegill, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "A single matching stack must still satisfy matchesObjective regardless of minSessionCatches"
         );
         helper.succeed();
@@ -308,7 +308,7 @@ public final class QuestTrackerGameTests {
     /** All set conditions must hold together (AND semantics) — failing any single axis fails the whole match. */
     public static void allConditionsMustMatchTogether(GameTestHelper helper) {
         QuestObjective combined = new QuestObjective(
-            Optional.of(keyOf(Items.COD)),
+            Optional.of(keyOf(FishtasticItems.BLUEGILL.value())),
             Optional.empty(),
             Optional.empty(),
             false,
@@ -325,22 +325,22 @@ public final class QuestTrackerGameTests {
         );
         Holder<Biome> anyBiome = biome(helper, Biomes.PLAINS);
 
-        ItemStack rareCod = new ItemStack(Items.COD);
-        FishQualityHelper.setQuality(rareCod, FishQuality.Quality.RARE);
+        ItemStack rareBluegill = new ItemStack(FishtasticItems.BLUEGILL.value());
+        FishQualityHelper.setQuality(rareBluegill, FishQuality.Quality.RARE);
 
         helper.assertTrue(
-            QuestTracker.matchesObjective(combined, rareCod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
+            QuestTracker.matchesObjective(combined, rareBluegill, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "A catch satisfying every set condition must match"
         );
         helper.assertTrue(
-            !QuestTracker.matchesObjective(combined, rareCod, anyBiome, FishProfile.TimeOfDay.NIGHT, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
+            !QuestTracker.matchesObjective(combined, rareBluegill, anyBiome, FishProfile.TimeOfDay.NIGHT, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "Failing just the time-of-day axis must fail the whole AND, even though species/quality still match"
         );
 
-        ItemStack uncommonCod = new ItemStack(Items.COD);
-        FishQualityHelper.setQuality(uncommonCod, FishQuality.Quality.UNCOMMON);
+        ItemStack uncommonBluegill = new ItemStack(FishtasticItems.BLUEGILL.value());
+        FishQualityHelper.setQuality(uncommonBluegill, FishQuality.Quality.UNCOMMON);
         helper.assertTrue(
-            !QuestTracker.matchesObjective(combined, uncommonCod, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
+            !QuestTracker.matchesObjective(combined, uncommonBluegill, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
             "Failing just the quality axis must fail the whole AND, even though species/time still match"
         );
         helper.succeed();
@@ -454,7 +454,7 @@ public final class QuestTrackerGameTests {
     }
 
     private static ItemStack fishStack() {
-        return new ItemStack(Items.COD);
+        return new ItemStack(FishtasticItems.ARCTIC_CHAR.value());
     }
 
     /** Removes a single unit of the first tank slot holding {@code item}, wherever addItem's merge logic put it. */
@@ -607,19 +607,19 @@ public final class QuestTrackerGameTests {
 
         // Legendary fish, but the tank frame is the default (not gold) — must not complete.
         FishTankBlockEntity plainTank = placeFishTank(helper, LIFETIME_TANK_POS_A);
-        ItemStack legendaryCod = fishStack();
-        FishQualityHelper.setQuality(legendaryCod, FishQuality.Quality.LEGENDARY);
-        plainTank.addItem(legendaryCod.copy());
-        QuestTracker.onTankChanged(server, player, plainTank, legendaryCod);
+        ItemStack legendaryBluegill = fishStack();
+        FishQualityHelper.setQuality(legendaryBluegill, FishQuality.Quality.LEGENDARY);
+        plainTank.addItem(legendaryBluegill.copy());
+        QuestTracker.onTankChanged(server, player, plainTank, legendaryBluegill);
         helper.assertTrue(!state.getProgress(questKey).completed(),
             "A Legendary fish in a non-gold-framed tank must not complete golden_showcase");
 
         // Gold-framed tank, but the fish carries no quality component — must not complete.
         FishTankBlockEntity goldTank = placeFishTank(helper, LIFETIME_TANK_POS_B);
         goldTank.setMaterials(new FishTankMaterials(Blocks.GOLD_BLOCK, Blocks.SAND, goldTank.getMaterials().glass()));
-        ItemStack plainCod = fishStack();
-        goldTank.addItem(plainCod.copy());
-        QuestTracker.onTankChanged(server, player, goldTank, plainCod);
+        ItemStack plainBluegill = fishStack();
+        goldTank.addItem(plainBluegill.copy());
+        QuestTracker.onTankChanged(server, player, goldTank, plainBluegill);
         helper.assertTrue(!state.getProgress(questKey).completed(),
             "A fish with no quality in a gold-framed tank must not complete golden_showcase");
 
@@ -654,9 +654,9 @@ public final class QuestTrackerGameTests {
         PlayerQuestState state = FishCatchSavedData.getOrCreate(server).getOrCreateQuestState(player);
 
         // A different species must not count toward a target_species tank_snapshot objective.
-        ItemStack cod = fishStack();
-        tank.addItem(cod.copy());
-        QuestTracker.onTankChanged(server, player, tank, cod);
+        ItemStack otherSpecies = fishStack();
+        tank.addItem(otherSpecies.copy());
+        QuestTracker.onTankChanged(server, player, tank, otherSpecies);
         helper.assertTrue(state.getProgress(questKey).currentCount() == 0,
             "A non-Bluegill fish must not progress a Bluegill-only tank_snapshot objective");
 

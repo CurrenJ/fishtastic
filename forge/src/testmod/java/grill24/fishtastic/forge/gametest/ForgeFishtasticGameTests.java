@@ -1032,6 +1032,26 @@ public class ForgeFishtasticGameTests {
     }
 
     @GameTest(structure = "fishtastic:empty_testarea")
+    public static void vanillaCatchesAreNotRecorded(GameTestHelper helper) {
+        VanillaFishGameTests.vanillaCatchesAreNotRecorded(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void savedVanillaRecordsReadAsAbsent(GameTestHelper helper) {
+        VanillaFishGameTests.savedVanillaRecordsReadAsAbsent(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void vanillaFishEarnNoQuestCredit(GameTestHelper helper) {
+        VanillaFishGameTests.vanillaFishEarnNoQuestCredit(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void noQuestTargetTagHoldsVanillaFish(GameTestHelper helper) {
+        VanillaFishGameTests.noQuestTargetTagHoldsVanillaFish(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
     public static void catchCountMatchingScopesToTheRequestedSpecies(GameTestHelper helper) {
         LifetimeQuestProgressGameTests.catchCountMatchingScopesToTheRequestedSpecies(helper);
     }

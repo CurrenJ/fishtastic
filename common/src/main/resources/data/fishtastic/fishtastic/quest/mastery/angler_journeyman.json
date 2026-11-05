@@ -1,7 +1,7 @@
 {
   "category": "mastery",
   "objective": {
-    "target_species_tag": "minecraft:fishes",
+    "target_species_tag": "fishtastic:fish",
     "target_count": 100,
     "notification_interval": 10,
     "lifetime_count": true

@@ -140,7 +140,7 @@ public final class ObservationClient {
 
     /** Whether the player already knows the species, was just refused for it, or it is a secret variant. */
     private static boolean skip(Identifier species, long now) {
-        if (FishEncyclopediaClientCache.isDiscovered(species)) return true;
+        if (grill24.fishtastic.data.VanillaFish.is(species) || FishEncyclopediaClientCache.isDiscovered(species)) return true;
         Long sent = SENT_AT.get(species);
         if (sent != null && now - sent < ObservationRules.RESEND_COOLDOWN_TICKS) return true;
         return BuiltInRegistries.ITEM.getOptional(species)

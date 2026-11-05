@@ -5,6 +5,7 @@ import grill24.fishtastic.data.EncyclopediaRewardSection;
 import grill24.fishtastic.data.EncyclopediaTiers;
 import grill24.fishtastic.data.FishEncyclopediaEntry;
 import grill24.fishtastic.data.FishProfile;
+import grill24.fishtastic.data.VanillaFish;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.resources.Identifier;
@@ -22,12 +23,15 @@ public final class FishEncyclopediaClientHelper {
     private FishEncyclopediaClientHelper() {}
 
     /**
-     * All fish profiles in registry order. This order determines disc slot index, so it must
-     * stay stable for existing fish as new ones are appended.
+     * Every fish profile the encyclopedia lists (all but {@link VanillaFish}) in registry order. This
+     * order determines disc slot index, so it must stay stable for existing fish as new ones are
+     * appended.
      */
     public static List<Map.Entry<ResourceKey<FishProfile>, FishProfile>> getAllFishProfilesSorted(RegistryAccess registryAccess) {
         Registry<FishProfile> registry = registryAccess.lookupOrThrow(FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY);
-        return new ArrayList<>(registry.entrySet());
+        List<Map.Entry<ResourceKey<FishProfile>, FishProfile>> listed = new ArrayList<>(registry.entrySet());
+        listed.removeIf(entry -> VanillaFish.is(entry.getKey().identifier()));
+        return listed;
     }
 
     public static FishEncyclopediaEntry getEncyclopediaEntry(RegistryAccess registryAccess, ResourceKey<FishProfile> fishKey) {

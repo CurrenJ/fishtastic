@@ -34,6 +34,8 @@ public final class UndiscoveredFish {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || !mc.isSameThread()) return false;
         Identifier id = stack.getItem().builtInRegistryHolder().key().identifier();
+        // Vanilla fish are never recorded, so hiding them would hide them forever.
+        if (grill24.fishtastic.data.VanillaFish.is(id)) return false;
         // Only species the encyclopedia tracks: a fish-tagged item with no profile (another mod's
         // fish, say) can never be discovered, so it must never be hidden.
         Registry<?> profiles = mc.level.registryAccess()

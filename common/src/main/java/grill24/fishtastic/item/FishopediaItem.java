@@ -122,6 +122,7 @@ public class FishopediaItem extends Item {
         int discovered = 0;
         for (var it = fishRegistry.listElementIds().iterator(); it.hasNext(); ) {
             ResourceKey<FishProfile> fishKey = it.next();
+            if (grill24.fishtastic.data.VanillaFish.is(fishKey.identifier())) continue;
             total++;
             if (FishEncyclopediaClientCache.getCatchCount(fishKey.identifier()) > 0) discovered++;
         }

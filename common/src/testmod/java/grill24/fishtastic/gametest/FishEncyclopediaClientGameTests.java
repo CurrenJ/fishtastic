@@ -122,7 +122,8 @@ public final class FishEncyclopediaClientGameTests {
         List<Map.Entry<ResourceKey<FishProfile>, FishProfile>> sorted =
             FishEncyclopediaClientHelper.getAllFishProfilesSorted(helper.getLevel().registryAccess());
 
-        helper.assertTrue(sorted.size() == registry.size(), "getAllFishProfilesSorted must return every registered fish profile, got " + sorted.size() + " expected " + registry.size());
+        long expected = registry.keySet().stream().filter(id -> !grill24.fishtastic.data.VanillaFish.is(id)).count();
+        helper.assertTrue(sorted.size() == expected, "getAllFishProfilesSorted must return every fish profile except vanilla fish, got " + sorted.size() + " expected " + expected);
         helper.succeed();
     }
 }

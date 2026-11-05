@@ -584,7 +584,7 @@
   "tutorial.fishtastic.faq.bait.q": "How do I get bait?",
   "tutorial.fishtastic.faq.bait.a": "In a crafting table, combine a fish with dirt to make marine compost. Place the marine compost in world. It will turn to worms over time. This takes about five minutes while you stay nearby. Right-click it whenever it looks dry to speed it up and add a worm. Once it looks ready, break it to collect the worms. Don't break it early, or you'll lose it. Better fish give more worms. The First Catch quest and the Shop also give worms.",
   "tutorial.fishtastic.faq.no_bait.q": "Do I need bait to fish?",
-  "tutorial.fishtastic.faq.no_bait.a": "No, but a bare hook catches a lot of trash and vanilla fish. With any bait loaded, vanilla fish stop biting. Bait is only used up when you land something.",
+  "tutorial.fishtastic.faq.no_bait.a": "No, but a bare hook catches a lot of trash and vanilla fish, and vanilla fish don't count toward quests or the Fishopedia. With any bait loaded, vanilla fish stop biting. Bait is only used up when you land something.",
   "tutorial.fishtastic.faq.load_bait.q": "How do I put bait on my rod?",
   "tutorial.fishtastic.faq.load_bait.a": "Open your inventory, pick up the bait and click it onto the rod. Hooks and charms go on the same way. Right-click the rod with an empty cursor to take gear back off. Only one type of bait can be loaded at a time.",
   "tutorial.fishtastic.faq.minigame.q": "How does the minigame work?",

@@ -9,6 +9,7 @@ import grill24.fishtastic.gametest.FishCatchBackupsGameTests;
 import grill24.fishtastic.gametest.BackupTestFixture;
 import grill24.fishtastic.gametest.CreativeTabGameTests;
 import grill24.fishtastic.gametest.LifetimeQuestProgressGameTests;
+import grill24.fishtastic.gametest.VanillaFishGameTests;
 import grill24.fishtastic.gametest.QuestLogVisibilityGameTests;
 import grill24.fishtastic.gametest.QuestSatisfiabilityGameTests;
 import grill24.fishtastic.gametest.EncyclopediaTutorialManagerGameTests;
@@ -945,6 +946,16 @@ public class NeoForgeGameTestRegistration {
             QuestLogVisibilityGameTests::hiddenChainQuestAppearsOncePrerequisiteClaimed);
         register(event, env, "completed_chain_quest_is_listed_even_if_prerequisite_unclaimed", 200,
             QuestLogVisibilityGameTests::completedChainQuestIsListedEvenIfPrerequisiteUnclaimed);
+
+        // ----- Vanilla fish -----
+        register(event, env, "vanilla_catches_are_not_recorded", 200,
+            VanillaFishGameTests::vanillaCatchesAreNotRecorded);
+        register(event, env, "saved_vanilla_records_read_as_absent", 200,
+            VanillaFishGameTests::savedVanillaRecordsReadAsAbsent);
+        register(event, env, "vanilla_fish_earn_no_quest_credit", 200,
+            VanillaFishGameTests::vanillaFishEarnNoQuestCredit);
+        register(event, env, "no_quest_target_tag_holds_vanilla_fish", 200,
+            VanillaFishGameTests::noQuestTargetTagHoldsVanillaFish);
 
         // ----- Lifetime quest progress -----
         register(event, env, "catch_count_matching_scopes_to_the_requested_species", 200,

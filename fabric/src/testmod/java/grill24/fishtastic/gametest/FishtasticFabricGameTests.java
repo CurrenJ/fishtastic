@@ -1073,6 +1073,26 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void vanillaCatchesAreNotRecorded(GameTestHelper helper) {
+        VanillaFishGameTests.vanillaCatchesAreNotRecorded(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void savedVanillaRecordsReadAsAbsent(GameTestHelper helper) {
+        VanillaFishGameTests.savedVanillaRecordsReadAsAbsent(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void vanillaFishEarnNoQuestCredit(GameTestHelper helper) {
+        VanillaFishGameTests.vanillaFishEarnNoQuestCredit(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void noQuestTargetTagHoldsVanillaFish(GameTestHelper helper) {
+        VanillaFishGameTests.noQuestTargetTagHoldsVanillaFish(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void catchCountMatchingScopesToTheRequestedSpecies(GameTestHelper helper) {
         LifetimeQuestProgressGameTests.catchCountMatchingScopesToTheRequestedSpecies(helper);
     }

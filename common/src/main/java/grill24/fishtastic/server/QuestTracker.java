@@ -7,6 +7,7 @@ import grill24.fishtastic.data.Quest;
 import grill24.fishtastic.data.QuestCategory;
 import grill24.fishtastic.data.QuestDifficulty;
 import grill24.fishtastic.data.QuestObjective;
+import grill24.fishtastic.data.VanillaFish;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.network.QuestSyncPacket;
 import grill24.fishtastic.util.FishQualityHelper;
@@ -302,6 +303,8 @@ public class QuestTracker {
     public static boolean matchesObjective(QuestObjective obj, ItemStack stack, Holder<Biome> biome,
             FishProfile.TimeOfDay timeOfDay, FishProfile.WeatherCondition weather,
             Set<FishProfile.Zone> zones, Identifier usedBaitId) {
+        if (VanillaFish.is(stack)) return false;
+
         if (obj.distinctBaitTag().isPresent()) {
             if (usedBaitId == null) return false;
             boolean baitMatches = BuiltInRegistries.ITEM.getOptional(usedBaitId)
@@ -379,7 +382,7 @@ public class QuestTracker {
         FishCatchSavedData catchData = FishCatchSavedData.getOrCreate(server);
         PlayerQuestState state = catchData.getOrCreateQuestState(player);
 
-        if (!placedStack.isEmpty() && placedStack.is(ItemTags.FISHES)) {
+        if (!placedStack.isEmpty() && placedStack.is(ItemTags.FISHES) && !VanillaFish.is(placedStack)) {
             state.incrementLifetimeTankPlacements();
         }
 
@@ -468,6 +471,7 @@ public class QuestTracker {
 
     /** Species/tag/quality/size portion of {@link #matchesObjective}, without the per-catch conditions. */
     private static boolean matchesTankItem(QuestObjective obj, ItemStack stack) {
+        if (VanillaFish.is(stack)) return false;
         if (obj.targetSpecies().isPresent()) {
             Optional<ResourceKey<net.minecraft.world.item.Item>> stackKey =
                     stack.getItem().builtInRegistryHolder().unwrapKey();
