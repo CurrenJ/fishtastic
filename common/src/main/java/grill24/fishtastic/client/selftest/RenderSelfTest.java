@@ -22,6 +22,7 @@ import static grill24.fishtastic.client.selftest.CompanionScenes.queuePartyLogin
 import static grill24.fishtastic.client.selftest.BenchmarkScenes.queuePerfBenchScene;
 import static grill24.fishtastic.client.selftest.QuestBookScenes.queueQuestBookScene;
 import static grill24.fishtastic.client.selftest.BenchmarkScenes.queueScaleBenchScene;
+import static grill24.fishtastic.client.selftest.EncyclopediaScenes.queueFaqScene;
 import static grill24.fishtastic.client.selftest.EncyclopediaScenes.queueTutorialScene;
 import static grill24.fishtastic.client.selftest.CompanionScenes.queueTwoClientScene;
 import static grill24.fishtastic.client.selftest.FishSchoolScenes.queueFishSchoolBiteScene;
@@ -151,7 +152,7 @@ public final class RenderSelfTest {
 
     private static final List<String> OPT_IN_SCENES = List.of("matte", "matteclip", "fourwaters", "fishspin", "cathedral",
             "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench",
-            "leaderboard", "encyclopedia", "portrait", "tutorial", "companiontutorial", "companionbond", "companionsim",
+            "leaderboard", "encyclopedia", "portrait", "tutorial", "faq", "companiontutorial", "companionbond", "companionsim",
             "companionparty", "companioneel", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld",
             "companionparticles", "companionworldcost", "ambientparity", "ambientwater",
             "ambientisland", "ambientfloor", "ambientwalk", "ambientswim", "fishschoolgif", "fishschooljump", "legendarybreach",
@@ -378,6 +379,7 @@ public final class RenderSelfTest {
             case "highlight" -> queueHighlightScene();
             case "leaderboard" -> queueLeaderboardScene();
             case "tutorial" -> queueTutorialScene();
+            case "faq" -> queueFaqScene();
             case "companiontutorial" -> queueCompanionTutorialScene();
             case "columns" -> queueColumnsScene();
             case "spanpreview" -> queueSpanPreviewScene();

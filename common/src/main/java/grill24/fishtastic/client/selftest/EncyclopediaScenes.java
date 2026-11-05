@@ -73,6 +73,47 @@ final class EncyclopediaScenes {
         queue(1, mc -> { if (mc.screen != null) mc.screen.onClose(); });
     }
 
+    /** The port tutorial scene predates the source's help-menu path, so the FAQ has its own. */
+    static void queueFaqScene() {
+        queue(1, mc -> {
+            mc.options.hideGui = false;
+            testingHelpMenus = true;
+            mc.setScreen(new net.minecraft.client.gui.screens.PauseScreen(true));
+        });
+        queue(5, mc -> pressFaqSceneButton(mc, "tutorial.fishtastic.help.title"));
+        queue(5, mc -> {
+            check("faq.help_opens", mc.screen instanceof grill24.fishtastic.client.TutorialHelpScreen, "Pause menu reaches help");
+            screenshot(mc, "faq", "help");
+            pressFaqSceneButton(mc, "tutorial.fishtastic.help.faq");
+        });
+        queue(5, mc -> {
+            check("faq.opens", mc.screen instanceof grill24.fishtastic.client.TutorialFaqScreen, "FAQ button opens the FAQ");
+            screenshot(mc, "faq", "top");
+            for (var child : mc.screen.children()) {
+                if (child instanceof net.minecraft.client.gui.components.FittingMultiLineTextWidget area) {
+                    check("faq.scrolls", area.mouseScrolled(area.getX() + 5, area.getY() + 5, 0, -1000), "Wheel scrolls the FAQ");
+                }
+            }
+        });
+        queue(5, mc -> {
+            screenshot(mc, "faq", "bottom");
+            mc.screen.onClose();
+        });
+        queue(5, mc -> check("faq.returns", mc.screen instanceof grill24.fishtastic.client.TutorialHelpScreen, "Done returns to help"));
+        queue(1, mc -> {
+            testingHelpMenus = false;
+            mc.setScreen(null);
+        });
+    }
+
+    private static void pressFaqSceneButton(net.minecraft.client.Minecraft mc, String key) {
+        mc.screen.children().stream()
+                .filter(child -> child instanceof net.minecraft.client.gui.components.Button)
+                .map(child -> (net.minecraft.client.gui.components.Button) child)
+                .filter(button -> button.getMessage().getString().equals(Component.translatable(key).getString()))
+                .findFirst().orElseThrow().onPress();
+    }
+
     static void queueTutorialScene() {
         int[] session = {-1};
         queue(1, mc -> {
