@@ -1,5 +1,26 @@
 # Backport parity progress
 
+## Completed (2026-11-05): FAQ port and 2.1.22 version bump
+
+- **Scope:** the single commit `f829d225` (FAQ in the help menu), at the owner's request, followed by a
+  2.1.22 bump on all three branches. This is not a parity pass: **no markers were advanced**, and the next
+  pass still starts from the existing markers. Nothing was pushed or published.
+- **Commits:** 26.1.2 `f829d225`, bump `29a3a3f9`; 1.21.1 `16831ba8`, bump `a0a1c901`; 1.20.1 `63be7a08`,
+  bump `5a4906d1`.
+- **Port differences:** `TutorialFaqScreen` uses `render`/`GuiGraphics`. The ports' `tutorial` scene is an
+  older version than the source's (it expects the lesson to be re-offered after skipping, and has no
+  help-menu path), so it was left alone and the ports gained an opt-in `faq` scene instead, which needs
+  `testingHelpMenus` because the harness otherwise closes `PauseScreen`. The source covers the FAQ in
+  its `tutorial` scene. The stale port scene was not run and may fail.
+- **Evidence:** Fabric `faq` scene, 5/5 checks and screenshots reviewed: 1.21.1
+  `build/verification/two-client/fabric/44515bdb52ae4451b2dcbd1489798ef8`, 1.20.1
+  `.../942bcd27956048e18833009f9327cc36` (each under its worktree). Source `tutorial` scene, 22/22, at
+  `.../7ffffd0c393a44b2a4ebee3a62109367`, ran with FAQ fifth in the list; the move to the top and the reworded
+  minigame answer were not rerun in a client on 26.1.2, though the same layout was seen on both ports.
+  Commit hook green on every commit (Fabric GameTests 414 / 408 / 409).
+- **Not verified:** NeoForge and Forge clients on any branch; the middle FAQ entries on screen.
+- **Next action:** none for this change. Include the FAQ commits as already-ported in the next pass.
+
 ## Completed (2026-11-04): 2.1.20 CurseForge release
 
 - **Operation:** release the pinned 2.1.20 snapshots after the branches advanced to 2.1.21:
