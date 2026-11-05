@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.1.22
+
 - Added an FAQ to the Fishtastic help menu, answering common questions about rods, bait, the minigame, tanks and more.
 
 ## 2.1.21
