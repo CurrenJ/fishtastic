@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added an FAQ to the Fishtastic help menu, answering common questions about rods, bait, the minigame, tanks and more.
+
 ## 2.1.21
 
 - Vanilla flowers, saplings, grasses, ferns, mushrooms and other plants can now be placed as fish tank cosmetics.
