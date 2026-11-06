@@ -683,6 +683,21 @@ public class ForgeFishtasticGameTests {
         FishTankGameTests.brokenTankDropRestoresShapeWhenReplaced(helper);
     }
 
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void brokenTankSpillsItsFish(GameTestHelper helper) {
+        FishTankGameTests.brokenTankSpillsItsFish(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void brokenAssemblySpillsItsContents(GameTestHelper helper) {
+        FishTankGameTests.brokenAssemblySpillsItsContents(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void brokenOrganizerSpillsItsContents(GameTestHelper helper) {
+        FishTankGameTests.brokenOrganizerSpillsItsContents(helper);
+    }
+
     // -------------------------------------------------------------------------
     // TutorialManager tests
     // -------------------------------------------------------------------------
@@ -818,6 +833,11 @@ public class ForgeFishtasticGameTests {
     @GameTest(structure = "fishtastic:empty_testarea")
     public static void minQualityIsOrdinalFloor(GameTestHelper helper) {
         QuestTrackerGameTests.minQualityIsOrdinalFloor(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void minQualityIgnoresLegendaryTreasureTank(GameTestHelper helper) {
+        QuestTrackerGameTests.minQualityIgnoresLegendaryTreasureTank(helper);
     }
 
     @GameTest(structure = "fishtastic:empty_testarea")
@@ -1969,6 +1989,16 @@ public class ForgeFishtasticGameTests {
     @GameTest(structure = "fishtastic:empty_testarea")
     public static void tankSlotOnlyAcceptsFishTanks(GameTestHelper helper) {
         FishTankAssemblyRefitGameTests.tankSlotOnlyAcceptsFishTanks(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void tankSlotAcceptsAStackAndRefitsOneAtATime(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.tankSlotAcceptsAStackAndRefitsOneAtATime(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void shiftClickRefitsTheStackUntilTheResultWouldChange(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.shiftClickRefitsTheStackUntilTheResultWouldChange(helper, helper::makeMockServerPlayerInLevel);
     }
 
     // -------------------------------------------------------------------------

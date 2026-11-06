@@ -244,6 +244,63 @@ public final class FishTankAssemblyRefitGameTests {
         helper.succeed();
     }
 
+    /**
+     * A whole stack of tanks fits in the refit slot and is refit one at a time, without the shrinking
+     * stack re-seeding the shape the player selected.
+     */
+    public static void tankSlotAcceptsAStackAndRefitsOneAtATime(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        Fixture f = open(helper, mockPlayer);
+        ItemStack stack = tank(FishTankShape.SKYLIGHT, ORIGINAL);
+        stack.setCount(8);
+        f.putTank(stack);
+
+        ItemStack held = f.be.getItem(FishTankAssemblyBlockEntity.TANK_SLOT);
+        helper.assertTrue(held.getCount() == 8, "The slot must take the whole stack, holds " + held.getCount());
+        helper.assertTrue(f.menu.getCarried().isEmpty(), "Nothing must be left on the cursor, got " + f.menu.getCarried());
+
+        f.menu.setShape(FishTankShape.ORNATE);
+        helper.assertTrue(f.result().getCount() == 1, "A refit must produce one tank, got " + f.result().getCount());
+        helper.assertTrue(shapeOf(f.result()) == FishTankShape.ORNATE, "The result must take the selected shape");
+
+        f.takeResult();
+        helper.assertTrue(f.be.getItem(FishTankAssemblyBlockEntity.TANK_SLOT).getCount() == 7,
+                "A take must consume one tank, " + f.be.getItem(FishTankAssemblyBlockEntity.TANK_SLOT).getCount() + " left");
+        helper.assertTrue(f.menu.getShape() == FishTankShape.ORNATE,
+                "A shrinking stack must keep the selected shape, got " + f.menu.getShape());
+
+        f.takeResult();
+        helper.assertTrue(f.menu.getCarried().getCount() == 2,
+                "Clicking again must add to the held result, holding " + f.menu.getCarried().getCount());
+        helper.assertTrue(f.be.getItem(FishTankAssemblyBlockEntity.TANK_SLOT).getCount() == 6,
+                "The second take must consume another tank");
+        helper.succeed();
+    }
+
+    /** A shift-click refits the stack while materials last, and stops before the result would change. */
+    public static void shiftClickRefitsTheStackUntilTheResultWouldChange(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        Fixture f = open(helper, mockPlayer);
+        ItemStack stack = tank(FishTankShape.STANDARD, ORIGINAL);
+        stack.setCount(4);
+        f.putTank(stack);
+
+        f.be.setItem(FishTankAssemblyMenu.FRAME_SLOT, new ItemStack(Blocks.SPRUCE_PLANKS, 2));
+        f.menu.slotsChanged(f.be);
+        f.menu.clicked(FishTankAssemblyMenu.RESULT_SLOT, 0, ContainerInput.QUICK_MOVE, f.player);
+        helper.assertTrue(f.be.getItem(FishTankAssemblyBlockEntity.TANK_SLOT).getCount() == 2,
+                "Two frames must refit two tanks, " + f.be.getItem(FishTankAssemblyBlockEntity.TANK_SLOT).getCount() + " left");
+        helper.assertTrue(countInInventory(f.player, Blocks.OAK_PLANKS) == 2, "Each replaced frame must be refunded");
+
+        // Frame runs to 1 more than glass: after one full refit the next would only change the frame.
+        f.be.setItem(FishTankAssemblyMenu.FRAME_SLOT, new ItemStack(Blocks.SPRUCE_PLANKS, 2));
+        f.be.setItem(FishTankAssemblyMenu.GLASS_SLOT, new ItemStack(Blocks.BLUE_STAINED_GLASS, 1));
+        f.menu.slotsChanged(f.be);
+        f.menu.clicked(FishTankAssemblyMenu.RESULT_SLOT, 0, ContainerInput.QUICK_MOVE, f.player);
+        helper.assertTrue(f.be.getItem(FishTankAssemblyBlockEntity.TANK_SLOT).getCount() == 1,
+                "The shift-click must stop when the next result would differ, "
+                        + f.be.getItem(FishTankAssemblyBlockEntity.TANK_SLOT).getCount() + " left");
+        helper.succeed();
+    }
+
     /** The assembly is a wooden workbench: an axe is its preferred tool, and mines it faster than a hand. */
     public static void assemblyPrefersAnAxe(GameTestHelper helper) {
         net.minecraft.world.level.block.state.BlockState state = FishtasticBlocks.FISH_TANK_ASSEMBLY.value().defaultBlockState();

@@ -196,6 +196,11 @@ public class FishTankAssemblyMenu extends GelatinMenu {
                 return ItemStack.EMPTY;
             }
             slot.onTake(player, stackInSlot);
+            // A shift-click repeats until this returns empty. Stop when the next result would
+            // differ (a material ran out), so one click can't quietly make a mixed batch of tanks.
+            if (index == RESULT_SLOT && !FishtasticItemData.isSameItemSameData(slot.getItem(), newStack)) {
+                return ItemStack.EMPTY;
+            }
         }
         return newStack;
     }
@@ -211,7 +216,8 @@ public class FishTankAssemblyMenu extends GelatinMenu {
     /** When a different tank lands in the refit slot, select its shape so the gallery starts from it. */
     private void syncShapeToTank(Player player) {
         ItemStack tank = inputContainer.getItem(FishTankAssemblyBlockEntity.TANK_SLOT);
-        if (ItemStack.matches(tank, lastTank)) return;
+        // Ignores count: a stack shrinking as it's refit is still the same tank.
+        if (FishtasticItemData.isSameItemSameData(tank, lastTank)) return;
         lastTank = tank.copy();
         if (!tank.isEmpty() && !player.level().isClientSide()) {
             setShape(shapeOf(tank));
@@ -334,7 +340,7 @@ public class FishTankAssemblyMenu extends GelatinMenu {
         }
     }
 
-    /** Refit slot: holds exactly one fish tank item. */
+    /** Refit slot: holds a stack of fish tank items, refit one at a time. */
     private static class TankSlot extends Slot {
         TankSlot(Container container, int slot, int x, int y) {
             super(container, slot, x, y);
@@ -343,11 +349,6 @@ public class FishTankAssemblyMenu extends GelatinMenu {
         @Override
         public boolean mayPlace(ItemStack stack) {
             return stack.is(FishtasticBlocks.FISH_TANK.value().asItem());
-        }
-
-        @Override
-        public int getMaxStackSize() {
-            return 1;
         }
     }
 

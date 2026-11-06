@@ -709,6 +709,21 @@ public class FishtasticFabricGameTests {
         FishTankGameTests.brokenTankDropRestoresShapeWhenReplaced(helper);
     }
 
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void brokenTankSpillsItsFish(GameTestHelper helper) {
+        FishTankGameTests.brokenTankSpillsItsFish(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void brokenAssemblySpillsItsContents(GameTestHelper helper) {
+        FishTankGameTests.brokenAssemblySpillsItsContents(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void brokenOrganizerSpillsItsContents(GameTestHelper helper) {
+        FishTankGameTests.brokenOrganizerSpillsItsContents(helper);
+    }
+
     // -------------------------------------------------------------------------
     // TutorialManager tests
     // -------------------------------------------------------------------------
@@ -859,6 +874,11 @@ public class FishtasticFabricGameTests {
     @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void minQualityIsOrdinalFloor(GameTestHelper helper) {
         QuestTrackerGameTests.minQualityIsOrdinalFloor(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void minQualityIgnoresLegendaryTreasureTank(GameTestHelper helper) {
+        QuestTrackerGameTests.minQualityIgnoresLegendaryTreasureTank(helper);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
@@ -2008,6 +2028,16 @@ public class FishtasticFabricGameTests {
     @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void tankSlotOnlyAcceptsFishTanks(GameTestHelper helper) {
         FishTankAssemblyRefitGameTests.tankSlotOnlyAcceptsFishTanks(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void tankSlotAcceptsAStackAndRefitsOneAtATime(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.tankSlotAcceptsAStackAndRefitsOneAtATime(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void shiftClickRefitsTheStackUntilTheResultWouldChange(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.shiftClickRefitsTheStackUntilTheResultWouldChange(helper, helper::makeMockServerPlayerInLevel);
     }
 
     // -------------------------------------------------------------------------

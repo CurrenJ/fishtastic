@@ -440,6 +440,12 @@ public class NeoForgeGameTestRegistration {
             FishTankGameTests::brokenTankDropCarriesShapeAndMaterials);
         register(event, env, "broken_tank_drop_restores_shape_when_replaced", 200,
             FishTankGameTests::brokenTankDropRestoresShapeWhenReplaced);
+        register(event, env, "broken_tank_spills_its_fish", 200,
+            FishTankGameTests::brokenTankSpillsItsFish);
+        register(event, env, "broken_assembly_spills_its_contents", 200,
+            FishTankGameTests::brokenAssemblySpillsItsContents);
+        register(event, env, "broken_organizer_spills_its_contents", 200,
+            FishTankGameTests::brokenOrganizerSpillsItsContents);
 
         // ----- TutorialManager tests -----
         register(event, env, "companion_tutorial_real_menu_walks_all_lessons", 200,
@@ -502,6 +508,8 @@ public class NeoForgeGameTestRegistration {
             QuestTrackerGameTests::targetSpeciesTagGatesMatchWhenPresent);
         register(event, env, "min_quality_is_ordinal_floor", 200,
             QuestTrackerGameTests::minQualityIsOrdinalFloor);
+        register(event, env, "min_quality_ignores_legendary_treasure_tank", 200,
+            QuestTrackerGameTests::minQualityIgnoresLegendaryTreasureTank);
         register(event, env, "biome_condition_gates_match_when_present", 200,
             QuestTrackerGameTests::biomeConditionGatesMatchWhenPresent);
         register(event, env, "time_condition_gates_match_when_present", 200,
@@ -907,6 +915,10 @@ public class NeoForgeGameTestRegistration {
             helper -> FishTankAssemblyRefitGameTests.craftingWithoutATankIsUnchanged(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "tank_slot_only_accepts_fish_tanks", 200,
             helper -> FishTankAssemblyRefitGameTests.tankSlotOnlyAcceptsFishTanks(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "tank_slot_accepts_a_stack_and_refits_one_at_a_time", 200,
+            helper -> FishTankAssemblyRefitGameTests.tankSlotAcceptsAStackAndRefitsOneAtATime(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "shift_click_refits_the_stack_until_the_result_would_change", 200,
+            helper -> FishTankAssemblyRefitGameTests.shiftClickRefitsTheStackUntilTheResultWouldChange(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
 
         register(event, env, "display_count_clamps_overshoot_to_the_target", 200,
             PlayerQuestStateGameTests::displayCountClampsOvershootToTheTarget);
