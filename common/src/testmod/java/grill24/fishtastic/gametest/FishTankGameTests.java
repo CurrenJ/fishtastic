@@ -3,6 +3,9 @@ package grill24.fishtastic.gametest;
 import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.FishtasticDataComponents;
 import grill24.fishtastic.FishtasticItemData;
+import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.blockentity.ElectricFishOrganizerBlockEntity;
+import grill24.fishtastic.blockentity.FishTankAssemblyBlockEntity;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.component.FishTankMaterials;
 import grill24.fishtastic.data.TankCapacity;
@@ -16,12 +19,15 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.phys.AABB;
 
 import java.util.List;
 import java.util.Set;
@@ -535,6 +541,46 @@ public final class FishTankGameTests {
             "Re-placed tank must recover the LATTICE shape, got " + replaced.getShape());
         helper.assertTrue(materials.equals(replaced.getMaterials()),
             "Re-placed tank must recover its materials, got " + replaced.getMaterials());
+        helper.succeed();
+    }
+
+    // -------------------------------------------------------------------------
+    // Break drops: a broken block spills what it was holding
+    // -------------------------------------------------------------------------
+
+    /** Breaking a stocked tank must spill its fish, not destroy them with the block. */
+    public static void brokenTankSpillsItsFish(GameTestHelper helper) {
+        FishTankBlockEntity tank = placeFishTank(helper);
+        tank.setItem(0, new ItemStack(FishtasticItems.BLUEGILL.value()));
+        assertBreakSpills(helper, FishtasticItems.BLUEGILL.value());
+    }
+
+    /** Breaking the assembly block must hand back whatever was staged in it. */
+    public static void brokenAssemblySpillsItsContents(GameTestHelper helper) {
+        helper.setBlock(FLOOR, Blocks.STONE);
+        helper.setBlock(TANK_POS, FishtasticBlocks.FISH_TANK_ASSEMBLY.value());
+        ((FishTankAssemblyBlockEntity) helper.getBlockEntity(TANK_POS))
+            .setItem(FishTankAssemblyBlockEntity.FRAME_SLOT, new ItemStack(Blocks.SPRUCE_PLANKS));
+        assertBreakSpills(helper, Blocks.SPRUCE_PLANKS.asItem());
+    }
+
+    /** Breaking the organizer must not destroy its fish, which it has repacked into a pile by then. */
+    public static void brokenOrganizerSpillsItsContents(GameTestHelper helper) {
+        helper.setBlock(FLOOR, Blocks.STONE);
+        helper.setBlock(TANK_POS, FishtasticBlocks.ELECTRIC_FISH_ORGANIZER.value());
+        ((ElectricFishOrganizerBlockEntity) helper.getBlockEntity(TANK_POS))
+            .setItem(0, new ItemStack(FishtasticItems.BLUEGILL.value()));
+        assertBreakSpills(helper, FishtasticItems.PILE_OF_FISH.value());
+    }
+
+    private static void assertBreakSpills(GameTestHelper helper, Item expected) {
+        BlockPos absolute = helper.absolutePos(TANK_POS);
+        helper.getLevel().destroyBlock(absolute, true);
+        boolean spilled = helper.getLevel()
+            .getEntitiesOfClass(ItemEntity.class, new AABB(absolute).inflate(2.0))
+            .stream()
+            .anyMatch(entity -> entity.getItem().is(expected));
+        helper.assertTrue(spilled, "Breaking the block must spill " + expected);
         helper.succeed();
     }
 }

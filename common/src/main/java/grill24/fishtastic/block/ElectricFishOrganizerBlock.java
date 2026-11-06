@@ -2,6 +2,7 @@ package grill24.fishtastic.block;
 
 import grill24.fishtastic.blockentity.ElectricFishOrganizerBlockEntity;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.Containers;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
@@ -19,6 +20,15 @@ import org.jetbrains.annotations.Nullable;
 public class ElectricFishOrganizerBlock extends Block implements EntityBlock {
     public ElectricFishOrganizerBlock(Properties properties) {
         super(properties);
+    }
+
+    @Override
+    protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
+        // This Minecraft version leaves spilling a container to each block; 26.1.2 does it in BlockEntity.
+        if (!level.isClientSide() && !state.is(newState.getBlock()) && level.getBlockEntity(pos) instanceof ElectricFishOrganizerBlockEntity organizer) {
+            Containers.dropContents(level, pos, organizer);
+        }
+        super.onRemove(state, level, pos, newState, movedByPiston);
     }
 
     @Override

@@ -728,6 +728,21 @@ public class FishtasticGameTests {
     }
 
     @GameTest(template = "fishtastic_empty")
+    public void brokenTankSpillsItsFish(GameTestHelper helper) {
+        FishTankGameTests.brokenTankSpillsItsFish(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void brokenAssemblySpillsItsContents(GameTestHelper helper) {
+        FishTankGameTests.brokenAssemblySpillsItsContents(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void brokenOrganizerSpillsItsContents(GameTestHelper helper) {
+        FishTankGameTests.brokenOrganizerSpillsItsContents(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
     public void brokenTankDropRestoresShapeWhenReplaced(GameTestHelper helper) {
         FishTankGameTests.brokenTankDropRestoresShapeWhenReplaced(helper);
     }
@@ -877,6 +892,11 @@ public class FishtasticGameTests {
     @GameTest(template = "fishtastic_empty")
     public void targetSpeciesTagGatesMatchWhenPresent(GameTestHelper helper) {
         QuestTrackerGameTests.targetSpeciesTagGatesMatchWhenPresent(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void minQualityIgnoresLegendaryTreasureTank(GameTestHelper helper) {
+        QuestTrackerGameTests.minQualityIgnoresLegendaryTreasureTank(helper);
     }
 
     @GameTest(template = "fishtastic_empty")
@@ -1468,6 +1488,16 @@ public class FishtasticGameTests {
     @GameTest(template = "fishtastic_empty")
     public void craftingWithoutATankIsUnchanged(GameTestHelper helper) {
         FishTankAssemblyRefitGameTests.craftingWithoutATankIsUnchanged(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void tankSlotAcceptsAStackAndRefitsOneAtATime(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.tankSlotAcceptsAStackAndRefitsOneAtATime(helper, FishtasticTestSupport.playerSupplier(helper));
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void shiftClickRefitsTheStackUntilTheResultWouldChange(GameTestHelper helper) {
+        FishTankAssemblyRefitGameTests.shiftClickRefitsTheStackUntilTheResultWouldChange(helper, FishtasticTestSupport.playerSupplier(helper));
     }
 
     @GameTest(template = "fishtastic_empty")

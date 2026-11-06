@@ -28,6 +28,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.Containers;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
@@ -144,6 +145,10 @@ public class FishTankBlock extends Block implements EntityBlock {
 
     @Override
     protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
+        // This Minecraft version leaves spilling a container to each block; 26.1.2 does it in BlockEntity.
+        if (!level.isClientSide() && !state.is(newState.getBlock()) && level.getBlockEntity(pos) instanceof FishTankBlockEntity tank) {
+            Containers.dropContents(level, pos, tank);
+        }
         super.onRemove(state, level, pos, newState, movedByPiston);
         // 26.1.2's affectNeighborsAfterRemoval: runs server-side only, once the tank is actually gone.
         if (level.isClientSide() || state.is(newState.getBlock())) return;

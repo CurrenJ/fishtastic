@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Minecraft 1.21.1 and 1.20.1: breaking a fish tank, Fish Tank Assembly or Electric Fish Organizer now drops what was inside instead of destroying it.
+- The Fish Tank Assembly's tank slot now takes a whole stack of tanks and refits them one at a time. Shift-clicking the result refits as many as the materials allow.
+- Catching the Legendary treasure fish tank no longer counts toward "catch a fish at this quality" quests.
+
 ## 2.1.22
 
 - Added an FAQ to the Fishtastic help menu, answering common questions about rods, bait, the minigame, tanks and more.
