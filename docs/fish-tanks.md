@@ -500,6 +500,12 @@ centre lies inside it. The original two spans (`whale_fall`, `drowned_pagoda`) a
 `tools/span-structure-gen/gen.py`; the `spanpreview` self-test scene places both by right-click and
 photographs them.
 
+**Breaking a tank** (`TankCosmeticDrops`) drops what it stores: its floor and lid cosmetics unit by
+unit, and any structure anchored in it, which clears that structure's links. Breaking another tank a
+structure reaches into drops nothing: the structure stays on its anchor, still removable in the tank
+browser, and the part in the missing tank stops drawing. A strand stored in another storey of the
+column drops the segments it no longer has room for.
+
 Column strands are stored once, on the tank they're attached to, but every tank in the column
 draws the segments that *start* inside it (`FishTankBlockEntityRenderer#collectColumnSegments`),
 so a tall strand stays on screen whichever storey is in view — the same reason group fish are
