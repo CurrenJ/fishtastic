@@ -1,5 +1,113 @@
 # Backport parity progress
 
+## Completed (2026-11-06): 2.1.22 CurseForge release
+
+- **Operation:** Build, package-check, and release-smoke the exact 2.1.22 version snapshots, then
+  publish their matching CurseForge artifacts as a release. Pins: 26.1.2 `29a3a3f956d7eee5c3bd49b3a69975b1523ddb94`,
+  1.21.1 `a0a1c9018df8460fdf7a72a6ce7b052d5b52eac6`, and 1.20.1
+  `5a4906d113957c11ea75c91caaa0455638beaea6`. Active tips at start: 26.1.2 `f4a586ee`,
+  1.21.1 `0d6b546a`, and 1.20.1 `5c69ecdc`. Use detached snapshots so later branch changes are excluded.
+- **Evidence path:** `build/release-2.1.22/evidence/`; snapshot checkouts under
+  `build/release-2.1.22/snapshots/`.
+- **Gates:** clean `:fishsim:jar assemble build --no-parallel` on all snapshots; verify all eight
+  release jars and their metadata; run all eight profiles in `tools/release-smoke/matrix.json` with
+  these pinned jars; re-run the build and compare hashes before a CurseForge dry run and publication.
+  Use each snapshot's 2.1.22 changelog. No branch pushes or parity-marker changes.
+- **Source checkpoint:** source commits and changelog entries match version 2.1.22 and are ancestors
+  of the active release branches. `git worktree add` could not create metadata under the read-only
+  `.git/worktrees`; no worktree or branch was created. Clean `git archive` exports of all three pins
+  are under `build/release-2.1.22/snapshots/`; their project Gradle configuration selects JDK 25
+  for 26.1.2 and JDK 21 for both ports. The final successful build logs are recorded below.
+- **Build checkpoint (26.1.2):** the pinned snapshot passed `:fishsim:jar assemble build
+  --no-parallel` on JDK 25; all 59 tasks succeeded. The log is
+  `evidence/26.1.2-release-build.log`. Later release gates are recorded below.
+- **Build checkpoint (1.21.1):** the pinned snapshot passed `:fishsim:jar assemble build
+  --no-parallel` on JDK 21; all 71 tasks succeeded. The log is
+  `evidence/1.21.1-release-build.log`. Later release gates are recorded below.
+- **Build checkpoint (1.20.1):** the pinned snapshot passed `:fishsim:jar assemble build
+  --no-parallel` on JDK 21; all 58 tasks succeeded. The log is
+  `evidence/1.20.1-release-build.log`. Later release gates are recorded below.
+- **Package checkpoint:** all eight jars are valid ZIPs with expected version/class majors (69/65/61),
+  no selftest/testmod/GameTest classes, and the two older Forge jars have JarJar metadata without
+  embedded MixinExtras classes. SHA-256 manifests and pinned changelog extracts were captured.
+  Evidence: `evidence/package-checks.txt`, `evidence/{26.1.2,1.21.1,1.20.1}/`.
+  Changelog capture correction: the copied helper initially retained its 2.1.21 regex. It was fixed and rerun before publication; the three 2.1.22 extracts now contain the FAQ entry. This is recorded in `evidence/pre-publish-hash-checks.txt`.
+- **Smoke checkpoint (26.1.2):** Fabric and NeoForge passed world join and 30-second settle; Forge
+  passed with the documented experimental-settings confirmation. All three jar hashes stayed
+  unchanged. Evidence: `evidence/release-smoke/F2_26.1.2_{Fabric,NeoForge,Forge}/`.
+- **Smoke checkpoint (1.21.1):** Fabric and NeoForge passed cleanly; Forge passed with the documented experimental-settings confirmation. All three jar hashes stayed unchanged. Evidence: `evidence/release-smoke/F2_1.21.1_{Fabric,NeoForge,Forge}/`.
+- **Smoke checkpoint:** all eight pinned artifacts booted, joined their template worlds, and settled for 30 seconds. Six were clean PASS; 26.1.2 Forge and 1.21.1 Forge were PASS_WITH_FINDINGS after the documented experimental-settings confirmation. All jar hashes stayed unchanged. Evidence: `evidence/release-smoke/matrix.log`, per-profile summaries/logs under `evidence/release-smoke/`, and `evidence/{26.1.2,1.21.1,1.20.1}/jars-smoked.sha256`.
+- **Pre-publish checkpoint:** all three `:fishsim:jar assemble build --no-parallel` runs passed with every task UP-TO-DATE (26.1.2 59/59, 1.21.1 71/71, 1.20.1 58/58). All eight actual jar hashes match the clean-build and smoke manifests. `verify_smokes.py` confirms all eight joined and settled with zero fatal lines, Fishtastic errors, or crash reports; two modern Forge profiles needed the accepted experimental-settings confirmation. Evidence: `evidence/{26.1.2,1.21.1,1.20.1}-pre-publish-build.log`, `evidence/pre-publish-hash-checks.txt`, and `evidence/release-smoke/matrix.log`.
+- **Publish dry-run checkpoint:** `publishCurseForge -m -Prelease_type=release` passed on all three snapshots and planned exactly 3/3/2 loader artifacts; no upload ran. Each snapshot is configured to use its corrected pinned FAQ changelog. Logs: `evidence/{26.1.2,1.21.1,1.20.1}-publish-dry-run.log`; commands: `evidence/publish-commands.txt`.
+- **Publication checkpoint (26.1.2):** `publishCurseForge -Prelease_type=release` exited 0 for the configured Fabric/NeoForge/Forge artifacts; all three jar tasks were UP-TO-DATE. Log: `evidence/26.1.2-publish.log`. The task does not report CurseForge file IDs; no upload was retried.
+- **Publication checkpoint (1.21.1):** `publishCurseForge -Prelease_type=release` exited 0 for the configured Fabric/NeoForge/Forge artifacts; all three jar tasks were UP-TO-DATE. Log: `evidence/1.21.1-publish.log`. No upload was retried.
+- **Publication checkpoint (1.20.1):** `publishCurseForge -Prelease_type=release` exited 0 for the configured Fabric/Forge artifacts; both jar tasks were UP-TO-DATE. Log: `evidence/1.20.1-publish.log`. No upload was retried.
+- **Publication:** the three `publishCurseForge -Prelease_type=release` tasks exited 0 and planned/uploaded eight release artifacts (3+3+2). Each task used the pinned 2.1.22 FAQ changelog, and every upload jar task was UP-TO-DATE. Logs: `evidence/{26.1.2,1.21.1,1.20.1}-publish.log`; command record: `evidence/publish-commands.txt`.
+- **Post-publish verification:** all eight actual jar hashes still match the clean-build and smoke manifests; the release smoke verifier reports 0 fatal lines, 0 Fishtastic errors, and 0 crash reports. Evidence: `evidence/post-publish-hash-checks.txt`.
+- **CurseForge status:** the upload tasks do not print file IDs. A read-only file-list API request returned HTTP 403, so file IDs and review/approval state were not independently verified. The owner expects public visibility may wait for approval. Evidence: `evidence/curseforge-status-check.txt`.
+- **Branch state:** no branch was pushed or moved, no release tip changes were included, and no backport parity marker advanced.
+- **Next action:** check CurseForge review/approval status in the author dashboard; do not rerun the successful upload tasks.
+
+## Completed (2026-11-05): 2.1.21 CurseForge release
+
+- **Operation:** released the pinned 2.1.21 snapshots after the branches advanced to 2.1.22:
+  26.1.2 `2b2910f0`, 1.21.1 `52c49a4f`, and 1.20.1 `564dd0d0`. Clean archive exports of those
+  commits passed the full release build and smoke matrix; only their matching jars were uploaded
+  with the pinned changelogs. Active tips at the start were 26.1.2 `f079209f`, 1.21.1 `a0a1c901`,
+  and 1.20.1 `5a4906d1`. Ahead-of-2.1.21 changes stayed out of the artifacts; no branch was pushed
+  and no parity marker advanced.
+- **Evidence path:** `build/release-2.1.21/evidence/` for source pins, build logs, hashes, smoke
+  results, and publish logs; snapshot checkouts under `build/release-2.1.21/snapshots/`.
+- **Build checkpoint:** the clean `:fishsim:jar assemble build --no-parallel` release build passed
+  on all three snapshots. Fishsim tests passed 582 cases (519 passed, 63 skipped, zero failures),
+  and tank-shape-gen passed 21,955/21,955 on every line. Logs are
+  `build/release-2.1.21/evidence/{26.1.2,1.21.1,1.20.1}-release-build.log`. An initial 26.1.2
+  launcher attempt was interrupted before Gradle started; it is kept separately and is not counted.
+- **Package checkpoint:** all eight expected release jars pass ZIP validation, have the expected
+  class major (69/65/61), and contain no selftest/testmod/GameTest classes. The 1.21.1 and 1.20.1
+  Forge jars contain JarJar metadata and no embedded MixinExtras classes. Per-line SHA-256 manifests
+  and pinned changelog extracts are under `build/release-2.1.21/evidence/{26.1.2,1.21.1,1.20.1}/`;
+  `evidence/package-checks.txt` records the checks.
+- **Smoke setup checkpoint:** the first matrix invocation exited during setup before launching a
+  game because the sandbox could not read the CurseForge root from the registry. All eight profile
+  manifests were then verified at the resolved install root. The failed setup-only attempt is kept
+  at `evidence/release-smoke-initial-setup-failure/matrix.log`; no jars changed.
+- **Smoke process checkpoint:** with the root override, 26.1.2 Fabric joined its world after 20s
+  and survived the 30s settle period, but the smoke process timed out while waiting for Minecraft
+  to exit after taskkill. The matrix was stopped before further results were accepted. That run and
+  the interrupted next profile are preserved at `evidence/release-smoke-first-attempt/`; no jars
+  changed.
+- **Harness correction:** a single 26.1.2 Fabric rerun with the registry override and process
+  cleanup permission passed (joined in 18s, settled 30s, clean shutdown). Evidence:
+  `evidence/release-smoke-elevated-probe/run.log` and `scratch/summary.json`.
+- **Smoke checkpoint:** all eight pinned release jars booted, joined their template worlds, and
+  settled for 30s. Six profiles passed cleanly; 26.1.2 Forge and 1.21.1 Forge passed with the
+  documented experimental-settings confirmation. All eight jar hashes match their clean-build
+  values, with zero fatal lines, Fishtastic errors, or crash reports. Evidence:
+  `evidence/release-smoke/matrix.log`, per-profile `scratch/summary.json` and logs, and
+  `evidence/{26.1.2,1.21.1,1.20.1}/jars-smoked.sha256`.
+- **Pre-publish checkpoint:** `:fishsim:jar assemble build --no-parallel` passed on every snapshot
+  with all tasks UP-TO-DATE (26.1.2 59/59, 1.21.1 71/71, 1.20.1 58/58). All eight jar files still
+  match both the clean-build and smoke SHA-256 manifests. Logs are
+  `evidence/{26.1.2,1.21.1,1.20.1}-pre-publish-build.log`; hash and smoke summary is
+  `evidence/pre-publish-hash-checks.txt`.
+- **Publish dry-run checkpoint:** `publishCurseForge -m -Prelease_type=release` passed for all
+  three snapshots and lists exactly the configured loaders (3/3/2), with no upload executed. Logs:
+  `evidence/{26.1.2,1.21.1,1.20.1}-publish-dry-run.log`.
+- **Publication:** `publishCurseForge -Prelease_type=release` completed with exit code 0 for all
+  three snapshots: Fabric/NeoForge/Forge on 26.1.2 and 1.21.1, Fabric/Forge on 1.20.1 (eight
+  files total). Each upload used the 2.1.21 changelog extracted from its pinned commit. Every
+  loader jar task was UP-TO-DATE during upload. Logs are
+  `evidence/{26.1.2,1.21.1,1.20.1}-publish.log`; commands are in `evidence/publish-commands.txt`.
+- **Post-publish verification:** all eight local upload inputs remain byte-identical to their
+  clean-build and smoke-tested hashes (`evidence/post-publish-hash-checks.txt`). The Gradle task
+  does not print CurseForge file IDs. The public listing lookup returned a stale crawl from last
+  month that still showed 2.0.1, so use the author dashboard to confirm processing/approval state;
+  do not rerun the upload tasks.
+- **Branch state:** no release branch moved or was pushed, and no backport parity marker advanced.
+- **Next action:** check the author dashboard for file processing/approval state before treating
+  the submissions as publicly visible.
+
 ## Completed (2026-11-05): FAQ port and 2.1.22 version bump
 
 - **Scope:** the single commit `f829d225` (FAQ in the help menu), at the owner's request, followed by a
