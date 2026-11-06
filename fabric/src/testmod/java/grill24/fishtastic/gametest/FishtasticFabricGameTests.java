@@ -710,6 +710,36 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void brokenTankDropsItsCosmetics(GameTestHelper helper) {
+        CosmeticPlacementGameTests.brokenTankDropsItsCosmetics(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void brokenStoreyTrimsStrandsThroughIt(GameTestHelper helper) {
+        CosmeticPlacementGameTests.brokenStoreyTrimsStrandsThroughIt(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void brokenAnchorDropsSeamStructure(GameTestHelper helper) {
+        CosmeticPlacementGameTests.brokenAnchorDropsSeamStructure(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void brokenNeighbourKeepsSeamStructure(GameTestHelper helper) {
+        CosmeticPlacementGameTests.brokenNeighbourKeepsSeamStructure(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void brokenSpanAnchorDropsTheSpan(GameTestHelper helper) {
+        CosmeticPlacementGameTests.brokenSpanAnchorDropsTheSpan(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void brokenSpanMemberKeepsTheSpan(GameTestHelper helper) {
+        CosmeticPlacementGameTests.brokenSpanMemberKeepsTheSpan(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void brokenTankSpillsItsFish(GameTestHelper helper) {
         FishTankGameTests.brokenTankSpillsItsFish(helper);
     }
@@ -874,6 +904,11 @@ public class FishtasticFabricGameTests {
     @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void minQualityIsOrdinalFloor(GameTestHelper helper) {
         QuestTrackerGameTests.minQualityIsOrdinalFloor(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void objectiveNamingNoSpeciesOnlyMatchesFish(GameTestHelper helper) {
+        QuestTrackerGameTests.objectiveNamingNoSpeciesOnlyMatchesFish(helper);
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")

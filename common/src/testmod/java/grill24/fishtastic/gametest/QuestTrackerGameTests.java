@@ -210,6 +210,30 @@ public final class QuestTrackerGameTests {
         helper.succeed();
     }
 
+    /** "Catch N fish" objectives name no species: only fish count, and quests that ask for other catches still work. */
+    public static void objectiveNamingNoSpeciesOnlyMatchesFish(GameTestHelper helper) {
+        Holder<Biome> anyBiome = biome(helper, Biomes.PLAINS);
+        QuestObjective anyFish = wildcardObjective();
+
+        helper.assertTrue(
+            QuestTracker.matchesObjective(anyFish, new ItemStack(FishtasticItems.BLUEGILL.value()), anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
+            "A fish must match an objective naming no species"
+        );
+        helper.assertTrue(
+            !QuestTracker.matchesObjective(anyFish, new ItemStack(FishtasticItems.OLD_TIRE.value()), anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
+            "Trash must not match an objective naming no species"
+        );
+        helper.assertTrue(
+            !QuestTracker.matchesObjective(anyFish, new ItemStack(FishtasticBlocks.FISH_TANK.value()), anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
+            "A treasure tank must not match an objective naming no species"
+        );
+        helper.assertTrue(
+            QuestTracker.matchesObjective(targetSpeciesObjective(keyOf(FishtasticItems.OLD_TIRE.value())), new ItemStack(FishtasticItems.OLD_TIRE.value()), anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
+            "An objective naming a non-fish item must still match it"
+        );
+        helper.succeed();
+    }
+
     public static void biomeConditionGatesMatchWhenPresent(GameTestHelper helper) {
         ItemStack bluegill = new ItemStack(FishtasticItems.BLUEGILL.value());
         QuestObjective requiresOcean = biomeObjective(BiomeTags.IS_OCEAN);

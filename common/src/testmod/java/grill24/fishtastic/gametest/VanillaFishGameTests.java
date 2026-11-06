@@ -92,7 +92,7 @@ public final class VanillaFishGameTests {
 
         helper.assertTrue(!matches(anyCatch, Items.COD, biome), "Cod must not satisfy a quest");
         helper.assertTrue(matches(anyCatch, FishtasticItems.BLUEGILL.value(), biome), "Bluegill must satisfy the quest");
-        helper.assertTrue(matches(anyCatch, Items.DIAMOND, biome), "A non-fish catch must not be refused as vanilla");
+        helper.assertTrue(!matches(anyCatch, Items.DIAMOND, biome), "A non-fish catch must not satisfy an any-fish quest");
         helper.succeed();
     }
 

@@ -440,6 +440,18 @@ public class NeoForgeGameTestRegistration {
             FishTankGameTests::brokenTankDropCarriesShapeAndMaterials);
         register(event, env, "broken_tank_drop_restores_shape_when_replaced", 200,
             FishTankGameTests::brokenTankDropRestoresShapeWhenReplaced);
+        register(event, env, "broken_tank_drops_its_cosmetics", 200,
+            CosmeticPlacementGameTests::brokenTankDropsItsCosmetics);
+        register(event, env, "broken_storey_trims_strands_through_it", 200,
+            CosmeticPlacementGameTests::brokenStoreyTrimsStrandsThroughIt);
+        register(event, env, "broken_anchor_drops_seam_structure", 200,
+            CosmeticPlacementGameTests::brokenAnchorDropsSeamStructure);
+        register(event, env, "broken_neighbour_keeps_seam_structure", 200,
+            CosmeticPlacementGameTests::brokenNeighbourKeepsSeamStructure);
+        register(event, env, "broken_span_anchor_drops_the_span", 200,
+            CosmeticPlacementGameTests::brokenSpanAnchorDropsTheSpan);
+        register(event, env, "broken_span_member_keeps_the_span", 200,
+            CosmeticPlacementGameTests::brokenSpanMemberKeepsTheSpan);
         register(event, env, "broken_tank_spills_its_fish", 200,
             FishTankGameTests::brokenTankSpillsItsFish);
         register(event, env, "broken_assembly_spills_its_contents", 200,
@@ -508,6 +520,8 @@ public class NeoForgeGameTestRegistration {
             QuestTrackerGameTests::targetSpeciesTagGatesMatchWhenPresent);
         register(event, env, "min_quality_is_ordinal_floor", 200,
             QuestTrackerGameTests::minQualityIsOrdinalFloor);
+        register(event, env, "objective_naming_no_species_only_matches_fish", 200,
+            QuestTrackerGameTests::objectiveNamingNoSpeciesOnlyMatchesFish);
         register(event, env, "min_quality_ignores_legendary_treasure_tank", 200,
             QuestTrackerGameTests::minQualityIgnoresLegendaryTreasureTank);
         register(event, env, "biome_condition_gates_match_when_present", 200,

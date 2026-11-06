@@ -8,7 +8,6 @@ import grill24.fishtastic.data.QuestCategory;
 import grill24.fishtastic.data.QuestDifficulty;
 import grill24.fishtastic.data.QuestObjective;
 import grill24.fishtastic.data.VanillaFish;
-import grill24.fishtastic.FishtasticBlocks;
 import grill24.fishtastic.blockentity.FishTankBlockEntity;
 import grill24.fishtastic.network.QuestSyncPacket;
 import grill24.fishtastic.util.FishQualityHelper;
@@ -314,6 +313,11 @@ public class QuestTracker {
             if (!baitMatches) return false;
         }
 
+        // An objective that names no species means any fish, so trash and treasure earn no credit.
+        if (obj.targetSpecies().isEmpty() && obj.targetSpeciesTag().isEmpty() && !stack.is(ItemTags.FISHES)) {
+            return false;
+        }
+
         if (obj.targetSpecies().isPresent()) {
             Optional<ResourceKey<net.minecraft.world.item.Item>> stackKey =
                     stack.getItem().builtInRegistryHolder().unwrapKey();
@@ -329,8 +333,6 @@ public class QuestTracker {
         }
 
         if (obj.minQuality().isPresent()) {
-            // The Legendary treasure tank keeps its quality component, but it isn't a Legendary fish.
-            if (stack.is(FishtasticBlocks.FISH_TANK.value().asItem())) return false;
             FishQuality.Quality catchQuality = FishQualityHelper.getQuality(stack);
             if (catchQuality == null || catchQuality.ordinal() < obj.minQuality().get().ordinal()) return false;
         }

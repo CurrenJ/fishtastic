@@ -16,6 +16,7 @@ import grill24.fishtastic.fishtank.FishTankShape;
 import grill24.fishtastic.fishtank.FloorCosmetics;
 import grill24.fishtastic.fishtank.TankDiagonal;
 import grill24.fishtastic.fishtank.TankEdgeDiagonal;
+import grill24.fishtastic.fishtank.TankCosmeticDrops;
 import grill24.fishtastic.fishtank.TankGroups;
 import grill24.fishtastic.fishtank.HangingCosmetics;
 import grill24.fishtastic.fishtank.SpanStructures;
@@ -359,6 +360,13 @@ public class FishTankBlockEntity extends BlockEntity implements Container, MenuP
     public void setRemoved() {
         super.setRemoved();
         if (!openFaces.isEmpty()) TankGroups.bumpMembershipEpoch();
+    }
+
+    /** Vanilla spills the fish (this is a Container); the cosmetics aren't stored as items, so they're added here. */
+    @Override
+    public void preRemoveSideEffects(BlockPos pos, BlockState state) {
+        super.preRemoveSideEffects(pos, state);
+        if (level != null) TankCosmeticDrops.spill(level, this);
     }
 
     /**

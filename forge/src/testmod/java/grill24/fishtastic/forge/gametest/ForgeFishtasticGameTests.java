@@ -684,6 +684,36 @@ public class ForgeFishtasticGameTests {
     }
 
     @GameTest(structure = "fishtastic:empty_testarea")
+    public static void brokenTankDropsItsCosmetics(GameTestHelper helper) {
+        CosmeticPlacementGameTests.brokenTankDropsItsCosmetics(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void brokenStoreyTrimsStrandsThroughIt(GameTestHelper helper) {
+        CosmeticPlacementGameTests.brokenStoreyTrimsStrandsThroughIt(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void brokenAnchorDropsSeamStructure(GameTestHelper helper) {
+        CosmeticPlacementGameTests.brokenAnchorDropsSeamStructure(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void brokenNeighbourKeepsSeamStructure(GameTestHelper helper) {
+        CosmeticPlacementGameTests.brokenNeighbourKeepsSeamStructure(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void brokenSpanAnchorDropsTheSpan(GameTestHelper helper) {
+        CosmeticPlacementGameTests.brokenSpanAnchorDropsTheSpan(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void brokenSpanMemberKeepsTheSpan(GameTestHelper helper) {
+        CosmeticPlacementGameTests.brokenSpanMemberKeepsTheSpan(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
     public static void brokenTankSpillsItsFish(GameTestHelper helper) {
         FishTankGameTests.brokenTankSpillsItsFish(helper);
     }
@@ -833,6 +863,11 @@ public class ForgeFishtasticGameTests {
     @GameTest(structure = "fishtastic:empty_testarea")
     public static void minQualityIsOrdinalFloor(GameTestHelper helper) {
         QuestTrackerGameTests.minQualityIsOrdinalFloor(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void objectiveNamingNoSpeciesOnlyMatchesFish(GameTestHelper helper) {
+        QuestTrackerGameTests.objectiveNamingNoSpeciesOnlyMatchesFish(helper);
     }
 
     @GameTest(structure = "fishtastic:empty_testarea")
