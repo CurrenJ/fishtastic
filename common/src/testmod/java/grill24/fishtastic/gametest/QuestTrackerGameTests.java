@@ -185,6 +185,30 @@ public final class QuestTrackerGameTests {
         helper.succeed();
     }
 
+    /**
+     * The Legendary treasure tank keeps its quality component (FishingMinigameManager), but quality
+     * objectives are about fish: reeling one in must not complete "catch a Legendary fish".
+     */
+    public static void minQualityIgnoresLegendaryTreasureTank(GameTestHelper helper) {
+        Holder<Biome> anyBiome = biome(helper, Biomes.PLAINS);
+        QuestObjective requiresLegendary = minQualityObjective(FishQuality.Quality.LEGENDARY);
+
+        ItemStack tank = new ItemStack(FishtasticBlocks.FISH_TANK.value(), 8);
+        FishQualityHelper.setQuality(tank, FishQuality.Quality.LEGENDARY);
+        helper.assertTrue(
+            !QuestTracker.matchesObjective(requiresLegendary, tank, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
+            "A Legendary treasure tank must not count as a Legendary fish"
+        );
+
+        ItemStack fish = new ItemStack(FishtasticItems.BLUEGILL.value());
+        FishQualityHelper.setQuality(fish, FishQuality.Quality.LEGENDARY);
+        helper.assertTrue(
+            QuestTracker.matchesObjective(requiresLegendary, fish, anyBiome, FishProfile.TimeOfDay.DAY, FishProfile.WeatherCondition.CLEAR, ANY_ZONES),
+            "A Legendary fish must still match"
+        );
+        helper.succeed();
+    }
+
     public static void biomeConditionGatesMatchWhenPresent(GameTestHelper helper) {
         ItemStack cod = new ItemStack(Items.COD);
         QuestObjective requiresOcean = biomeObjective(BiomeTags.IS_OCEAN);
