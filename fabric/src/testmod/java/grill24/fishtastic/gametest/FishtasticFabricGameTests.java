@@ -1786,6 +1786,11 @@ public class FishtasticFabricGameTests {
     }
 
     @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void onlyOpenDoorsAndTrapdoorsLetACompanionThrough(GameTestHelper helper) {
+        CompanionGameTests.onlyOpenDoorsAndTrapdoorsLetACompanionThrough(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
     public void bondRefusesSomethingThatIsNotAFish(GameTestHelper helper) {
         CompanionGameTests.bondRefusesSomethingThatIsNotAFish(helper, helper::makeMockServerPlayerInLevel);
     }

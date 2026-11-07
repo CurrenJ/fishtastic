@@ -500,6 +500,158 @@ final class CompanionScenes {
         }));
     }
 
+    // ── Companions and doors ────────────────────────────────────────────────────
+
+    /**
+     * A companion follows its owner through a real door. Each phase stands a wall 31 wide and 8 high
+     * across the owner's way, with one opening: no door at all (the control), a real door opened
+     * after the fish has sampled it shut, a stack of open trapdoors, or a door left shut (the owner
+     * hops over its plane). Counts
+     * only a crossing the fish swims itself: through the opening's cells, not fading, not riding.
+     */
+    static void queueCompanionDoorScene() {
+        queue(1, CompanionScenes::paradeSetup);
+        queue(1, mc -> server(mc, s -> {
+            run(s, "weather clear 99999");
+            run(s, "gamerule spawn_mobs false");
+        }));
+        String[][] fish = {{"bluegill", "25"}, {"starfish", "20"}, {"glass_squid", "20"}};
+        for (String[] f : fish) {
+            for (String kind : List.of("doorway", "open_door", "open_trapdoors", "closed_door")) queueDoorPhase(f[0], Float.parseFloat(f[1]), kind);
+        }
+        queue(1, mc -> {
+            tickProbe = null;
+            server(mc, s -> {
+                clearParties(s);
+                doorWall(s, 0, false);
+            });
+        });
+    }
+
+    private static void queueDoorPhase(String species, float size, String kind) {
+        String name = "companiondoor." + species + "." + kind;
+        int walkTicks = 55;
+        final long[] leashesAtStart = {0};
+        final String[] crossing = {null}, otherCrossing = {null};
+        queue(1, mc -> server(mc, s -> {
+            clearParties(s);
+            doorWall(s, kind.equals("doorway") ? 0 : kind.equals("open_trapdoors") ? 3 : 1, true);
+            run(s, String.format(Locale.ROOT, "tp @a %.3f %.3f %.3f 180 0",
+                    origin.getX() + 0.5, (double) origin.getY(), origin.getZ() + 0.5));
+        }));
+        queue(5, mc -> server(mc, s -> {
+            for (ServerPlayer player : s.getPlayerList().getPlayers()) {
+                grill24.fishtastic.companion.Companions.equip(player, 0, fish(species, size));
+            }
+        }));
+        // Long enough for it to have settled and asked about the door while it was shut.
+        queue(60, mc -> {
+            var agent = doorAgent();
+            check(name + ".tracked", agent != null, "local=" + grill24.fishtastic.client.companion.ClientCompanions.local());
+            if (agent != null && !kind.equals("doorway")) {
+                note(name + " before: door cell solid=" + agent.voxels().solid(origin.getX(), origin.getY(), doorZ()));
+            }
+            if (kind.equals("open_door")) server(mc, s -> doorWall(s, 2, true));
+        });
+        queue(5, mc -> {
+            var agent = doorAgent();
+            if (agent == null) return;
+            leashesAtStart[0] = agent.leashEvents();
+            boolean shut = kind.equals("closed_door");
+            var built = mc.level.getBlockState(new BlockPos(origin.getX(), origin.getY(), doorZ()));
+            check(name + ".real_block", switch (kind) {
+                case "doorway" -> built.isAir();
+                case "open_door" -> built.is(Blocks.OAK_DOOR) && built.getValue(net.minecraft.world.level.block.DoorBlock.OPEN);
+                case "open_trapdoors" -> built.is(Blocks.OAK_TRAPDOOR) && built.getValue(net.minecraft.world.level.block.TrapDoorBlock.OPEN);
+                default -> built.is(Blocks.OAK_DOOR) && !built.getValue(net.minecraft.world.level.block.DoorBlock.OPEN);
+            }, built.toString());
+            boolean lower =agent.voxels().solid(origin.getX(), origin.getY(), doorZ());
+            boolean upper = agent.voxels().solid(origin.getX(), origin.getY() + 1, doorZ());
+            check(name + ".sim_sees_door", lower == shut && upper == shut, "lower solid=" + lower + " upper solid=" + upper);
+            final int[] clock = {0};
+            final grill24.fishsim.companion.Vec[] prev = {agent.position()};
+            tickProbe = client -> {
+                if (clock[0]++ < walkTicks) {
+                    double z = client.player.getZ() - 0.2;
+                    // A shut door can't be walked through: step over its plane instead.
+                    if (shut && z < doorZ() + 1.4 && z > doorZ() - 0.4) z = doorZ() - 0.4;
+                    client.player.setPos(client.player.getX(), client.player.getY(), z);
+                }
+                var a = doorAgent();
+                if (a == null) return;
+                var at = a.position();
+                double plane = doorZ() + 0.5;
+                if (prev[0].z() > plane && at.z() <= plane) {
+                    boolean own = a.fade() == grill24.fishsim.companion.CompanionAgent.Fade.NONE && !a.riding()
+                            && prev[0].distanceTo(at) < 1;
+                    boolean opening = Math.floor(at.x()) == origin.getX() && Math.floor(at.y()) >= origin.getY()
+                            && Math.floor(at.y()) <= origin.getY() + 1;
+                    String line = String.format(Locale.ROOT, "tick %d at %.2f %.2f %.2f fade %s riding %s",
+                            clock[0], at.x(), at.y(), at.z(), a.fade(), a.riding());
+                    if (own && opening && crossing[0] == null) crossing[0] = line;
+                    else if (otherCrossing[0] == null) otherCrossing[0] = line;
+                }
+                prev[0] = at;
+            };
+        });
+        queue(walkTicks + 200, mc -> {
+            tickProbe = null;
+            var agent = doorAgent();
+            if (agent == null) return;
+            long leashes = agent.leashEvents() - leashesAtStart[0];
+            String detail = "swam=" + crossing[0] + " other=" + otherCrossing[0] + " leashes=" + leashes + " goal=" + agent.goal()
+                    + " riding=" + agent.riding() + " at " + agent.position() + " owner " + mc.player.position();
+            boolean farSide = agent.position().z() < doorZ() + 0.5;
+            if (kind.equals("closed_door")) {
+                check(name + ".stays_behind_shut_door", crossing[0] == null, detail);
+            } else {
+                check(name + ".swims_through", crossing[0] != null, detail);
+                check(name + ".no_leash_fade", leashes == 0, detail);
+                check(name + ".ends_on_far_side", farSide, detail);
+            }
+            mc.gui.getChat().clearMessages(false);
+            // Look back at the opening.
+            mc.player.setYRot(0f);
+            mc.player.setYHeadRot(0f);
+        });
+        queue(5, mc -> screenshot(mc, "companiondoor", species + "_" + kind));
+    }
+
+    /** The z of the wall's cells: five blocks ahead of the owner's start. */
+    private static int doorZ() {
+        return origin.getZ() - 5;
+    }
+
+    @org.jetbrains.annotations.Nullable
+    private static grill24.fishsim.companion.CompanionAgent doorAgent() {
+        var local = grill24.fishtastic.client.companion.ClientCompanions.local();
+        return local == null ? null : local.agent();
+    }
+
+    /** Builds or removes the wall; its opening holds {@code door}: 0 none, 1 a shut door, 2 an open one, 3 open trapdoors. */
+    private static void doorWall(MinecraftServer s, int door, boolean wall) {
+        net.minecraft.server.level.ServerLevel level = s.overworld();
+        int flags = net.minecraft.world.level.block.Block.UPDATE_CLIENTS | net.minecraft.world.level.block.Block.UPDATE_KNOWN_SHAPE;
+        for (int x = -15; x <= 15; x++) {
+            for (int y = 0; y < 8; y++) {
+                level.setBlock(new BlockPos(origin.getX() + x, origin.getY() + y, doorZ()),
+                        (wall ? Blocks.STONE_BRICKS : Blocks.AIR).defaultBlockState(), flags);
+            }
+        }
+        if (!wall) return;
+        for (int y = 0; y < 2; y++) {
+            var state = door == 0 ? Blocks.AIR.defaultBlockState() : door == 3 ? Blocks.OAK_TRAPDOOR.defaultBlockState()
+                    .setValue(net.minecraft.world.level.block.TrapDoorBlock.FACING, net.minecraft.core.Direction.EAST)
+                    .setValue(net.minecraft.world.level.block.TrapDoorBlock.OPEN, true) : Blocks.OAK_DOOR.defaultBlockState()
+                    .setValue(net.minecraft.world.level.block.DoorBlock.FACING, net.minecraft.core.Direction.SOUTH)
+                    .setValue(net.minecraft.world.level.block.DoorBlock.OPEN, door == 2)
+                    .setValue(net.minecraft.world.level.block.DoorBlock.HALF, y == 0
+                            ? net.minecraft.world.level.block.state.properties.DoubleBlockHalf.LOWER
+                            : net.minecraft.world.level.block.state.properties.DoubleBlockHalf.UPPER);
+            level.setBlock(new BlockPos(origin.getX(), origin.getY() + y, doorZ()), state, flags);
+        }
+    }
+
     static void queueCompanionSimScene() {
         queue(1, CompanionScenes::paradeSetup);
         queue(1, mc -> grill24.fishtastic.client.companion.ClientCompanionsDev.devOverlay(true));

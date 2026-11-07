@@ -776,6 +776,8 @@ public class NeoForgeGameTestRegistration {
             helper -> CompanionGameTests.bondFromATwoFishPileLeavesTheOtherFishLoose(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "bond_with_a_fish_the_player_does_not_carry_changes_nothing", 200,
             helper -> CompanionGameTests.bondWithAFishThePlayerDoesNotCarryChangesNothing(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "only_open_doors_and_trapdoors_let_a_companion_through", 200,
+            CompanionGameTests::onlyOpenDoorsAndTrapdoorsLetACompanionThrough);
         register(event, env, "bond_refuses_something_that_is_not_a_fish", 200,
             helper -> CompanionGameTests.bondRefusesSomethingThatIsNotAFish(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "unequip_returns_the_identical_fish", 200,

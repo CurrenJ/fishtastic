@@ -7,6 +7,7 @@ import grill24.fishsim.companion.PointOfInterest;
 import grill24.fishsim.companion.Vec;
 import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItemTags;
+import grill24.fishtastic.companion.CompanionBlocks;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
@@ -30,8 +31,8 @@ import java.util.List;
  * builds the {@link CompanionWorld} snapshot the agents step from, once per client tick.
  *
  * <ul>
- *   <li><b>Blocks</b> — {@link LevelBlocks}: a cell is solid when its block has a non-empty
- *       collision shape, wet when it holds water. One instance per level, because the agents'
+ *   <li><b>Blocks</b> — {@link LevelBlocks}: a cell is solid when {@link CompanionBlocks#collision}
+ *       is non-empty, wet when it holds water. One instance per level, because the agents'
  *       {@code LocalVoxels} forget everything they sampled whenever the source object changes.</li>
  *   <li><b>Owner</b> — {@link OwnerTracker}: eye, velocity from the tick-to-tick move, view,
  *       sprinting, the camera (only known for the local player; anyone else is taken to be in first
@@ -73,7 +74,7 @@ public final class CompanionWorldAdapter {
         public boolean solid(int x, int y, int z) {
             long start = System.nanoTime();
             cursor.set(x, y, z);
-            var shape = level.getBlockState(cursor).getCollisionShape(level, cursor);
+            var shape = CompanionBlocks.collision(level.getBlockState(cursor), level, cursor);
             boolean solid = !shape.isEmpty();
             shapeX = x;
             shapeY = y;

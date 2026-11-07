@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fish companions can now swim and walk through open doors and open trapdoors instead of stopping at them.
+
 ## 2.1.23
 
 - Breaking a fish tank now drops its cosmetics. A multi-tank structure drops from the tank storing it, and a kelp or hanging strand passing through a broken tank drops the segments that no longer fit.

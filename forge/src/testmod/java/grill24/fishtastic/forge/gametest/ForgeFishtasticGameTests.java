@@ -1743,6 +1743,11 @@ public class ForgeFishtasticGameTests {
     }
 
     @GameTest(structure = "fishtastic:empty_testarea")
+    public static void onlyOpenDoorsAndTrapdoorsLetACompanionThrough(GameTestHelper helper) {
+        CompanionGameTests.onlyOpenDoorsAndTrapdoorsLetACompanionThrough(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
     public static void bondRefusesSomethingThatIsNotAFish(GameTestHelper helper) {
         CompanionGameTests.bondRefusesSomethingThatIsNotAFish(helper, helper::makeMockServerPlayerInLevel);
     }
