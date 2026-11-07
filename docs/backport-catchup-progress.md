@@ -1,5 +1,35 @@
 # Backport parity progress
 
+## Completed (2026-11-07): 2.1.23 CurseForge release
+
+- **Operation:** built, package-checked and release-smoked snapshots of the pushed 2.1.23 tips, then
+  published their artifacts as a release. Pins: 26.1.2 `8646a7cce799c04c895da04ee8044e352ab5c3fe`,
+  1.21.1 `24b7d5894d5ad55c768f4e05fd96d0ddce92e498`, and 1.20.1
+  `343737b4b5c403ee2dc96790e83201763de0f314`.
+- **Evidence path:** `build/release-2.1.23/evidence/`; snapshots under `build/release-2.1.23/snapshots/`.
+- **Build checkpoint:** clean `:fishsim:jar assemble build --no-parallel` passed on all snapshots
+  (26.1.2 59 tasks, 1.21.1 71, 1.20.1 58).
+- **Package checkpoint:** all eight jars are valid ZIPs with class majors 69/65/61 and no
+  selftest/testmod/GameTest entries; both older Forge jars have JarJar metadata and no embedded
+  MixinExtras classes.
+- **Smoke checkpoint:** all eight profiles booted, joined their template worlds and settled for 30
+  seconds with zero fatal lines, Fishtastic errors or crash reports. Six were clean PASS; 26.1.2 Forge
+  and 1.21.1 Forge were PASS_WITH_FINDINGS after the documented experimental-settings confirmation.
+- **Pre-publish checkpoint:** rebuilds were fully UP-TO-DATE, jar hashes matched the build and smoke
+  manifests, and `publishCurseForge -m -Prelease_type=release` planned exactly 3/3/2 loader artifacts.
+- **Publication:** the three `publishCurseForge -Prelease_type=release` tasks exited 0, each attempted
+  once. Every loader jar task was UP-TO-DATE and all eight hashes still match after upload
+  (`evidence/post-publish-hash-checks.txt`).
+- **Changelog correction:** the 2.1.23 bump commits did not rename `## Unreleased`, so uploads used
+  per-line text from `evidence/{26.1.2,1.21.1,1.20.1}/changelog-2.1.23.md`, and `CHANGELOG.md` was
+  brought in line after publication. 26.1.2 lists the vanilla-fish removal and omits the ports-only
+  container drop. The ports drop the version prefix on that line. The FAQ text correction is not listed.
+- **CurseForge status:** the tasks print no file IDs and the public files page returned HTTP 403, so
+  file IDs and approval state were not independently verified. Do not rerun the upload tasks.
+- **Not covered:** the smoke test proves boot and world join only. The 2.1.23 fixes have not been tried
+  in a live game. No backport parity marker advanced.
+- **Next action:** check processing and approval state in the CurseForge author dashboard.
+
 ## Completed (2026-11-06): 2.1.22 CurseForge release
 
 - **Operation:** Build, package-check, and release-smoke the exact 2.1.22 version snapshots, then
