@@ -288,7 +288,7 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
                         .save(this.output, "cooked_cod_from_fishtastic_fish_campfire");
 
                 // A Pile of Fish cooks one fish per cycle in a furnace or smoker:
-                // AbstractFurnaceBlockEntityMixin takes a single fish out of the pile instead of
+                // FurnacePileOfFishMixin takes a single fish out of the pile instead of
                 // consuming the whole pile, so time and XP per fish match the loose-fish recipes.
                 // No campfire recipe: a campfire grills whole items, so CampfirePileOfFishMixin
                 // instead places one fish from a held pile, which the loose-fish recipe then cooks.

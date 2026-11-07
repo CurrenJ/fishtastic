@@ -34,7 +34,9 @@
     "defaultRequire": 1
   },
   "mixins": [
+    "CampfirePileOfFishMixin",
     "FishingHookMixin",
+    "FurnacePileOfFishMixin",
     "ItemStackUseOnMixin",
     "PlayerAdvancementsMixin",
     "QuickCollectPileMixin",
