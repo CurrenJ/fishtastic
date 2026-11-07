@@ -2,6 +2,7 @@ package grill24.fishtastic.gametest;
 
 import grill24.fishtastic.FishtasticItemData;
 import grill24.fishtastic.FishtasticItems;
+import grill24.fishtastic.companion.CompanionBlocks;
 import grill24.fishtastic.companion.CompanionStorage;
 import grill24.fishtastic.companion.Companions;
 import grill24.fishtastic.util.ItemSizeHelper;
@@ -16,6 +17,12 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.BundleContents;
+import net.minecraft.world.level.block.BarrelBlock;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.DoorBlock;
+import net.minecraft.world.level.block.TrapDoorBlock;
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.List;
 import java.util.function.Supplier;
@@ -148,6 +155,27 @@ public final class CompanionGameTests {
         helper.assertTrue(result == Companions.BondResult.NOT_A_FISH, "bond result " + result);
         helper.assertTrue(CompanionStorage.lead(player).isEmpty() && player.getInventory().getItem(0).is(Items.DIRT),
                 "nothing may move");
+        helper.succeed();
+    }
+
+    /** An open door or trapdoor leaves its cell swimmable; shut ones, and other "open" blocks, still block. */
+    public static void onlyOpenDoorsAndTrapdoorsLetACompanionThrough(GameTestHelper helper) {
+        BlockPos pos = helper.absolutePos(new BlockPos(1, 1, 1));
+        for (Block block : List.of(Blocks.OAK_DOOR, Blocks.IRON_DOOR)) {
+            BlockState shut = block.defaultBlockState().setValue(DoorBlock.OPEN, false);
+            helper.assertTrue(!CompanionBlocks.collision(shut, helper.getLevel(), pos).isEmpty(), "shut " + block);
+            helper.assertTrue(CompanionBlocks.collision(shut.setValue(DoorBlock.OPEN, true), helper.getLevel(), pos).isEmpty(), "open " + block);
+        }
+        for (Block block : List.of(Blocks.OAK_TRAPDOOR, Blocks.IRON_TRAPDOOR)) {
+            BlockState shut = block.defaultBlockState().setValue(TrapDoorBlock.OPEN, false);
+            helper.assertTrue(!CompanionBlocks.collision(shut, helper.getLevel(), pos).isEmpty(), "shut " + block);
+            helper.assertTrue(CompanionBlocks.collision(shut.setValue(TrapDoorBlock.OPEN, true), helper.getLevel(), pos).isEmpty(), "open " + block);
+        }
+        // A barrel has the same open property, and is a full block whether or not it's open.
+        BlockState barrel = Blocks.BARREL.defaultBlockState().setValue(BarrelBlock.OPEN, true);
+        helper.assertTrue(!CompanionBlocks.collision(barrel, helper.getLevel(), pos).isEmpty(), "open barrel");
+        helper.assertTrue(!CompanionBlocks.collision(Blocks.STONE.defaultBlockState(), helper.getLevel(), pos).isEmpty(), "stone");
+        helper.assertTrue(CompanionBlocks.collision(Blocks.AIR.defaultBlockState(), helper.getLevel(), pos).isEmpty(), "air");
         helper.succeed();
     }
 

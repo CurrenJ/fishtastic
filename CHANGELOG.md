@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fish companions can now swim and walk through open doors and open trapdoors instead of stopping at them.
+
 ## 2.1.23
 
 - Breaking a fish tank, Fish Tank Assembly or Electric Fish Organizer now drops what was inside instead of destroying it.

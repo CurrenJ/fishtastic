@@ -8,6 +8,7 @@ import static grill24.fishtastic.client.selftest.AmbientScenes.queueAmbientWalkS
 import static grill24.fishtastic.client.selftest.AmbientScenes.queueAmbientWaterScene;
 import static grill24.fishtastic.client.selftest.BenchmarkScenes.queueBakeBenchScene;
 import static grill24.fishtastic.client.selftest.CompanionScenes.queueCompanionBondScene;
+import static grill24.fishtastic.client.selftest.CompanionScenes.queueCompanionDoorScene;
 import static grill24.fishtastic.client.selftest.CompanionScenes.queueCompanionEelScene;
 import static grill24.fishtastic.client.selftest.CompanionScenes.queueCompanionLodScene;
 import static grill24.fishtastic.client.selftest.CompanionScenes.queueCompanionMoodsScene;
@@ -153,7 +154,7 @@ public final class RenderSelfTest {
     private static final List<String> OPT_IN_SCENES = List.of("matte", "matteclip", "fourwaters", "fishspin", "cathedral",
             "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench",
             "leaderboard", "encyclopedia", "portrait", "tutorial", "faq", "companiontutorial", "companionbond", "companionsim",
-            "companionparty", "companioneel", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld",
+            "companionparty", "companioneel", "companiondoor", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld",
             "companionparticles", "companionworldcost", "ambientparity", "ambientwater",
             "ambientisland", "ambientfloor", "ambientwalk", "ambientswim", "fishschoolgif", "fishschooljump", "legendarybreach",
             "fishschoolbite", "fishschoolreach", "fishschoolperf", "fishschoolshapes", "fishschoolclasses", "fishschoolcrab", "questbook",
@@ -398,6 +399,7 @@ public final class RenderSelfTest {
             case "companionlod" -> queueCompanionLodScene();
             case "companionmoods" -> queueCompanionMoodsScene();
             case "companionworld" -> queueCompanionWorldScene();
+            case "companiondoor" -> queueCompanionDoorScene();
             case "companionparticles" -> queueCompanionParticlesScene();
             case "companionworldcost" -> queueCompanionWorldCostScene();
             case "ambientparity" -> queueAmbientParityScene();
