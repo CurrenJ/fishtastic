@@ -24,10 +24,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * no {@code fishtastic:fish} (only trash or vanilla catches) is hidden from the tick, so the
  * furnace treats it like any item it can't smelt.
  *
- * <p>Hooks {@code serverTick} rather than {@code canBurn}/{@code burn}: Forge patches those two
- * into instance methods while vanilla and NeoForge keep them static, and a common mixin can't
- * target both. {@code serverTick} is static on every loader and runs on the level's thread
- * without re-entering itself, so the pile is carried from HEAD to RETURN in thread-locals.
+ * <p>Hooks {@code serverTick} rather than {@code canBurn}/{@code burn}: Forge and NeoForge patch
+ * those two away from vanilla's shape (Forge into instance methods, NeoForge 1.21.1 with an extra
+ * parameter), and a common mixin can't target every variant. {@code serverTick} keeps the same
+ * static signature on every loader and runs on the level's thread without re-entering itself, so
+ * the pile is carried from HEAD to RETURN in thread-locals.
  */
 @Mixin(AbstractFurnaceBlockEntity.class)
 public abstract class FurnacePileOfFishMixin {
