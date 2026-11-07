@@ -26,6 +26,7 @@ import grill24.fishtastic.gametest.ItemComponentGameTests;
 import grill24.fishtastic.gametest.ItemEffectConditionGameTests;
 import grill24.fishtastic.gametest.MarineCompostGameTests;
 import grill24.fishtastic.gametest.PileOfFishClickGameTests;
+import grill24.fishtastic.gametest.PileOfFishSmeltingGameTests;
 import grill24.fishtastic.gametest.MathUtilGameTests;
 import grill24.fishtastic.gametest.PacketRoundTripGameTests;
 import grill24.fishtastic.gametest.PlayerQuestStateGameTests;
@@ -107,6 +108,14 @@ public class NeoForgeGameTestRegistration {
             helper -> PileOfFishClickGameTests.rightClickDealsPileIntoOneSlot(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "pile_right_click_merges_identical_fish_onto_slot_stack", 200,
             helper -> PileOfFishClickGameTests.rightClickMergesIdenticalFishOntoSlotStack(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "pile_smoker_cooks_one_fish_per_cycle", 200,
+            PileOfFishSmeltingGameTests::smokerCooksPileOneFishPerCycle);
+        register(event, env, "pile_furnace_ignores_pile_without_fish", 200,
+            PileOfFishSmeltingGameTests::furnaceIgnoresPileWithoutFish);
+        register(event, env, "pile_campfire_takes_one_fish_per_click", 200,
+            helper -> PileOfFishSmeltingGameTests.campfireTakesOneFishFromPilePerClick(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "pile_campfire_keeps_pile_intact_in_creative", 200,
+            helper -> PileOfFishSmeltingGameTests.campfireKeepsPileIntactInCreative(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "conversion_takes_base_ticks", 6100,
             MarineCompostGameTests::conversionTakesBaseTicks);
         register(event, env, "aeration_reduces_conversion_time", 5000,

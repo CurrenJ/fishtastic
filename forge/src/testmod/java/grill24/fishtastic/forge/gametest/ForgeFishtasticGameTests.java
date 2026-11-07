@@ -51,6 +51,26 @@ public class ForgeFishtasticGameTests {
         PileOfFishClickGameTests.rightClickMergesIdenticalFishOntoSlotStack(helper, helper::makeMockServerPlayerInLevel);
     }
 
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void pileSmokerCooksOneFishPerCycle(GameTestHelper helper) {
+        PileOfFishSmeltingGameTests.smokerCooksPileOneFishPerCycle(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void pileFurnaceIgnoresPileWithoutFish(GameTestHelper helper) {
+        PileOfFishSmeltingGameTests.furnaceIgnoresPileWithoutFish(helper);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void pileCampfireTakesOneFishPerClick(GameTestHelper helper) {
+        PileOfFishSmeltingGameTests.campfireTakesOneFishFromPilePerClick(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void pileCampfireKeepsPileIntactInCreative(GameTestHelper helper) {
+        PileOfFishSmeltingGameTests.campfireKeepsPileIntactInCreative(helper, helper::makeMockServerPlayerInLevel);
+    }
+
     @GameTest(structure = "fishtastic:empty_testarea", maxTicks = 6100)
     public static void conversionTakesBaseTicks(GameTestHelper helper) {
         MarineCompostGameTests.conversionTakesBaseTicks(helper);

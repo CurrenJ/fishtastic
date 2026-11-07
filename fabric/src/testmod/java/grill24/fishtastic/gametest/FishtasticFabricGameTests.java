@@ -47,6 +47,26 @@ public class FishtasticFabricGameTests {
         PileOfFishClickGameTests.rightClickMergesIdenticalFishOntoSlotStack(helper, helper::makeMockServerPlayerInLevel);
     }
 
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void pileSmokerCooksOneFishPerCycle(GameTestHelper helper) {
+        PileOfFishSmeltingGameTests.smokerCooksPileOneFishPerCycle(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void pileFurnaceIgnoresPileWithoutFish(GameTestHelper helper) {
+        PileOfFishSmeltingGameTests.furnaceIgnoresPileWithoutFish(helper);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void pileCampfireTakesOneFishPerClick(GameTestHelper helper) {
+        PileOfFishSmeltingGameTests.campfireTakesOneFishFromPilePerClick(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fabric-gametest-api-v1:empty")
+    public void pileCampfireKeepsPileIntactInCreative(GameTestHelper helper) {
+        PileOfFishSmeltingGameTests.campfireKeepsPileIntactInCreative(helper, helper::makeMockServerPlayerInLevel);
+    }
+
     @GameTest(structure = "fabric-gametest-api-v1:empty", maxTicks = 6100)
     public void conversionTakesBaseTicks(GameTestHelper helper) {
         MarineCompostGameTests.conversionTakesBaseTicks(helper);
