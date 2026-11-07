@@ -1,0 +1,10 @@
+{
+  "type": "minecraft:smelting",
+  "category": "food",
+  "cookingtime": 200,
+  "experience": 0.35,
+  "ingredient": {
+    "item": "fishtastic:pile_of_fish"
+  },
+  "result": "minecraft:cooked_cod"
+}

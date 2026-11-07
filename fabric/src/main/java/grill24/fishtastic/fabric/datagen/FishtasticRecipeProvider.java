@@ -282,6 +282,23 @@ public class FishtasticRecipeProvider extends FabricRecipeProvider {
                         Items.COOKED_COD, 0.35F, 600)
                 .unlockedBy("has_fish", has(grill24.fishtastic.FishtasticItemTags.FISH))
                 .save(output, "cooked_cod_from_fishtastic_fish_campfire");
+
+        // A Pile of Fish cooks one fish per cycle in a furnace or smoker:
+        // FurnacePileOfFishMixin takes a single fish out of the pile instead of
+        // consuming the whole pile, so time and XP per fish match the loose-fish recipes.
+        // No campfire recipe: a campfire grills whole items, so CampfirePileOfFishMixin
+        // instead places one fish from a held pile, which the loose-fish recipe then cooks.
+        Ingredient pile = Ingredient.of(FishtasticItems.PILE_OF_FISH.value());
+
+        SimpleCookingRecipeBuilder.smelting(pile, RecipeCategory.FOOD,
+                        Items.COOKED_COD, 0.35F, 200)
+                .unlockedBy("has_pile_of_fish", has(FishtasticItems.PILE_OF_FISH.value()))
+                .save(output, "fishtastic:cooked_cod_from_pile_of_fish_smelting");
+
+        SimpleCookingRecipeBuilder.smoking(pile, RecipeCategory.FOOD,
+                        Items.COOKED_COD, 0.35F, 100)
+                .unlockedBy("has_pile_of_fish", has(FishtasticItems.PILE_OF_FISH.value()))
+                .save(output, "fishtastic:cooked_cod_from_pile_of_fish_smoking");
     }
 
     // -----------------------------------------------------------------

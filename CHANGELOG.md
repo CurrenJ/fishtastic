@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- A Pile of Fish can now be cooked in a furnace or smoker, one fish at a time, and right-clicking a campfire with a pile puts one of its fish on the grill.
+
 ## 2.1.24
 
 - Fish companions can now swim and walk through open doors and open trapdoors instead of stopping at them.
