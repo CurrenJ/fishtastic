@@ -27,6 +27,9 @@ import net.minecraft.world.item.component.BundleContents;
 import net.minecraft.world.level.Level;
 import org.jspecify.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class PileOfFishItem extends BundleItem {
 
     public PileOfFishItem(Properties properties) {
@@ -42,6 +45,65 @@ public class PileOfFishItem extends BundleItem {
                 && stack.getItem().canFitInsideContainerItems()
                 && (stack.is(FishtasticItemTags.FISH)
                     || FishtasticItemData.has(stack, FishtasticDataComponents.ITEM_SIZE));
+    }
+
+    // --- Furnace / smoker / campfire cooking ---
+
+    /** True if the pile holds at least one {@code fishtastic:fish} entry a furnace can cook. */
+    public static boolean hasCookableFish(ItemStack pile) {
+        return indexOfCookableFish(FishtasticItemData.bundleContentsOrEmpty(pile)) >= 0;
+    }
+
+    /**
+     * A single copy of the fish {@link #removeOneCookableFish} would take next, or
+     * {@link ItemStack#EMPTY} if the pile holds no cookable fish. The pile is not modified.
+     */
+    public static ItemStack peekCookableFish(ItemStack pile) {
+        BundleContents contents = FishtasticItemData.bundleContentsOrEmpty(pile);
+        int index = indexOfCookableFish(contents);
+        return index < 0 ? ItemStack.EMPTY : contents.getItemUnsafe(index).copyWithCount(1);
+    }
+
+    private static int indexOfCookableFish(BundleContents contents) {
+        for (int i = 0; i < contents.size(); i++) {
+            if (contents.getItemUnsafe(i).is(FishtasticItemTags.FISH)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Removes one cookable fish from {@code pile} and returns what should now sit in the furnace's
+     * input slot (or the player's hand, for a campfire): the same pile with one fish fewer, the
+     * lone remaining stack once the pile drops to a single entry (the same unpacking
+     * {@link #inventoryTick} does in a player's inventory), or {@link ItemStack#EMPTY}. Returns
+     * {@code pile} unchanged if it holds no cookable fish.
+     */
+    public static ItemStack removeOneCookableFish(ItemStack pile) {
+        BundleContents contents = FishtasticItemData.bundleContentsOrEmpty(pile);
+        int index = indexOfCookableFish(contents);
+        if (index < 0) {
+            return pile;
+        }
+        List<ItemStack> remaining = new ArrayList<>();
+        for (ItemStack item : contents.itemsCopy()) {
+            remaining.add(item);
+        }
+        ItemStack cooked = remaining.get(index);
+        if (cooked.getCount() > 1) {
+            cooked.shrink(1);
+        } else {
+            remaining.remove(index);
+        }
+        if (remaining.isEmpty()) {
+            return ItemStack.EMPTY;
+        }
+        if (remaining.size() == 1) {
+            return remaining.get(0);
+        }
+        FishtasticItemData.setBundleContents(pile, new BundleContents(remaining));
+        return pile;
     }
 
     // --- Fish tank interaction ---
