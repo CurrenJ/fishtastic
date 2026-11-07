@@ -1927,6 +1927,11 @@ public class FishtasticGameTests {
     }
 
     @GameTest(template = "fishtastic_empty")
+    public void onlyOpenDoorsAndTrapdoorsLetACompanionThrough(GameTestHelper helper) {
+        CompanionGameTests.onlyOpenDoorsAndTrapdoorsLetACompanionThrough(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
     public void bondRefusesSomethingThatIsNotAFish(GameTestHelper helper) {
         CompanionGameTests.bondRefusesSomethingThatIsNotAFish(helper, FishtasticTestSupport.playerSupplier(helper));
     }

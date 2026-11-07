@@ -13,6 +13,7 @@ import static grill24.fishtastic.client.selftest.FishSchoolScenes.queueFishSchoo
 import static grill24.fishtastic.client.selftest.AmbientScenes.queueAmbientWaterScene;
 import static grill24.fishtastic.client.selftest.BenchmarkScenes.queueBakeBenchScene;
 import static grill24.fishtastic.client.selftest.CompanionScenes.queueCompanionBondScene;
+import static grill24.fishtastic.client.selftest.CompanionScenes.queueCompanionDoorScene;
 import static grill24.fishtastic.client.selftest.CompanionScenes.queueCompanionEelScene;
 import static grill24.fishtastic.client.selftest.CompanionScenes.queueCompanionLodScene;
 import static grill24.fishtastic.client.selftest.CompanionScenes.queueCompanionMoodsScene;
@@ -153,7 +154,7 @@ public final class RenderSelfTest {
     /** Scenes that run only when the marker names them (they need something the default run lacks). */
     // PORT-ONLY: 26.1.2's cool-cam and MCP-bridge scenes (matte, matteclip, fourwaters, cathedral,
     // mcpsession, cosmeticpreview) are not ported - neither mod side exists on this branch (D4).
-    private static final List<String> OPT_IN_SCENES = List.of("columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench", "leaderboard", "tutorial", "faq", "companiontutorial", "companionbond", "companionsim", "companionparty", "companioneel", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld", "companionparticles", "companionworldcost", "ambientparity", "ambientwater", "ambientisland", "ambientfloor", "ambientwalk", "ambientswim", "fishschoolgif", "fishschooljump", "legendarybreach", "fishschoolbite", "fishschoolreach", "fishschoolperf", "fishschoolshapes", "fishschoolclasses", "fishschoolcrab", "celebrationoverlap", "partyseed", "partyobserver", "partyreturn");
+    private static final List<String> OPT_IN_SCENES = List.of("columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench", "leaderboard", "tutorial", "faq", "companiontutorial", "companionbond", "companionsim", "companionparty", "companioneel", "companiondoor", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld", "companionparticles", "companionworldcost", "ambientparity", "ambientwater", "ambientisland", "ambientfloor", "ambientwalk", "ambientswim", "fishschoolgif", "fishschooljump", "legendarybreach", "fishschoolbite", "fishschoolreach", "fishschoolperf", "fishschoolshapes", "fishschoolclasses", "fishschoolcrab", "celebrationoverlap", "partyseed", "partyobserver", "partyreturn");
 
     static Boolean armed;
     /** Dev probe (§21): runs every client tick while non-null — tick-true sampling. */
@@ -374,6 +375,7 @@ public final class RenderSelfTest {
             case "companionlod" -> queueCompanionLodScene();
             case "companionmoods" -> queueCompanionMoodsScene();
             case "companionworld" -> queueCompanionWorldScene();
+            case "companiondoor" -> queueCompanionDoorScene();
             case "companionparticles" -> queueCompanionParticlesScene();
             case "companionworldcost" -> queueCompanionWorldCostScene();
             case "ambientparity" -> queueAmbientParityScene();
