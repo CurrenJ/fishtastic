@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.1.24
+
 - Fish companions can now swim and walk through open doors and open trapdoors instead of stopping at them.
 
 ## 2.1.23
