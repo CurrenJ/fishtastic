@@ -1,5 +1,22 @@
 # Backport parity progress
 
+## Completed (2026-11-07): companions through open doors, ported
+
+- **Commits:** 26.1.2 `03729b1a`, 1.21.1 `143ade4d`, 1.20.1 `b17d81a6`. Committed locally, not pushed or
+  released. No backport parity marker advanced.
+- **Evidence path:** `build/door-fix/` (per-branch logs and shots; `flake/` for the runs below).
+- **Live scene (`companiondoor`), real blocks, 3 locomotion classes:** fixed 66/66 on all eight loader
+  builds. With only the fix disabled, Fabric on each branch gives 48/18, the 18 being exactly the open
+  door and open trapdoor checks.
+- **Game tests with the fix:** 26.1.2 Fabric 432, NeoForge 426, Forge 423; 1.21.1 Fabric 422, Forge 422;
+  1.20.1 Fabric 423, Forge 424. See the next point for 1.21.1 NeoForge.
+- **Existing flake, not fixed:** 1.21.1 NeoForge game tests fail intermittently with or without this
+  change. `suppressionAndSchedulingAreTheSameForAnyLoadedSet` failed 1 of 6 fixed runs (2 of 7 counting
+  the first) and 1 of 6 runs of the clean tip `d2800196`, where `deepVisitReachesTheSurfaceAndBites`
+  also failed once. That run uses a random `minecraft:normal` world. Unproven suspicion: natural water
+  nearby uses up the scheduler's per-pass budget.
+- **Next action:** push and release when wanted, and fix the flake separately.
+
 ## Completed (2026-11-07): 2.1.23 CurseForge release
 
 - **Operation:** built, package-checked and release-smoked snapshots of the pushed 2.1.23 tips, then
