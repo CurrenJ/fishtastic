@@ -728,6 +728,36 @@ public class FishtasticGameTests {
     }
 
     @GameTest(template = "fishtastic_empty")
+    public void brokenTankDropsItsCosmetics(GameTestHelper helper) {
+        CosmeticPlacementGameTests.brokenTankDropsItsCosmetics(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void brokenStoreyTrimsStrandsThroughIt(GameTestHelper helper) {
+        CosmeticPlacementGameTests.brokenStoreyTrimsStrandsThroughIt(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void brokenAnchorDropsSeamStructure(GameTestHelper helper) {
+        CosmeticPlacementGameTests.brokenAnchorDropsSeamStructure(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void brokenNeighbourKeepsSeamStructure(GameTestHelper helper) {
+        CosmeticPlacementGameTests.brokenNeighbourKeepsSeamStructure(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void brokenSpanAnchorDropsTheSpan(GameTestHelper helper) {
+        CosmeticPlacementGameTests.brokenSpanAnchorDropsTheSpan(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void brokenSpanMemberKeepsTheSpan(GameTestHelper helper) {
+        CosmeticPlacementGameTests.brokenSpanMemberKeepsTheSpan(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
     public void brokenTankSpillsItsFish(GameTestHelper helper) {
         FishTankGameTests.brokenTankSpillsItsFish(helper);
     }
@@ -892,6 +922,11 @@ public class FishtasticGameTests {
     @GameTest(template = "fishtastic_empty")
     public void targetSpeciesTagGatesMatchWhenPresent(GameTestHelper helper) {
         QuestTrackerGameTests.targetSpeciesTagGatesMatchWhenPresent(helper);
+    }
+
+    @GameTest(template = "fishtastic_empty")
+    public void objectiveNamingNoSpeciesOnlyMatchesFish(GameTestHelper helper) {
+        QuestTrackerGameTests.objectiveNamingNoSpeciesOnlyMatchesFish(helper);
     }
 
     @GameTest(template = "fishtastic_empty")

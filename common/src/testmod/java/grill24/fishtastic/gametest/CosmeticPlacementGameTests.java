@@ -17,6 +17,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -221,6 +222,141 @@ public final class CosmeticPlacementGameTests {
                 helper.assertTrue(seen != null && seen.anchor() == anchor, "box tank " + pos + " must resolve to the span");
             }
         }
+        helper.succeed();
+    }
+
+    /** How many of {@code item} lie around {@code pos} after a break. */
+    private static int droppedAround(GameTestHelper helper, BlockPos pos, Item item) {
+        return helper.getLevel().getEntitiesOfClass(ItemEntity.class, new AABB(pos).inflate(2.0)).stream()
+                .filter(entity -> entity.getItem().is(item))
+                .mapToInt(entity -> entity.getItem().getCount())
+                .sum();
+    }
+
+    /** Breaking a tank hands back every unit of what it stores: strand segments and stacked pieces alike. */
+    public static void brokenTankDropsItsCosmetics(GameTestHelper helper) {
+        FishTankBlockEntity tank = row(helper, 1, 1).get(0);
+        tank.setCosmetic(new CosmeticGridCell(1, 1), new PlacedCosmetic(Blocks.KELP.defaultBlockState(), 3));
+        tank.setCosmetic(new CosmeticGridCell(0, 0), new PlacedCosmetic(Blocks.SEA_PICKLE.defaultBlockState().setValue(BlockStateProperties.PICKLES, 3)));
+        tank.setCeilingCosmetic(new CosmeticGridCell(1, 1), new PlacedCosmetic(Blocks.POINTED_DRIPSTONE.defaultBlockState(), 2));
+        BlockPos pos = tank.getBlockPos();
+
+        helper.getLevel().destroyBlock(pos, true);
+
+        int kelp = droppedAround(helper, pos, Items.KELP);
+        int pickles = droppedAround(helper, pos, Items.SEA_PICKLE);
+        int dripstone = droppedAround(helper, pos, Items.POINTED_DRIPSTONE);
+        helper.assertTrue(kelp == 3, "All 3 kelp segments must drop, got " + kelp);
+        helper.assertTrue(pickles == 3, "All 3 sea pickles must drop, got " + pickles);
+        helper.assertTrue(dripstone == 2, "Both dripstone segments must drop, got " + dripstone);
+        helper.succeed();
+    }
+
+    /**
+     * Breaking a storey a strand passes through shortens the strand to what still fits and drops the
+     * rest; the strands that already fit are left alone.
+     */
+    public static void brokenStoreyTrimsStrandsThroughIt(GameTestHelper helper) {
+        FishTankBlockEntity bottom = row(helper, 1, 3).get(0);
+        BlockPos middle = bottom.getBlockPos().above();
+        FishTankBlockEntity top = (FishTankBlockEntity) helper.getLevel().getBlockEntity(middle.above());
+        CosmeticGridCell tall = new CosmeticGridCell(1, 1), shortCell = new CosmeticGridCell(0, 0);
+        bottom.setCosmetic(tall, new PlacedCosmetic(Blocks.KELP.defaultBlockState(), 9));
+        bottom.setCosmetic(shortCell, new PlacedCosmetic(Blocks.KELP.defaultBlockState(), 2));
+        top.setCeilingCosmetic(tall, new PlacedCosmetic(Blocks.POINTED_DRIPSTONE.defaultBlockState(), 8));
+
+        helper.getLevel().destroyBlock(middle, true);
+
+        int room = TankColumns.maxSegments(1);
+        helper.assertTrue(bottom.getCosmetics().get(tall).height() == room,
+                "Kelp must shrink to " + room + ", got " + bottom.getCosmetics().get(tall).height());
+        helper.assertTrue(bottom.getCosmetics().get(shortCell).height() == 2, "A strand that still fits must be untouched");
+        helper.assertTrue(top.getCeilingCosmetics().get(tall).height() == room,
+                "Dripstone must shrink to " + room + ", got " + top.getCeilingCosmetics().get(tall).height());
+        int kelp = droppedAround(helper, middle, Items.KELP);
+        int dripstone = droppedAround(helper, middle, Items.POINTED_DRIPSTONE);
+        helper.assertTrue(kelp == 9 - room, "The kelp's excess must drop, got " + kelp);
+        helper.assertTrue(dripstone == 8 - room, "The dripstone's excess must drop, got " + dripstone);
+        helper.succeed();
+    }
+
+    private static FishTankBlockEntity placeGeodeAcrossSeam(GameTestHelper helper, List<FishTankBlockEntity> row) {
+        Player player = helper.makeMockPlayer();
+        aimAt(helper, player, row, 2);
+        CosmeticPlacement.Plan plan = CosmeticPlacement.plan(player, row.get(0), stack(GEODE));
+        helper.assertTrue(plan != null && plan.valid(), "geode must fit on the west tank's edge cell");
+        plan.apply().run();
+        return row.get(0);
+    }
+
+    /** Breaking the tank anchoring a structure drops its one item and frees the neighbour it reached into. */
+    public static void brokenAnchorDropsSeamStructure(GameTestHelper helper) {
+        List<FishTankBlockEntity> row = row(helper, 3, 1);
+        FishTankBlockEntity anchor = placeGeodeAcrossSeam(helper, row), east = row.get(1);
+        BlockPos pos = anchor.getBlockPos();
+
+        helper.getLevel().destroyBlock(pos, true);
+
+        int dropped = droppedAround(helper, pos, stack(GEODE).getItem());
+        helper.assertTrue(dropped == 1, "The geode must drop exactly once, got " + dropped);
+        helper.assertTrue(east.getStructureLinks().isEmpty() && east.getStructureCellIndex().isEmpty(),
+                "The neighbour's cells must be freed, got " + east.getStructureCellIndex());
+        helper.succeed();
+    }
+
+    /** Breaking a neighbour a structure reaches into drops nothing: the structure stays with its anchor. */
+    public static void brokenNeighbourKeepsSeamStructure(GameTestHelper helper) {
+        List<FishTankBlockEntity> row = row(helper, 3, 1);
+        FishTankBlockEntity anchor = placeGeodeAcrossSeam(helper, row);
+        BlockPos east = row.get(1).getBlockPos();
+
+        helper.getLevel().destroyBlock(east, true);
+
+        int dropped = droppedAround(helper, east, stack(GEODE).getItem());
+        helper.assertTrue(dropped == 0, "Only the anchor drops the geode, got " + dropped);
+        helper.assertTrue(anchor.getStructureCosmetics().containsKey(new CosmeticGridCell(2, 1)), "The anchor must still hold the geode");
+        helper.succeed();
+    }
+
+    private static FishTankBlockEntity placeSpan(GameTestHelper helper, List<FishTankBlockEntity> row) {
+        Player player = helper.makeMockPlayer();
+        aimAt(helper, player, row, 2 * G + 1);
+        CosmeticPlacement.Plan plan = CosmeticPlacement.plan(player, row.get(2), stack(ZIGGURAT));
+        helper.assertTrue(plan != null && plan.valid(), "ziggurat must fit");
+        plan.apply().run();
+        for (FishTankBlockEntity tank : row) {
+            if (SpanStructures.anchoredIn(helper.getLevel(), tank) != null) return tank;
+        }
+        throw new AssertionError("one tank must anchor the span");
+    }
+
+    /** Breaking a span's anchor drops its one item and clears the links in the rest of its box. */
+    public static void brokenSpanAnchorDropsTheSpan(GameTestHelper helper) {
+        List<FishTankBlockEntity> row = row(helper, 6, 2);
+        FishTankBlockEntity anchor = placeSpan(helper, row);
+        BlockPos pos = anchor.getBlockPos();
+        FishTankBlockEntity member = (FishTankBlockEntity) helper.getLevel().getBlockEntity(pos.east());
+        helper.assertTrue(member.getSpanLink() != null, "Setup: the next tank must link to the span");
+
+        helper.getLevel().destroyBlock(pos, true);
+
+        int dropped = droppedAround(helper, pos, stack(ZIGGURAT).getItem());
+        helper.assertTrue(dropped == 1, "The span must drop exactly once, got " + dropped);
+        helper.assertTrue(member.getSpanLink() == null, "The span's links must be cleared");
+        helper.succeed();
+    }
+
+    /** Breaking another tank of a span's box drops nothing: the span stays with its anchor. */
+    public static void brokenSpanMemberKeepsTheSpan(GameTestHelper helper) {
+        List<FishTankBlockEntity> row = row(helper, 6, 2);
+        FishTankBlockEntity anchor = placeSpan(helper, row);
+        BlockPos member = anchor.getBlockPos().east();
+
+        helper.getLevel().destroyBlock(member, true);
+
+        int dropped = droppedAround(helper, member, stack(ZIGGURAT).getItem());
+        helper.assertTrue(dropped == 0, "Only the anchor drops the span, got " + dropped);
+        helper.assertTrue(SpanStructures.anchoredIn(helper.getLevel(), anchor) != null, "The anchor must still hold the span");
         helper.succeed();
     }
 

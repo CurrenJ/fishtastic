@@ -18,6 +18,7 @@ import grill24.fishtastic.fishtank.CosmeticPlacement;
 import grill24.fishtastic.fishtank.TankGroups;
 import grill24.fishtastic.fishtank.PlacedCosmetic;
 import grill24.fishtastic.fishtank.TankDiagonal;
+import grill24.fishtastic.fishtank.TankCosmeticDrops;
 import grill24.fishtastic.fishtank.TankEdgeDiagonal;
 import grill24.fishtastic.item.FishTankCosmeticItem;
 import grill24.fishtastic.item.FishTankStructureCosmeticItem;
@@ -158,6 +159,7 @@ public class FishTankBlock extends Block implements EntityBlock {
         // This Minecraft version leaves spilling a container to each block; 26.1.2 does it in BlockEntity.
         if (!level.isClientSide() && !state.is(newState.getBlock()) && level.getBlockEntity(pos) instanceof FishTankBlockEntity tank) {
             Containers.dropContents(level, pos, tank);
+            TankCosmeticDrops.spill(level, tank);
         }
         super.onRemove(state, level, pos, newState, movedByPiston);
         // 26.1.2's affectNeighborsAfterRemoval: runs server-side only, once the tank is actually gone.

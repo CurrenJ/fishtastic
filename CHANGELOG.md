@@ -3,8 +3,9 @@
 ## Unreleased
 
 - Minecraft 1.21.1 and 1.20.1: breaking a fish tank, Fish Tank Assembly or Electric Fish Organizer now drops what was inside instead of destroying it.
+- Breaking a fish tank now drops its cosmetics. A multi-tank structure drops from the tank storing it, and a kelp or hanging strand passing through a broken tank drops the segments that no longer fit.
 - The Fish Tank Assembly's tank slot now takes a whole stack of tanks and refits them one at a time. Shift-clicking the result refits as many as the materials allow.
-- Catching the Legendary treasure fish tank no longer counts toward "catch a fish at this quality" quests.
+- Quests that ask you to catch fish now only count fish: trash and treasure, including the Legendary treasure tank, no longer earn credit.
 
 ## 2.1.22
 
