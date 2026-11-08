@@ -1,5 +1,6 @@
 package grill24.fishtastic.fabric.fishtank;
 
+import grill24.fishtastic.client.renderer.TankGlassDisplay;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.client.compositemodel.BlockModelPathResolver;
 import grill24.fishtastic.client.compositemodel.CompositeTextureHelper;
@@ -106,7 +107,7 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
         if (defaultModel != null) {
             CacheKey defaultKey = new CacheKey(
                     defaultData.shape(), defaultData.frameBlock(), defaultData.sandBlock(),
-                    defaultData.glassBlock(), defaultData.getPermutationIndex(), defaultData.getDiagonalOverrideMask(),
+                    TankGlassDisplay.displayed(defaultData.glassBlock()), defaultData.getPermutationIndex(), defaultData.getDiagonalOverrideMask(),
                     defaultData.getEdgeDiagonalOverrideMask());
             modelCache.put(defaultKey, defaultModel);
             this.defaultParts = defaultModel.parts();
@@ -130,7 +131,7 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
         FishTankCompositeModelData data = readBlockEntityData(level, pos);
         CacheKey key = new CacheKey(
                 data.shape(), data.frameBlock(), data.sandBlock(),
-                data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask(),
+                TankGlassDisplay.displayed(data.glassBlock()), data.getPermutationIndex(), data.getDiagonalOverrideMask(),
                 data.getEdgeDiagonalOverrideMask());
 
         CachedModel cached = modelCache.get(key);
@@ -213,7 +214,7 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
         // Cosmetics are part of the geometry: two tanks with the same body but different contents differ.
         return List.of(new CacheKey(
                 data.shape(), data.frameBlock(), data.sandBlock(),
-                data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask(),
+                TankGlassDisplay.displayed(data.glassBlock()), data.getPermutationIndex(), data.getDiagonalOverrideMask(),
                 data.getEdgeDiagonalOverrideMask()), data.cosmetics());
     }
 
@@ -222,7 +223,7 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
         FishTankCompositeModelData data = readBlockEntityData(level, pos);
         CacheKey key = new CacheKey(
                 data.shape(), data.frameBlock(), data.sandBlock(),
-                data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask(),
+                TankGlassDisplay.displayed(data.glassBlock()), data.getPermutationIndex(), data.getDiagonalOverrideMask(),
                 data.getEdgeDiagonalOverrideMask());
         CachedModel cached = modelCache.get(key);
         return cached != null ? cached.particleMaterial() : defaultParticleMaterial;
@@ -233,7 +234,7 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
         FishTankCompositeModelData data = readBlockEntityData(level, pos);
         CacheKey key = new CacheKey(
                 data.shape(), data.frameBlock(), data.sandBlock(),
-                data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask(),
+                TankGlassDisplay.displayed(data.glassBlock()), data.getPermutationIndex(), data.getDiagonalOverrideMask(),
                 data.getEdgeDiagonalOverrideMask());
         CachedModel cached = modelCache.get(key);
         int body = cached != null ? cached.materialFlags() : defaultMaterialFlags;
@@ -288,7 +289,7 @@ public class FishTankBakedModelFabric implements BlockStateModel, FabricBlockSta
 
             Material frameTex = getBlockTexture(data.frameBlock());
             Material sandTex  = getBlockTexture(data.sandBlock());
-            Material glassTex = getBlockTexture(data.glassBlock());
+            Material glassTex = getBlockTexture(TankGlassDisplay.displayed(data.glassBlock()));
 
             if (frameTex == null || sandTex == null || glassTex == null) {
                 Fishtastic.LOGGER.warn(

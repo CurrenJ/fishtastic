@@ -1,5 +1,6 @@
 package grill24.fishtastic.forge.fishtank;
 
+import grill24.fishtastic.client.renderer.TankGlassDisplay;
 import grill24.fishtastic.client.compositemodel.TankCosmeticMesh;
 import grill24.fishtastic.client.renderer.TankInteriorLight;
 
@@ -89,7 +90,7 @@ public class FishTankBakedModel implements BlockStateModel, IForgeBlockStateMode
     private static CacheKey keyFor(FishTankCompositeModelData data) {
         return new CacheKey(
                 data.shape(), data.frameBlock(), data.sandBlock(),
-                data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask(),
+                TankGlassDisplay.displayed(data.glassBlock()), data.getPermutationIndex(), data.getDiagonalOverrideMask(),
                 data.getEdgeDiagonalOverrideMask(), TankInteriorLight.level());
     }
 
@@ -274,7 +275,7 @@ public class FishTankBakedModel implements BlockStateModel, IForgeBlockStateMode
 
             Material frameTex = getBlockTexture(data.frameBlock());
             Material sandTex  = getBlockTexture(data.sandBlock());
-            Material glassTex = getBlockTexture(data.glassBlock());
+            Material glassTex = getBlockTexture(TankGlassDisplay.displayed(data.glassBlock()));
 
             if (frameTex == null || sandTex == null || glassTex == null) {
                 Fishtastic.LOGGER.warn(

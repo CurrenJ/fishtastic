@@ -1,5 +1,6 @@
 package grill24.fishtastic.fabric.fishtank;
 
+import grill24.fishtastic.client.renderer.TankGlassDisplay;
 import com.mojang.serialization.MapCodec;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.FishtasticDataComponents;
@@ -73,7 +74,10 @@ public class FishTankItemModelFabric implements ItemModel {
     public void update(ItemStackRenderState output, ItemStack item, ItemModelResolver resolver,
                         ItemDisplayContext displayContext, @Nullable ClientLevel level, @Nullable ItemOwner owner, int seed) {
         FishTankShape shape = FishtasticItemData.getOrDefault(item, FishtasticDataComponents.FISH_TANK_SHAPE, FishTankShape.STANDARD);
-        FishTankMaterials materials = FishtasticItemData.getOrDefault(item, FishtasticDataComponents.FISH_TANK_MATERIALS, FishTankMaterials.defaultMaterials());
+        // Drawn with the borderless variant of vanilla glass when that's on (see TankGlassDisplay);
+        // keying the cache and identity on the drawn materials makes the toggle a different model.
+        FishTankMaterials materials = TankGlassDisplay.displayed(
+                FishtasticItemData.getOrDefault(item, FishtasticDataComponents.FISH_TANK_MATERIALS, FishTankMaterials.defaultMaterials()));
         output.appendModelIdentityElement(this);
         output.appendModelIdentityElement(materials);
         output.appendModelIdentityElement(shape);

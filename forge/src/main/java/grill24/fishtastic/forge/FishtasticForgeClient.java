@@ -285,6 +285,8 @@ public final class FishtasticForgeClient {
                 grill24.fishsim.core.FlockEngine.setTriggerRateBoost(packet.boost()));
         grill24.fishtastic.network.TankInteriorLightSyncPacket.registerClientHandler(packet ->
                 grill24.fishtastic.client.renderer.TankInteriorLight.set(packet.level()));
+        grill24.fishtastic.network.TankBorderlessGlassSyncPacket.registerClientHandler(
+                packet -> grill24.fishtastic.client.renderer.TankGlassDisplay.set(packet.enabled()));
         grill24.fishtastic.network.ReducedEffectsSyncPacket.registerClientHandler(packet ->
                 grill24.fishtastic.client.FishtasticClientConfig.setReducedCelebrationEffects(packet.reduced()));
     }

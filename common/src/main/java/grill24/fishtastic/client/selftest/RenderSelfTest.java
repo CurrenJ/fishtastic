@@ -184,7 +184,7 @@ public final class RenderSelfTest {
             "guiscale", "fixes", "hud", "gizmos", "pertank", "highlight");
 
     private static final List<String> OPT_IN_SCENES = List.of("matte", "matteclip", "fourwaters", "fishspin", "cathedral",
-            "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench", "leaderboard", "encyclopedia", "portrait", "tutorial", "companiontutorial",
+            "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "borderlessglass", "bakebench", "scalebench", "leaderboard", "encyclopedia", "portrait", "tutorial", "companiontutorial",
             "companionbond", "companionsim", "companionparty", "companioneel", "companiondoor", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld", "companionparticles", "companionworldcost", "companionfloorlight", "ambientparity", "ambientwater", "ambientisland", "ambientfloor", "ambientwalk", "ambientswim", "fishschoolgif", "fishschooljump", "legendarybreach", "fishschoolbite", "fishschoolreach", "fishschoolperf", "fishschoolshapes", "fishschoolclasses", "fishschoolcrab", "questbook", "celebrationoverlap", "forgereview", "partyseed", "partyobserver", "partyreturn");
 
     static Boolean armed;
@@ -428,6 +428,7 @@ public final class RenderSelfTest {
             case "bakebench" -> queueBakeBenchScene();
             case "scalebench" -> queueScaleBenchScene();
             case "lighting" -> queueLightingScene();
+            case "borderlessglass" -> queueBorderlessGlassScene();
             case "mcpsession" -> queueMcpSessionScene();
             case "cosmeticpreview" -> queueCosmeticPreviewScene();
             case "companionbond" -> queueCompanionBondScene();
@@ -638,6 +639,84 @@ public final class RenderSelfTest {
             if (savedFill != null) FishtasticClientConfig.setTankWaterFillEnabled(savedFill);
             mc.options.hideGui = false;
             server(mc, s -> run(s, "tick unfreeze"));
+        });
+    }
+
+    /** Glass for the borderlessglass scene's tanks, left to right. */
+    private static final String[] BORDERLESS_SCENE_GLASS = {"minecraft:glass", "minecraft:light_blue_stained_glass",
+            "minecraft:tinted_glass", "fishtastic:borderless_glass"};
+
+    /**
+     * Tanks built with vanilla glass drawn with the borderless variant (see TankGlassDisplay): a
+     * 2-wide group of each glass in {@link #BORDERLESS_SCENE_GLASS} (the last is the borderless
+     * reference), shot with the setting on and off, plus vanilla-glass tank items in the hotbar.
+     * The shots flip a self-test override, never the owner's config file; the command is then
+     * run once to prove the real control path, and the old value restored.
+     */
+    private static void queueBorderlessGlassScene() {
+        int y = origin.getY(), z = origin.getZ() + 14;
+        int x0 = origin.getX() - 5;
+        queue(1, mc -> server(mc, s -> {
+            run(s, "fill " + (x0 - 3) + " " + (y - 1) + " " + (z - 6) + " " + (x0 + 14) + " " + (y + 5) + " " + (z + 3) + " minecraft:air");
+            run(s, "fill " + (x0 - 3) + " " + (y - 1) + " " + (z - 6) + " " + (x0 + 14) + " " + (y - 1) + " " + (z + 3) + " minecraft:smooth_stone");
+            for (int i = 0; i < BORDERLESS_SCENE_GLASS.length; i++) {
+                run(s, "fill " + (x0 + 3 * i) + " " + y + " " + z + " " + (x0 + 3 * i + 1) + " " + y + " " + z + " fishtastic:fish_tank");
+            }
+        }));
+        queue(5, mc -> server(mc, s -> {
+            ServerLevel level = s.overworld();
+            for (int i = 0; i < BORDERLESS_SCENE_GLASS.length; i++) {
+                for (int dx = 0; dx <= 1; dx++) {
+                    FishTankBlockEntity tank = tank(level, new BlockPos(x0 + 3 * i + dx, y, z));
+                    if (tank != null) tank.setMaterials(new FishTankMaterials(block("minecraft:spruce_planks"),
+                            block("minecraft:sand"), block(BORDERLESS_SCENE_GLASS[i])));
+                }
+            }
+            for (var player : s.getPlayerList().getPlayers()) {
+                for (int i = 0; i < 9; i++) {
+                    ItemStack stack = ItemStack.EMPTY;
+                    if (i < BORDERLESS_SCENE_GLASS.length) {
+                        stack = new ItemStack(grill24.fishtastic.FishtasticBlocks.FISH_TANK.value());
+                        FishtasticItemData.set(stack, FishtasticDataComponents.FISH_TANK_MATERIALS, new FishTankMaterials(
+                                block("minecraft:spruce_planks"), block("minecraft:sand"), block(BORDERLESS_SCENE_GLASS[i])));
+                    }
+                    player.getInventory().setItem(i, stack);
+                }
+            }
+        }));
+        for (boolean on : new boolean[]{true, false}) {
+            queue(1, mc -> {
+                FishtasticClientConfig.setTestOverride(FishtasticClientConfig.TANK_BORDERLESS_GLASS_KEY, on);
+                mc.levelRenderer.setBlocksDirty(x0 - 1, y - 1, z - 1, x0 + 12, y + 1, z + 1);
+                Block drawnGlass = grill24.fishtastic.client.renderer.TankGlassDisplay.displayed(Blocks.GLASS);
+                Block drawnStained = grill24.fishtastic.client.renderer.TankGlassDisplay.displayed(Blocks.LIGHT_BLUE_STAINED_GLASS);
+                Block drawnTinted = grill24.fishtastic.client.renderer.TankGlassDisplay.displayed(Blocks.TINTED_GLASS);
+                String detail = "glass=" + BuiltInRegistries.BLOCK.getKey(drawnGlass)
+                        + " stained=" + BuiltInRegistries.BLOCK.getKey(drawnStained)
+                        + " tinted=" + BuiltInRegistries.BLOCK.getKey(drawnTinted);
+                check("borderlessglass." + (on ? "on" : "off") + ".mapping", on
+                        ? drawnGlass == grill24.fishtastic.FishtasticBlocks.BORDERLESS_GLASS.value()
+                          && drawnStained == grill24.fishtastic.FishtasticBlocks.BORDERLESS_STAINED_GLASS.get(net.minecraft.world.item.DyeColor.LIGHT_BLUE).value()
+                          && drawnTinted == Blocks.TINTED_GLASS
+                        : drawnGlass == Blocks.GLASS && drawnStained == Blocks.LIGHT_BLUE_STAINED_GLASS, detail);
+                mc.options.hideGui = false;
+                camera(mc, x0 + 5.5, y + 1.6, z + 4.5, 180f, 14f);
+            });
+            queue(40, mc -> screenshot(mc, "borderlessglass", (on ? "on" : "off") + "-row"));
+            queue(1, mc -> camera(mc, x0 + 1.0, y + 0.8, z + 2.2, 180f, 8f));
+            queue(30, mc -> screenshot(mc, "borderlessglass", (on ? "on" : "off") + "-close"));
+        }
+        // The real control path: command -> sync packet -> client handler -> config.
+        final boolean[] saved = new boolean[1];
+        queue(1, mc -> {
+            FishtasticClientConfig.clearTestOverrides();
+            saved[0] = FishtasticClientConfig.isTankBorderlessGlass();
+            server(mc, s -> run(s, "execute as @p run fishtastic tank borderlessglass " + !saved[0]));
+        });
+        queue(10, mc -> {
+            check("borderlessglass.command", FishtasticClientConfig.isTankBorderlessGlass() == !saved[0],
+                    "tankBorderlessGlass=" + FishtasticClientConfig.isTankBorderlessGlass());
+            FishtasticClientConfig.setTankBorderlessGlass(saved[0]);
         });
     }
 

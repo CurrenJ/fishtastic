@@ -1,5 +1,6 @@
 package grill24.fishtastic.neoforge.fishtank;
 
+import grill24.fishtastic.client.renderer.TankGlassDisplay;
 import grill24.fishtastic.client.compositemodel.TankCosmeticMesh;
 import grill24.fishtastic.client.renderer.TankInteriorLight;
 import net.neoforged.neoforge.client.model.quad.BakedColors;
@@ -91,7 +92,7 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
     private static CacheKey keyFor(FishTankCompositeModelData data) {
         return new CacheKey(
                 data.shape(), data.frameBlock(), data.sandBlock(),
-                data.glassBlock(), data.getPermutationIndex(), data.getDiagonalOverrideMask(),
+                TankGlassDisplay.displayed(data.glassBlock()), data.getPermutationIndex(), data.getDiagonalOverrideMask(),
                 data.getEdgeDiagonalOverrideMask(), TankInteriorLight.level());
     }
 
@@ -303,7 +304,7 @@ public class FishTankBakedModel implements DynamicBlockStateModel {
 
             Material frameTex = getBlockTexture(data.frameBlock());
             Material sandTex  = getBlockTexture(data.sandBlock());
-            Material glassTex = getBlockTexture(data.glassBlock());
+            Material glassTex = getBlockTexture(TankGlassDisplay.displayed(data.glassBlock()));
 
             if (frameTex == null || sandTex == null || glassTex == null) {
                 Fishtastic.LOGGER.warn(

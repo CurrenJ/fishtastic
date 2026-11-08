@@ -110,7 +110,7 @@ public class FishtasticBlocks {
     /**
      * Get the vanilla stained glass block for a given dye color.
      */
-    private static Block getVanillaStainedGlass(DyeColor color) {
+    public static Block getVanillaStainedGlass(DyeColor color) {
         return switch (color) {
             case WHITE -> Blocks.WHITE_STAINED_GLASS;
             case ORANGE -> Blocks.ORANGE_STAINED_GLASS;
