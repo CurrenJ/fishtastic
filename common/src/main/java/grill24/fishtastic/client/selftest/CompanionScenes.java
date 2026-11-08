@@ -835,6 +835,76 @@ final class CompanionScenes {
         });
     }
 
+    /**
+     * Reproduces the floor companion light lookup at Y=64. Ground poses draw their model root
+     * slightly above the terrain contact point; record both cells' real sky light and capture the
+     * hellbender/plaice at the reported height and verify the renderer samples the raised root.
+     */
+    static void queueCompanionFloorLightScene() {
+        queue(1, mc -> {
+            mc.options.hideGui = false;
+            mc.options.setCameraType(CameraType.FIRST_PERSON);
+            server(mc, s -> {
+                clearParties(s);
+                run(s, "weather clear 99999");
+                run(s, "time set 6000");
+                run(s, "fill " + (origin.getX() - 8) + " 63 " + (origin.getZ() - 8) + " "
+                        + (origin.getX() + 8) + " 63 " + (origin.getZ() + 8) + " minecraft:stone");
+                run(s, "fill " + (origin.getX() - 8) + " 64 " + (origin.getZ() - 8) + " "
+                        + (origin.getX() + 8) + " 70 " + (origin.getZ() + 8) + " minecraft:air");
+                run(s, String.format(Locale.ROOT, "tp @a %.3f 64 %.3f 180 0",
+                        origin.getX() + 0.5, origin.getZ() + 0.5));
+            });
+        });
+        for (String species : new String[]{"hellbender", "plaice"}) {
+            queue(1, mc -> server(mc, s -> {
+                clearParties(s);
+                run(s, "fishtastic companion give @p fishtastic:" + species + " 50 1");
+            }));
+            queue(120, mc -> {
+                var companion = grill24.fishtastic.client.companion.ClientCompanions.local();
+                var agent = companion == null ? null : companion.agent();
+                check("companionfloorlight." + species + ".present", agent != null,
+                        companion == null ? "no local companion" : companion.partyLine());
+                if (agent == null) return;
+                var render = grill24.fishtastic.client.renderer.FishVisuals.resolve(companion.devStack(), mc.level);
+                float scale = grill24.fishtastic.client.renderer.FishVisuals.renderedLength(
+                        companion.devStack(), render.renderCalibration()) * agent.renderAppear();
+                double lift = grill24.fishtastic.client.renderer.FishAnimator.floorPoseLift(render.animation(), scale);
+                var renderPos = agent.renderPos();
+                double floorY = renderPos.y() - agent.radius() - grill24.fishsim.companion.LocalVoxels.GROUND_LIFT;
+                BlockPos footCell = BlockPos.containing(renderPos.x(), floorY, renderPos.z());
+                BlockPos bodyCell = BlockPos.containing(renderPos.x(), floorY + lift, renderPos.z());
+                int footSky = mc.level.getBrightness(net.minecraft.world.level.LightLayer.SKY, footCell);
+                int bodySky = mc.level.getBrightness(net.minecraft.world.level.LightLayer.SKY, bodyCell);
+                var renderer = new grill24.fishtastic.client.renderer.CompanionRender(companion.devStack(), mc.level);
+                var lightPos = renderer.lightSamplePosition(
+                        new grill24.fishsim.companion.Vec(renderPos.x(), floorY, renderPos.z()), agent.renderAppear(), true);
+                BlockPos sampledCell = BlockPos.containing(lightPos.x(), lightPos.y(), lightPos.z());
+                int sampledSky = mc.level.getBrightness(net.minecraft.world.level.LightLayer.SKY, sampledCell);
+                check("companionfloorlight." + species + ".y64_platform",
+                        mc.level.getBlockState(new BlockPos(origin.getX(), 63, origin.getZ())).is(Blocks.STONE)
+                                && mc.player.blockPosition().getY() == 64,
+                        "player=" + mc.player.blockPosition() + " footCell=" + footCell + " bodyCell=" + bodyCell);
+                check("companionfloorlight." + species + ".renderer_samples_raised_root",
+                        sampledCell.equals(bodyCell) && sampledSky > footSky,
+                        "rendererCell=" + sampledCell + " sky=" + sampledSky + " footSky=" + footSky);
+                note(String.format(Locale.ROOT,
+                        "companionfloorlight %s simY=%.9f floorY=%.9f lift=%.5f footSky=%d bodySky=%d sampledSky=%d footBlock=%s bodyBlock=%s",
+                        species, renderPos.y(), floorY, lift, footSky, bodySky, sampledSky,
+                        mc.level.getBlockState(footCell), mc.level.getBlockState(bodyCell)));
+                screenshot(mc, "companionfloorlight", species + "_fp");
+                mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
+                mc.player.setXRot(45f);
+            });
+            queue(35, mc -> {
+                screenshot(mc, "companionfloorlight", species + "_tp");
+                mc.options.setCameraType(CameraType.FIRST_PERSON);
+            });
+        }
+        queue(1, mc -> server(mc, CompanionScenes::clearParties));
+    }
+
     @org.jetbrains.annotations.Nullable
     /** Where the local member of {@code species} is: its unit and index, or null. */
     private static Object[] memberOf(String species) {

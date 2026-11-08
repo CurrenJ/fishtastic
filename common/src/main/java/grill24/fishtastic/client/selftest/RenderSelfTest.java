@@ -154,7 +154,7 @@ public final class RenderSelfTest {
     /** Scenes that run only when the marker names them (they need something the default run lacks). */
     // PORT-ONLY: 26.1.2's cool-cam and MCP-bridge scenes (matte, matteclip, fourwaters, cathedral,
     // mcpsession, cosmeticpreview) are not ported - neither mod side exists on this branch (D4).
-    private static final List<String> OPT_IN_SCENES = List.of("columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench", "leaderboard", "tutorial", "faq", "companiontutorial", "companionbond", "companionsim", "companionparty", "companioneel", "companiondoor", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld", "companionparticles", "companionworldcost", "ambientparity", "ambientwater", "ambientisland", "ambientfloor", "ambientwalk", "ambientswim", "fishschoolgif", "fishschooljump", "legendarybreach", "fishschoolbite", "fishschoolreach", "fishschoolperf", "fishschoolshapes", "fishschoolclasses", "fishschoolcrab", "celebrationoverlap", "partyseed", "partyobserver", "partyreturn");
+    private static final List<String> OPT_IN_SCENES = List.of("columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench", "leaderboard", "tutorial", "faq", "companiontutorial", "companionbond", "companionsim", "companionparty", "companioneel", "companiondoor", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld", "companionparticles", "companionworldcost", "companionfloorlight", "ambientparity", "ambientwater", "ambientisland", "ambientfloor", "ambientwalk", "ambientswim", "fishschoolgif", "fishschooljump", "legendarybreach", "fishschoolbite", "fishschoolreach", "fishschoolperf", "fishschoolshapes", "fishschoolclasses", "fishschoolcrab", "celebrationoverlap", "partyseed", "partyobserver", "partyreturn");
 
     static Boolean armed;
     /** Dev probe (§21): runs every client tick while non-null — tick-true sampling. */
@@ -378,6 +378,7 @@ public final class RenderSelfTest {
             case "companiondoor" -> queueCompanionDoorScene();
             case "companionparticles" -> queueCompanionParticlesScene();
             case "companionworldcost" -> queueCompanionWorldCostScene();
+            case "companionfloorlight" -> CompanionScenes.queueCompanionFloorLightScene();
             case "ambientparity" -> queueAmbientParityScene();
             case "ambientwater" -> queueAmbientWaterScene();
             case "ambientisland" -> queueAmbientIslandScene();
