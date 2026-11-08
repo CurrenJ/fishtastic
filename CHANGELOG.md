@@ -4,9 +4,12 @@
 
 ## 2.1.26
 
-- A Pile of Fish can now be cooked in a furnace or smoker, one fish at a time, and right-clicking a campfire with a pile puts one of its fish on the grill.
 - Fish tanks built with glass or stained glass now show it without the frame drawn into vanilla glass, so the panes read clean. The tank keeps the glass it was built with. Turn this off with `/fishtastic tank borderlessglass false`.
 - Forge: fish tanks built with Borderless Glass or Clear Glass no longer show as the default oak-and-blue tank.
+
+## 2.1.25
+
+- A Pile of Fish can now be cooked in a furnace or smoker, one fish at a time, and right-clicking a campfire with a pile puts one of its fish on the grill.
 
 ## 2.1.24
 
