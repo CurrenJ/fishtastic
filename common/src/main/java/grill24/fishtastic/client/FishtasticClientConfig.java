@@ -30,6 +30,7 @@ public final class FishtasticClientConfig {
     private static final String TANK_WATER_FILL_KEY = "tankWaterFillEnabled";
     private static final String TANK_INTERIOR_LIGHT_KEY = "tankInteriorLight";
     private static final int DEFAULT_TANK_INTERIOR_LIGHT = 13;
+    public static final String TANK_BORDERLESS_GLASS_KEY = "tankBorderlessGlass";
     private static final String NOTIFICATION_VOLUME_KEY = "notificationVolume";
     private static final String SHAPE_GALLERY_OPEN_KEY = "shapeGalleryOpen";
     private static final String ENCYCLOPEDIA_PORTRAIT_ANIMATIONS_KEY = "encyclopediaPortraitAnimations";
@@ -70,6 +71,12 @@ public final class FishtasticClientConfig {
             # "/fishtastic tank interiorlight <0-15>" in-game, which also rewrites this file.
             tankInteriorLight=13
 
+            # Draws fish tanks built with vanilla glass or stained glass with Fishtastic's borderless
+            # version of that glass, so the panes don't show a frame. Only the look changes: the tank
+            # keeps the glass it was built with. Toggled via
+            # "/fishtastic tank borderlessglass <true|false>" in-game, which also rewrites this file.
+            tankBorderlessGlass=true
+
             # Volume (0-100) of quest/notification banner sounds. Set via
             # "/fishtastic notifications volume <0-100>" in-game, which also rewrites this file.
             notificationVolume=50
@@ -99,6 +106,7 @@ public final class FishtasticClientConfig {
 
     private static Boolean tankWaterFillEnabled;
     private static Integer tankInteriorLight;
+    private static Boolean tankBorderlessGlass;
     private static Integer notificationVolume;
     private static Boolean shapeGalleryOpen;
     private static Boolean encyclopediaPortraitAnimations;
@@ -210,6 +218,7 @@ public final class FishtasticClientConfig {
         fishSchoolArrivals = null;
         tankWaterFillEnabled = null;
         tankInteriorLight = null;
+        tankBorderlessGlass = null;
         notificationVolume = null;
         shapeGalleryOpen = null;
         encyclopediaPortraitAnimations = null;
@@ -255,6 +264,29 @@ public final class FishtasticClientConfig {
      */
     public static void setTankInteriorLight(int level) {
         tankInteriorLight = Mth.clamp(level, 0, 15);
+        persist();
+    }
+
+    /** Whether tanks built with vanilla (stained) glass are drawn with its borderless variant. Default on. */
+    public static boolean isTankBorderlessGlass() {
+        Boolean override = TEST_OVERRIDES.get(TANK_BORDERLESS_GLASS_KEY);
+        return override != null ? override : storedTankBorderlessGlass();
+    }
+
+    private static boolean storedTankBorderlessGlass() {
+        if (tankBorderlessGlass == null) {
+            tankBorderlessGlass = Boolean.parseBoolean(load().getProperty(TANK_BORDERLESS_GLASS_KEY, "true"));
+        }
+        return tankBorderlessGlass;
+    }
+
+    /**
+     * Persists the borderless-glass toggle and caches it. Tank chunk meshes bake the glass texture
+     * in, so callers go through {@link grill24.fishtastic.client.renderer.TankGlassDisplay#set} to
+     * have them rebuilt.
+     */
+    public static void setTankBorderlessGlass(boolean enabled) {
+        tankBorderlessGlass = enabled;
         persist();
     }
 
@@ -383,6 +415,7 @@ public final class FishtasticClientConfig {
         props.setProperty(NOTIFICATION_VOLUME_KEY, String.valueOf(getNotificationVolume()));
         props.setProperty(TANK_WATER_FILL_KEY, String.valueOf(isTankWaterFillEnabled()));
         props.setProperty(TANK_INTERIOR_LIGHT_KEY, String.valueOf(getTankInteriorLight()));
+        props.setProperty(TANK_BORDERLESS_GLASS_KEY, String.valueOf(storedTankBorderlessGlass()));
         props.setProperty(SHAPE_GALLERY_OPEN_KEY, String.valueOf(isShapeGalleryOpen()));
         props.setProperty(ENCYCLOPEDIA_PORTRAIT_ANIMATIONS_KEY, String.valueOf(isEncyclopediaPortraitAnimations()));
         props.setProperty(REDUCED_CELEBRATION_EFFECTS_KEY, String.valueOf(isReducedCelebrationEffects()));

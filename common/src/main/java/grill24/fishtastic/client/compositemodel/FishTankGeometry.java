@@ -1,5 +1,6 @@
 package grill24.fishtastic.client.compositemodel;
 
+import grill24.fishtastic.client.renderer.TankGlassDisplay;
 import com.mojang.datafixers.util.Either;
 import grill24.fishtastic.Fishtastic;
 import grill24.fishtastic.fishtank.FishTankCompositeModelData;
@@ -79,8 +80,10 @@ public final class FishTankGeometry {
 
     private record CacheKey(FishTankShape shape, Block frame, Block sand, Block glass, int permutation,
                             Set<TankDiagonal> diagonalOverrides, Set<TankEdgeDiagonal> edgeDiagonalOverrides) {
+        // The glass is the block it is drawn with (see TankGlassDisplay), so flipping that
+        // setting is a different model.
         static CacheKey of(FishTankCompositeModelData data) {
-            return new CacheKey(data.shape(), data.frameBlock(), data.sandBlock(), data.glassBlock(),
+            return new CacheKey(data.shape(), data.frameBlock(), data.sandBlock(), TankGlassDisplay.displayed(data.glassBlock()),
                     data.getPermutationIndex(), data.getDiagonalOverrideMask(), data.getEdgeDiagonalOverrideMask());
         }
     }
@@ -259,15 +262,17 @@ public final class FishTankGeometry {
     private Composite generate(FishTankCompositeModelData data) {
         int perm = data.getPermutationIndex();
         FishTankShape shape = data.shape();
+        // Vanilla glass is drawn as its borderless variant when that's on (see TankGlassDisplay).
+        Block glassBlock = TankGlassDisplay.displayed(data.glassBlock());
         Material frameTex = textures.get(data.frameBlock());
         Material sandTex = textures.get(data.sandBlock());
-        Material glassTex = textures.get(data.glassBlock());
+        Material glassTex = textures.get(glassBlock);
         if (frameTex == null || sandTex == null || glassTex == null) {
             Fishtastic.LOGGER.warn(
                     "Fish Tank: could not resolve texture(s) for frame={} sand={} glass={} — skipping cache.",
                     frameTex == null ? BuiltInRegistries.BLOCK.getKey(data.frameBlock()) : "ok",
                     sandTex == null ? BuiltInRegistries.BLOCK.getKey(data.sandBlock()) : "ok",
-                    glassTex == null ? BuiltInRegistries.BLOCK.getKey(data.glassBlock()) : "ok");
+                    glassTex == null ? BuiltInRegistries.BLOCK.getKey(glassBlock) : "ok");
             return null;
         }
 
@@ -328,7 +333,7 @@ public final class FishTankGeometry {
             List<LayerQuads> layers = List.of(
                     new LayerQuads(Layer.FRAME, data.frameBlock(), freeze(frame)),
                     new LayerQuads(Layer.SAND, data.sandBlock(), freeze(sand)),
-                    new LayerQuads(Layer.GLASS, data.glassBlock(), freeze(glass)));
+                    new LayerQuads(Layer.GLASS, glassBlock, freeze(glass)));
             return new Composite(layers, spriteGetter.apply(frameTex));
         } catch (Exception e) {
             Fishtastic.LOGGER.error("Fish Tank: error generating composite model for {}", data, e);

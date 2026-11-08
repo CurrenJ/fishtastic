@@ -61,4 +61,19 @@ class FishtasticClientConfigTest {
         assertFalse(FishtasticClientConfig.hideOwnCompanionFirstPerson());
         assertEquals(7, FishtasticClientConfig.getTankInteriorLight());
     }
+
+    @Test
+    void borderlessTankGlassDefaultsOnAndSurvivesARestart() throws Exception {
+        assertTrue(FishtasticClientConfig.isTankBorderlessGlass());
+
+        FishtasticClientConfig.setTankBorderlessGlass(false);
+        Properties onDisk = new Properties();
+        try (var in = Files.newInputStream(dir.resolve("fishtastic-client.properties"))) {
+            onDisk.load(in);
+        }
+        assertEquals("false", onDisk.getProperty("tankBorderlessGlass"));
+
+        FishtasticClientConfig.resetCacheForTest();
+        assertFalse(FishtasticClientConfig.isTankBorderlessGlass());
+    }
 }

@@ -134,6 +134,7 @@ public class FishtasticCommand {
                 .then(NotificationVolumeCommand.build())
                 .then(TankWaterFillCommand.build())
                 .then(TankInteriorLightCommand.build())
+                .then(TankBorderlessGlassCommand.build())
                 .then(EcologyCommand.build())
                 .then(VisitsCommand.build())
                 .then(ObserveCommand.build())
