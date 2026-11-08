@@ -113,6 +113,21 @@ public final class CompanionRender {
     /** True-to-scale rendered length, blocks. */
     public float length() { return length; }
 
+    /** The model-root Y offset used by a ground pose at its current appear scale. */
+    public double floorPoseLift(float appear) {
+        float scale = Math.max(length, 1e-3f) * appear;
+        return FishAnimator.floorPoseLift(anim, scale);
+    }
+
+    /**
+     * World point to sample packed light from. A walker is placed at its terrain contact point,
+     * while its model root is raised by the pose's floor offset; using the contact point can sample
+     * the opaque floor block (especially when interpolation puts it a fraction below an integer Y).
+     */
+    public Vec lightSamplePosition(Vec pos, float appear, boolean onFloor) {
+        return onFloor ? pos.add(0, floorPoseLift(appear), 0) : pos;
+    }
+
     /** Client tick: eases the pose-hint envelopes toward what the lead fish's hint says now. */
     public void tick(CompanionAgent agent) {
         tick(agent.poseHint(), agent.temperament(), agent.lookTarget() == null ? null : agent.lookTarget().sub(agent.position()));
@@ -203,7 +218,7 @@ public final class CompanionRender {
         float scale = Math.max(length, 1e-3f) * appear;
         float t = gameTime * IDLE_CLOCK_RATE;
         float partial = gameTime - (float) Math.floor(gameTime); // the frame's partial tick
-        double lift = onFloor ? FishAnimator.floorPoseLift(anim, scale) : 0;
+        double lift = onFloor ? floorPoseLift(appear) : 0;
 
         poseStack.pushPose();
         poseStack.translate(pos.x() - cam.x, pos.y() + lift - cam.y, pos.z() - cam.z);

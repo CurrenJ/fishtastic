@@ -384,9 +384,10 @@ public final class ClientCompanion {
             }
             // The walk's push-off and the crouch/landing squash drive the same silhouette envelope.
             float shape = gait != null ? Math.max(a.perchSquash(), a.groundShape()) : a.perchSquash();
+            Vec lightPos = renders[i].lightSamplePosition(pos, a.renderAppear(), onFloor);
             drew |= renders[i].submit(poseStack, nodes, cam, i, pos, yaw, face, pitch, a.renderBank(),
                     a.renderAppear(), a.renderTailPhase(), a.speedFactor(), a.renderSqueeze(),
-                    shape, a.riding(), gameTime, light(pos, glow), onFloor,
+                    shape, a.riding(), gameTime, light(lightPos, glow), onFloor,
                     onFloor && gait == GroundGait.RIPPLE);
         }
         if (school != null) {
