@@ -18,6 +18,7 @@ ignored; editable source designs and generators are retained.
 | GUI workbench | `node tools/mc-gui-designer/serve.mjs`; see its [README](mc-gui-designer/README.md). `companions.json` is editable source; `mc-gui-designer.html` is the intentionally checked-in portable distribution, rebuilt with `build.mjs` |
 | Sticker sheet | Open [sticker_sheet.html](sticker_sheet.html); optional block-folder input from `pwsh tools/extract-block-textures.ps1 -Version <mc>`. Extracted Mojang textures stay ignored |
 | GIF cutter | Open [gif-cutter.html](gif-cutter.html); drop an MP4, trim it, set resolution and frame rate, download the GIF. Runs entirely in the browser with no dependencies |
+| Showcase card | `python tools/showcase-card/serve.py` (or double-click `showcase-card.cmd`); animated lower-third overlay for showcase videos using the real logo, icon and fish textures. Exports WebM/ProRes with alpha or a chroma-key MP4 to `tools/showcase-card/out/` (ignored); needs ffmpeg on PATH. The logo is read from `tools/FishtasticBannerTitleNoFrills.png` |
 | MCP bridge | `npm ci --prefix tools/mcp-bridge`, then `node tools/mcp-bridge/index.js`; local `.env` follows `.env.example` and the in-game MCP session. Tokens/settings remain local |
 
 Structure/preview rendering uses Pillow, NumPy and Matplotlib where imported; install

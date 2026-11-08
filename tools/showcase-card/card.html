@@ -1,0 +1,846 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Fishtastic Showcase Card</title>
+<style>
+  @font-face { font-family: "Jersey15"; src: url("/font/Jersey15.ttf"); }
+  :root { --navy: #1d0e46; --navy2: #2a1a63; --cyan: #5effff; --gold: #ffd43b; --ink: #e9e6ff; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #120a2e; color: var(--ink); font: 14px/1.35 "Segoe UI", sans-serif; }
+  body { display: grid; grid-template-columns: 1fr 360px; height: 100vh; }
+  #stage { display: flex; flex-direction: column; min-width: 0; padding: 14px; gap: 10px; }
+  #view { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+  #frame { position: relative; aspect-ratio: 16 / 9; max-width: 100%; max-height: 100%; width: 100%;
+           border: 2px solid var(--navy2); background-size: cover; background-position: center; }
+  #frame.checker { background-image: conic-gradient(#3a3550 25%, #2c2840 0 50%, #3a3550 0 75%, #2c2840 0); background-size: 32px 32px; }
+  #frame.green { background: #00ff00; }
+  #frame.dark { background: #0d0b16; }
+  #preview { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #transport { display: flex; align-items: center; gap: 10px; }
+  #transport input[type=range] { flex: 1; }
+  #time { font-variant-numeric: tabular-nums; width: 92px; text-align: right; opacity: .8; }
+  aside { overflow-y: auto; background: #170d3a; border-left: 2px solid var(--navy2); padding: 12px 14px 40px; }
+  h1 { font: 400 34px/1 "Jersey15", sans-serif; color: var(--cyan); margin: 2px 0 2px; text-shadow: 3px 3px 0 var(--navy); }
+  .sub { opacity: .6; font-size: 12px; margin-bottom: 8px; }
+  fieldset { border: 2px solid var(--navy2); border-radius: 0; margin: 10px 0; padding: 8px 10px 10px; }
+  legend { font: 400 20px/1 "Jersey15", sans-serif; color: var(--gold); padding: 0 6px; }
+  label { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
+  label > span:first-child { width: 96px; flex: none; opacity: .8; }
+  label.check { display: inline-flex; margin-right: 12px; }
+  input[type=text], input[type=number], select { flex: 1; min-width: 0; background: #0f0828; color: var(--ink);
+      border: 1px solid #3c2c80; padding: 4px 6px; font: inherit; }
+  input[type=range] { flex: 1; accent-color: var(--cyan); }
+  input[type=checkbox] { accent-color: var(--cyan); }
+  button { background: var(--navy2); color: var(--ink); border: 2px solid #4a3a9a; padding: 5px 10px; font: inherit; cursor: pointer; }
+  button:hover { border-color: var(--cyan); }
+  button.big { width: 100%; padding: 9px; font: 400 24px/1 "Jersey15", sans-serif; color: var(--gold); border-color: var(--gold); }
+  .row { display: flex; gap: 6px; align-items: center; }
+  .val { width: 38px; text-align: right; font-variant-numeric: tabular-nums; opacity: .8; }
+  #status { white-space: pre-wrap; font-size: 12px; margin-top: 8px; opacity: .9; }
+  #status.err { color: #ff8a8a; }
+  progress { width: 100%; height: 10px; accent-color: var(--gold); display: none; }
+  #warn { display: none; background: #5a1a2a; padding: 8px; margin-bottom: 8px; }
+  body.shot { display: block; } body.shot aside, body.shot #transport { display: none; }
+  body.shot #stage { padding: 0; height: 100vh; } body.shot #frame { border: 0; }
+  .hint { font-size: 12px; opacity: .55; margin: 2px 0 0; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="view"><div id="frame" class="checker"><canvas id="preview"></canvas></div></div>
+  <div id="transport">
+    <button id="play">❚❚</button>
+    <button id="restart" title="Restart">⟲</button>
+    <input id="scrub" type="range" min="0" max="1000" value="0">
+    <span id="time">0.00 / 7.00s</span>
+    <label class="check"><input id="loop" type="checkbox" checked> loop</label>
+  </div>
+</div>
+<aside>
+  <h1>Showcase Card</h1>
+  <div class="sub">Fishtastic lower-third overlay · Space plays/pauses</div>
+  <div id="warn">Open this through <b>serve.py</b> (python tools/showcase-card/serve.py). Without it, textures and export won't work.</div>
+
+  <fieldset><legend>Text</legend>
+    <label><span>Author</span><input id="author" type="text"></label>
+    <label><span>Version</span><input id="version" type="text"></label>
+    <label><span>MC versions</span><input id="mc" type="text"></label>
+    <div><label class="check"><input id="ld_fabric" type="checkbox">Fabric</label><label class="check"><input id="ld_forge" type="checkbox">Forge</label><label class="check"><input id="ld_neoforge" type="checkbox">NeoForge</label></div>
+  </fieldset>
+
+  <fieldset><legend>Downloads</legend>
+    <label><span>Count</span><input id="downloads" type="number" min="0"></label>
+    <label><span>Format</span><select id="dlFormat"><option value="full">3,419</option><option value="compact">3.4K</option></select>
+      <label class="check" style="margin:0"><input id="dlPlus" type="checkbox">+</label></label>
+    <label><span>Label</span><input id="dlLabel" type="text"></label>
+    <div><label class="check"><input id="bd_curseforge" type="checkbox">CurseForge badge</label><label class="check"><input id="bd_modrinth" type="checkbox">Modrinth badge</label></div>
+    <label><span>CF slug</span><input id="cfSlug" type="text" placeholder="fishtastic"></label>
+    <label><span>Modrinth id</span><input id="mrId" type="text" placeholder="(not on Modrinth yet)"></label>
+    <button id="fetchDl">Fetch live totals</button>
+  </fieldset>
+
+  <fieldset><legend>Placement</legend>
+    <label><span>Position</span><select id="position">
+      <option value="bl">Bottom left</option><option value="bc">Bottom centre</option><option value="br">Bottom right</option>
+      <option value="tl">Top left</option><option value="tr">Top right</option><option value="c">Centre</option></select></label>
+    <label><span>Scale</span><input id="scale" type="range" min="0.5" max="1.6" step="0.05"><span class="val" id="scale_v"></span></label>
+    <label><span>Margin</span><input id="margin" type="range" min="0" max="200" step="4"><span class="val" id="margin_v"></span></label>
+    <label><span>Preview bg</span><select id="bg"><option value="checker">Checker</option><option value="dark">Dark</option><option value="green">Green</option><option value="image">Drop an image…</option></select></label>
+    <p class="hint">Drag a gameplay screenshot onto the preview to judge placement. It is never exported.</p>
+  </fieldset>
+
+  <fieldset><legend>Animation</legend>
+    <label><span>Duration</span><input id="duration" type="range" min="3" max="20" step="0.5"><span class="val" id="duration_v"></span></label>
+    <div><label class="check"><input id="intro" type="checkbox">Entrance</label><label class="check"><input id="outro" type="checkbox">Exit</label></div>
+    <label><span>Shake</span><input id="shake" type="range" min="0" max="2" step="0.1"><span class="val" id="shake_v"></span></label>
+    <label><span>Leap every</span><input id="leapEvery" type="range" min="1.2" max="8" step="0.1"><span class="val" id="leapEvery_v"></span></label>
+    <label><span>Leaping fish</span><select id="fish"><option value="random">Random from roster</option></select></label>
+    <label><span>Fish size</span><input id="fishScale" type="range" min="2" max="7" step="0.5"><span class="val" id="fishScale_v"></span></label>
+    <div class="row"><label style="flex:1"><span>Seed</span><input id="seed" type="number"></label><button id="reroll" title="New random seed">🎲 Reroll</button></div>
+  </fieldset>
+
+  <fieldset><legend>Export</legend>
+    <label><span>File name</span><input id="name" type="text"></label>
+    <label><span>Resolution</span><select id="res"><option value="1080">1920×1080</option><option value="1440">2560×1440</option><option value="2160">3840×2160</option></select></label>
+    <label><span>FPS</span><select id="fps"><option value="30">30</option><option value="60">60</option></select></label>
+    <div><label class="check"><input id="fm_mov" type="checkbox">ProRes 4444 .mov (alpha, works in CapCut)</label></div>
+    <div><label class="check"><input id="fm_qtrle" type="checkbox">QuickTime Animation .mov (alpha, lossless)</label></div>
+    <div><label class="check"><input id="fm_webm" type="checkbox">WebM (alpha)</label><label class="check"><input id="fm_green" type="checkbox">Chroma MP4</label></div>
+    <label><span>Chroma key</span><select id="chroma"><option value="00FF00">Green</option><option value="0000FF">Blue</option><option value="FF00FF">Magenta</option></select></label>
+    <button class="big" id="export">Render video</button>
+    <div class="row" style="margin-top:6px"><button id="still" style="flex:1">PNG of current frame</button><button id="openOut">Open folder</button></div>
+    <progress id="prog" max="1" value="0"></progress>
+    <div id="status"></div>
+    <p class="hint">CapCut: use ProRes 4444. CapCut shows WebM transparency as black, because the alpha sits in a side track its decoder skips. QuickTime Animation is lossless and ~25% smaller, but untested in CapCut. WebM suits Resolve, Kdenlive, Shotcut and OBS. Any editor can key the chroma MP4.</p>
+  </fieldset>
+  <button id="reset">Reset all settings</button>
+</aside>
+
+<script>
+"use strict";
+// ---------------------------------------------------------------------------------------------
+// Palette (sunset reef: the icon's sky behind the logo's aqua + navy)
+// ---------------------------------------------------------------------------------------------
+const P = 4;                                   // one art pixel, in 1080p design units
+const NAVY = "#1d0e46", NAVY2 = "#2a1a63", CYAN = "#5effff", AQUA = "#2f87c0";
+const GOLD = "#ffd43b", GOLD_D = "#b9781a", SAND = "#ecd59c", SAND_D = "#cfae72", WHITE = "#ffffff";
+const SUNSET = [[172, 160, 246], [214, 166, 214], [246, 168, 166], [255, 186, 98]];
+const LOADERS = {
+  fabric:   { label: "Fabric",   fill: "#e4d7b8", text: "#3b2f1e", shade: "#b8a682" },
+  forge:    { label: "Forge",    fill: "#2b3a55", text: "#f3f3f3", shade: "#18233a" },
+  neoforge: { label: "NeoForge", fill: "#e8812f", text: "#ffffff", shade: "#a95214" },
+};
+const GLYPHS = {
+  arrow: ["..###..", "..###..", "..###..", "#######", ".#####.", "..###..", "...#...", "", "#######"],
+  curseforge: ["........", "########", ".#######", "..######", "...####.", "...####.", "..######", ".#######"],
+  modrinth: ["..####..", ".#....#.", "#..##..#", "#.#..#.#", "#.#..#.#", "#..##..#", ".#....#.", "..####.."],
+};
+const BADGES = { curseforge: { bg: "#f16436", fg: "#ffffff" }, modrinth: { bg: "#1b1d22", fg: "#1bd96a" } };
+
+const DEFAULTS = {
+  author: "by grill24", version: "2.1.25", mc: "1.20.1 – 26.1.2",
+  ld_fabric: true, ld_forge: true, ld_neoforge: true,
+  downloads: 3419, dlFormat: "full", dlPlus: false, dlLabel: "downloads",
+  bd_curseforge: true, bd_modrinth: false, cfSlug: "fishtastic", mrId: "",
+  position: "bl", scale: 1, margin: 56, bg: "checker",
+  duration: 7, intro: true, outro: true, shake: 1, leapEvery: 2.4, fish: "random", fishScale: 4, seed: 7,
+  name: "fishtastic_card", res: "1080", fps: "60", fm_qtrle: false, fm_webm: false, fm_green: false, fm_mov: true, chroma: "00FF00",
+};
+const STORE = "fishtastic-showcase-card-v1";
+let S = Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem(STORE) || "{}"));
+
+// ---------------------------------------------------------------------------------------------
+// Small maths
+// ---------------------------------------------------------------------------------------------
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+const easeInCubic = t => t * t * t;
+const easeOutBack = (t, s = 1.9) => 1 + (s + 1) * Math.pow(t - 1, 3) + s * Math.pow(t - 1, 2);
+const easeInBack = (t, s = 1.7) => (s + 1) * t * t * t - s * t * t;
+const easeOutExpo = t => (t >= 1 ? 1 : 1 - Math.pow(2, -10 * t));
+const easeOutElastic = t => (t <= 0 ? 0 : t >= 1 ? 1 : Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * (2 * Math.PI / 3)) + 1);
+// Stateless hash: every random value is a function of (seed, index), so any frame can be rendered alone.
+function rnd(...k) {
+  let h = 2166136261 ^ (S.seed | 0);
+  for (const v of k) { h = Math.imul(h ^ ((v * 2654435761) | 0), 16777619); h ^= h >>> 13; }
+  h = Math.imul(h ^ (h >>> 16), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+const lerp3 = (stops, f) => {
+  const x = clamp(f) * (stops.length - 1), i = Math.min(stops.length - 2, Math.floor(x)), t = x - i;
+  return stops[i].map((c, j) => Math.round(lerp(c, stops[i + 1][j], t)));
+};
+const rgb = (c, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+
+// ---------------------------------------------------------------------------------------------
+// Assets
+// ---------------------------------------------------------------------------------------------
+const A = { wordmark: null, icon: null, fish: [], fishImg: {}, slices: [], faceDots: [], tint: {} };
+const loadImg = src => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+
+// Cut the wordmark into letters at columns that hold only navy outline, so letters can move on their own.
+function sliceWordmark(img) {
+  const c = document.createElement("canvas"); c.width = img.width; c.height = img.height;
+  const g = c.getContext("2d"); g.drawImage(img, 0, 0);
+  const d = g.getImageData(0, 0, c.width, c.height).data;
+  const colour = new Uint8Array(c.width);
+  A.faceDots = [];
+  for (let x = 0; x < c.width; x++) {
+    for (let y = 0; y < c.height; y++) {
+      const o = (y * c.width + x) * 4;
+      if (d[o + 3] > 40 && d[o + 2] > 120) {
+        colour[x] = 1;
+        if (d[o + 1] > 150 && (x * 7 + y * 13) % 97 === 0) A.faceDots.push([x / c.width, y / c.height]);
+      }
+    }
+  }
+  const cuts = [0];
+  for (let x = 1; x < c.width; x++) {
+    if (!colour[x]) { let e = x; while (e < c.width && !colour[e]) e++; if (x > 4 && e < c.width - 4) cuts.push(Math.round((x + e) / 2)); x = e; }
+  }
+  cuts.push(c.width);
+  A.slices = [];
+  for (let i = 0; i + 1 < cuts.length; i++) if (cuts[i + 1] - cuts[i] > 6) A.slices.push([cuts[i], cuts[i + 1]]);
+}
+
+function tinted(id, colour) {
+  const key = id + colour;
+  if (A.tint[key]) return A.tint[key];
+  const img = A.fishImg[id]; if (!img) return null;
+  const c = document.createElement("canvas"); c.width = c.height = img.width;
+  const g = c.getContext("2d"); g.drawImage(img, 0, 0, img.width, img.width, 0, 0, img.width, img.width);
+  g.globalCompositeOperation = "source-in"; g.fillStyle = colour; g.fillRect(0, 0, c.width, c.height);
+  return (A.tint[key] = c);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Layout (card-local design units; the card is drawn with its top-left at 0,0)
+// ---------------------------------------------------------------------------------------------
+const FONT = (px) => `${px}px Jersey15, monospace`;
+const B = 4 * P, PAD = 22, SAND_H = 3 * P;
+
+function fmtCount(n) {
+  n = Math.max(0, Math.round(n));
+  let s;
+  if (S.dlFormat === "compact") {
+    s = n >= 1e6 ? (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + "M" : n >= 1e3 ? (n / 1e3).toFixed(n >= 1e4 ? 0 : 1) + "K" : String(n);
+    s = s.replace(".0", "");
+  } else s = n.toLocaleString("en-US");
+  return s + (S.dlPlus ? "+" : "");
+}
+
+function layout(g) {
+  const L = {};
+  const wmW = 744, wmH = A.wordmark ? wmW * A.wordmark.height / A.wordmark.width : 124;
+  g.font = FONT(50); const authorW = g.measureText(S.author).width;
+  g.font = FONT(30);
+  const chip = (label) => ({ label, w: Math.ceil(g.measureText(label).width) + 4 * P + 8 });
+  const loaders = ["fabric", "forge", "neoforge"].filter(k => S["ld_" + k]).map(k => Object.assign(chip(LOADERS[k].label), { kind: k }));
+  const verChips = [S.version && chip("v" + S.version), S.mc && chip("MC " + S.mc)].filter(Boolean);
+  g.font = FONT(52); const countW = Math.ceil(Math.max(g.measureText(fmtCount(S.downloads)).width, g.measureText(fmtCount(S.downloads).replace(/\d/g, "8")).width));
+  g.font = FONT(34); const labelW = S.dlLabel ? Math.ceil(g.measureText(S.dlLabel).width) : 0;
+  const badges = ["curseforge", "modrinth"].filter(k => S["bd_" + k]);
+  const pillW = 3 * P + 7 * P + 10 + countW + (labelW ? 10 + labelW : 0) + badges.length * (10 * P + 8) + (badges.length ? 6 : 0) + 3 * P;
+  const gap = 10;
+  const sum = (a) => a.reduce((s, c) => s + c.w + gap, 0);
+  const rowA = authorW + 26 + sum(loaders);
+  const rowB = pillW + gap + sum(verChips);
+  const contentW = Math.ceil(Math.max(wmW, rowA, rowB));
+  const contentH = Math.round(wmH) + 6 + 46 + 14 + 54;
+  L.icon = { x: B + PAD, y: B + PAD, s: contentH };
+  L.cx = L.icon.x + L.icon.s + PAD + 4;
+  L.W = L.cx + contentW + PAD + B;
+  L.H = B + PAD + contentH + PAD + SAND_H + B;
+  L.wm = { x: L.cx + (contentW - wmW) / 2 * 0, y: B + PAD - 6, w: wmW, h: wmH };
+  L.rowAy = L.wm.y + wmH + 6 + 23;                  // vertical centre of row A
+  L.rowBy = L.rowAy + 23 + 14 + 27;
+  L.author = { x: L.cx + 2, w: authorW };
+  let x = L.cx + contentW;
+  for (let i = loaders.length - 1; i >= 0; i--) { x -= loaders[i].w; loaders[i].x = x; x -= gap; }
+  L.loaders = loaders;
+  L.pill = { x: L.cx, w: pillW, countW, labelW, badges };
+  x = L.cx + pillW + gap;
+  for (const c of verChips) { c.x = x; x += c.w + gap; }
+  L.verChips = verChips;
+  return L;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Timeline
+// ---------------------------------------------------------------------------------------------
+const T_RISE = 0.0, T_LAND = 0.4, OUTRO = 0.75, LEAP_DUR = 1.05;
+const tIntro = () => (S.intro ? 0 : -10);            // entrance disabled = it already happened
+function outroStart() { return S.outro ? S.duration - OUTRO : Infinity; }
+
+function leaps() {
+  const out = [], end = Math.min(S.duration, outroStart()) - LEAP_DUR;
+  const pool = A.fish.length ? A.fish : [];
+  let t = S.intro ? 1.15 : 0.25;
+  for (let k = 0; t <= end && k < 40; k++, t += S.leapEvery) {
+    const id = S.fish !== "random" ? S.fish : pool.length ? pool[Math.floor(rnd(11, k) * pool.length)].id : null;
+    const dir = k % 2 === 0 ? 1 : -1;
+    out.push({ t, id, dir, a: 0.12 + rnd(12, k) * 0.3, span: 0.32 + rnd(13, k) * 0.22, h: 150 + rnd(14, k) * 90, spin: rnd(15, k) < 0.25 });
+  }
+  return out;
+}
+// The leap is a parabola in s; s in [0,1] is above the water (card top), the overshoot is underwater.
+const S0 = -0.2, S1 = 1.2;
+function leapPose(L, lp, s) {
+  const x0 = lp.dir > 0 ? L.W * lp.a : L.W * (1 - lp.a), x1 = x0 + lp.dir * L.W * lp.span;
+  return { x: lerp(x0, x1, s), y: B / 2 - 4 * lp.h * s * (1 - s), vx: x1 - x0, vy: -4 * lp.h * (1 - 2 * s) };
+}
+const leapTimeAt = (lp, s) => lp.t + LEAP_DUR * (s - S0) / (S1 - S0);
+
+function shakeEvents(L) {
+  const ev = [];
+  if (S.intro) ev.push({ t: T_LAND, a: 16, d: 7 });
+  if (S.intro) ev.push({ t: 1.95, a: 6, d: 10 });
+  for (const lp of leaps()) ev.push({ t: leapTimeAt(lp, 1), a: 5, d: 9 });
+  return ev;
+}
+function shakeAt(t, L) {
+  let x = 0, y = 0;
+  for (const e of shakeEvents(L)) {
+    const u = t - e.t; if (u < 0 || u > 0.6) continue;
+    const a = e.a * S.shake * Math.exp(-u * e.d);
+    x += a * Math.sin(u * 91 + e.t * 7); y += a * Math.cos(u * 77 + e.t * 3);
+  }
+  return [x, y];
+}
+
+// ---------------------------------------------------------------------------------------------
+// Drawing helpers (card-local units)
+// ---------------------------------------------------------------------------------------------
+function chamfer(g, x, y, w, h, c, fill) {   // a rectangle with stepped pixel corners
+  g.fillStyle = fill;
+  g.fillRect(x + c, y, w - 2 * c, h);
+  g.fillRect(x, y + c, w, h - 2 * c);
+  if (c >= 2 * P) { g.fillRect(x + P, y + P, w - 2 * P, h - 2 * P); }
+}
+function glyph(g, map, x, y, px, colour) {
+  g.fillStyle = colour;
+  map.forEach((row, j) => { for (let i = 0; i < row.length; i++) if (row[i] === "#") g.fillRect(x + i * px, y + j * px, px, px); });
+}
+function shadowText(g, text, x, y, colour, shadow = NAVY, off = 4) {
+  g.fillStyle = shadow; g.fillText(text, x + off, y + off);
+  g.fillStyle = colour; g.fillText(text, x, y);
+}
+function popScale(t, t0, dur = 0.32) {
+  if (t < t0) return 0;
+  return easeOutBack(clamp((t - t0) / dur), 2.4);
+}
+function withScale(g, cx, cy, sx, sy, fn) {
+  if (sx <= 0.001 || sy <= 0.001) return;
+  g.save(); g.translate(cx, cy); g.scale(sx, sy); g.translate(-cx, -cy); fn(); g.restore();
+}
+function star(g, x, y, n, colour) {           // 4-point pixel twinkle, n = arm length in art pixels
+  g.fillStyle = colour;
+  g.fillRect(x - P / 2, y - P / 2 - n * P, P, (2 * n + 1) * P);
+  g.fillRect(x - P / 2 - n * P, y - P / 2, (2 * n + 1) * P, P);
+  if (n >= 2) { g.fillStyle = WHITE; g.fillRect(x - P / 2, y - P / 2, P, P); }
+}
+
+// Splash droplets: everything is a closed-form function of time since the splash.
+function splash(g, t, t0, x, y, n, key, o = {}) {
+  const u = t - t0, life = o.life || 0.85;
+  if (u < 0 || u > life + 0.4) return;
+  const spread = o.spread ?? 1.4, vmin = o.vmin ?? 260, vmax = o.vmax ?? 620, grav = 1500, w = o.width || 0;
+  for (let i = 0; i < n; i++) {
+    const l = life * (0.6 + 0.4 * rnd(key, i, 5)); if (u > l) continue;
+    const ang = -Math.PI / 2 + (rnd(key, i, 1) - 0.5) * spread;
+    const sp = lerp(vmin, vmax, rnd(key, i, 2));
+    const px = x + (rnd(key, i, 3) - 0.5) * w + Math.cos(ang) * sp * u;
+    const py = y + Math.sin(ang) * sp * u + 0.5 * grav * u * u;
+    const sz = (rnd(key, i, 4) < 0.3 ? 3 : 2) * P * (1 - 0.5 * u / l);
+    g.globalAlpha = clamp((l - u) / 0.25);
+    g.fillStyle = i % 4 === 0 ? WHITE : i % 4 === 1 ? CYAN : i % 4 === 2 ? "#9fe8ff" : AQUA;
+    g.fillRect(Math.round(px / P) * P - sz / 2, Math.round(py / P) * P - sz / 2, sz, sz);
+  }
+  // crown: a quick ring of foam at the surface
+  if (o.crown !== false && u < 0.35) {
+    const k = u / 0.35, r = 20 + k * (o.crownR || 70);
+    g.globalAlpha = 1 - k; g.fillStyle = WHITE;
+    for (let i = -3; i <= 3; i++) g.fillRect(x + i * r / 3 - P, y - P - Math.abs(Math.sin(i)) * 8 * (1 - k), 2 * P, P);
+  }
+  g.globalAlpha = 1;
+}
+
+function burst(g, t, t0, x, y, n, key, colours) {   // radial sparkle burst with drag
+  const u = t - t0; if (u < 0 || u > 0.9) return;
+  for (let i = 0; i < n; i++) {
+    const ang = (i / n) * Math.PI * 2 + rnd(key, i) * 0.5, sp = 380 + rnd(key, i, 2) * 420;
+    const d = sp * (1 - Math.exp(-u * 5)) / 5;
+    const l = 0.55 + rnd(key, i, 3) * 0.35; if (u > l) continue;
+    const arm = Math.max(0, Math.round(2 * (1 - u / l)));
+    g.globalAlpha = clamp((l - u) / 0.2);
+    star(g, x + Math.cos(ang) * d, y + Math.sin(ang) * d + 120 * u * u, arm, colours[i % colours.length]);
+  }
+  g.globalAlpha = 1;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Card pieces
+// ---------------------------------------------------------------------------------------------
+function drawWater(g, L, t) {
+  const x0 = B, y0 = B, w = L.W - 2 * B, h = L.H - 2 * B;
+  // stepped sunset gradient
+  const band = 2 * P;
+  for (let y = 0; y < h; y += band) {
+    const f = Math.round((y / h) * 9) / 9;
+    g.fillStyle = rgb(lerp3(SUNSET, f)); g.fillRect(x0, y0 + y, w, band + 0.5);
+  }
+  // distant fish silhouettes
+  const pool = A.fish;
+  if (pool.length) for (let j = 0; j < 5; j++) {
+    const f = pool[Math.floor(rnd(31, j) * pool.length)], img = tinted(f.id, "#7a5aa8"); if (!img) continue;
+    const dir = rnd(32, j) < 0.5 ? 1 : -1, sp = 30 + rnd(33, j) * 50, sz = (j % 2 ? 10 : 14) * P;
+    const span = w + 2 * sz, px = x0 - sz + ((rnd(34, j) * span + t * sp) % span);
+    const x = dir > 0 ? px : x0 + w - (px - x0) - sz / 2;
+    const y = y0 + h * (0.25 + 0.5 * rnd(35, j)) + Math.sin(t * 1.3 + j) * 6;
+    g.save(); g.globalAlpha = 0.45; g.translate(x, y); if (dir < 0) g.scale(-1, 1); g.rotate(Math.PI / 4);
+    g.drawImage(img, -sz / 2, -sz / 2, sz, sz); g.restore();
+  }
+  // caustic light network
+  const cell = 2 * P;
+  g.fillStyle = "rgba(255,255,255,0.17)";
+  for (let y = 0; y < h * 0.75; y += cell) for (let x = 0; x < w; x += cell) {
+    const v = Math.sin(x * 0.045 + t * 1.4) + Math.sin(y * 0.09 - t * 1.1 + x * 0.021) + Math.sin((x - y) * 0.031 + t * 1.9);
+    if (v > 1.85 - y / h) g.fillRect(x0 + x, y0 + y, cell, cell);
+  }
+  // kelp: sways more toward the tip, a leaf on alternate sides every other segment
+  const strands = Math.floor(w / 85);
+  for (let j = 0; j < strands; j++) {
+    const sx = x0 + (j + rnd(41, j)) * (w / strands), segs = 5 + Math.floor(rnd(42, j) * 8);
+    for (let k = 0; k < segs; k++) {
+      const f = Math.pow(k / segs, 1.3), dx = Math.round(Math.sin(t * 1.5 + j * 1.3 - k * 0.35) * f * 3) * P;
+      const yy = y0 + h - SAND_H - (k + 1) * 2 * P;
+      g.fillStyle = j % 2 ? "rgba(140,80,150,0.55)" : "rgba(170,96,150,0.55)";
+      g.fillRect(sx + dx, yy, 2 * P, 2 * P);
+      if (k % 2 && k < segs - 1) g.fillRect(sx + dx + ((k >> 1) % 2 ? 2 * P : -P), yy + P, P, P);
+    }
+  }
+  // sand floor
+  g.fillStyle = SAND; g.fillRect(x0, y0 + h - SAND_H, w, SAND_H);
+  g.fillStyle = SAND_D;
+  for (let x = 0; x < w; x += P) if (rnd(51, x) < 0.18) g.fillRect(x0 + x, y0 + h - SAND_H + P + Math.floor(rnd(52, x) * 2) * P, P, P);
+  for (let x = 0; x < w; x += 2 * P) if (rnd(53, x) < 0.25) g.fillRect(x0 + x, y0 + h - SAND_H - P, 2 * P, P);
+  // bubbles
+  for (let j = 0; j < 22; j++) {
+    const sp = 40 + rnd(61, j) * 70, period = (h + 20) / sp, u = ((t + rnd(62, j) * period) % period) / period;
+    const bx = x0 + rnd(63, j) * w + Math.round(Math.sin(t * 3 + j) * 1.2) * P, by = y0 + h - SAND_H - u * (h - SAND_H + 10);
+    const big = rnd(64, j) < 0.3;
+    g.globalAlpha = clamp((1 - u) * 4) * 0.85;
+    if (big) { g.fillStyle = "rgba(255,255,255,0.9)"; g.fillRect(bx, by, 2 * P, P); g.fillRect(bx - P, by + P, P, 2 * P); g.fillRect(bx + 2 * P, by + P, P, 2 * P); g.fillRect(bx, by + 3 * P, 2 * P, P); }
+    else { g.fillStyle = "rgba(255,255,255,0.8)"; g.fillRect(bx, by, P, P); }
+  }
+  g.globalAlpha = 1;
+  // shimmering water line just under the top frame
+  g.fillStyle = "rgba(255,255,255,0.5)";
+  for (let x = 0; x < w; x += 2 * P) if (Math.sin(x * 0.04 + t * 3.2) + Math.sin(x * 0.013 - t * 1.4) > 0.9) g.fillRect(x0 + x, y0, 2 * P, P);
+}
+
+function drawFrame(g, L) {
+  chamfer(g, 3 * P, 3 * P, L.W, L.H, 2 * P, "rgba(29,14,70,0.55)");   // hard drop shadow
+  chamfer(g, 0, 0, L.W, L.H, 2 * P, NAVY);
+  chamfer(g, 3 * P, 3 * P, L.W - 6 * P, L.H - 6 * P, P, CYAN);
+  // glints on the frame, like the logo's
+  g.fillStyle = WHITE; g.fillRect(3 * P + P, 3 * P, 2 * P, P); g.fillRect(3 * P, 3 * P + P, P, P);
+}
+
+function drawIcon(g, L, t, ofs) {
+  const { x, y, s } = L.icon;
+  const sc = S.intro ? easeOutElastic(clamp((t - 0.45) / 0.9)) : 1; if (sc <= 0) return;
+  const rot = S.intro ? (1 - clamp((t - 0.45) / 0.5)) * -0.6 : 0;
+  g.save(); g.translate(x + s / 2, y + s / 2); g.rotate(rot); g.scale(sc, sc); g.translate(-(x + s / 2), -(y + s / 2));
+  chamfer(g, x + 2 * P, y + 2 * P, s, s, P, "rgba(29,14,70,0.6)");
+  chamfer(g, x, y, s, s, P, NAVY);
+  chamfer(g, x + P, y + P, s - 2 * P, s - 2 * P, 0, GOLD);
+  g.fillStyle = GOLD_D; g.fillRect(x + P, y + s - 2 * P, s - 2 * P, P); g.fillRect(x + s - 2 * P, y + P, P, s - 2 * P);
+  const ix = x + 2 * P, iy = y + 2 * P, is = s - 4 * P;
+  if (A.icon) {
+    const glintT = [1.0, ...Array.from({ length: 6 }, (_, i) => 4.2 + i * 4.4)].map(v => v + (S.intro ? 0 : -0.8));
+    ofs.width = Math.max(1, Math.round(is * ofs.k)); ofs.height = ofs.width;
+    const o = ofs.getContext("2d"); o.imageSmoothingEnabled = false;
+    o.clearRect(0, 0, ofs.width, ofs.height); o.drawImage(A.icon, 0, 0, ofs.width, ofs.height);
+    glint(o, ofs.width, ofs.height, t, glintT, 0.5);
+    g.imageSmoothingEnabled = true; g.drawImage(ofs, ix, iy, is, is);
+  }
+  g.restore();
+}
+
+function glint(o, w, h, t, times, dur) {
+  for (const t0 of times) {
+    const u = (t - t0) / dur; if (u < 0 || u > 1) continue;
+    const cx = lerp(-0.4 * w, 1.4 * w, u);
+    o.save(); o.globalCompositeOperation = "source-atop";
+    o.translate(cx, h / 2); o.rotate(0.45);
+    const bw = Math.max(w, h) * 0.08;
+    o.fillStyle = "rgba(255,255,255,0.75)"; o.fillRect(-bw, -h * 2, bw, h * 4);
+    o.fillStyle = "rgba(255,255,255,0.45)"; o.fillRect(bw * 0.6, -h * 2, bw * 0.45, h * 4);
+    o.restore();
+  }
+}
+
+function drawWordmark(g, L, t, ofs) {
+  if (!A.wordmark) return;
+  const { x, y, w, h } = L.wm, M = 140;              // headroom for letters dropping in
+  const k = ofs.k;
+  ofs.width = Math.ceil(w * k); ofs.height = Math.ceil((h + 2 * M) * k);
+  const o = ofs.getContext("2d"); o.imageSmoothingEnabled = true; o.imageSmoothingQuality = "high";
+  o.clearRect(0, 0, ofs.width, ofs.height);
+  const img = A.wordmark, sx = w / img.width, n = A.slices.length;
+  const waveTimes = []; for (let tw = S.intro ? 2.9 : 1.2; tw < S.duration; tw += 3.6) waveTimes.push(tw);
+  A.slices.forEach(([a, b], i) => {
+    let dy = 0, alpha = 1, sq = 1;
+    if (S.intro) {
+      const t0 = 0.42 + i * 0.045, u = clamp((t - t0) / 0.42);
+      if (t < t0) return;
+      dy = -(1 - easeOutBack(u, 2.6)) * 120 * (u < 1 ? 1 : 0);
+      alpha = clamp(u * 5);
+      const land = t - (t0 + 0.42); if (land > 0 && land < 0.25) sq = 1 - 0.12 * Math.sin(land / 0.25 * Math.PI);
+    }
+    for (const tw of waveTimes) { const u = (t - tw - i * 0.055) / 0.32; if (u > 0 && u < 1) dy -= 16 * Math.sin(u * Math.PI); }
+    o.globalAlpha = alpha;
+    const dx0 = a * sx * k, dw = (b - a) * sx * k, dh = h * k * sq;
+    o.drawImage(img, a, 0, b - a, img.height, dx0, (M + dy + h * (1 - sq)) * k, dw + 0.6, dh);
+  });
+  o.globalAlpha = 1;
+  const glints = []; for (let tg = S.intro ? 1.25 : 0.4; tg < S.duration; tg += 3.1) glints.push(tg);
+  glint(o, ofs.width, ofs.height, t, glints, 0.55);
+  g.imageSmoothingEnabled = true;
+  g.drawImage(ofs, x, y - M, w, h + 2 * M);
+  // twinkles over the letter faces
+  if (A.faceDots.length) for (let j = 0; j < 7; j++) {
+    const period = 1.3 + rnd(71, j) * 0.9, ph = rnd(72, j) * period, cyc = Math.floor((t + ph) / period);
+    const l = ((t + ph) % period) / period; if (l > 0.3 || t < (S.intro ? 1.1 : 0)) continue;
+    const d = A.faceDots[Math.floor(rnd(73, j, cyc) * A.faceDots.length)];
+    star(g, x + d[0] * w, y + d[1] * h, Math.round(Math.sin((l / 0.3) * Math.PI) * 2.4), j % 3 ? WHITE : "#fff6b0");
+  }
+}
+
+function drawChip(g, c, cy, fill, shade, text, colour) {
+  const h = 42, y = cy - h / 2;
+  chamfer(g, c.x + P, y + P, c.w, h, P, "rgba(29,14,70,0.6)");
+  chamfer(g, c.x, y, c.w, h, P, NAVY);
+  chamfer(g, c.x + P, y + P, c.w - 2 * P, h - 2 * P, 0, fill);
+  g.fillStyle = shade; g.fillRect(c.x + P, y + h - 2 * P, c.w - 2 * P, P);
+  g.fillStyle = "rgba(255,255,255,0.35)"; g.fillRect(c.x + P, y + P, c.w - 2 * P, P);
+  g.font = FONT(30); g.textBaseline = "middle"; g.textAlign = "center";
+  g.fillStyle = "rgba(0,0,0,0.25)"; g.fillText(text, c.x + c.w / 2 + 2, cy + 1);
+  g.fillStyle = colour; g.fillText(text, c.x + c.w / 2, cy - 1);
+  g.textAlign = "left";
+}
+
+function drawRows(g, L, t) {
+  g.textBaseline = "middle";
+  // author: typewriter
+  const n = S.intro ? Math.floor(S.author.length * clamp((t - 0.75) / 0.45)) : S.author.length;
+  g.font = FONT(50);
+  shadowText(g, S.author.slice(0, n), L.author.x, L.rowAy, WHITE);
+  if (S.intro && t > 0.75 && t < 1.5 && Math.floor(t * 8) % 2 === 0) {
+    g.fillStyle = CYAN; g.fillRect(L.author.x + g.measureText(S.author.slice(0, n)).width + 4, L.rowAy - 16, 3 * P, 32);
+  }
+  // loader chips
+  L.loaders.forEach((c, i) => {
+    const sc = S.intro ? popScale(t, 1.0 + i * 0.09) : 1;
+    withScale(g, c.x + c.w / 2, L.rowAy, sc, sc, () => { const d = LOADERS[c.kind]; drawChip(g, c, L.rowAy, d.fill, d.shade, c.label, d.text); });
+  });
+  L.verChips.forEach((c, i) => {
+    const sc = S.intro ? popScale(t, 1.25 + i * 0.09) : 1;
+    withScale(g, c.x + c.w / 2, L.rowBy, sc, sc, () => drawChip(g, c, L.rowBy, i ? "#3b2a85" : NAVY2, "#160b3a", c.label, i ? WHITE : CYAN));
+  });
+  // download pill
+  const p = L.pill, h = 54, y = L.rowBy - h / 2;
+  const sc = S.intro ? popScale(t, 0.85, 0.36) : 1;
+  const done = 1.95, pulse = S.intro && t > done && t < done + 0.35 ? 1 + 0.12 * Math.sin((t - done) / 0.35 * Math.PI) : 1;
+  withScale(g, p.x + p.w / 2, L.rowBy, sc * pulse, sc * pulse, () => {
+    chamfer(g, p.x + P, y + P, p.w, h, P, "rgba(29,14,70,0.6)");
+    chamfer(g, p.x, y, p.w, h, P, GOLD);
+    chamfer(g, p.x + P, y + P, p.w - 2 * P, h - 2 * P, 0, NAVY);
+    if (S.intro && t > done && t < done + 0.25) { g.globalAlpha = 1 - (t - done) / 0.25; chamfer(g, p.x, y, p.w, h, P, WHITE); g.globalAlpha = 1; }
+    let x = p.x + 3 * P;
+    glyph(g, GLYPHS.arrow, x, L.rowBy - 18, P, GOLD); x += 7 * P + 10;
+    const v = S.intro ? S.downloads * easeOutExpo(clamp((t - 0.9) / 1.05)) : S.downloads;
+    const tick = S.intro && t > 0.9 && t < done ? (Math.floor(t * 30) % 2) * -2 : 0;
+    g.font = FONT(52); shadowText(g, fmtCount(v), x, L.rowBy - 2 + tick, GOLD, "#5a2a08", 3); x += p.countW + 10;
+    if (p.labelW) { g.font = FONT(34); shadowText(g, S.dlLabel, x, L.rowBy + 3, "#fff1c4", "#000", 2); x += p.labelW + 6; }
+    for (const b of p.badges) {
+      x += 8; const bs = 10 * P, by = L.rowBy - bs / 2;
+      chamfer(g, x, by, bs, bs, P, BADGES[b].bg);
+      glyph(g, GLYPHS[b], x + P, by + P, P, BADGES[b].fg);
+      x += bs;
+    }
+  });
+}
+
+// ---------------------------------------------------------------------------------------------
+// Fish leaps
+// ---------------------------------------------------------------------------------------------
+function drawLeapFish(g, L, t, pass) {
+  for (const lp of leaps()) {
+    const s = S0 + (t - lp.t) / LEAP_DUR * (S1 - S0); if (s < S0 || s > S1) continue;
+    const img = A.fishImg[lp.id]; if (!img) continue;
+    const q = leapPose(L, lp, s), sz = 32 * S.fishScale;
+    g.save();
+    if (pass === "under") { g.beginPath(); g.rect(B, B, L.W - 2 * B, L.H - 2 * B); g.clip(); }
+    else { g.beginPath(); g.rect(-4000, -4000, 8000 + L.W, 4000); g.clip(); }
+    // glowing mote trail while airborne
+    if (pass === "over") {
+      g.globalCompositeOperation = "lighter";
+      for (let i = 0; i <= 16; i++) {
+        const si = i / 16, ti = leapTimeAt(lp, si), u = t - ti; if (u < 0 || u > 0.55) continue;
+        const m = leapPose(L, lp, si);
+        g.globalAlpha = (1 - u / 0.55) * 0.9;
+        g.fillStyle = i % 3 === 0 ? "#ffd75e" : i % 3 === 1 ? "#7ff9ff" : "#ffffff";
+        const sz2 = (i % 2 ? 2 : 3) * P;
+        g.fillRect(m.x + (rnd(81, i, lp.t * 10) - 0.5) * 30 - sz2 / 2, m.y + 80 * u * u + (rnd(82, i) - 0.5) * 30, sz2, sz2);
+      }
+      g.globalCompositeOperation = "source-over"; g.globalAlpha = 1;
+    }
+    g.translate(q.x, q.y);
+    let vx = q.vx, ang;
+    if (vx < 0) { g.scale(-1, 1); vx = -vx; }
+    ang = Math.atan2(q.vy, vx) + Math.PI / 4;
+    if (lp.spin) ang += clamp((s - 0.25) / 0.5) * Math.PI * 2;
+    g.rotate(ang);
+    const stretch = 1 + 0.12 * Math.abs(1 - 2 * s);
+    g.scale(stretch, 1 / stretch);
+    g.imageSmoothingEnabled = false;
+    g.drawImage(img, 0, 0, img.width, img.width, -sz / 2, -sz / 2, sz, sz);
+    g.restore();
+  }
+}
+function drawLeapSplashes(g, L, t) {
+  leaps().forEach((lp, k) => {
+    for (const s of [0, 1]) {
+      const q = leapPose(L, lp, s);
+      splash(g, t, leapTimeAt(lp, s), q.x, 0, s ? 22 : 14, 900 + k * 2 + s, { spread: 1.1, vmin: 220, vmax: s ? 560 : 420 });
+    }
+  });
+}
+
+// ---------------------------------------------------------------------------------------------
+// Frame
+// ---------------------------------------------------------------------------------------------
+const OFS_WM = document.createElement("canvas"), OFS_ICON = document.createElement("canvas");
+
+function cardPlacement(L) {
+  const s = S.scale, m = S.margin, w = L.W * s, h = L.H * s;
+  const xs = { l: m, c: (1920 - w) / 2, r: 1920 - m - w };
+  const ys = { t: m + 40, c: (1080 - h) / 2, b: 1080 - m - h };
+  const pos = S.position === "c" ? "cc" : S.position;
+  return { x: xs[pos[1]], y: ys[pos[0]], s };
+}
+
+function render(g, t, k) {
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.clearRect(0, 0, g.canvas.width, g.canvas.height);
+  if (!A.wordmark) return;
+  g.setTransform(k, 0, 0, k, 0, 0);
+  const L = layout(g), place = cardPlacement(L);
+  const scale = place.s;
+  OFS_WM.k = OFS_ICON.k = k * scale * 1.0;
+
+  // card motion: breach, landing squash, idle bob, exit dive
+  let dy = 0, sx = 1, sy = 1, alpha = 1;
+  if (S.intro) {
+    const u = clamp(t / T_LAND);
+    dy = (1 - easeOutCubic(u)) * (L.H + 240);
+    alpha = clamp(t / 0.12);
+    if (t < T_LAND) { sy = 1 + 0.22 * (1 - u); sx = 1 - 0.1 * (1 - u); }
+    else { const v = t - T_LAND, e = Math.exp(-v * 7) * Math.cos(v * 26); sy = 1 - 0.14 * e; sx = 1 + 0.08 * e; }
+  }
+  dy += Math.round(Math.sin(t * 1.6) * 1.5) * 2;
+  const to = outroStart();
+  if (t > to) {
+    const u = clamp((t - to) / OUTRO);
+    if (u < 0.22) { const a = Math.sin(u / 0.22 * Math.PI); sy *= 1 - 0.12 * a; sx *= 1 + 0.06 * a; }
+    else { const v = (u - 0.22) / 0.78; dy += easeInBack(v, 2.2) * (L.H + 300); sy *= 1 + 0.15 * v; sx *= 1 - 0.08 * v; }
+    alpha = 1 - clamp((u - 0.7) / 0.3);
+  }
+  const [shx, shy] = shakeAt(t, L);
+
+  g.save();
+  g.translate(place.x + shx, place.y + shy);
+  g.scale(scale, scale);
+  // pre-motion splashes stay where the card lands, so draw them before the card transform is applied
+  if (S.intro) splash(g, t, 0.22, L.W / 2, 0, 60, 500, { width: L.W * 0.9, spread: 0.9, vmin: 380, vmax: 900, life: 1.0, crownR: L.W * 0.45 });
+  if (t > to) splash(g, t, to + 0.25, L.W / 2, 0, 40, 600, { width: L.W * 0.8, spread: 0.9, vmin: 300, vmax: 700, crownR: L.W * 0.4 });
+
+  g.save();
+  g.globalAlpha = alpha;
+  g.translate(L.W / 2, L.H + dy); g.scale(sx, sy); g.translate(-L.W / 2, -L.H);
+
+  drawFrame(g, L);
+  g.save(); g.beginPath(); g.rect(B, B, L.W - 2 * B, L.H - 2 * B); g.clip();
+  drawWater(g, L, t);
+  drawLeapFish(g, L, t, "under");
+  g.restore();
+  drawIcon(g, L, t, OFS_ICON);
+  drawWordmark(g, L, t, OFS_WM);
+  drawRows(g, L, t);
+  // landing flash
+  if (S.intro && t > T_LAND && t < T_LAND + 0.3) {
+    g.globalAlpha = alpha * 0.85 * (1 - (t - T_LAND) / 0.3);
+    chamfer(g, 0, 0, L.W, L.H, 2 * P, WHITE);
+    g.globalAlpha = alpha;
+  }
+  g.restore();
+
+  // things that leave the water
+  g.save(); g.globalAlpha = alpha;
+  g.translate(0, dy);
+  drawLeapSplashes(g, L, t);
+  drawLeapFish(g, L, t, "over");
+  if (S.intro) burst(g, t, 1.95, L.pill.x + L.pill.w / 2, L.rowBy, 22, 700, [GOLD, WHITE, "#ffb347", CYAN]);
+  g.restore();
+  g.restore();
+}
+
+// ---------------------------------------------------------------------------------------------
+// Preview loop + UI
+// ---------------------------------------------------------------------------------------------
+const cv = document.getElementById("preview"), ctx = cv.getContext("2d");
+let playing = true, t = 0, last = performance.now();
+const $ = id => document.getElementById(id);
+
+function fitCanvas() {
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  const w = Math.max(320, Math.round(r.width * dpr));
+  if (cv.width !== w) { cv.width = w; cv.height = Math.round(w * 9 / 16); }
+}
+function tick(now) {
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  if (playing) {
+    t += dt;
+    if (t > S.duration) { t = $("loop").checked ? 0 : S.duration; if (!$("loop").checked) setPlaying(false); }
+  }
+  fitCanvas();
+  render(ctx, t, cv.width / 1920);
+  $("scrub").value = Math.round((t / S.duration) * 1000);
+  $("time").textContent = `${t.toFixed(2)} / ${S.duration.toFixed(2)}s`;
+  requestAnimationFrame(tick);
+}
+function setPlaying(p) { playing = p; $("play").textContent = p ? "❚❚" : "▶"; }
+
+function save() { localStorage.setItem(STORE, JSON.stringify(S)); }
+function bindAll() {
+  for (const key of Object.keys(DEFAULTS)) {
+    const el = $(key); if (!el) continue;
+    const show = () => { const v = $(key + "_v"); if (v) v.textContent = (+S[key]).toFixed(key === "margin" ? 0 : 2).replace(/\.?0+$/, "") ; };
+    if (el.type === "checkbox") el.checked = !!S[key]; else el.value = S[key];
+    show();
+    el.addEventListener("input", () => {
+      S[key] = el.type === "checkbox" ? el.checked : el.type === "number" || el.type === "range" ? parseFloat(el.value) || 0 : el.value;
+      show(); save();
+      if (key === "bg") applyBg();
+    });
+  }
+}
+function applyBg() {
+  const f = $("frame"); f.className = S.bg === "image" ? "" : S.bg;
+  if (S.bg !== "image") f.style.backgroundImage = "";
+}
+
+$("play").onclick = () => setPlaying(!playing);
+$("restart").onclick = () => { t = 0; setPlaying(true); };
+$("scrub").oninput = e => { t = (e.target.value / 1000) * S.duration; setPlaying(false); };
+document.addEventListener("keydown", e => { if (e.code === "Space" && !/INPUT|SELECT/.test(e.target.tagName)) { e.preventDefault(); setPlaying(!playing); } });
+$("reroll").onclick = () => { S.seed = Math.floor(Math.random() * 99999); $("seed").value = S.seed; save(); t = 0; };
+$("reset").onclick = () => { localStorage.removeItem(STORE); location.reload(); };
+$("frame").addEventListener("dragover", e => e.preventDefault());
+$("frame").addEventListener("drop", e => {
+  e.preventDefault(); const f = e.dataTransfer.files[0]; if (!f) return;
+  const url = URL.createObjectURL(f); S.bg = "image"; $("bg").value = "image";
+  $("frame").className = ""; $("frame").style.backgroundImage = `url(${url})`;
+});
+
+function status(msg, err) { const s = $("status"); s.textContent = msg; s.className = err ? "err" : ""; }
+
+$("fetchDl").onclick = async () => {
+  status("Fetching…");
+  try {
+    const r = await (await fetch(`/api/downloads?cf=${encodeURIComponent(S.cfSlug)}&mr=${encodeURIComponent(S.mrId)}`)).json();
+    const total = (r.curseforge || 0) + (r.modrinth || 0);
+    if (r.curseforge != null || r.modrinth != null) { S.downloads = total; $("downloads").value = total; save(); }
+    status(`CurseForge: ${r.curseforge ?? "–"}   Modrinth: ${r.modrinth ?? "–"}   → ${total}` + (r.errors.length ? "\n" + r.errors.join("\n") : ""), r.errors.length && !total);
+  } catch (e) { status("Fetch failed: " + e, true); }
+};
+
+$("still").onclick = () => {
+  const k = +S.res / 1080, c = document.createElement("canvas"); c.width = 1920 * k; c.height = 1080 * k;
+  render(c.getContext("2d"), t, k);
+  c.toBlob(b => { const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = `${S.name}_${t.toFixed(2)}s.png`; a.click(); });
+};
+$("openOut").onclick = () => fetch("/api/open");
+
+$("export").onclick = async () => {
+  const formats = ["qtrle", "webm", "green", "mov"].filter(f => S["fm_" + f]);
+  if (!formats.length) return status("Pick at least one format.", true);
+  const k = +S.res / 1080, fps = +S.fps, n = Math.round(S.duration * fps);
+  const c = document.createElement("canvas"); c.width = Math.round(1920 * k); c.height = Math.round(1080 * k);
+  const g = c.getContext("2d", { willReadFrequently: true });
+  const btn = $("export"), prog = $("prog"), t0 = performance.now();
+  btn.disabled = true; prog.style.display = "block"; setPlaying(false);
+  try {
+    const job = await (await fetch("/api/job", { method: "POST",
+      body: JSON.stringify({ fps, width: c.width, height: c.height, name: S.name, formats, chroma: S.chroma }) })).json();
+    // Raw RGBA straight into ffmpeg: no PNG encode in the browser, no frames on disk.
+    const inflight = new Set(); let failed = null;
+    for (let i = 0; i < n && !failed; i++) {
+      render(g, i / fps, k);
+      const px = g.getImageData(0, 0, c.width, c.height).data;
+      const send = async () => {
+        for (let attempt = 0; ; attempt++) {
+          try { const r = await fetch(`/api/job/${job.id}/frame/${i}`, { method: "POST", body: px }); if (!r.ok) failed = `frame ${i}: ${(await r.json()).error}`; return; }
+          catch (e) { if (attempt >= 3) { failed = `frame ${i}: ${e}`; return; } await new Promise(r => setTimeout(r, 300)); }
+        }
+      };
+      const p = send().finally(() => inflight.delete(p));
+      inflight.add(p);
+      if (inflight.size >= 3) await Promise.race(inflight);
+      if (i % 5 === 0) { prog.value = i / n * 0.9; status(`Rendering frame ${i + 1}/${n}…`); }
+    }
+    await Promise.all(inflight);
+    if (failed) throw new Error(failed);
+    status("Finishing encode…"); prog.value = 0.95;
+    const r = await (await fetch(`/api/job/${job.id}/finish`, { method: "POST", body: "{}" })).json();
+    prog.value = 1;
+    const secs = ((performance.now() - t0) / 1000).toFixed(1);
+    status((r.files.length ? `Saved in ${secs}s:\n` + r.files.join("\n") : "") + (r.errors.length ? "\nErrors:\n" + r.errors.join("\n") : ""), r.errors.length > 0);
+  } catch (e) { status("Export failed: " + e, true); }
+  btn.disabled = false; setTimeout(() => (prog.style.display = "none"), 1500);
+};
+
+// ---------------------------------------------------------------------------------------------
+// Boot
+// ---------------------------------------------------------------------------------------------
+(async function boot() {
+  bindAll(); applyBg();
+  try {
+    const meta = await (await fetch("/api/meta")).json();
+    if (!localStorage.getItem(STORE)) {
+      if (meta.version) S.version = meta.version;
+      if (meta.author) S.author = "by " + meta.author;
+      bindAll();
+    }
+    if (!meta.ffmpeg) status("ffmpeg not found on PATH: video export won't work (the PNG still still does).", true);
+    A.fish = meta.fish;
+    const sel = $("fish");
+    for (const f of meta.fish) { const o = document.createElement("option"); o.value = f.id; o.textContent = f.name; sel.appendChild(o); }
+    sel.value = S.fish;
+    await Promise.all(meta.fish.map(async f => { try { A.fishImg[f.id] = await loadImg(f.url); } catch {} }));
+  } catch (e) { $("warn").style.display = "block"; }
+  await document.fonts.load(FONT(40));
+  try { A.icon = await loadImg("/icon.png"); } catch {}
+  try { A.wordmark = await loadImg("/wordmark.png"); sliceWordmark(A.wordmark); } catch { $("warn").style.display = "block"; }
+  const qt = new URLSearchParams(location.search).get("t");
+  if (qt !== null) { t = parseFloat(qt); setPlaying(false); }
+  if (new URLSearchParams(location.search).has("shot")) document.body.classList.add("shot");
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
