@@ -131,6 +131,8 @@ public final class FishtasticNeoForgeClient {
         // Register tank interior light sync packet client handler
         grill24.fishtastic.network.TankInteriorLightSyncPacket.registerClientHandler(
                 packet -> grill24.fishtastic.client.renderer.TankInteriorLight.set(packet.level()));
+        grill24.fishtastic.network.TankBorderlessGlassSyncPacket.registerClientHandler(
+                packet -> grill24.fishtastic.client.renderer.TankGlassDisplay.set(packet.enabled()));
 
         // Register reduced celebration effects sync packet client handler
         grill24.fishtastic.network.ReducedEffectsSyncPacket.registerClientHandler(
