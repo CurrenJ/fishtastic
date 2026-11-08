@@ -155,7 +155,7 @@ public final class RenderSelfTest {
             "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "bakebench", "scalebench",
             "leaderboard", "encyclopedia", "portrait", "tutorial", "faq", "companiontutorial", "companionbond", "companionsim",
             "companionparty", "companioneel", "companiondoor", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld",
-            "companionparticles", "companionworldcost", "ambientparity", "ambientwater",
+            "companionparticles", "companionworldcost", "companionfloorlight", "ambientparity", "ambientwater",
             "ambientisland", "ambientfloor", "ambientwalk", "ambientswim", "fishschoolgif", "fishschooljump", "legendarybreach",
             "fishschoolbite", "fishschoolreach", "fishschoolperf", "fishschoolshapes", "fishschoolclasses", "fishschoolcrab", "questbook",
             "celebrationoverlap", "forgereview", "partyseed", "partyobserver", "partyreturn");
@@ -402,6 +402,7 @@ public final class RenderSelfTest {
             case "companiondoor" -> queueCompanionDoorScene();
             case "companionparticles" -> queueCompanionParticlesScene();
             case "companionworldcost" -> queueCompanionWorldCostScene();
+            case "companionfloorlight" -> CompanionScenes.queueCompanionFloorLightScene();
             case "ambientparity" -> queueAmbientParityScene();
             case "ambientwater" -> queueAmbientWaterScene();
             case "ambientisland" -> queueAmbientIslandScene();
