@@ -183,6 +183,7 @@ public final class FishtasticForgeClient {
 
         net.minecraftforge.client.event.RegisterClientReloadListenersEvent.BUS.addListener(event -> {
             event.registerReloadListener(grill24.fishtastic.client.CosmeticTransformLoader.INSTANCE);
+            event.registerReloadListener(grill24.fishtastic.forge.fishtank.BlockstateModelReloadListener.INSTANCE);
             event.registerReloadListener(
                     (net.minecraft.server.packs.resources.ResourceManagerReloadListener) manager ->
                             Minecraft.getInstance().execute(
