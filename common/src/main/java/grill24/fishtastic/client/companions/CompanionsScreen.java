@@ -498,6 +498,27 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
     public void testMakeLead(int slot) { makeLead(slot); }
     public void testUnequip(int slot) { unequip(slot); }
     public void testSearch(String q) { query = q; listScroll = 0; }
+    /**
+     * Presses the visible scrollbar's thumb and drags it past the bottom of its track through the
+     * screen's real mouse handlers (the vanilla entry points, so Gelatin's dispatch is included).
+     * Returns the scroll reached as a fraction of its maximum (1 = the end), or -1 when no
+     * scrollbar was drawn last frame.
+     */
+    public float testDragScrollbarToEnd() {
+        Bar b = canvas == null ? null : canvas.bar;
+        if (b == null) return -1f;
+        float before = b.list() ? listScroll : gridScroll;
+        double sx = shellX + (CX + CW - 1) * shellScale;
+        double y0 = shellY + (b.thumbY(before) + b.thumbH() / 2f) * shellScale;
+        double y1 = shellY + (b.top() + b.trackH() + 20) * shellScale;
+        var button = new net.minecraft.client.input.MouseButtonInfo(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0);
+        mouseMoved(sx, y0);
+        mouseClicked(new net.minecraft.client.input.MouseButtonEvent(sx, y0, button), false);
+        mouseDragged(new net.minecraft.client.input.MouseButtonEvent(sx, (y0 + y1) / 2, button), 0, (y1 - y0) / 2);
+        mouseDragged(new net.minecraft.client.input.MouseButtonEvent(sx, y1, button), 0, (y1 - y0) / 2);
+        mouseReleased(new net.minecraft.client.input.MouseButtonEvent(sx, y1, button));
+        return (b.list() ? listScroll : gridScroll) / b.max();
+    }
     public boolean isReplacing() { return !replaceFish.isEmpty(); }
     public boolean isCardFlashing(int slot) { return now() - cardFlash[slot] < FLASH_MS; }
     public int renamingSlot() { return renaming; }
@@ -511,11 +532,25 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
         boolean contains(float px, float py) { return px >= x && px < x + w && py >= y && py < y + h; }
     }
 
+    /**
+     * A scrollbar drawn this frame, in canvas pixels. The grab zone is the whole gutter right of
+     * the rows (rows stop {@code ROW_W = CW - 8} short), not just the 2 px track.
+     */
+    private record Bar(boolean list, int top, int trackH, int thumbH, float max) {
+        static final int GRAB_W = 7;
+        boolean contains(float px, float py) { return px >= CX + CW - GRAB_W && px < CX + CW + 2 && py >= top && py < top + trackH; }
+        int thumbY(float scroll) { return top + Math.round((trackH - thumbH) * scroll / max); }
+        float scrollFor(float thumbTop) { return Math.max(0, Math.min(max, (thumbTop - top) / Math.max(1f, trackH - thumbH) * max)); }
+    }
+
     final class Canvas extends UIElement<Canvas> {
         private final List<Hit> hits = new ArrayList<>();
         private GuiGraphicsExtractor g;
         private IRenderContext ctx;
         private float mx = -1, my = -1;
+        /** The scrollbar on screen this frame (null when the content fits), and the one being dragged. */
+        private Bar bar, dragging;
+        private float dragGrab;
 
         Canvas() {
             this.size.set(SHELL_W, SHELL_H);
@@ -535,6 +570,24 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
         @Override
         protected boolean onEvent(UIEvent event) {
             float x = localX(event.getMouseX()), y = localY(event.getMouseY());
+            if (event.getType() == UIEvent.Type.CLICK && bar != null && bar.contains(x, y)) {
+                // Grab the thumb where it was pressed; a press on the bare track centres the thumb there.
+                float scroll = bar.list() ? listScroll : gridScroll;
+                int thumbY = bar.thumbY(scroll);
+                dragGrab = y >= thumbY && y < thumbY + bar.thumbH() ? y - thumbY : bar.thumbH() / 2f;
+                dragging = bar;
+                setScroll(dragging, dragging.scrollFor(y - dragGrab));
+                uiScreen.startDrag(this, event.getMouseY(), 0f);
+                return true;
+            }
+            if (event.getType() == UIEvent.Type.DRAG) {
+                if (dragging != null) setScroll(dragging, dragging.scrollFor(y - dragGrab));
+                return true;
+            }
+            if (event.getType() == UIEvent.Type.DRAG_END) {
+                dragging = null;
+                return true;
+            }
             if (event.getType() == UIEvent.Type.CLICK) {
                 Hit hit = hitAt(x, y);
                 Field before = field;
@@ -555,6 +608,22 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
                 return true;
             }
             return super.onEvent(event);
+        }
+
+        private void setScroll(Bar target, float scroll) {
+            if (target.list()) listScroll = scroll;
+            else gridScroll = scroll;
+        }
+
+        /** Draws a scrollbar and records it so presses in its gutter grab it. */
+        private void scrollbar(boolean list, int top, int trackH, int contentH, float max, float scroll) {
+            int thumbH = Math.max(8, Math.round(trackH * trackH / (float) contentH));
+            bar = new Bar(list, top, trackH, thumbH, max);
+            int trackX = CX + CW - 2, thumbY = bar.thumbY(scroll);
+            boolean hot = dragging != null && dragging.list() == list || bar.contains(mx, my);
+            fill(trackX, top, 2, trackH, TRACK);
+            fill(trackX, thumbY, 2, thumbH, hot ? THUMB_HI : THUMB);
+            fill(trackX, thumbY, 1, thumbH, THUMB_HI);
         }
 
         void tooltip(GuiGraphicsExtractor graphics, int screenX, int screenY) {
@@ -632,6 +701,7 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
             ctx = context;
             g = mcContext.getGraphics();
             hits.clear();
+            bar = null;
             mx = localX(mouseX);
             my = localY(mouseY);
             context.enableBlend();
@@ -884,14 +954,7 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
                 y += h;
             }
             ctx.popScissor();
-            if (max > 0) {
-                int trackX = CX + CW - 2, trackH = bottom - top;
-                int thumbH = Math.max(8, Math.round(trackH * trackH / (float) contentH));
-                int thumbY = top + Math.round((trackH - thumbH) * listScroll / max);
-                fill(trackX, top, 2, trackH, TRACK);
-                fill(trackX, thumbY, 2, thumbH, THUMB);
-                fill(trackX, thumbY, 1, thumbH, THUMB_HI);
-            }
+            if (max > 0) scrollbar(true, top, bottom - top, contentH, max, listScroll);
         }
 
         private int rowsHeight(CompanionFishCatalog.Species s) {
@@ -1098,14 +1161,7 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
                 tile(t, x, y, GRID_Y, GRID_Y + viewH);
             }
             ctx.popScissor();
-            if (max > 0) {
-                int trackX = CX + CW - 2, trackH = viewH;
-                int thumbH = Math.max(8, Math.round(trackH * trackH / (float) (rows * TILE_PITCH)));
-                int thumbY = GRID_Y + Math.round((trackH - thumbH) * gridScroll / max);
-                fill(trackX, GRID_Y, 2, trackH, TRACK);
-                fill(trackX, thumbY, 2, thumbH, THUMB);
-                fill(trackX, thumbY, 1, thumbH, THUMB_HI);
-            }
+            if (max > 0) scrollbar(false, GRID_Y, viewH, rows * TILE_PITCH, max, gridScroll);
         }
 
         private void tile(UnlockTile t, int x, int y, int top, int bottom) {

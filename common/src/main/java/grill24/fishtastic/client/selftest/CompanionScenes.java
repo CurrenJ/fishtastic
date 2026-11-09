@@ -485,6 +485,21 @@ final class CompanionScenes {
             s.testShowView(grill24.fishtastic.client.companions.CompanionsScreen.View.UNLOCKS);
         }));
         queue(5, mc -> screenshot(mc, "companionbond", "unlocks"));
+        // Both scrollbars drag (the grid here, the fish list below with bluegill's rows open).
+        queue(1, mc -> ui(mc, s -> {
+            float reached = s.testDragScrollbarToEnd();
+            check("bond.gridScrollbarDrags", reached > 0.99f, "reached " + reached);
+        }));
+        queue(5, mc -> screenshot(mc, "companionbond", "unlocks_dragged"));
+        queue(1, mc -> ui(mc, s -> {
+            s.testShowView(grill24.fishtastic.client.companions.CompanionsScreen.View.EQUIPPED);
+            s.testOpenSpecies(Ids.of("fishtastic", "bluegill"));
+        }));
+        queue(3, mc -> ui(mc, s -> {
+            float reached = s.testDragScrollbarToEnd();
+            check("bond.listScrollbarDrags", reached > 0.99f, "reached " + reached);
+        }));
+        queue(5, mc -> screenshot(mc, "companionbond", "list_dragged"));
         queue(1, mc -> ui(mc, s -> {
             s.testShowView(grill24.fishtastic.client.companions.CompanionsScreen.View.EQUIPPED);
             s.testUnequip(0);
