@@ -200,3 +200,30 @@ Both markers now read `25648221` (marker commits 1.21.1 `a0349bb6`, 1.20.1 `1c3a
 | `25648221` Make vanilla flowers, shrubs and plants placeable as tank cosmetics | Ported, adapted (version block lists) | `67259cfb` | `9dd1e220` |
 
 Validation and evidence: `docs/backport-catchup-progress.md` (2026-11-03 `25648221` entry).
+
+## Companions screen port 2026-11-09 (`c357151f..b5c933cc`)
+
+Markers unmoved (still `25648221`); the commits between it and `c357151f` were ported as
+recorded in `docs/backport-catchup-progress.md` but not re-audited here.
+
+| 26.1.2 source commit | Disposition | `port/1.21.1` | `port/1.20.1` |
+|---|---|---|---|
+| `c357151f` Add an animated showcase-card overlay tool for mod videos | Excluded: version-independent video tooling | — | — |
+| `42095b5b` Resolve plain borderless and clear glass tank textures on Forge | Not applicable: the ports' shared `FishTankGeometry` bake already fills the blockstate redirects on every loader | — | — |
+| `73bc2c5c` Replace the companion container with a Captain's Log companions screen | Ported, adapted (one commit with the next two) | `5056a334` | `5eb9677a` |
+| `0a7405e8` Make the companions screen scrollbars draggable | Ported, adapted (Gelatin 1.0.40 per branch) | `5056a334` | `5eb9677a` |
+| `b5c933cc` Add keyboard navigation and narration to the companions screen | Ported, adapted | `5056a334` | `5eb9677a` |
+
+Adaptations: no picture-in-picture renderer on either port, so card portraits draw the live fish
+directly into the GUI with a 3D pose (`CompanionPortrait`); GuiGraphics/PoseStack and int-based
+input signatures; `GameNarrator.sayNow`; the scene's vanilla-narration and game-narrator capture
+checks are dropped (the ports never carried those helpers); the port `companiontutorial` scene now
+matches the source's help-menu version. 1.20.1 additionally uses its `FishtasticPayload`/`BufCodec`
+seam for the new packets, `withStyle` colours, `SharedConstants` char filtering and
+`isSameItemSameTags`.
+
+Validation: 1.21.1 game tests 410/410 on Fabric, Forge and NeoForge; 1.20.1 411/411 Fabric and
+412/412 Forge. `companionbond` + `companiontutorial` scenes: 40/40 checks on Fabric for both
+ports, screenshots reviewed (evidence under each worktree's `build/verification/two-client/fabric/`).
+Not covered: scenes on the Forge/NeoForge clients and an owner look in a live game.
+

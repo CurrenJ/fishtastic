@@ -1,5 +1,15 @@
 # Backport parity progress
 
+## Completed (2026-11-09): companions screen ported
+
+- **Commits:** 1.21.1 `5056a334`, 1.20.1 `5eb9677a`, porting 26.1.2 `73bc2c5c`, `0a7405e8` and
+  `b5c933cc`. `42095b5b` does not apply to the ports and `c357151f` is excluded tooling (see
+  `backport-catchup/forward-port-log.md`). Committed locally, not pushed or released. No parity
+  marker advanced.
+- **Validation:** game tests 1.21.1 Fabric/Forge/NeoForge 410 each, 1.20.1 Fabric 411 and Forge 412,
+  all passing; `companionbond`/`companiontutorial` scenes 40/40 on Fabric for both ports.
+- **Next action:** owner look at the screen in game on a port; push and release when wanted.
+
 ## Completed (2026-11-07): companions through open doors, ported
 
 - **Commits:** 26.1.2 `03729b1a`, 1.21.1 `143ade4d`, 1.20.1 `b17d81a6`. Committed locally, not pushed or
