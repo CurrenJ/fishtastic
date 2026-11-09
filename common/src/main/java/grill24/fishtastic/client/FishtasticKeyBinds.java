@@ -25,7 +25,6 @@ public class FishtasticKeyBinds {
      * Initialize key mappings. Called during client initialization.
      */
     public static void init() {
-        grill24.fishtastic.menu.CompanionMenu.clientEligibility = CompanionBondInput::eligible;
         bondCompanion = new KeyMapping("key.fishtastic.bond_companion", InputConstants.Type.KEYSYM, InputConstants.KEY_B, CATEGORY);
         fishingMinigameImpulse = new KeyMapping(
             "key.fishtastic.fishing_minigame_impulse",
@@ -58,7 +57,7 @@ public class FishtasticKeyBinds {
      */
     public static void handleKeyPress(Minecraft minecraft) {
         if (bondCompanion != null && bondCompanion.consumeClick() && minecraft.player != null && minecraft.screen == null) {
-            CompanionScreen.open(net.minecraft.world.item.ItemStack.EMPTY);
+            grill24.fishtastic.client.companions.CompanionsScreen.open(net.minecraft.world.item.ItemStack.EMPTY, false);
         }
         if (fishingMinigameImpulse.consumeClick()) {
             // Drain the click queue unconditionally so stale clicks don't fire after the

@@ -288,7 +288,6 @@ public final class FishtasticForgeClient {
 
         // No RegisterMenuScreensEvent on Forge 47 — register screens directly here instead.
         event.enqueueWork(() -> {
-            MenuScreens.register(FishtasticClientSetup.companionMenuType(), grill24.fishtastic.client.CompanionScreen::new);
             MenuScreens.register(FishtasticClientSetup.fishTankAssemblyMenuType(), grill24.fishtastic.client.FishTankAssemblyScreen::new);
             MenuScreens.register(FishtasticClientSetup.electricFishOrganizerMenuType(), grill24.fishtastic.client.ElectricFishOrganizerScreen::new);
             MenuScreens.register(FishtasticClientSetup.fishTankBrowserMenuType(), grill24.fishtastic.client.FishTankBrowserScreen::new);

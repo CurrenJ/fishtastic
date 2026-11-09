@@ -45,7 +45,7 @@ public final class TutorialHelpScreen extends Screen {
         }).bounds(x, top + 78, 210, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("tutorial.fishtastic.help.companions"), b -> {
             send(TutorialActionPacket.Action.REPLAY_COMPANIONS);
-            CompanionScreen.open(net.minecraft.world.item.ItemStack.EMPTY);
+            grill24.fishtastic.client.companions.CompanionsScreen.open(net.minecraft.world.item.ItemStack.EMPTY, false);
         }).bounds(x, top + 102, 210, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("tutorial.fishtastic.help.quests"), b ->
                 NetworkApiSided.sendToServer(new RequestQuestLogPacket(), RequestQuestLogPacket.STREAM_CODEC))

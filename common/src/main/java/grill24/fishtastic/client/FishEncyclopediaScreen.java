@@ -801,7 +801,7 @@ public class FishEncyclopediaScreen extends GelatinUIScreen<GelatinMenu> {
 
         @Override
         public void openBond(ItemStack species) {
-            CompanionScreen.open(species);
+            grill24.fishtastic.client.companions.CompanionsScreen.open(species, false);
         }
     }
 

@@ -36,6 +36,8 @@ public class FishtasticPackets {
     public static final ResourceLocation BOND_COMPANION_ID = Fishtastic.id("bond_companion");
     public static final ResourceLocation COMPANION_SCENE_ID = Fishtastic.id("companion_scene");
     public static final ResourceLocation COMPANION_PARTY_SYNC_ID = Fishtastic.id("companion_party_sync");
+    public static final ResourceLocation UNEQUIP_COMPANION_ID = Fishtastic.id("unequip_companion");
+    public static final ResourceLocation MOVE_COMPANION_ID = Fishtastic.id("move_companion");
     public static final ResourceLocation OBSERVE_FISH_ID = Fishtastic.id("observe_fish");
     public static final ResourceLocation ECOLOGY_SEED_SYNC_ID = Fishtastic.id("ecology_seed_sync");
     public static final ResourceLocation RENAME_COMPANION_ID = Fishtastic.id("rename_companion");
@@ -157,10 +159,22 @@ public class FishtasticPackets {
                 RemoveTankEntryPacket::handleClientToServer
         );
         registrar.registerClientToServer(
-                BondCompanionPacket.TYPE,
-                BondCompanionPacket.class,
-                BondCompanionPacket.STREAM_CODEC,
-                BondCompanionPacket::handleClientToServer
+                EquipCompanionPacket.TYPE,
+                EquipCompanionPacket.class,
+                EquipCompanionPacket.STREAM_CODEC,
+                EquipCompanionPacket::handleClientToServer
+        );
+        registrar.registerClientToServer(
+                UnequipCompanionPacket.TYPE,
+                UnequipCompanionPacket.class,
+                UnequipCompanionPacket.STREAM_CODEC,
+                UnequipCompanionPacket::handleClientToServer
+        );
+        registrar.registerClientToServer(
+                MoveCompanionPacket.TYPE,
+                MoveCompanionPacket.class,
+                MoveCompanionPacket.STREAM_CODEC,
+                MoveCompanionPacket::handleClientToServer
         );
         registrar.registerClientToServer(
                 RenameCompanionPacket.TYPE,
@@ -173,12 +187,6 @@ public class FishtasticPackets {
                 OpenCompanionMenuPacket.class,
                 OpenCompanionMenuPacket.STREAM_CODEC,
                 OpenCompanionMenuPacket::handleClientToServer
-        );
-        registrar.registerClientToServer(
-                TakePileFishPacket.TYPE,
-                TakePileFishPacket.class,
-                TakePileFishPacket.STREAM_CODEC,
-                TakePileFishPacket::handleClientToServer
         );
         registrar.registerClientToServer(
                 ObserveFishPacket.TYPE,

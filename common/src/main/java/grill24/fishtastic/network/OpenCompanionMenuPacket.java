@@ -1,7 +1,6 @@
 package grill24.fishtastic.network;
 
 import grill24.fishtastic.Fishtastic;
-import grill24.fishtastic.menu.CompanionMenu;
 import grill24.fishtastic.network.codec.BufCodec;
 import grill24.fishtastic.network.codec.BufCodecs;
 import net.minecraft.network.chat.Component;
@@ -24,9 +23,8 @@ public record OpenCompanionMenuPacket(ItemStack species) implements FishtasticPa
     public static void handleClientToServer(OpenCompanionMenuPacket packet, FishtasticPacketHandling.IPacketContext ctx) {
         ctx.enqueueWork(() -> {
             if (ctx.getPlayer() instanceof ServerPlayer player) {
-                player.openMenu(new SimpleMenuProvider((id, inventory, owner) ->
-                        new CompanionMenu(id, inventory, packet.species.isEmpty() ? null : packet.species.getItem()),
-                        Component.translatable("screen.fishtastic.companion.title")));
+                // The species focus is client-side (CompanionsScreen.focusOnNextOpen); the server only opens the menu.
+                grill24.fishtastic.compat.GelatinOpenMenuCompat.openCompanionsMenu(player);
                 grill24.fishtastic.tutorial.CompanionTutorialManager.onCompanionsTabOpened(player);
             }
         });

@@ -153,8 +153,6 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         // Register the Fish Tank Assembly menu screen
         net.minecraft.client.gui.screens.MenuScreens.register(
                 FishtasticClientSetup.fishTankAssemblyMenuType(), grill24.fishtastic.client.FishTankAssemblyScreen::new);
-        net.minecraft.client.gui.screens.MenuScreens.register(
-                FishtasticClientSetup.companionMenuType(), grill24.fishtastic.client.CompanionScreen::new);
 
         // Register the Electric Fish Organizer menu screen
         net.minecraft.client.gui.screens.MenuScreens.register(

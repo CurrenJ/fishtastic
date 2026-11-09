@@ -10,6 +10,34 @@ public final class FishtasticTransport {
         NetworkApiSided.sendToServer(packet, ObserveFishPacket.STREAM_CODEC);
     }
 
+    public static void sendToServer(EquipCompanionPacket packet) {
+        NetworkApiSided.sendToServer(packet, EquipCompanionPacket.STREAM_CODEC);
+    }
+
+    public static void sendToServer(UnequipCompanionPacket packet) {
+        NetworkApiSided.sendToServer(packet, UnequipCompanionPacket.STREAM_CODEC);
+    }
+
+    public static void sendToServer(MoveCompanionPacket packet) {
+        NetworkApiSided.sendToServer(packet, MoveCompanionPacket.STREAM_CODEC);
+    }
+
+    public static void sendToServer(RenameCompanionPacket packet) {
+        NetworkApiSided.sendToServer(packet, RenameCompanionPacket.STREAM_CODEC);
+    }
+
+    public static void sendToServer(OpenCompanionMenuPacket packet) {
+        NetworkApiSided.sendToServer(packet, OpenCompanionMenuPacket.STREAM_CODEC);
+    }
+
+    public static void sendToServer(RequestFishEncyclopediaPacket packet) {
+        NetworkApiSided.sendToServer(packet, RequestFishEncyclopediaPacket.STREAM_CODEC);
+    }
+
+    public static void sendToServer(RequestQuestLogPacket packet) {
+        NetworkApiSided.sendToServer(packet, RequestQuestLogPacket.STREAM_CODEC);
+    }
+
     public static void sendToPlayer(ServerPlayer player, FishSchoolSetupPacket packet) {
         NetworkApiSided.sendToPlayer(player, packet, FishSchoolSetupPacket.STREAM_CODEC);
     }

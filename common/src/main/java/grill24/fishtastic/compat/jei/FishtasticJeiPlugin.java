@@ -110,6 +110,7 @@ public class FishtasticJeiPlugin implements IModPlugin {
         registration.addGuiScreenHandler(FishTankBrowserScreen.class, FishtasticJeiPlugin::fullScreenGui);
         registration.addGuiScreenHandler(FishTankAssemblyScreen.class, FishtasticJeiPlugin::fullScreenGui);
         registration.addGuiScreenHandler(LeaderboardScreen.class, FishtasticJeiPlugin::fullScreenGui);
+        registration.addGuiScreenHandler(grill24.fishtastic.client.companions.CompanionsScreen.class, FishtasticJeiPlugin::fullScreenGui);
     }
 
     /**
