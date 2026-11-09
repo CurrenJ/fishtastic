@@ -148,6 +148,12 @@ public final class FishtasticNeoForgeClient {
         modEventBus.addListener(FishtasticNeoForgeClient::registerRenderers);
         modEventBus.addListener(FishtasticNeoForgeClient::registerParticleProviders);
         modEventBus.addListener(FishtasticNeoForgeClient::registerKeyMappings);
+        // Companion cards draw the live fish through a picture-in-picture renderer (companion UI spec §3.1).
+        modEventBus.addListener((net.neoforged.neoforge.client.event.RegisterPictureInPictureRenderersEvent event) -> {
+            event.register(grill24.fishtastic.client.companions.CompanionPortraitPip.State.class,
+                    grill24.fishtastic.client.companions.CompanionPortraitPip::getOrCreate);
+            grill24.fishtastic.client.companions.CompanionPortraitPip.markRegistered();
+        });
         modEventBus.addListener(FishtasticNeoForgeClient::registerTooltipComponents);
         modEventBus.addListener(FishtasticNeoForgeClient::registerMenuScreens);
 
@@ -253,7 +259,6 @@ public final class FishtasticNeoForgeClient {
     }
 
     public static void registerMenuScreens(final RegisterMenuScreensEvent event) {
-        event.register(FishtasticClientSetup.companionMenuType(), grill24.fishtastic.client.CompanionScreen::new);
         event.register(FishtasticClientSetup.fishTankAssemblyMenuType(), grill24.fishtastic.client.FishTankAssemblyScreen::new);
         event.register(FishtasticClientSetup.electricFishOrganizerMenuType(), grill24.fishtastic.client.ElectricFishOrganizerScreen::new);
         event.register(FishtasticClientSetup.fishTankBrowserMenuType(), grill24.fishtastic.client.FishTankBrowserScreen::new);

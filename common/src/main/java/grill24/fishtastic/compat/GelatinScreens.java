@@ -24,6 +24,7 @@ public class GelatinScreens {
         registrar.register("leaderboard", LeaderboardScreen::new);
         registrar.register("quest_log", QuestLogScreen::new);
         registrar.register("fish_encyclopedia", FishEncyclopediaScreen::new);
+        registrar.register("companions", grill24.fishtastic.client.companions.CompanionsScreen::new);
         Fishtastic.LOGGER.info("Registered {} screens with Gelatin UI.", Fishtastic.MOD_ID);
     }
 }

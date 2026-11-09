@@ -37,6 +37,8 @@ public final class FishtasticClientConfig {
     private static final String REDUCED_CELEBRATION_EFFECTS_KEY = "reducedCelebrationEffects";
     /** Don't draw other players' fish companions (docs/fish-companions.md settings). */
     public static final String HIDE_OTHER_COMPANIONS_KEY = "hideOtherCompanions";
+    /** The heart tab / button that opens the companions screen from the inventory. */
+    public static final String SHOW_INVENTORY_TAB_KEY = "showInventoryTab";
     /** Don't draw your own companion in first person. */
     public static final String HIDE_OWN_COMPANION_FIRST_PERSON_KEY = "hideOwnCompanionFirstPerson";
     /** A retired key (the parked minigame dock); {@link #persist} drops it from older files. */
@@ -102,6 +104,11 @@ public final class FishtasticClientConfig {
 
             # Don't draw your own fish companions in first person.
             hideOwnCompanionFirstPerson=false
+
+            # The heart tab on the inventory (and the heart button in the creative Inventory tab)
+            # that opens the companions screen. Turn off if it collides with another mod's tabs;
+            # the Companions key still works.
+            showInventoryTab=true
             """;
 
     private static Boolean tankWaterFillEnabled;
@@ -113,6 +120,7 @@ public final class FishtasticClientConfig {
     private static Boolean reducedCelebrationEffects;
     private static Boolean hideOtherCompanions;
     private static Boolean hideOwnCompanionFirstPerson;
+    private static Boolean showInventoryTab;
 
     /**
      * Dev-only (self-tests): values that override the on-disk settings without touching the file.
@@ -225,6 +233,7 @@ public final class FishtasticClientConfig {
         reducedCelebrationEffects = null;
         hideOtherCompanions = null;
         hideOwnCompanionFirstPerson = null;
+        showInventoryTab = null;
         clearTestOverrides();
     }
 
@@ -386,6 +395,14 @@ public final class FishtasticClientConfig {
             hideOwnCompanionFirstPerson = Boolean.parseBoolean(load().getProperty(HIDE_OWN_COMPANION_FIRST_PERSON_KEY, "false"));
         }
         return hideOwnCompanionFirstPerson;
+    }
+
+    /** Whether the inventory shows the companions tab (layout-spec §6); edit the file and restart to change. */
+    public static boolean showInventoryTab() {
+        if (showInventoryTab == null) {
+            showInventoryTab = Boolean.parseBoolean(load().getProperty(SHOW_INVENTORY_TAB_KEY, "true"));
+        }
+        return showInventoryTab;
     }
 
     /** Persists the hide-other-companions toggle (also reachable via the dev `companion` command). */

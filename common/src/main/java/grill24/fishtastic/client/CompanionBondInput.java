@@ -3,7 +3,7 @@ package grill24.fishtastic.client;
 import com.mojang.blaze3d.platform.InputConstants;
 import grill24.fishtastic.FishtasticItemTags;
 import grill24.fishtastic.companion.CompanionStorage;
-import grill24.fishtastic.network.BondCompanionPacket;
+import grill24.fishtastic.network.EquipCompanionPacket;
 import grill24.fishtastic.network.FishtasticTransport;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
@@ -41,7 +41,9 @@ public final class CompanionBondInput {
 
     public static void tick(Object currentScreen, Slot hovered, boolean cursorEmpty) {
         Minecraft mc = Minecraft.getInstance();
-        if (!(currentScreen instanceof InventoryScreen) || mc.player == null) return;
+        if (mc.player == null) return;
+        // Any container screen, but only over the player's own inventory slots (the server equips carried fish).
+        if (hovered != null && !(hovered.container instanceof net.minecraft.world.entity.player.Inventory)) hovered = null;
         boolean pressed = down(mc);
         if (screen != currentScreen) {
             screen = currentScreen;
@@ -61,8 +63,8 @@ public final class CompanionBondInput {
         if (target != null && System.currentTimeMillis() - started >= HOLD_MS) {
             // The first empty party slot takes it; a full party opens the menu with the fish
             // highlighted rather than silently replacing a companion (party spec §5.3).
-            if (CompanionStorage.party(mc.player).firstEmpty() < 0) CompanionScreen.open(fish);
-            else FishtasticTransport.sendToServer(new BondCompanionPacket(fish));
+            if (CompanionStorage.party(mc.player).firstEmpty() < 0) grill24.fishtastic.client.companions.CompanionsScreen.open(fish, true);
+            else FishtasticTransport.sendToServer(new EquipCompanionPacket(fish));
             target = null;
             spent = true;
         }

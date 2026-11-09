@@ -36,7 +36,6 @@ import grill24.fishtastic.gametest.GameTestSelection;
 import grill24.fishtastic.gametest.CarriedFishGameTests;
 import grill24.fishtastic.gametest.CompanionBondGameTests;
 import grill24.fishtastic.gametest.CompanionGroupsGameTests;
-import grill24.fishtastic.gametest.CompanionMenuGameTests;
 import grill24.fishtastic.gametest.CompanionQuestUnlockGameTests;
 import grill24.fishtastic.gametest.CompanionSceneGameTests;
 import grill24.fishtastic.gametest.CompanionGameTests;
@@ -799,6 +798,10 @@ public class NeoForgeGameTestRegistration {
             helper -> CompanionGameTests.bondIntoAFullPartyIsRefused(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "bond_into_a_named_slot_returns_its_fish", 200,
             helper -> CompanionGameTests.bondIntoANamedSlotReturnsItsFish(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_unequip_to_inventory_refuses_when_full", 200,
+            helper -> CompanionGameTests.unequipToInventoryRefusesWhenFull(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
+        register(event, env, "companion_swap_makes_lead_and_keeps_both_fish", 200,
+            helper -> CompanionGameTests.swapMakesLeadAndKeepsBothFish(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "three_of_one_species_fill_the_party", 200,
             helper -> CompanionGameTests.threeOfOneSpeciesFillTheParty(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "companion_is_kept_on_death", 200,
@@ -819,43 +822,6 @@ public class NeoForgeGameTestRegistration {
         register(event, env, "companion_rename_sets_and_clears_the_name", 200,
             helper -> CompanionBondGameTests.renameSetsAndClearsTheName(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
 
-        // ----- Companion menu -----
-        register(event, env, "companion_menu_click_equips_and_returns", 200,
-            helper -> CompanionMenuGameTests.clickEquipsAndReturns(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "companion_menu_cursor_swap_exchanges_companions", 200,
-            helper -> CompanionMenuGameTests.cursorSwapExchangesCompanions(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "companion_menu_number_key_swap_exchanges_and_returns", 200,
-            helper -> CompanionMenuGameTests.numberKeySwapExchangesAndReturns(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "companion_menu_drag_places_one_fish", 200,
-            helper -> CompanionMenuGameTests.dragPlacesOneFish(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "companion_menu_shift_click_takes_one_from_a_stack", 200,
-            helper -> CompanionMenuGameTests.shiftClickTakesOneFromAStack(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "companion_menu_shift_click_fills_the_first_empty_slot_once", 200,
-            helper -> CompanionMenuGameTests.shiftClickFillsTheFirstEmptySlotOnce(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "companion_menu_shift_click_with_a_full_party_or_inventory_changes_nothing", 200,
-            helper -> CompanionMenuGameTests.shiftClickWithAFullPartyOrInventoryChangesNothing(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "companion_menu_three_slots_equip_and_return", 200,
-            helper -> CompanionMenuGameTests.threeSlotsEquipAndReturn(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "companion_menu_moving_between_slots_reorders_the_party", 200,
-            helper -> CompanionMenuGameTests.movingBetweenSlotsReordersTheParty(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "companion_menu_locked_fish_is_rejected", 200,
-            helper -> CompanionMenuGameTests.lockedFishIsRejected(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "companion_menu_closing_with_a_fish_on_the_cursor_keeps_it", 200,
-            helper -> CompanionMenuGameTests.closingWithAFishOnTheCursorKeepsIt(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "companion_menu_click_after_an_outside_bond_sees_the_new_companion", 200,
-            helper -> CompanionMenuGameTests.clickAfterAnOutsideBondSeesTheNewCompanion(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "companion_menu_outside_rename_reaches_the_slot", 200,
-            helper -> CompanionMenuGameTests.outsideRenameReachesTheSlot(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "companion_menu_pile_fish_goes_to_the_cursor", 200,
-            helper -> CompanionMenuGameTests.pileFishGoesToTheCursor(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "companion_menu_pile_left_with_one_fish_becomes_that_fish", 200,
-            helper -> CompanionMenuGameTests.pileLeftWithOneFishBecomesThatFish(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "companion_menu_pile_take_needs_an_empty_cursor", 200,
-            helper -> CompanionMenuGameTests.pileTakeNeedsAnEmptyCursor(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "companion_menu_pile_take_refuses_a_stale_description", 200,
-            helper -> CompanionMenuGameTests.pileTakeRefusesAStaleDescription(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
-        register(event, env, "companion_menu_rename_second_slot_leaves_the_lead", 200,
-            helper -> CompanionMenuGameTests.renameSecondSlotLeavesTheLead(helper, () -> NeoForgeTestPlayers.makeMockServerPlayerInLevel(helper)));
         register(event, env, "companion_picker_groups_identical_fish", 200,
             CarriedFishGameTests::identicalFishCollapseWithTheirTotalCount);
         register(event, env, "companion_picker_splits_any_component_difference", 200,

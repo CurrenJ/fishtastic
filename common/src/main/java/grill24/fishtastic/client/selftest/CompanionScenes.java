@@ -386,118 +386,153 @@ final class CompanionScenes {
     }
 
 
-    /** The inventory-based companion menu, exercised through real container clicks. */
+    /**
+     * The companions screen (docs/companion-ui-redesign/layout-spec.md): every mockup state, driven
+     * through the screen's own actions so each one sends the real packet. Shots compare against
+     * docs/companion-ui-redesign/mockups/.
+     */
     static void queueCompanionBondScene() {
         queue(1, CompanionScenes::paradeSetup);
         queue(1, mc -> server(mc, s -> {
             run(s, "fishtastic companion unlock @p fishtastic:bluegill");
+            run(s, "fishtastic companion unlock @p fishtastic:glass_squid");
             for (ServerPlayer player : s.getPlayerList().getPlayers()) {
+                // Caught species show their names; oscar sits part-way to its unlock.
+                var data = grill24.fishtastic.server.FishCatchSavedData.getOrCreate(s);
+                for (String[] c : new String[][]{{"bluegill", "40"}, {"glass_squid", "40"}, {"oscar", "3"}, {"molten_moorish_idol", "1"}}) {
+                    data.setCatchCount(data.resolvePlayerKey(player), player.getName().getString(), Ids.of("fishtastic", c[0]), Integer.parseInt(c[1]));
+                }
                 grill24.fishtastic.companion.CompanionStorage.clear(player);
                 player.getInventory().clearContent();
                 player.getInventory().setItem(0, fish("bluegill", 25f).copyWithCount(2));
                 player.getInventory().setItem(1, fish("bluegill", 31f));
+                player.getInventory().setItem(3, fish("glass_squid", 22f));
+                // A big pile, so the list has to page ("Show N more").
+                List<net.minecraft.world.item.ItemStackTemplate> piled = new java.util.ArrayList<>();
+                for (int i = 0; i < 30; i++) {
+                    piled.add(net.minecraft.world.item.ItemStackTemplate.fromNonEmptyStack(fish("bluegill", 20f + i)));
+                }
                 ItemStack pile = new ItemStack(FishtasticItems.PILE_OF_FISH.value());
-                FishtasticItemData.setBundleContents(pile, new BundleContents(List.of(
-                        net.minecraft.world.item.ItemStackTemplate.fromNonEmptyStack(fish("bluegill", 40f)),
-                        net.minecraft.world.item.ItemStackTemplate.fromNonEmptyStack(fish("bluegill", 45f)))));
+                FishtasticItemData.setBundleContents(pile, new BundleContents(piled));
                 player.getInventory().setItem(2, pile);
-                // Never unlocked here: the refusal flash (1d) for a catch-gated and a quest-only species.
+                // Never unlocked here: the refusal flash for a catch-gated and a quest-only species.
                 player.getInventory().setItem(4, fish("oscar", 30f));
                 player.getInventory().setItem(5, fish("molten_moorish_idol", 30f));
             }
         }));
-        queue(15, mc -> grill24.fishtastic.client.CompanionScreen.open(fish("bluegill", 25f)));
+        queue(15, mc -> grill24.fishtastic.client.companions.CompanionsScreen.open(fish("bluegill", 25f), false));
         queue(20, mc -> {
-            check("bond.inventoryScreen", mc.screen instanceof grill24.fishtastic.client.CompanionScreen, "screen=" + mc.screen);
-            check("bond.slotCount", mc.player.containerMenu.slots.size() == 39, "slots=" + mc.player.containerMenu.slots.size());
-            screenshot(mc, "companionbond", "inventory_picker");
+            check("bond.screen", mc.screen instanceof grill24.fishtastic.client.companions.CompanionsScreen, "screen=" + mc.screen);
+            check("bond.pipRegistered", grill24.fishtastic.client.companions.CompanionPortraitPip.isRegistered(), "");
+            screenshot(mc, "companionbond", "opened_focused");
         });
-        // Menu slots 0-2 are the party; the hotbar starts at 30 (party spec §5.3).
-        queue(1, mc -> mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, 30, 0,
-                net.minecraft.world.inventory.ContainerInput.QUICK_MOVE, mc.player));
+        queue(1, mc -> ui(mc, s -> s.testEquipFirst(Ids.of("fishtastic", "bluegill"))));
         queue(15, mc -> {
-            check("bond.equipped", !grill24.fishtastic.companion.CompanionStorage.get(mc.player, 0).isEmpty(), "");
-            check("bond.oneTaken", mc.player.getInventory().getItem(0).getCount() == 1, "");
-            screenshot(mc, "companionbond", "equipped");
+            check("bond.equipped", grill24.fishtastic.util.ItemSizeHelper.getSize(
+                    grill24.fishtastic.companion.CompanionStorage.get(mc.player, 0)) == 49f,
+                    "lead=" + grill24.fishtastic.companion.CompanionStorage.get(mc.player, 0));
+            screenshot(mc, "companionbond", "equipped_one");
         });
-        queue(1, mc -> mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, 31, 0,
-                net.minecraft.world.inventory.ContainerInput.QUICK_MOVE, mc.player));
-        queue(15, mc -> {
-            check("bond.second", grill24.fishtastic.util.ItemSizeHelper.getSize(grill24.fishtastic.companion.CompanionStorage.get(mc.player, 1)) == 31f, "");
-            screenshot(mc, "companionbond", "pair");
-        });
-        queue(1, mc -> FishtasticTransport.sendToServer(
-                new grill24.fishtastic.network.RenameCompanionPacket(0, "Bubbles")));
-        queue(15, mc -> {
-            check("bond.renamed", grill24.fishtastic.companion.CompanionStorage.get(mc.player, 0).getHoverName().getString().equals("Bubbles"), "");
-            screenshot(mc, "companionbond", "renamed");
-        });
-        // Party 1d (§5.5): the pencil under slot 2 opens its name row; moving that fish closes it unsaved.
-        queue(1, mc -> {
-            if (mc.screen instanceof grill24.fishtastic.client.CompanionScreen screen) screen.openEditor(1);
-        });
-        queue(5, mc -> {
-            check("bond.editorOpens", mc.screen instanceof grill24.fishtastic.client.CompanionScreen screen && screen.editingSlot() == 1,
-                    "screen=" + mc.screen);
-            screenshot(mc, "companionbond", "pencil_open");
-        });
-        queue(1, mc -> mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, 1, 0,
-                net.minecraft.world.inventory.ContainerInput.QUICK_MOVE, mc.player));
-        queue(15, mc -> check("bond.editorClosesOnMove", mc.screen instanceof grill24.fishtastic.client.CompanionScreen screen
-                && screen.editingSlot() == -1 && grill24.fishtastic.companion.CompanionStorage.get(mc.player, 1).isEmpty(), ""));
-        // The pile strip puts the chosen fish on the cursor; the pile keeps its other fish.
-        queue(1, mc -> {
-            if (mc.screen instanceof grill24.fishtastic.client.CompanionScreen screen) screen.showPiles(true);
-        });
-        queue(5, mc -> {
-            screenshot(mc, "companionbond", "pile_strip");
-            if (mc.screen instanceof grill24.fishtastic.client.CompanionScreen screen) screen.clickPile(0);
-        });
-        queue(15, mc -> {
-            ItemStack carried = mc.player.containerMenu.getCarried();
-            check("bond.pileToCursor", carried.is(FishtasticItems.BLUEGILL.value()) && carried.getCount() == 1, "carried=" + carried);
-            check("bond.pileKeepsRest", mc.player.getInventory().getItem(2).is(FishtasticItems.BLUEGILL.value()),
-                    "slot2=" + mc.player.getInventory().getItem(2));
-            screenshot(mc, "companionbond", "pile_cursor");
-        });
-        // Put it down in an empty inventory slot (menu slot 3 is inventory row 1, column 1).
-        queue(1, mc -> mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, 3, 0,
-                net.minecraft.world.inventory.ContainerInput.PICKUP, mc.player));
-        // A fish that isn't bonded: shift-click flashes its own slot and the party slot it was headed for.
-        queue(10, mc -> {
-            check("bond.lockedPrecondition", !grill24.fishtastic.client.QuestClientCache.isBondUnlocked(Ids.of("fishtastic", "oscar"))
-                    && !grill24.fishtastic.client.QuestClientCache.isBondUnlocked(Ids.of("fishtastic", "molten_moorish_idol")), "");
-            if (mc.screen instanceof grill24.fishtastic.client.CompanionScreen screen) {
-                screen.showPiles(false);
-                screen.clickSlot(34, 0, net.minecraft.world.inventory.ContainerInput.QUICK_MOVE);
-            }
-        });
+        // Locked species: the row and the card it was headed for flash; nothing moves.
+        queue(1, mc -> ui(mc, s -> {
+            s.testOpenSpecies(Ids.of("fishtastic", "oscar"));
+            s.testEquipFirst(Ids.of("fishtastic", "oscar"));
+        }));
         queue(3, mc -> {
-            boolean flashing = mc.screen instanceof grill24.fishtastic.client.CompanionScreen screen
-                    && screen.isFlashing(1) && screen.isFlashing(34);
-            check("bond.lockedFlashes", flashing, "screen=" + mc.screen);
+            check("bond.lockedFlashes", mc.screen instanceof grill24.fishtastic.client.companions.CompanionsScreen s
+                    && s.isCardFlashing(1), "");
             screenshot(mc, "companionbond", "locked_flash");
         });
+        queue(15, mc -> check("bond.lockedRefused", grill24.fishtastic.companion.CompanionStorage.get(mc.player, 1).isEmpty()
+                && mc.player.getInventory().getItem(4).getCount() == 1, ""));
+        queue(1, mc -> ui(mc, s -> {
+            s.testOpenSpecies(Ids.of("fishtastic", "glass_squid"));
+            s.testEquipFirst(Ids.of("fishtastic", "glass_squid"));
+        }));
+        queue(10, mc -> ui(mc, s -> {
+            s.testOpenSpecies(Ids.of("fishtastic", "bluegill"));
+            s.testEquipFirst(Ids.of("fishtastic", "bluegill"));
+        }));
         queue(15, mc -> {
-            check("bond.lockedRefused", grill24.fishtastic.companion.CompanionStorage.get(mc.player, 1).isEmpty()
-                    && mc.player.getInventory().getItem(4).getCount() == 1, "");
-            if (mc.screen instanceof grill24.fishtastic.client.CompanionScreen screen) {
-                screen.clickSlot(35, 0, net.minecraft.world.inventory.ContainerInput.QUICK_MOVE);
-            }
+            check("bond.full", grill24.fishtastic.companion.CompanionStorage.party(mc.player).firstEmpty() < 0, "");
+            screenshot(mc, "companionbond", "full");
         });
-        queue(3, mc -> screenshot(mc, "companionbond", "locked_flash_quest"));
-        queue(1, mc -> mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, 0, 0,
-                net.minecraft.world.inventory.ContainerInput.QUICK_MOVE, mc.player));
-        queue(1, mc -> mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, 1, 0,
-                net.minecraft.world.inventory.ContainerInput.QUICK_MOVE, mc.player));
+        // All cards full: equip enters replace mode, then a card is chosen.
+        queue(1, mc -> ui(mc, s -> s.testEquipFirst(Ids.of("fishtastic", "bluegill"))));
+        queue(5, mc -> {
+            check("bond.replaceMode", mc.screen instanceof grill24.fishtastic.client.companions.CompanionsScreen s
+                    && s.isReplacing(), "");
+            screenshot(mc, "companionbond", "replace");
+        });
+        queue(1, mc -> ui(mc, s -> s.testChooseCard(1)));
+        queue(15, mc -> check("bond.replaced",
+                grill24.fishtastic.companion.CompanionStorage.get(mc.player, 1).is(FishtasticItems.BLUEGILL.value()), ""));
+        queue(1, mc -> ui(mc, s -> s.testStartRename(0, "Bubbles")));
+        queue(5, mc -> screenshot(mc, "companionbond", "rename"));
+        queue(1, mc -> ui(mc, s -> s.testSaveRename()));
+        queue(15, mc -> check("bond.renamed",
+                grill24.fishtastic.companion.CompanionStorage.get(mc.player, 0).getHoverName().getString().equals("Bubbles"), ""));
+        queue(1, mc -> ui(mc, s -> s.testMakeLead(2)));
+        queue(15, mc -> {
+            check("bond.madeLead",
+                    grill24.fishtastic.companion.CompanionStorage.get(mc.player, 2).getHoverName().getString().equals("Bubbles"), "");
+            screenshot(mc, "companionbond", "made_lead");
+        });
+        queue(1, mc -> ui(mc, s -> s.testSearch("glass")));
+        queue(5, mc -> screenshot(mc, "companionbond", "search"));
+        queue(1, mc -> ui(mc, s -> {
+            s.testSearch("");
+            s.testShowView(grill24.fishtastic.client.companions.CompanionsScreen.View.UNLOCKS);
+        }));
+        queue(5, mc -> screenshot(mc, "companionbond", "unlocks"));
+        queue(1, mc -> ui(mc, s -> {
+            s.testShowView(grill24.fishtastic.client.companions.CompanionsScreen.View.EQUIPPED);
+            s.testUnequip(0);
+            s.testUnequip(1);
+            s.testUnequip(2);
+        }));
         queue(15, mc -> {
             check("bond.returned", grill24.fishtastic.companion.CompanionStorage.party(mc.player).isEmpty(), "");
             screenshot(mc, "companionbond", "returned");
-            mc.player.closeContainer();
+            mc.setScreen(null);
+            server(mc, s -> run(s, "gamemode survival @a"));
+        });
+        queue(10, mc -> mc.setScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(mc.player)));
+        // The ways in from the inventory (layout-spec §6): the survival heart tab, then the creative Inventory tab's button.
+        queue(10, mc -> {
+            screenshot(mc, "companionbond", "inventory_tab");
+            mc.setScreen(null);
+            server(mc, s -> run(s, "gamemode creative @a"));
+        });
+        queue(10, mc -> {
+            var creative = new net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen(
+                    mc.player, mc.player.connection.enabledFeatures(), false);
+            mc.setScreen(creative);
+            try {
+                var select = net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen.class
+                        .getDeclaredMethod("selectTab", net.minecraft.world.item.CreativeModeTab.class);
+                select.setAccessible(true);
+                for (var tab : net.minecraft.core.registries.BuiltInRegistries.CREATIVE_MODE_TAB) {
+                    if (tab.getType() == net.minecraft.world.item.CreativeModeTab.Type.INVENTORY) select.invoke(creative, tab);
+                }
+            } catch (ReflectiveOperationException e) {
+                check("bond.creativeInventoryTab", false, e.toString());
+            }
+        });
+        queue(10, mc -> {
+            check("bond.creativeInventoryOpen", mc.screen instanceof net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen c
+                    && c.isInventoryOpen(), "screen=" + mc.screen);
+            screenshot(mc, "companionbond", "creative_button");
+            mc.setScreen(null);
         });
         queue(1, mc -> server(mc, s -> {
             for (ServerPlayer player : s.getPlayerList().getPlayers()) player.getInventory().clearContent();
         }));
+    }
+
+    private static void ui(Minecraft mc, java.util.function.Consumer<grill24.fishtastic.client.companions.CompanionsScreen> action) {
+        if (mc.screen instanceof grill24.fishtastic.client.companions.CompanionsScreen screen) action.accept(screen);
+        else check("bond.screenStillOpen", false, "screen=" + mc.screen);
     }
 
     // ── Companions and doors ────────────────────────────────────────────────────

@@ -1652,95 +1652,23 @@ public class ForgeFishtasticGameTests {
     // Fish companions — bond / unequip / storage
     // -------------------------------------------------------------------------
 
-    @GameTest(structure = "fishtastic:empty_testarea")
-    public static void companionMenuClickEquipsAndReturns(GameTestHelper helper) {
-        CompanionMenuGameTests.clickEquipsAndReturns(helper, helper::makeMockServerPlayerInLevel);
-    }
 
-    @GameTest(structure = "fishtastic:empty_testarea")
-    public static void companionMenuCursorSwapExchangesCompanions(GameTestHelper helper) {
-        CompanionMenuGameTests.cursorSwapExchangesCompanions(helper, helper::makeMockServerPlayerInLevel);
-    }
 
-    @GameTest(structure = "fishtastic:empty_testarea")
-    public static void companionMenuNumberKeySwapExchangesAndReturns(GameTestHelper helper) {
-        CompanionMenuGameTests.numberKeySwapExchangesAndReturns(helper, helper::makeMockServerPlayerInLevel);
-    }
 
-    @GameTest(structure = "fishtastic:empty_testarea")
-    public static void companionMenuDragPlacesOneFish(GameTestHelper helper) {
-        CompanionMenuGameTests.dragPlacesOneFish(helper, helper::makeMockServerPlayerInLevel);
-    }
 
-    @GameTest(structure = "fishtastic:empty_testarea")
-    public static void companionMenuShiftClickTakesOneFromAStack(GameTestHelper helper) {
-        CompanionMenuGameTests.shiftClickTakesOneFromAStack(helper, helper::makeMockServerPlayerInLevel);
-    }
 
-    @GameTest(structure = "fishtastic:empty_testarea")
-    public static void companionMenuShiftClickFillsTheFirstEmptySlotOnce(GameTestHelper helper) {
-        CompanionMenuGameTests.shiftClickFillsTheFirstEmptySlotOnce(helper, helper::makeMockServerPlayerInLevel);
-    }
 
-    @GameTest(structure = "fishtastic:empty_testarea")
-    public static void companionMenuShiftClickWithAFullPartyOrInventoryChangesNothing(GameTestHelper helper) {
-        CompanionMenuGameTests.shiftClickWithAFullPartyOrInventoryChangesNothing(helper, helper::makeMockServerPlayerInLevel);
-    }
 
-    @GameTest(structure = "fishtastic:empty_testarea")
-    public static void companionMenuThreeSlotsEquipAndReturn(GameTestHelper helper) {
-        CompanionMenuGameTests.threeSlotsEquipAndReturn(helper, helper::makeMockServerPlayerInLevel);
-    }
 
-    @GameTest(structure = "fishtastic:empty_testarea")
-    public static void companionMenuMovingBetweenSlotsReordersTheParty(GameTestHelper helper) {
-        CompanionMenuGameTests.movingBetweenSlotsReordersTheParty(helper, helper::makeMockServerPlayerInLevel);
-    }
 
-    @GameTest(structure = "fishtastic:empty_testarea")
-    public static void companionMenuLockedFishIsRejected(GameTestHelper helper) {
-        CompanionMenuGameTests.lockedFishIsRejected(helper, helper::makeMockServerPlayerInLevel);
-    }
 
-    @GameTest(structure = "fishtastic:empty_testarea")
-    public static void companionMenuClosingWithAFishOnTheCursorKeepsIt(GameTestHelper helper) {
-        CompanionMenuGameTests.closingWithAFishOnTheCursorKeepsIt(helper, helper::makeMockServerPlayerInLevel);
-    }
 
-    @GameTest(structure = "fishtastic:empty_testarea")
-    public static void companionMenuClickAfterAnOutsideBondSeesTheNewCompanion(GameTestHelper helper) {
-        CompanionMenuGameTests.clickAfterAnOutsideBondSeesTheNewCompanion(helper, helper::makeMockServerPlayerInLevel);
-    }
 
-    @GameTest(structure = "fishtastic:empty_testarea")
-    public static void companionMenuOutsideRenameReachesTheSlot(GameTestHelper helper) {
-        CompanionMenuGameTests.outsideRenameReachesTheSlot(helper, helper::makeMockServerPlayerInLevel);
-    }
 
-    @GameTest(structure = "fishtastic:empty_testarea")
-    public static void companionMenuPileFishGoesToTheCursor(GameTestHelper helper) {
-        CompanionMenuGameTests.pileFishGoesToTheCursor(helper, helper::makeMockServerPlayerInLevel);
-    }
 
-    @GameTest(structure = "fishtastic:empty_testarea")
-    public static void companionMenuPileLeftWithOneFishBecomesThatFish(GameTestHelper helper) {
-        CompanionMenuGameTests.pileLeftWithOneFishBecomesThatFish(helper, helper::makeMockServerPlayerInLevel);
-    }
 
-    @GameTest(structure = "fishtastic:empty_testarea")
-    public static void companionMenuPileTakeNeedsAnEmptyCursor(GameTestHelper helper) {
-        CompanionMenuGameTests.pileTakeNeedsAnEmptyCursor(helper, helper::makeMockServerPlayerInLevel);
-    }
 
-    @GameTest(structure = "fishtastic:empty_testarea")
-    public static void companionMenuPileTakeRefusesAStaleDescription(GameTestHelper helper) {
-        CompanionMenuGameTests.pileTakeRefusesAStaleDescription(helper, helper::makeMockServerPlayerInLevel);
-    }
 
-    @GameTest(structure = "fishtastic:empty_testarea")
-    public static void companionMenuRenameSecondSlotLeavesTheLead(GameTestHelper helper) {
-        CompanionMenuGameTests.renameSecondSlotLeavesTheLead(helper, helper::makeMockServerPlayerInLevel);
-    }
 
     @GameTest(structure = "fishtastic:empty_testarea")
     public static void bondTakesTheFishFromTheInventory(GameTestHelper helper) {
@@ -1795,6 +1723,16 @@ public class ForgeFishtasticGameTests {
     @GameTest(structure = "fishtastic:empty_testarea")
     public static void bondIntoANamedSlotReturnsItsFish(GameTestHelper helper) {
         CompanionGameTests.bondIntoANamedSlotReturnsItsFish(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void companionUnequipToInventoryRefusesWhenFull(GameTestHelper helper) {
+        CompanionGameTests.unequipToInventoryRefusesWhenFull(helper, helper::makeMockServerPlayerInLevel);
+    }
+
+    @GameTest(structure = "fishtastic:empty_testarea")
+    public static void companionSwapMakesLeadAndKeepsBothFish(GameTestHelper helper) {
+        CompanionGameTests.swapMakesLeadAndKeepsBothFish(helper, helper::makeMockServerPlayerInLevel);
     }
 
     @GameTest(structure = "fishtastic:empty_testarea")

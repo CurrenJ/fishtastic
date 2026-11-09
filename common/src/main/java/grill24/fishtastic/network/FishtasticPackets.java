@@ -36,6 +36,7 @@ public class FishtasticPackets {
     public static final Identifier REMOVE_TANK_ENTRY_ID = Fishtastic.id("remove_tank_entry");
     public static final Identifier BOND_COMPANION_ID = Fishtastic.id("bond_companion");
     public static final Identifier UNEQUIP_COMPANION_ID = Fishtastic.id("unequip_companion");
+    public static final Identifier MOVE_COMPANION_ID = Fishtastic.id("move_companion");
     public static final Identifier RENAME_COMPANION_ID = Fishtastic.id("rename_companion");
     public static final Identifier TAKE_PILE_FISH_ID = Fishtastic.id("take_pile_fish");
     public static final Identifier COMPANION_FEEDBACK_ID = Fishtastic.id("companion_feedback");
@@ -136,19 +137,24 @@ public class FishtasticPackets {
                 RemoveTankEntryPacket::handleClientToServer
         );
         registrar.registerClientToServer(
-                BondCompanionPacket.TYPE,
-                BondCompanionPacket.STREAM_CODEC,
-                BondCompanionPacket::handleClientToServer
+                EquipCompanionPacket.TYPE,
+                EquipCompanionPacket.STREAM_CODEC,
+                EquipCompanionPacket::handleClientToServer
+        );
+        registrar.registerClientToServer(
+                UnequipCompanionPacket.TYPE,
+                UnequipCompanionPacket.STREAM_CODEC,
+                UnequipCompanionPacket::handleClientToServer
+        );
+        registrar.registerClientToServer(
+                MoveCompanionPacket.TYPE,
+                MoveCompanionPacket.STREAM_CODEC,
+                MoveCompanionPacket::handleClientToServer
         );
         registrar.registerClientToServer(
                 RenameCompanionPacket.TYPE,
                 RenameCompanionPacket.STREAM_CODEC,
                 RenameCompanionPacket::handleClientToServer
-        );
-        registrar.registerClientToServer(
-                TakePileFishPacket.TYPE,
-                TakePileFishPacket.STREAM_CODEC,
-                TakePileFishPacket::handleClientToServer
         );
         registrar.registerClientToServer(
                 CompanionTutorialAdvancePacket.TYPE,

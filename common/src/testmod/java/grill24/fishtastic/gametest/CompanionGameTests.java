@@ -213,6 +213,53 @@ public final class CompanionGameTests {
         helper.succeed();
     }
 
+    /** Companions screen: unequip from a click never drops a fish; a full inventory refuses. */
+    public static void unequipToInventoryRefusesWhenFull(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerPlayer player = setUp(helper, mockPlayer);
+        ItemStack lead = bluegill(25f);
+        Companions.equip(player, 0, lead.copy());
+        for (int i = 0; i < player.getInventory().getNonEquipmentItems().size(); i++) {
+            player.getInventory().setItem(i, new ItemStack(Items.DIRT, 64));
+        }
+        int before = nearbyBluegills(player);
+
+        Companions.UnequipResult full = Companions.unequipToInventory(player, 0);
+
+        helper.assertTrue(full == Companions.UnequipResult.INVENTORY_FULL, "result " + full);
+        helper.assertTrue(ItemStack.matches(CompanionStorage.lead(player), lead), "the companion must stay equipped");
+        helper.assertTrue(nearbyBluegills(player) == before, "nothing may drop");
+
+        player.getInventory().setItem(0, ItemStack.EMPTY);
+        Companions.UnequipResult ok = Companions.unequipToInventory(player, 0);
+        helper.assertTrue(ok == Companions.UnequipResult.UNEQUIPPED, "result " + ok);
+        helper.assertTrue(CompanionStorage.lead(player).isEmpty(), "the slot must be empty afterwards");
+        List<ItemStack> back = allFish(player);
+        helper.assertTrue(back.size() == 1 && ItemStack.matches(back.get(0), lead), "the identical fish must come back, got " + back);
+        helper.assertTrue(Companions.unequipToInventory(player, 0) == Companions.UnequipResult.EMPTY, "an empty slot reports EMPTY");
+        helper.succeed();
+    }
+
+    /** Companions screen: "make lead" swaps two slots; no fish enters or leaves the party. */
+    public static void swapMakesLeadAndKeepsBothFish(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
+        ServerPlayer player = setUp(helper, mockPlayer);
+        ItemStack lead = bluegill(20f), other = bluegill(30f);
+        Companions.equip(player, 0, lead.copy());
+        Companions.equip(player, 2, other.copy());
+
+        helper.assertTrue(Companions.swap(player, 2, 0), "swap must succeed");
+        helper.assertTrue(ItemStack.matches(CompanionStorage.get(player, 0), other), "slot 2's fish must lead");
+        helper.assertTrue(ItemStack.matches(CompanionStorage.get(player, 2), lead), "the old lead must take slot 2");
+        helper.assertTrue(allFish(player).isEmpty(), "no fish may reach the inventory");
+
+        helper.assertTrue(!Companions.swap(player, 1, 1), "a slot cannot swap with itself");
+        helper.assertTrue(!Companions.swap(player, 0, 3), "an out-of-range slot is refused");
+        helper.assertTrue(!Companions.swap(player, -1, 0), "a negative slot is refused");
+        helper.assertTrue(Companions.swap(player, 0, 1), "a swap into an empty slot moves the fish");
+        helper.assertTrue(CompanionStorage.get(player, 0).isEmpty()
+                && ItemStack.matches(CompanionStorage.get(player, 1), other), "the fish must move to slot 1");
+        helper.succeed();
+    }
+
     /** Party spec §5.1: a second bond fills the next empty slot; nothing comes back. */
     public static void bondingASecondFishFillsTheNextSlot(GameTestHelper helper, Supplier<ServerPlayer> mockPlayer) {
         ServerPlayer player = setUp(helper, mockPlayer);

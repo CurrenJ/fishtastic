@@ -42,15 +42,17 @@ public final class FishtasticForgeClient {
         grill24.fishtastic.compat.GelatinScreensCompat.init();
         grill24.fishtastic.client.QuestProgressNotificationManager.getInstance().install();
         ModelEvent.BakingCompleted.BUS.addListener(FishtasticForgeClient::bakingCompleted);
+        // Companion cards draw the live fish through a picture-in-picture renderer (companion UI spec §3.1).
+        net.minecraftforge.client.event.RegisterPictureInPictureRendererEvent.BUS.addListener(event -> {
+            event.register(grill24.fishtastic.client.companions.CompanionPortraitPip.getOrCreate(event.getBufferSource()));
+            grill24.fishtastic.client.companions.CompanionPortraitPip.markRegistered();
+        });
         net.minecraftforge.event.TickEvent.ClientTickEvent.Post.BUS.addListener(event ->
                 clientTick(Minecraft.getInstance()));
 
         var modBus = net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext.get().getModBusGroup();
         net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent.getBus(modBus).addListener(event ->
                 event.enqueueWork(() -> {
-                    net.minecraft.client.gui.screens.MenuScreens.register(
-                            grill24.fishtastic.client.FishtasticClientSetup.companionMenuType(),
-                            grill24.fishtastic.client.CompanionScreen::new);
                     net.minecraft.client.gui.screens.MenuScreens.register(
                             grill24.fishtastic.client.FishtasticClientSetup.fishTankAssemblyMenuType(),
                             grill24.fishtastic.client.FishTankAssemblyScreen::new);

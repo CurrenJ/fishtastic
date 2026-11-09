@@ -2469,13 +2469,12 @@ public final class RenderSelfTest {
         queue(20, mc -> {
             checkCompanionLesson("equip", grill24.fishtastic.tutorial.CompanionTutorialStep.EQUIP);
             screenshot(mc, "companiontutorial", "equip");
-            ((grill24.fishtastic.client.CompanionScreen) mc.screen).clickSlot(
-                    grill24.fishtastic.menu.CompanionMenu.INVENTORY_END - 8, 0, net.minecraft.world.inventory.ContainerInput.PICKUP);
+            if (mc.screen instanceof grill24.fishtastic.client.companions.CompanionsScreen screen) screen.testSkipTour();
         });
-        queue(10, mc -> pressHelpButton(mc, "tutorial.fishtastic.dismiss"));
         queue(10, mc -> {
-            checkCompanionLesson("dismiss_with_cursor", grill24.fishtastic.tutorial.CompanionTutorialStep.COMPLETE);
-            check("companiontutorial.carried_fish_safe", !mc.player.containerMenu.getCarried().isEmpty(), "Dismissal keeps the carried fish");
+            checkCompanionLesson("dismiss", grill24.fishtastic.tutorial.CompanionTutorialStep.COMPLETE);
+            check("companiontutorial.fish_safe", mc.player.getInventory().contains(
+                    stack -> stack.is(FishtasticItems.BLUEGILL.value())), "Skipping keeps the fish");
             mc.screen.onClose();
         });
         queue(10, mc -> mc.setScreen(new PauseScreen(true)));
@@ -2483,18 +2482,19 @@ public final class RenderSelfTest {
         queue(5, mc -> pressHelpButton(mc, "tutorial.fishtastic.help.companions"));
         queue(20, mc -> {
             checkCompanionLesson("replay", grill24.fishtastic.tutorial.CompanionTutorialStep.EQUIP);
-            for (int i = grill24.fishtastic.menu.CompanionMenu.INVENTORY_START;
-                    i < grill24.fishtastic.menu.CompanionMenu.INVENTORY_END; i++) {
-                if (mc.player.containerMenu.getSlot(i).getItem().is(FishtasticItems.BLUEGILL.value())) {
-                    ((grill24.fishtastic.client.CompanionScreen) mc.screen).clickSlot(i, 0, net.minecraft.world.inventory.ContainerInput.QUICK_MOVE);
-                    break;
-                }
+            if (mc.screen instanceof grill24.fishtastic.client.companions.CompanionsScreen screen) {
+                screen.testEquipFirst(Ids.of("fishtastic", "bluegill"));
             }
         });
         queue(15, mc -> {
             checkCompanionLesson("first_equip_finishes", grill24.fishtastic.tutorial.CompanionTutorialStep.COMPLETE);
-            check("companiontutorial.keeps_fish_equipped", mc.player.containerMenu.getSlot(0).hasItem(), "Leave the first companion equipped");
+            check("companiontutorial.keeps_fish_equipped",
+                    !grill24.fishtastic.companion.CompanionStorage.get(mc.player, 0).isEmpty(), "Leave the first companion equipped");
             screenshot(mc, "companiontutorial", "complete");
+            // The scene unbinds the key to prove the lesson needs no shortcut; never leave it unbound in options.txt.
+            FishtasticKeyBinds.bondCompanion.setKey(FishtasticKeyBinds.bondCompanion.getDefaultKey());
+            net.minecraft.client.KeyMapping.resetMapping();
+            mc.options.save();
             mc.screen.onClose();
             testingHelpMenus = false;
         });

@@ -19,7 +19,8 @@ public final class CompanionTutorialManager {
         if (getStep(player) == CompanionTutorialStep.NOT_STARTED) {
             ensureBook(player);
             setStep(player, CompanionTutorialStep.INTRO);
-            player.sendSystemMessage(net.minecraft.network.chat.Component.translatable("tutorial.fishtastic.companion.discovery"));
+            player.sendSystemMessage(net.minecraft.network.chat.Component.translatable("tutorial.fishtastic.companion.discovery",
+                    net.minecraft.network.chat.Component.keybind("key.fishtastic.bond_companion")));
         }
     }
 

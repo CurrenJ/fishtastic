@@ -82,6 +82,9 @@ import static grill24.fishtastic.util.Utility.ft;
 public final class FishtasticFabricClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
+        // Companion cards draw the live fish through a picture-in-picture renderer (companion UI spec §3.1).
+        net.fabricmc.fabric.api.client.rendering.v1.PictureInPictureRendererRegistry.register(context ->
+                grill24.fishtastic.client.companions.CompanionPortraitPip.getOrCreate(context.bufferSource()));
         // Register visual tooltip renderer for rod bait/hook/charm slots
         ClientTooltipComponentCallback.EVENT.register(component -> {
             if (component instanceof RodGearTooltip tooltip) {
@@ -124,8 +127,6 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         // Register the Fish Tank Assembly menu screen
         net.minecraft.client.gui.screens.MenuScreens.register(
                 FishtasticClientSetup.fishTankAssemblyMenuType(), grill24.fishtastic.client.FishTankAssemblyScreen::new);
-        net.minecraft.client.gui.screens.MenuScreens.register(
-                FishtasticClientSetup.companionMenuType(), grill24.fishtastic.client.CompanionScreen::new);
 
         // Register the Electric Fish Organizer menu screen
         net.minecraft.client.gui.screens.MenuScreens.register(
