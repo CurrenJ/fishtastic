@@ -38,7 +38,8 @@ Regenerate with
   Results come back through `CompanionFeedbackPacket` as they do today.
 - The client builds the fish list from the player's inventory plus every Pile of Fish's contents. The
   current screen's `pileFish()` already does this. Identical fish are grouped with `CarriedFish.group`.
-- Keyboard navigation and narration reuse `UiKeyboardNav` / `Narrated` like the Captain's Log.
+- Keyboard navigation and narration match the Captain's Log (same keys, ring colour and narration shape).
+  `UiKeyboardNav` can't see the immediate-mode canvas, so the screen keeps its own focus stops (§13.9).
 
 ## 2. Shell (shared with the Captain's Log)
 
@@ -348,5 +349,22 @@ Pre-existing bugs found and fixed along the way:
   now restores the key, and the three options files were repaired.
 
 Still open: small-viewport checks (§10, not captured yet), the wiki copy, the `/fishtastic debug
-companion_ui` trigger (§11; `companionbond` drives the same states unattended), keyboard navigation and
-narration, the owner's look, and the 1.21.1 / 1.20.1 ports (§13.8).
+companion_ui` trigger (§11; `companionbond` drives the same states unattended), the owner's look, and
+the 1.21.1 / 1.20.1 ports (§13.8).
+
+### 13.9 Keyboard navigation and narration (2026-11-09)
+
+- Every frame records a focus stop beside each clickable rectangle: a stable key (`rail:UNLOCKS`,
+  `card:1:unequip`, `species:<id>`, `fish:<id>:<n>`, `tile:<id>`), the spoken text and the action. Focus
+  follows the key across rebuilds; if its control disappears (fish equipped, view switched) the stop
+  that took its place is focused and narrated.
+- Tab / Shift+Tab / arrows move, Enter / Space activate, a mouse click drops the ring. Tab also leaves the
+  search and name fields (a name being typed is saved, as a click elsewhere does).
+- List rows and Unlocks tiles out of view are laid out without drawing, so they have stops; focusing one
+  scrolls it into view.
+- Unequip and make-lead (hover-only for the mouse) are drawn on every card while the keyboard is in use.
+- Narration: position, the focused stop's text and the usage hint, through vanilla's narration path.
+  Footer feedback (refusals, the replace hint) is also spoken with `saySystemNow`.
+- `companionbond` checks it (`a11y.companions.*`): 30 stops all labelled, card buttons reachable, list and
+  grid revealed, Enter collapses/expands and switches view, vanilla narration and the game narrator both
+  carry the focused text. Fabric only so far.

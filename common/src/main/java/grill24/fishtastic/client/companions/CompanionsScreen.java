@@ -33,6 +33,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.gui.narration.NarratedElementType;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
@@ -78,7 +80,9 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
     static final int FORMATION_Y = CARD_Y + CARD_H + 6, TOOL_Y = CARD_Y + CARD_H + 20, LIST_Y = TOOL_Y + 18,
             LIST_BOTTOM = SHELL_H - 20, ROW_W = CW - 8, SPECIES_H = 18, FISH_H = 15, MORE_H = 13, PAGE = 8, MORE_STEP = 16;
     // ---- unlocks view ----
-    static final int TILE = 34, TILE_GAP = 5, TILE_COLS = 8, TILE_PITCH = TILE + 18, GRID_Y = 52;
+    static final int TILE = 34, TILE_GAP = 5, TILE_COLS = 8, TILE_PITCH = TILE + 18, GRID_Y = 52, GRID_BOTTOM = SHELL_H - 8;
+    /** Keyboard focus ring, the same colour as UiKeyboardNav's on the Captain's Log and Fishopedia. */
+    static final int RING = 0xFFFFFF55;
     static final long FLASH_MS = 600, PULSE_MS = 500;
     static final int FEEDBACK_TICKS = 100;
 
@@ -142,6 +146,12 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
     private int catalogAge;
     private List<ItemStack> lastParty = List.of();
 
+    // ---- keyboard focus: stops are rebuilt every frame, so focus follows a stable key ----
+    private boolean keyboardActive;
+    private String focusKey;
+    private int focusIndex = -1;
+    private boolean narrateFocus;
+
     private Canvas canvas;
     private int mouseX, mouseY;
     private float shellScale = 1f;
@@ -203,6 +213,25 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
         this.mouseY = mouseY;
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
         if (canvas != null) canvas.tooltip(graphics, mouseX, mouseY);
+        if (narrateFocus) {
+            narrateFocus = false;
+            triggerImmediateNarration(false);
+        }
+    }
+
+    @Override
+    protected void updateNarratedWidget(NarrationElementOutput output) {
+        Stop stop = focusedStop();
+        if (stop != null) {
+            if (canvas.stops.size() > 1) {
+                output.add(NarratedElementType.POSITION,
+                        Component.translatable("narrator.position.screen", focusIndex + 1, canvas.stops.size()));
+            }
+            output.add(NarratedElementType.TITLE, Component.literal(stop.speech().get()));
+            output.add(NarratedElementType.USAGE, Component.translatable("narration.fishtastic.nav_usage"));
+        } else {
+            output.add(NarratedElementType.USAGE, Component.translatable("narration.fishtastic.companion.usage"));
+        }
     }
 
     @Override
@@ -253,6 +282,8 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
         feedbackTicks = FEEDBACK_TICKS;
         feedbackLink = null;
         feedbackLinkText = Component.empty();
+        // The footer is easy to miss and invisible to a narrator; say refusals and hints aloud too.
+        if (!message.getString().isEmpty()) Minecraft.getInstance().getNarrator().saySystemNow(message);
     }
 
     private int feedbackColor = HINT;
@@ -444,6 +475,12 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
     @Override
     public boolean keyPressed(KeyEvent event) {
         int key = event.key();
+        if (field != Field.NONE && key == GLFW.GLFW_KEY_TAB) {
+            // Tab leaves a text field the way a click elsewhere does: a name being typed is saved.
+            if (field == Field.RENAME) closeRename(true);
+            field = Field.NONE;
+            return moveFocus(!event.hasShiftDown());
+        }
         if (field != Field.NONE) {
             if (key == GLFW.GLFW_KEY_ESCAPE) {
                 if (field == Field.RENAME) closeRename(false);
@@ -471,6 +508,13 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
             onClose();
             return true;
         }
+        boolean forward = key == GLFW.GLFW_KEY_TAB && !event.hasShiftDown() || key == GLFW.GLFW_KEY_DOWN || key == GLFW.GLFW_KEY_RIGHT;
+        boolean back = key == GLFW.GLFW_KEY_TAB && event.hasShiftDown() || key == GLFW.GLFW_KEY_UP || key == GLFW.GLFW_KEY_LEFT;
+        if (forward || back) return moveFocus(forward);
+        if (key == GLFW.GLFW_KEY_ENTER || key == GLFW.GLFW_KEY_KP_ENTER || key == GLFW.GLFW_KEY_SPACE) {
+            activateFocus();
+            return true;
+        }
         if (key != GLFW.GLFW_KEY_ESCAPE && !minecraft.options.keyInventory.matches(event)) {
             return true; // no Gelatin debug toggles here
         }
@@ -485,7 +529,83 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
     }
 
     // =====================================================================================
+    // Keyboard focus and narration
+    //
+    // The canvas is immediate-mode, so UiKeyboardNav (which walks Gelatin elements) can't see its
+    // controls. Instead every frame records a Stop beside each mouse Hit: a stable key, the spoken
+    // text and the action. Rows and tiles scrolled out of view are laid out without drawing, so
+    // their stops exist too, and focusing one scrolls it into view. Same keys as the Captain's
+    // Log: Tab / Shift+Tab / arrows move, Enter / Space activate, a mouse click drops the ring.
+
+    /** Which scrolled viewport a stop lives in; it is revealed there when focused. */
+    enum Region { NONE, LIST, GRID }
+
+    /** A keyboard focus stop recorded this frame, in canvas pixels (unclipped, may be off-view). */
+    record Stop(String key, int x, int y, int w, int h, Region region, Supplier<String> speech, Runnable action) {}
+
+    private Stop focusedStop() {
+        if (!keyboardActive || canvas == null || focusIndex < 0 || focusIndex >= canvas.stops.size()) return null;
+        return canvas.stops.get(focusIndex);
+    }
+
+    private boolean moveFocus(boolean forward) {
+        if (canvas == null || canvas.stops.isEmpty()) return false;
+        List<Stop> stops = canvas.stops;
+        int n = stops.size(), current = canvas.indexOf(focusKey);
+        int next;
+        if (!keyboardActive) next = forward ? 0 : n - 1;
+        else if (current < 0) next = Math.max(0, Math.min(focusIndex, n - 1));
+        else next = Math.floorMod(current + (forward ? 1 : -1), n);
+        keyboardActive = true;
+        focusIndex = next;
+        focusKey = stops.get(next).key();
+        reveal(stops.get(next));
+        narrateFocus = true;
+        return true;
+    }
+
+    private void activateFocus() {
+        Stop stop = focusedStop();
+        if (stop == null || stop.action() == null) return;
+        stop.action().run();
+        narrateFocus = true;
+    }
+
+    /** Scrolls the list or grid so a stop is inside its viewport. */
+    private void reveal(Stop stop) {
+        int top, bottom;
+        if (stop.region() == Region.LIST) { top = LIST_Y; bottom = LIST_BOTTOM; }
+        else if (stop.region() == Region.GRID) { top = GRID_Y; bottom = GRID_BOTTOM; }
+        else return;
+        float delta = stop.y() < top ? stop.y() - top - 2 : stop.y() + stop.h() > bottom ? stop.y() + stop.h() - bottom + 2 : 0;
+        if (stop.region() == Region.LIST) listScroll = Math.max(0, listScroll + delta);
+        else gridScroll = Math.max(0, gridScroll + delta);
+    }
+
+    private void mouseUsed() {
+        keyboardActive = false;
+        focusKey = null;
+        focusIndex = -1;
+    }
+
+    // =====================================================================================
     // Self-test hooks (CompanionScenes)
+
+    public void testKey(int key, int modifiers) { keyPressed(new KeyEvent(key, 0, modifiers)); }
+    public int stopCount() { return canvas == null ? 0 : canvas.stops.size(); }
+    public String focusedSpeech() { Stop s = focusedStop(); return s == null ? null : s.speech().get(); }
+    public String focusedKey() { Stop s = focusedStop(); return s == null ? null : s.key(); }
+    /** True when the focused stop lies fully inside its viewport (always true outside the list/grid). */
+    public boolean focusedInView() {
+        Stop s = focusedStop();
+        if (s == null) return false;
+        if (s.region() == Region.LIST) return s.y() >= LIST_Y && s.y() + s.h() <= LIST_BOTTOM;
+        if (s.region() == Region.GRID) return s.y() >= GRID_Y && s.y() + s.h() <= GRID_BOTTOM;
+        return true;
+    }
+    public boolean isExpanded(Identifier id) { return id.equals(expanded); }
+    public View currentView() { return view; }
+    public void testDropFocus() { mouseUsed(); }
 
     public void testOpenSpecies(Identifier id) { expanded = id; scrollToSpecies(id); }
     public void testShowView(View v) { view = v; }
@@ -545,6 +665,10 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
 
     final class Canvas extends UIElement<Canvas> {
         private final List<Hit> hits = new ArrayList<>();
+        /** Keyboard stops recorded this frame, in Tab order (draw order). */
+        final List<Stop> stops = new ArrayList<>();
+        /** Lay out without drawing: rows and tiles scrolled out of view still record their stops. */
+        private boolean ghost;
         private GuiGraphicsExtractor g;
         private IRenderContext ctx;
         private float mx = -1, my = -1;
@@ -562,6 +686,12 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
         private float localX(float screenX) { return (screenX - shellX) / shellScale; }
         private float localY(float screenY) { return (screenY - shellY) / shellScale; }
 
+        int indexOf(String key) {
+            if (key == null) return -1;
+            for (int i = 0; i < stops.size(); i++) if (stops.get(i).key().equals(key)) return i;
+            return -1;
+        }
+
         private Hit hitAt(float x, float y) {
             for (int i = hits.size() - 1; i >= 0; i--) if (hits.get(i).contains(x, y)) return hits.get(i);
             return null;
@@ -570,6 +700,7 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
         @Override
         protected boolean onEvent(UIEvent event) {
             float x = localX(event.getMouseX()), y = localY(event.getMouseY());
+            if (event.getType() == UIEvent.Type.CLICK) mouseUsed();
             if (event.getType() == UIEvent.Type.CLICK && bar != null && bar.contains(x, y)) {
                 // Grab the thumb where it was pressed; a press on the bare track centres the thumb there.
                 float scroll = bar.list() ? listScroll : gridScroll;
@@ -642,11 +773,11 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
 
         // ---- primitives (mirror tools/companion-mockups/render.py) ----
 
-        private void fill(int x, int y, int w, int h, int c) { if (w > 0 && h > 0) g.fill(x, y, x + w, y + h, c); }
+        private void fill(int x, int y, int w, int h, int c) { if (!ghost && w > 0 && h > 0) g.fill(x, y, x + w, y + h, c); }
 
-        private void outline(int x, int y, int w, int h, int c) { g.outline(x, y, w, h, c); }
+        private void outline(int x, int y, int w, int h, int c) { if (!ghost) g.outline(x, y, w, h, c); }
 
-        private int text(int x, int y, String s, int c) { g.text(font, s, x, y, c, true); return x + font.width(s); }
+        private int text(int x, int y, String s, int c) { if (!ghost) g.text(font, s, x, y, c, true); return x + font.width(s); }
 
         private int text(int x, int y, Component s, int c) { return text(x, y, s.getString(), c); }
 
@@ -657,18 +788,21 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
         private void icon(String[] rows, int x, int y, int c) { icon(rows, x, y, c, 1); }
 
         private void icon(String[] rows, int x, int y, int c, int px) {
+            if (ghost) return;
             for (int j = 0; j < rows.length; j++) for (int i = 0; i < rows[j].length(); i++) {
                 if (rows[j].charAt(i) == '#') g.fill(x + i * px, y + j * px, x + (i + 1) * px, y + (j + 1) * px, c);
             }
         }
 
         private void panel(Identifier tex, int x, int y, int w, int h) {
+            if (ghost) return;
             SpriteData sprite = new SpriteData(tex).uv(0, 0, 20, 24).textureSize(20, 24)
                     .renderMode(SpriteRenderMode.SLICE).slice(4, 4, 4, 4);
             ctx.drawSprite(sprite, x, y, w, h);
         }
 
         private void item(ItemStack stack, int x, int y, int size) {
+            if (ghost) return;
             if (size == 16) {
                 g.item(stack, x, y);
                 return;
@@ -693,6 +827,45 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
 
         private static Supplier<List<Component>> tip(Component... lines) { return () -> List.of(lines); }
 
+        private void stop(String key, int x, int y, int w, int h, Region region, Supplier<String> speech, Runnable action) {
+            stops.add(new Stop(key, x, y, w, h, region, speech, action));
+        }
+
+        /** Runs a draw call with drawing suppressed when it is out of view, keeping its stops. */
+        private void layout(boolean visible, Runnable draw) {
+            boolean was = ghost;
+            ghost = was || !visible;
+            try { draw.run(); } finally { ghost = was; }
+        }
+
+        private static String speak(String key, Object... args) {
+            return Component.translatable("narration.fishtastic.companion." + key, args).getString();
+        }
+
+        private static String selected(String label, boolean selected) {
+            return selected ? label + ", " + Component.translatable("narration.fishtastic.selected").getString() : label;
+        }
+
+        /** Resolves the focused stop after a rebuild and draws the ring around it. */
+        private void focusRing() {
+            if (!keyboardActive || stops.isEmpty()) return;
+            int i = indexOf(focusKey);
+            if (i < 0) {
+                // The focused control went away (equipped, unequipped, view changed): focus its successor.
+                i = Math.max(0, Math.min(focusIndex, stops.size() - 1));
+                focusKey = stops.get(i).key();
+                narrateFocus = true;
+            }
+            focusIndex = i;
+            Stop f = stops.get(i);
+            int top = 0, bottom = SHELL_H;
+            if (f.region() == Region.LIST) { top = LIST_Y; bottom = LIST_BOTTOM; }
+            else if (f.region() == Region.GRID) { top = GRID_Y - 2; bottom = GRID_BOTTOM; }
+            ctx.pushScissor(0, top, SHELL_W, bottom - top);
+            g.outline(f.x() - 1, f.y() - 1, f.w() + 2, f.h() + 2, RING);
+            ctx.popScissor();
+        }
+
         // ---- frame ----
 
         @Override
@@ -701,6 +874,7 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
             ctx = context;
             g = mcContext.getGraphics();
             hits.clear();
+            stops.clear();
             bar = null;
             mx = localX(mouseX);
             my = localY(mouseY);
@@ -708,6 +882,7 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
             shell();
             if (view == View.EQUIPPED) equippedView();
             else unlocksView();
+            focusRing();
         }
 
         private void shell() {
@@ -734,6 +909,7 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
             icon(glyph, 10, y + 7, active || glyph == HEART ? glyphColor : MUTED);
             text(20, y + 6, label, active ? WHITE : MUTED);
             hit(4, y, RAIL_W - 8, 20, () -> selectView(target), null);
+            stop("rail:" + target, 4, y, RAIL_W - 8, 20, Region.NONE, () -> selected(label.getString(), view == target), () -> selectView(target));
         }
 
         private void countBox(Component label) {
@@ -785,6 +961,10 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
             textC(bx + bw / 2, by + 3, tr("tour.skip").getString(), WHITE);
             hit(x, y, w, h, null, null);
             hit(bx, by, bw, 14, () -> { click(); CompanionTutorialClientHandler.advance(true); }, null);
+            String tour = CompanionTutorialClientHandler.title().getString() + ". " + CompanionTutorialClientHandler.body().getString();
+            stop("tour", x, y, w, h, Region.NONE, () -> tour, null);
+            stop("tour:skip", bx, by, bw, 14, Region.NONE, () -> tr("tour.skip").getString(),
+                    () -> { click(); CompanionTutorialClientHandler.advance(true); });
         }
 
         private int cardX(int i) { return CX + i * (CARD_W + CARD_GAP); }
@@ -802,6 +982,7 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
                 textC(x + CARD_W / 2, y + 34, tr("empty_card").getString(), MUTED);
                 textC(x + CARD_W / 2, y + 45, tr("empty_card_hint").getString(), HINT);
                 if (i == CompanionParty.LEAD) text(x + 5, y + 4, tr("lead"), GOLD);
+                if (!replacing) stop("card:" + i, x, y, CARD_W, CARD_H, Region.NONE, () -> speak("card_empty", i + 1), null);
             } else {
                 panel(i == CompanionParty.LEAD ? PANEL_GOLD : PANEL, x, y, CARD_W, CARD_H);
                 if (hot && !replacing) fill(x + 3, y + 3, CARD_W - 6, CARD_H - 6, 0x18FFFFFF);
@@ -812,17 +993,26 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
                 CompanionPortrait.draw(g, fish, x + CARD_W / 2 - 16, y + 7, 32, i, t);
                 itemHit(x + 20, y + 4, CARD_W - 40, 34, null, fish,
                         i == CompanionParty.LEAD ? tip(tr("lead_tooltip")) : null);
+                String name = fish.getHoverName().getString();
+                if (!replacing) {
+                    String details = (sizeText(fish) + " " + qualityOf(fish).getTranslatableName().getString()).strip();
+                    stop("card:" + i, x, y, CARD_W, CARD_H, Region.NONE,
+                            () -> speak(i == CompanionParty.LEAD ? "card_lead" : "card", i + 1, name, details), null);
+                }
                 if (renaming == i) renameField(x, y);
                 else nameLine(i, x, y, fish);
-                if (hot && !replacing && renaming != i) {
+                // Keyboard users get the hover-only buttons on every card, so Tab can reach them.
+                if ((hot || keyboardActive) && !replacing && renaming != i) {
                     int bx = x + CARD_W - 13;
                     fill(bx, y + 3, 10, 10, hovered(bx, y + 3, 10, 10) ? HOVER : CHIP);
                     icon(CROSS, bx + 3, y + 6 - 1, WHITE);
                     hit(bx, y + 3, 10, 10, () -> unequip(i), tip(tr("unequip")));
+                    stop("card:" + i + ":unequip", bx, y + 3, 10, 10, Region.NONE, () -> speak("unequip", name), () -> unequip(i));
                     if (i != CompanionParty.LEAD) {
                         fill(x + 3, y + 3, 10, 10, hovered(x + 3, y + 3, 10, 10) ? HOVER : CHIP);
                         icon(CROWN, x + 6, y + 6, GOLD);
                         hit(x + 3, y + 3, 10, 10, () -> makeLead(i), tip(tr("make_lead")));
+                        stop("card:" + i + ":lead", x + 3, y + 3, 10, 10, Region.NONE, () -> speak("make_lead", name), () -> makeLead(i));
                     }
                 }
             }
@@ -838,6 +1028,9 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
                     g.text(font, label, x + CARD_W / 2 - font.width(label) / 2, y + 25, SHELL, false);
                 }
                 hit(x, y, CARD_W, CARD_H, () -> chooseCard(i), null);
+                String occupant = fish.isEmpty() ? "" : fish.getHoverName().getString();
+                stop("card:" + i + ":replace", x, y, CARD_W, CARD_H, Region.NONE,
+                        () -> speak("replace", i + 1, occupant), () -> chooseCard(i));
             }
             float flash = flash(cardFlash[i], t);
             if (flash > 0) {
@@ -853,6 +1046,8 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
             text(nx, y + 40, name, WHITE);
             pencil(nx + nw + 3, y + 41);
             hit(nx - 2, y + 39, nw + 13, 11, () -> startRename(i), tip(tr("rename")));
+            String full = fish.getHoverName().getString();
+            stop("card:" + i + ":name", nx - 2, y + 39, nw + 13, 11, Region.NONE, () -> speak("rename", full), () -> startRename(i));
             FishQuality.Quality quality = qualityOf(fish);
             String size = sizeText(fish), q = quality.getTranslatableName().getString();
             int total = font.width(size + "  " + q), sx = x + (CARD_W - total) / 2;
@@ -869,6 +1064,8 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
             int end = text(fx + 3, fy + 2, shown, WHITE);
             if ((now() / 500) % 2 == 0) fill(end + 1, fy + 2, 1, 8, WHITE);
             hit(fx, fy, fw, 12, () -> field = Field.RENAME, tip(tr("save_name")));
+            stop("card:" + renaming + ":name", fx, fy, fw, 12, Region.NONE, () -> speak("renaming", renameText),
+                    () -> field = Field.RENAME);
         }
 
         private void pencil(int x, int y) {
@@ -896,6 +1093,9 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
             text(CX + 10, FORMATION_Y, line, MUTED);
             textR(CX + CW, FORMATION_Y, "?", HINT);
             hit(CX, FORMATION_Y - 1, CW, 10, null, tip(tr("groups_hint")));
+            String groups = String.join(tr("preview.join").getString(), parts);
+            stop("formation", CX, FORMATION_Y - 1, CW, 10, Region.NONE,
+                    () -> speak("formation", groups, tr("groups_hint").getString()), null);
         }
 
         private void toolbar() {
@@ -913,6 +1113,9 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
                 if (focused && (now() / 500) % 2 == 0) fill(end + 1, TOOL_Y + 3, 1, 8, WHITE);
             }
             hit(CX, TOOL_Y, 112, 14, () -> { field = Field.SEARCH; cancelReplace(); }, null);
+            stop("search", CX, TOOL_Y, 112, 14, Region.NONE,
+                    () -> query.isEmpty() ? speak("search_empty") : speak("search", query),
+                    () -> { field = Field.SEARCH; cancelReplace(); });
             int x = CX + 120;
             x = filterPill(x, tr("filter.all"), !unlockedOnly, () -> { unlockedOnly = false; listScroll = 0; });
             filterPill(x, tr("filter.unlocked"), unlockedOnly, () -> { unlockedOnly = true; listScroll = 0; });
@@ -933,6 +1136,8 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
             if (selected) fill(x, TOOL_Y + 12, w, 2, GOLD);
             text(x + 5, TOOL_Y + 3, label, selected ? GOLD : MUTED);
             hit(x, TOOL_Y, w, 14, () -> { if (!selected) click(); action.run(); }, null);
+            stop("filter:" + label.getString(), x, TOOL_Y, w, 14, Region.NONE, () -> selected(label.getString(), selected),
+                    () -> { if (!selected) click(); action.run(); });
             return x + w + 4;
         }
 
@@ -950,7 +1155,8 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
             }
             for (var s : species) {
                 int h = rowsHeight(s);
-                if (y + h >= top && y < bottom) drawSpecies(s, y, top, bottom);
+                int rowY = y;
+                layout(y + h >= top && y < bottom, () -> drawSpecies(s, rowY, top, bottom));
                 y += h;
             }
             ctx.popScissor();
@@ -1006,11 +1212,20 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
                 }
             }
             listHit(CX, y, ROW_W, SPECIES_H, top, bottom, () -> toggleSpecies(s.id()), null);
+            String state = switch (s.unlock().gate()) {
+                case UNLOCKED -> tr("state.unlocked").getString();
+                case QUEST -> tr("state.quest").getString();
+                case CATCHES -> tr("state.catch_more", s.unlock().remaining()).getString();
+            };
+            stop("species:" + s.id(), CX, y, ROW_W, SPECIES_H, Region.LIST,
+                    () -> speak("species", s.name(), s.total(), state, speak(open ? "expanded" : "collapsed")),
+                    () -> toggleSpecies(s.id()));
             if (!open) return;
             int fy = y + SPECIES_H;
             int limit = shown.getOrDefault(s.id(), PAGE);
             for (int i = 0; i < Math.min(limit, s.fish().size()); i++) {
-                if (visible(fy, FISH_H, top, bottom)) drawFish(s, s.fish().get(i), fy, top, bottom, locked);
+                int rowY = fy, index = i;
+                layout(visible(fy, FISH_H, top, bottom), () -> drawFish(s, s.fish().get(index), index, rowY, top, bottom, locked));
                 fy += FISH_H;
             }
             if (s.fish().size() > limit) {
@@ -1019,10 +1234,12 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
                 int end2 = text(CX + 26, fy + 2, tr("show_more", Math.min(more, MORE_STEP)).getString(), GOLD);
                 text(end2 + 4, fy + 2, tr("show_more_of", more).getString(), HINT);
                 listHit(CX + 13, fy, ROW_W - 13, MORE_H, top, bottom, () -> showMore(s.id()), null);
+                String moreText = tr("show_more", Math.min(more, MORE_STEP)).getString() + " " + tr("show_more_of", more).getString();
+                stop("more:" + s.id(), CX + 13, fy, ROW_W - 13, MORE_H, Region.LIST, () -> moreText, () -> showMore(s.id()));
             }
         }
 
-        private void drawFish(CompanionFishCatalog.Species s, CompanionFishCatalog.Individual f, int y, int top, int bottom, boolean locked) {
+        private void drawFish(CompanionFishCatalog.Species s, CompanionFishCatalog.Individual f, int index, int y, int top, int bottom, boolean locked) {
             int x = CX + 13;
             boolean equippedNow = isEquipped(f.fish());
             boolean hot = hovered(x, y, CX + ROW_W - x, FISH_H) && my >= top && my < bottom;
@@ -1046,15 +1263,22 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
             int bx = CX + ROW_W - 44;
             int y0 = Math.max(y, top), y1 = Math.min(y + FISH_H, bottom);
             if (y1 > y0) itemHit(x, y0, CX + ROW_W - x - 44, y1 - y0, null, f.fish(), null);
+            String source = (f.source() == CompanionFishCatalog.Source.PILE ? tr("source.pile") : tr("source.inventory")).getString();
+            String fishText = speak("fish", f.fish().getHoverName().getString(), quality.getTranslatableName().getString(),
+                    sizeText(f.fish()), source);
+            String fishKey = "fish:" + s.id() + ":" + index;
             if (equippedNow) {
                 String label = tr("equipped").getString();
                 textR(bx + 40, y + 4, label, MUTED);
                 icon(HEART, bx + 40 - font.width(label) - 10, y + 5, PINK);
+                stop(fishKey, x, y, CX + ROW_W - x, FISH_H, Region.LIST, () -> speak("fish_equipped", fishText), null);
             } else {
                 boolean btnHot = hovered(bx + 4, y + 1, 36, 13);
                 fill(bx + 4, y + 1, 36, 13, locked ? BUTTON_DIM : btnHot ? RAIL_SEL_HOT : RAIL_SEL);
                 textC(bx + 22, y + 4, tr("equip").getString(), locked ? HINT : WHITE);
                 listHit(bx + 4, y + 1, 36, 13, top, bottom, () -> equip(s, f), null);
+                stop(fishKey, x, y, CX + ROW_W - x, FISH_H, Region.LIST,
+                        () -> speak(locked ? "equip_locked" : "equip", fishText), () -> equip(s, f));
             }
             if (chosen) outline(x, y, CX + ROW_W - x, FISH_H, GOLD);
         }
@@ -1075,6 +1299,8 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
                 linkW = font.width(cancel);
                 textR(CX + CW, LIST_BOTTOM + 7, cancel, HINT);
                 hit(CX + CW - linkW, LIST_BOTTOM + 5, linkW, 11, CompanionsScreen.this::cancelReplace, null);
+                stop("footer:cancel", CX + CW - linkW, LIST_BOTTOM + 5, linkW, 11, Region.NONE,
+                        () -> speak("cancel_replace"), CompanionsScreen.this::cancelReplace);
             } else if (feedbackLink != null) {
                 String link = feedbackLinkText.getString();
                 linkW = font.width(link);
@@ -1083,6 +1309,9 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
                 if (hot) fill(CX + CW - linkW, LIST_BOTTOM + 16, linkW, 1, GOLD);
                 Runnable action = feedbackLink;
                 hit(CX + CW - linkW, LIST_BOTTOM + 5, linkW, 11, () -> { click(); action.run(); }, null);
+                String said = message.getString();
+                stop("footer:link", CX + CW - linkW, LIST_BOTTOM + 5, linkW, 11, Region.NONE,
+                        () -> said + " " + link, () -> { click(); action.run(); });
             }
             text(CX, LIST_BOTTOM + 7, truncate(message.getString(), CW - linkW - 8), color);
         }
@@ -1101,6 +1330,10 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
             textC(cx, by + 4, tr("link.unlocks").getString(), WHITE);
             hit(bx, by, 100, 16, () -> selectView(View.UNLOCKS), null);
             Component closest = closestText();
+            String none = tr("none.title").getString() + ". " + tr("none.body").getString()
+                    + (closest == null ? "" : " " + closest.getString());
+            stop("none", CX, TOOL_Y, CW, by - TOOL_Y, Region.NONE, () -> none, null);
+            stop("none:unlocks", bx, by, 100, 16, Region.NONE, () -> tr("link.unlocks").getString(), () -> selectView(View.UNLOCKS));
             if (closest != null) textC(cx, by + 20, closest.getString(), HINT);
         }
 
@@ -1157,8 +1390,7 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
                 UnlockTile t = tiles.get(i);
                 int x = CX + (i % TILE_COLS) * (TILE + TILE_GAP) + 2;
                 int y = GRID_Y + (i / TILE_COLS) * TILE_PITCH - Math.round(gridScroll);
-                if (y + TILE_PITCH < GRID_Y || y > GRID_Y + viewH) continue;
-                tile(t, x, y, GRID_Y, GRID_Y + viewH);
+                layout(!(y + TILE_PITCH < GRID_Y || y > GRID_Y + viewH), () -> tile(t, x, y, GRID_Y, GRID_Y + viewH));
             }
             ctx.popScissor();
             if (max > 0) scrollbar(false, GRID_Y, viewH, rows * TILE_PITCH, max, gridScroll);
@@ -1194,6 +1426,16 @@ public class CompanionsScreen extends GelatinUIScreen<GelatinMenu> {
             };
             int y0 = Math.max(y, top), y1 = Math.min(y + TILE, bottom);
             if (y1 > y0) hit(x, y0, TILE, y1 - y0, t.discovered ? () -> openInFishopedia(t.id) : null, tooltip);
+            String tileName = t.discovered ? stack.getHoverName().getString()
+                    : Component.translatable("narration.fishtastic.encyclopedia.undiscovered").getString();
+            String tileState = switch (t.unlock.gate()) {
+                case UNLOCKED -> tr("state.companion_unlocked").getString();
+                case QUEST -> tr("state.quest").getString();
+                case CATCHES -> tr("unlocks.catch_more", t.unlock.remaining()).getString();
+            };
+            stop("tile:" + t.id, x, y, TILE, TILE, Region.GRID,
+                    () -> speak(t.discovered ? "tile_open" : "tile", tileName, tileState),
+                    t.discovered ? () -> openInFishopedia(t.id) : null);
         }
 
         // ---- helpers ----

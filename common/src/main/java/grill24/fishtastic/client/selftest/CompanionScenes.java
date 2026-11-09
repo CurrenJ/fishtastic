@@ -500,6 +500,7 @@ final class CompanionScenes {
             check("bond.listScrollbarDrags", reached > 0.99f, "reached " + reached);
         }));
         queue(5, mc -> screenshot(mc, "companionbond", "list_dragged"));
+        queueCompanionsKeyboardChecks();
         queue(1, mc -> ui(mc, s -> {
             s.testShowView(grill24.fishtastic.client.companions.CompanionsScreen.View.EQUIPPED);
             s.testUnequip(0);
@@ -543,6 +544,93 @@ final class CompanionScenes {
         queue(1, mc -> server(mc, s -> {
             for (ServerPlayer player : s.getPlayerList().getPlayers()) player.getInventory().clearContent();
         }));
+    }
+
+    /**
+     * Keyboard and narrator checks for the companions screen (layout spec §1): Tab reaches every
+     * control with spoken text, hover-only card buttons included; focus scrolls the list and the
+     * grid; Enter acts like a click; the focused stop reaches vanilla's narration and the narrator.
+     * Runs with three companions equipped and bluegill's rows open.
+     */
+    private static void queueCompanionsKeyboardChecks() {
+        net.minecraft.resources.Identifier bluegill = Ids.of("fishtastic", "bluegill");
+        int tab = org.lwjgl.glfw.GLFW.GLFW_KEY_TAB, shift = org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT;
+        int enter = org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER;
+        queue(1, mc -> ui(mc, s -> {
+            s.testSearch("");
+            s.testOpenSpecies(bluegill);
+            s.testKey(tab, 0);
+            check("a11y.companions.firstStop", "rail:EQUIPPED".equals(s.focusedKey())
+                    && s.focusedSpeech() != null && s.focusedSpeech().contains("selected"),
+                    s.focusedKey() + " / " + s.focusedSpeech());
+        }));
+        // A frame later the card buttons are drawn for the keyboard; walk the whole loop once.
+        queue(2, mc -> ui(mc, s -> {
+            int n = s.stopCount();
+            List<String> keys = new java.util.ArrayList<>(), spoken = new java.util.ArrayList<>();
+            for (int i = 0; i < n; i++) {
+                s.testKey(tab, 0);
+                keys.add(s.focusedKey());
+                spoken.add(s.focusedSpeech());
+            }
+            note("a11y.companions.stops=" + n + " spoken=" + spoken);
+            check("a11y.companions.stops", n >= 12, "stops=" + n);
+            check("a11y.companions.labelled", spoken.stream().noneMatch(t -> t == null || t.isBlank()
+                    || t.contains("narration.fishtastic") || t.contains("%s")), "spoken=" + spoken);
+            check("a11y.companions.cardButtons", keys.stream().anyMatch(k -> k.endsWith(":unequip"))
+                    && keys.stream().anyMatch(k -> k.endsWith(":lead")), "keys=" + keys);
+            check("a11y.companions.loops", "rail:EQUIPPED".equals(s.focusedKey()), "after a full loop: " + s.focusedKey());
+            check("a11y.companions.toMore", tabUntil(s, k -> k.startsWith("more:"), false, n), "focused=" + s.focusedKey());
+        }));
+        queue(3, mc -> ui(mc, s -> {
+            check("a11y.companions.listRevealed", s.focusedInView(), "focused=" + s.focusedKey());
+            String narrated = QuestBookScenes.vanillaNarration(s);
+            note("a11y.companions.vanillaNarration=" + narrated);
+            check("a11y.companions.vanillaNarration", narrated.contains(s.focusedSpeech()), "narration=" + narrated);
+            String audible = QuestBookScenes.spokenByGameNarrator(mc, s);
+            check("a11y.companions.gameNarratorSpeaks", audible.contains(s.focusedSpeech()), "spoken=" + audible);
+            screenshot(mc, "companionbond", "keyboard_list");
+            check("a11y.companions.toSpecies", tabUntil(s, k -> k.equals("species:" + bluegill), true, 60), "focused=" + s.focusedKey());
+            s.testKey(enter, 0);
+        }));
+        queue(2, mc -> ui(mc, s -> {
+            check("a11y.companions.enterCollapses", !s.isExpanded(bluegill), "focused=" + s.focusedKey());
+            s.testKey(enter, 0);
+        }));
+        queue(2, mc -> ui(mc, s -> {
+            check("a11y.companions.enterExpands", s.isExpanded(bluegill), "focused=" + s.focusedKey());
+            check("a11y.companions.toUnlocks", tabUntil(s, k -> k.equals("rail:UNLOCKS"), true, 80), "focused=" + s.focusedKey());
+            s.testKey(enter, 0);
+        }));
+        // Unlocks: Shift+Tab past the first stop wraps to the last tile, far below the fold.
+        queue(2, mc -> ui(mc, s -> {
+            check("a11y.companions.enterSwitchesView",
+                    s.currentView() == grill24.fishtastic.client.companions.CompanionsScreen.View.UNLOCKS, "view=" + s.currentView());
+            s.testKey(tab, shift);
+            s.testKey(tab, shift);
+        }));
+        queue(3, mc -> ui(mc, s -> {
+            check("a11y.companions.gridRevealed", s.focusedKey() != null && s.focusedKey().startsWith("tile:")
+                    && s.focusedInView(), "focused=" + s.focusedKey() + " / " + s.focusedSpeech());
+            screenshot(mc, "companionbond", "keyboard_grid");
+            s.testKey(tab, 0);
+            s.testKey(enter, 0);
+        }));
+        queue(2, mc -> ui(mc, s -> {
+            check("a11y.companions.backToEquipped",
+                    s.currentView() == grill24.fishtastic.client.companions.CompanionsScreen.View.EQUIPPED, "view=" + s.currentView());
+            s.testDropFocus();
+        }));
+    }
+
+    /** Presses Tab (or Shift+Tab) until the focused stop's key matches; false if it never does. */
+    private static boolean tabUntil(grill24.fishtastic.client.companions.CompanionsScreen s,
+            java.util.function.Predicate<String> key, boolean back, int max) {
+        for (int i = 0; i < max; i++) {
+            s.testKey(org.lwjgl.glfw.GLFW.GLFW_KEY_TAB, back ? org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT : 0);
+            if (s.focusedKey() != null && key.test(s.focusedKey())) return true;
+        }
+        return false;
     }
 
     private static void ui(Minecraft mc, java.util.function.Consumer<grill24.fishtastic.client.companions.CompanionsScreen> action) {
