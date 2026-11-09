@@ -50,6 +50,12 @@ public final class GelatinOpenMenuCompat {
         }
     }
 
+    public static boolean openCompanionsMenu(ServerPlayer player) {
+        boolean success = openMenu(player, "companions");
+        if (!success) Fishtastic.LOGGER.warn("Failed to open Companions menu; Gelatin UI not present.");
+        return success;
+    }
+
     public static void openFishEncyclopediaMenu(ServerPlayer player) {
         boolean success = openMenu(player, "fish_encyclopedia");
 

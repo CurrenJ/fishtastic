@@ -76,6 +76,7 @@ public final class Companions {
         ItemStack taken = takeOneMatching(player, wanted);
         if (taken.isEmpty()) return BondResult.NOT_CARRIED;
         equip(player, target, taken);
+        syncInventory(player);
         return BondResult.BONDED;
     }
 
@@ -87,6 +88,44 @@ public final class Companions {
         CompanionStorage.set(player, slot, ItemStack.EMPTY);
         RemoveTankEntryPacket.giveOrDrop(player, returned);
         grill24.fishtastic.tutorial.CompanionTutorialManager.onReturned(player);
+        return true;
+    }
+
+    public enum UnequipResult { UNEQUIPPED, EMPTY, INVENTORY_FULL }
+
+    /**
+     * The companions screen's unequip: unlike {@link #unequip}, a fish never drops at the player's
+     * feet from a click in a menu. A full inventory refuses and changes nothing.
+     */
+    public static UnequipResult unequipToInventory(ServerPlayer player, int slot) {
+        if (!CompanionParty.validSlot(slot) || CompanionStorage.get(player, slot).isEmpty()) return UnequipResult.EMPTY;
+        if (!hasRoomToReturn(player, CompanionStorage.get(player, slot))) return UnequipResult.INVENTORY_FULL;
+        unequip(player, slot);
+        syncInventory(player);
+        return UnequipResult.UNEQUIPPED;
+    }
+
+    /**
+     * The companions screen is a slotless Gelatin menu, and the server only broadcasts the open
+     * menu's slots: without this, inventory and pile changes reach the client when the screen
+     * closes, and the fish list would offer a fish that is already equipped.
+     */
+    private static void syncInventory(ServerPlayer player) {
+        if (player.containerMenu != player.inventoryMenu) player.inventoryMenu.broadcastChanges();
+    }
+
+    /**
+     * Swaps two companion slots (either may be empty); "make lead" is a swap with slot 0. No fish
+     * leaves the party, so nothing can be lost. Returns false for an invalid or no-op pair.
+     */
+    public static boolean swap(ServerPlayer player, int from, int to) {
+        if (!CompanionParty.validSlot(from) || !CompanionParty.validSlot(to) || from == to) return false;
+        ItemStack a = CompanionStorage.get(player, from).copy(), b = CompanionStorage.get(player, to).copy();
+        if (a.isEmpty() && b.isEmpty()) return false;
+        CompanionStorage.set(player, from, b);
+        CompanionStorage.set(player, to, a);
+        ItemStack newLead = from == CompanionParty.LEAD ? b : to == CompanionParty.LEAD ? a : ItemStack.EMPTY;
+        if (!newLead.isEmpty()) grill24.fishtastic.tutorial.CompanionTutorialManager.onLeadSelected(player);
         return true;
     }
 

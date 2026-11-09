@@ -22,7 +22,10 @@ public record CompanionFeedbackPacket(Outcome outcome) implements CustomPacketPa
         RENAMED,
         NOTHING_TO_RENAME,
         INVENTORY_FULL,
-        PARTY_FULL
+        PARTY_FULL,
+        // Appended for the companions screen; keep the order above stable.
+        UNEQUIPPED,
+        MOVED
     }
 
     /** Maps the server's bond result onto the wire outcome, exhaustively (no name() coupling). */

@@ -28,11 +28,13 @@ public abstract class AbstractContainerScreenMixin {
     @Shadow protected int leftPos;
     @Shadow protected int topPos;
 
+    /**
+     * Every container screen, not only the survival inventory (the companion UI redesign widened it):
+     * the server equips carried fish from the player's own inventory slots only.
+     */
     @Inject(method = "render", at = @At("HEAD"))
     private void fishtastic$holdToBond(GuiGraphics graphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
         // Find the live slot before vanilla's render updates hoveredSlot later in the frame.
-        var screen = (AbstractContainerScreen<?>) (Object) this;
-        if (!(screen instanceof net.minecraft.client.gui.screens.inventory.InventoryScreen)) return;
         int left = leftPos, top = topPos;
         Slot live = null;
         for (Slot slot : menu.slots) {
@@ -45,7 +47,8 @@ public abstract class AbstractContainerScreenMixin {
     @Inject(method = "getTooltipFromContainerItem", at = @At("RETURN"), cancellable = true)
     private void fishtastic$bondTooltip(net.minecraft.world.item.ItemStack stack,
             org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<java.util.List<net.minecraft.network.chat.Component>> cir) {
-        if (!((Object) this instanceof net.minecraft.client.gui.screens.inventory.InventoryScreen)
+        // Only over the player's own inventory slots: the server equips carried fish only.
+        if (hoveredSlot == null || !(hoveredSlot.container instanceof net.minecraft.world.entity.player.Inventory)
                 || !grill24.fishtastic.client.CompanionBondInput.eligible(stack)) return;
         var lines = new java.util.ArrayList<>(cir.getReturnValue());
         lines.add(grill24.fishtastic.client.CompanionBondInput.hint(stack));
@@ -59,6 +62,22 @@ public abstract class AbstractContainerScreenMixin {
     private void fishtastic$requestHighlight(GuiGraphics graphics, Slot slot, CallbackInfo ci) {
         if (ItemHighlightRules.shouldHighlight(this.menu.getCarried(), slot.getItem())) {
             FishtasticGlintState.HIGHLIGHT_REQUESTED.set(Boolean.TRUE);
+        }
+    }
+
+    /** The companions heart tab / creative button (companion UI spec §6), drawn over the panel. */
+    @Inject(method = "render", at = @At("TAIL"))
+    private void fishtastic$companionTab(GuiGraphics graphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
+        grill24.fishtastic.client.companions.CompanionInventoryButton.render(
+                (net.minecraft.client.gui.screens.Screen) (Object) this, graphics, leftPos, topPos, mouseX, mouseY);
+    }
+
+    @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
+    private void fishtastic$companionTabClick(double mouseX, double mouseY, int button,
+            org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Boolean> cir) {
+        if (grill24.fishtastic.client.companions.CompanionInventoryButton.click(
+                (net.minecraft.client.gui.screens.Screen) (Object) this, leftPos, topPos, mouseX, mouseY, button)) {
+            cir.setReturnValue(true);
         }
     }
 

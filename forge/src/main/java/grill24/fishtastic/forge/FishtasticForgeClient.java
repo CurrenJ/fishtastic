@@ -221,7 +221,6 @@ public final class FishtasticForgeClient {
         event.enqueueWork(() -> FishtasticItemProperties.register(ItemProperties::register));
         event.enqueueWork(() -> FishtasticBlockRenderLayers.register(net.minecraft.client.renderer.ItemBlockRenderTypes::setRenderLayer));
         event.enqueueWork(() -> {
-            MenuScreens.register(FishtasticClientSetup.companionMenuType(), grill24.fishtastic.client.CompanionScreen::new);
             MenuScreens.register(FishtasticClientSetup.fishTankAssemblyMenuType(), grill24.fishtastic.client.FishTankAssemblyScreen::new);
             MenuScreens.register(FishtasticClientSetup.electricFishOrganizerMenuType(), grill24.fishtastic.client.ElectricFishOrganizerScreen::new);
             MenuScreens.register(FishtasticClientSetup.fishTankBrowserMenuType(), grill24.fishtastic.client.FishTankBrowserScreen::new);

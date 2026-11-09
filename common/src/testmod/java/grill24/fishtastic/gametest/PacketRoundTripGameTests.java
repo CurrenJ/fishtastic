@@ -321,18 +321,28 @@ public final class PacketRoundTripGameTests {
         ItemStack fish = grill24.fishtastic.util.ItemSizeHelper.setSize(
                 new ItemStack(grill24.fishtastic.FishtasticItems.BLUEGILL.value()), 25f);
         for (int slot : new int[]{grill24.fishtastic.companion.Companions.FIRST_EMPTY, 0, 2}) {
-            var bond = new grill24.fishtastic.network.BondCompanionPacket(fish, slot);
+            var bond = new grill24.fishtastic.network.EquipCompanionPacket(fish, slot);
             RegistryFriendlyByteBuf buf = newBuf(helper);
-            grill24.fishtastic.network.BondCompanionPacket.STREAM_CODEC.encode(buf, bond);
-            var decodedBond = grill24.fishtastic.network.BondCompanionPacket.STREAM_CODEC.decode(buf);
+            grill24.fishtastic.network.EquipCompanionPacket.STREAM_CODEC.encode(buf, bond);
+            var decodedBond = grill24.fishtastic.network.EquipCompanionPacket.STREAM_CODEC.decode(buf);
             helper.assertTrue(decodedBond.slot() == slot && ItemStack.matches(decodedBond.fish(), fish),
-                    "BondCompanionPacket must round-trip for slot " + slot);
+                    "EquipCompanionPacket must round-trip for slot " + slot);
         }
         var rename = new grill24.fishtastic.network.RenameCompanionPacket(1, "Gilbert");
         RegistryFriendlyByteBuf buf = newBuf(helper);
         grill24.fishtastic.network.RenameCompanionPacket.STREAM_CODEC.encode(buf, rename);
         helper.assertTrue(grill24.fishtastic.network.RenameCompanionPacket.STREAM_CODEC.decode(buf).equals(rename),
                 "RenameCompanionPacket must round-trip");
+        var unequip = new grill24.fishtastic.network.UnequipCompanionPacket(2);
+        buf = newBuf(helper);
+        grill24.fishtastic.network.UnequipCompanionPacket.STREAM_CODEC.encode(buf, unequip);
+        helper.assertTrue(grill24.fishtastic.network.UnequipCompanionPacket.STREAM_CODEC.decode(buf).equals(unequip),
+                "UnequipCompanionPacket must round-trip");
+        var move = new grill24.fishtastic.network.MoveCompanionPacket(2, 0);
+        buf = newBuf(helper);
+        grill24.fishtastic.network.MoveCompanionPacket.STREAM_CODEC.encode(buf, move);
+        helper.assertTrue(grill24.fishtastic.network.MoveCompanionPacket.STREAM_CODEC.decode(buf).equals(move),
+                "MoveCompanionPacket must round-trip");
         helper.succeed();
     }
 
