@@ -34,9 +34,15 @@ public final class CompanionPortraitPip extends PictureInPictureRenderer<Compani
     private static final float FILL = 0.78f;
     private static final int FULL_BRIGHT = 15728880;
 
+    /** The renderer the loader registered; only its close (the GUI renderer closing) frees the delegates. */
     @Nullable private static CompanionPortraitPip instance;
     private final MultiBufferSource.BufferSource bufferSource;
-    private final Map<Integer, Delegate> delegates = new HashMap<>();
+    /**
+     * One texture per card slot, shared by every instance: Fabric hands the 2nd and 3rd portrait of a
+     * frame to extra pooled renderers from our factory and closes them on any frame with fewer
+     * portraits, so those extras must not own (or free) anything.
+     */
+    private static final Map<Integer, Delegate> DELEGATES = new HashMap<>();
     /** Poses are built per fish (resolving visuals isn't free); cached per slot until the fish changes. */
     private static final Map<Integer, CachedPose> POSES = new HashMap<>();
 
@@ -45,12 +51,17 @@ public final class CompanionPortraitPip extends PictureInPictureRenderer<Compani
     public CompanionPortraitPip(MultiBufferSource.BufferSource bufferSource) {
         super(bufferSource);
         this.bufferSource = bufferSource;
-        instance = this;
     }
 
-    /** Loaders may call their factory more than once; one dispatcher always suffices. */
+    /**
+     * The first call makes the registered renderer. Later calls (Fabric's per-frame pool) get a
+     * separate forwarding instance: returning the registered one let the pool close it when the
+     * screen shut, so every later open fell back to item sprites.
+     */
     public static CompanionPortraitPip getOrCreate(MultiBufferSource.BufferSource bufferSource) {
-        return instance != null ? instance : new CompanionPortraitPip(bufferSource);
+        CompanionPortraitPip pip = new CompanionPortraitPip(bufferSource);
+        if (instance == null) instance = pip;
+        return pip;
     }
 
     private static volatile boolean registered;
@@ -62,6 +73,9 @@ public final class CompanionPortraitPip extends PictureInPictureRenderer<Compani
     public static void markRegistered() { registered = true; }
 
     public static boolean isRegistered() { return registered || instance != null; }
+
+    /** Self-test: the registered renderer is still open (not closed by a loader's pool). */
+    public static boolean hasLiveRenderer() { return instance != null; }
 
     /**
      * Queues the live fish into the local square ({@code x}, {@code y}, {@code size}) under the
@@ -112,7 +126,7 @@ public final class CompanionPortraitPip extends PictureInPictureRenderer<Compani
 
     @Override
     public void prepare(State state, GuiRenderState guiRenderState, int guiScale) {
-        delegates.computeIfAbsent(state.slot(), s -> new Delegate(bufferSource)).prepare(state, guiRenderState, guiScale);
+        DELEGATES.computeIfAbsent(state.slot(), s -> new Delegate(bufferSource)).prepare(state, guiRenderState, guiScale);
     }
 
     @Override protected void renderToTexture(State state, PoseStack poseStack) { draw(state, poseStack); }
@@ -123,9 +137,11 @@ public final class CompanionPortraitPip extends PictureInPictureRenderer<Compani
 
     @Override
     public void close() {
-        delegates.values().forEach(PictureInPictureRenderer::close);
-        delegates.clear();
-        if (instance == this) instance = null;
+        if (instance == this) {
+            DELEGATES.values().forEach(PictureInPictureRenderer::close);
+            DELEGATES.clear();
+            instance = null;
+        }
         super.close();
     }
 

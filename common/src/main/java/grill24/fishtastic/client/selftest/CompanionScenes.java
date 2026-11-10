@@ -456,6 +456,14 @@ final class CompanionScenes {
         queue(15, mc -> {
             check("bond.full", grill24.fishtastic.companion.CompanionStorage.party(mc.player).firstEmpty() < 0, "");
             screenshot(mc, "companionbond", "full");
+            mc.setScreen(null);
+        });
+        // Reopening must still draw live portraits: frames with no portraits in between let Fabric's
+        // picture-in-picture pool close the renderers it made for the 2nd and 3rd cards.
+        queue(20, mc -> grill24.fishtastic.client.companions.CompanionsScreen.open(ItemStack.EMPTY, false));
+        queue(20, mc -> {
+            check("bond.reopenPipLive", grill24.fishtastic.client.companions.CompanionPortraitPip.hasLiveRenderer(), "");
+            screenshot(mc, "companionbond", "reopened");
         });
         // All cards full: equip enters replace mode, then a card is chosen.
         queue(1, mc -> ui(mc, s -> s.testEquipFirst(Ids.of("fishtastic", "bluegill"))));

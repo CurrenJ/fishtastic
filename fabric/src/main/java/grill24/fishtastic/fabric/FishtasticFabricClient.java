@@ -85,6 +85,7 @@ public final class FishtasticFabricClient implements ClientModInitializer {
         // Companion cards draw the live fish through a picture-in-picture renderer (companion UI spec §3.1).
         net.fabricmc.fabric.api.client.rendering.v1.PictureInPictureRendererRegistry.register(context ->
                 grill24.fishtastic.client.companions.CompanionPortraitPip.getOrCreate(context.bufferSource()));
+        grill24.fishtastic.client.companions.CompanionPortraitPip.markRegistered();
         // Register visual tooltip renderer for rod bait/hook/charm slots
         ClientTooltipComponentCallback.EVENT.register(component -> {
             if (component instanceof RodGearTooltip tooltip) {
