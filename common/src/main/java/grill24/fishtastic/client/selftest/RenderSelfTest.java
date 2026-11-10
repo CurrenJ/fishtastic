@@ -152,7 +152,7 @@ public final class RenderSelfTest {
 
     private static final List<String> OPT_IN_SCENES = List.of("matte", "matteclip", "fourwaters", "fishspin", "cathedral",
             "mcpsession", "cosmeticpreview", "columns", "spanpreview", "perfbench", "lighting", "borderlessglass", "bakebench", "scalebench",
-            "leaderboard", "encyclopedia", "portrait", "tutorial", "faq", "companiontutorial", "companionbond", "companionsim",
+            "leaderboard", "encyclopedia", "portrait", "tutorial", "faq", "companiontutorial", "companionbond", "companionportraitbob", "companionsim",
             "companionparty", "companioneel", "companiondoor", "twoclient", "companionscenes", "companionlod", "companionmoods", "companionworld",
             "companionparticles", "companionworldcost", "companionfloorlight", "ambientparity", "ambientwater",
             "ambientisland", "ambientfloor", "ambientwalk", "ambientswim", "fishschoolgif", "fishschooljump", "legendarybreach",
@@ -390,6 +390,7 @@ public final class RenderSelfTest {
             case "borderlessglass" -> queueBorderlessGlassScene();
             case "cosmeticpreview" -> queueCosmeticPreviewScene();
             case "companionbond" -> queueCompanionBondScene();
+            case "companionportraitbob" -> CompanionScenes.queuePortraitBobScene();
             case "companionsim" -> queueCompanionSimScene();
             case "companionparty" -> queueCompanionPartyScene();
             case "companioneel" -> queueCompanionEelScene();
