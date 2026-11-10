@@ -8,6 +8,8 @@
   marker advanced.
 - **Validation:** game tests 1.21.1 Fabric/Forge/NeoForge 410 each, 1.20.1 Fabric 411 and Forge 412,
   all passing; `companionbond`/`companiontutorial` scenes 40/40 on Fabric for both ports.
+- **Follow-ups (2026-11-10):** `c5902dd6` (portraits after reopening) is 26.1.2-only; `cead7199`
+  (card bob cap) ported as 1.21.1 `347dd29d` and 1.20.1 `cd6f0529`, committed locally, not pushed.
 - **Next action:** owner look at the screen in game on a port; push and release when wanted.
 
 ## Completed (2026-11-07): companions through open doors, ported

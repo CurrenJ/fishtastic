@@ -213,6 +213,9 @@ recorded in `docs/backport-catchup-progress.md` but not re-audited here.
 | `73bc2c5c` Replace the companion container with a Captain's Log companions screen | Ported, adapted (one commit with the next two) | `5056a334` | `5eb9677a` |
 | `0a7405e8` Make the companions screen scrollbars draggable | Ported, adapted (Gelatin 1.0.40 per branch) | `5056a334` | `5eb9677a` |
 | `b5c933cc` Add keyboard navigation and narration to the companions screen | Ported, adapted | `5056a334` | `5eb9677a` |
+| `b1415313` Record the companions screen ports | Excluded: source docs only | — | — |
+| `c5902dd6` Keep companion portraits live after reopening the screen | Not applicable: fixes the picture-in-picture renderer's lifecycle; the ports draw portraits directly | — | — |
+| `cead7199` Cap the companion card bob to a share of the fish's length | Ported (portrait cap in `CompanionPortrait`; `companionportraitbob` A/B scene) | `347dd29d` | `cd6f0529` |
 
 Adaptations: no picture-in-picture renderer on either port, so card portraits draw the live fish
 directly into the GUI with a 3D pose (`CompanionPortrait`); GuiGraphics/PoseStack and int-based
@@ -226,4 +229,9 @@ Validation: 1.21.1 game tests 410/410 on Fabric, Forge and NeoForge; 1.20.1 411/
 412/412 Forge. `companionbond` + `companiontutorial` scenes: 40/40 checks on Fabric for both
 ports, screenshots reviewed (evidence under each worktree's `build/verification/two-client/fabric/`).
 Not covered: scenes on the Forge/NeoForge clients and an owner look in a live game.
+
+Bob cap (`cead7199`): the `companionportraitbob` A/B scene passes on Fabric on all three branches;
+uncapped, a mean-size betta leaves its card at the bob peak (cut off on 26.1.2, floating over the
+heading on the ports), capped it stays on the card at peak and trough. Both port commits passed
+their pre-commit game tests.
 
