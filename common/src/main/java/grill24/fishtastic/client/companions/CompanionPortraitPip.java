@@ -32,6 +32,32 @@ import java.util.Map;
 public final class CompanionPortraitPip extends PictureInPictureRenderer<CompanionPortraitPip.State> {
     /** Fish fill this share of the box's width, leaving room for the swim's sway. */
     private static final float FILL = 0.78f;
+    /**
+     * The portrait fits the fish's length to the box, but the idle bob is in blocks, so a short fish
+     * (a betta) bobbed several of its own heights and left the box. On a card the bob peaks at this
+     * share of the fish's length; the box leaves about 0.64 lengths above and below the centre line.
+     */
+    static final float BOB_CAP = 0.15f;
+    /** Self-test only (companionportraitbob scene): false draws the uncapped bob for an A/B. */
+    public static boolean bobCapEnabled = true;
+
+    /** The bob a card draws at {@code ticks}, blocks: the pose's own, scaled down to {@link #BOB_CAP}. */
+    public static float portraitBob(CompanionFishPose fish, float ticks) {
+        float amplitude = fish.idleBobAmplitude(), cap = BOB_CAP * fish.length();
+        float bob = fish.idleBob(ticks);
+        return bobCapEnabled && amplitude > cap ? bob * cap / amplitude : bob;
+    }
+
+    /** The per-slot clock {@link #submit} uses, so a scene can predict a card's bob. */
+    public static float slotTicks(int slot, long millis) {
+        return (millis % 3_600_000L) / 50f + slot * 37f;
+    }
+
+    /** Self-test: the cached pose a card is drawing, or null. */
+    public static CompanionFishPose poseFor(int slot) {
+        CachedPose cached = POSES.get(slot);
+        return cached == null ? null : cached.pose();
+    }
     private static final int FULL_BRIGHT = 15728880;
 
     /** The renderer the loader registered; only its close (the GUI renderer closing) frees the delegates. */
@@ -94,7 +120,7 @@ public final class CompanionPortraitPip extends PictureInPictureRenderer<Compani
             cached = new CachedPose(fish.copy(), new CompanionFishPose(fish, mc.level, 0f));
             POSES.put(slot, cached);
         }
-        float ticks = (net.minecraft.util.Util.getMillis() % 3_600_000L) / 50f + slot * 37f;
+        float ticks = slotTicks(slot, net.minecraft.util.Util.getMillis());
         ((IGuiGraphicsExtension) g).gelatinui$submitPictureInPicture(
                 new State(cached.pose(), slot, ticks, tex, blit, null));
         return true;
@@ -150,6 +176,9 @@ public final class CompanionPortraitPip extends PictureInPictureRenderer<Compani
         poseStack.scale(1.0F, -1.0F, -1.0F);
         Minecraft mc = Minecraft.getInstance();
         mc.gameRenderer.getLighting().setupFor(Lighting.Entry.ITEMS_FLAT);
+        // Cancel the part of this frame's bob above the cap; phase and timing stay the pose's own.
+        float excess = state.fish().idleBob(state.ticks()) - portraitBob(state.fish(), state.ticks());
+        if (excess != 0f) poseStack.translate(0f, -excess, 0f);
         FeatureRenderDispatcher dispatcher = mc.gameRenderer.getFeatureRenderDispatcher();
         state.fish().submit(poseStack, dispatcher.getSubmitNodeStorage(), FULL_BRIGHT, state.ticks(), 0f, 0f, 0f, false);
         dispatcher.renderAllFeatures();

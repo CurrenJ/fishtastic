@@ -55,6 +55,23 @@ public final class CompanionFishPose {
     /** The length it is drawn at, blocks. */
     public float length() { return length; }
 
+    /** The peak of the idle bob {@link #submit} adds, blocks (0 for poses that don't bob). */
+    public float idleBobAmplitude() {
+        if (locomotion == Locomotion.ANCHORED) return 0f;
+        return switch (anim) {
+            case FishAnimationConfig.HorizontalSwim cfg -> cfg.bobAmplitude();
+            case FishAnimationConfig.BellyDown cfg -> cfg.bobAmplitude();
+            case FishAnimationConfig.UprightFloat cfg -> cfg.bobAmplitude();
+            default -> 0f;
+        };
+    }
+
+    /** The idle bob {@link #submit} adds at this time, blocks: same seed and draws as the pose. */
+    public float idleBob(float gameTimeTicks) {
+        if (locomotion == Locomotion.ANCHORED) return 0f;
+        return FishAnimator.yBob(anim, new Random(seed), gameTimeTicks * CompanionRender.IDLE_CLOCK_RATE, 1f);
+    }
+
     /**
      * Poses and submits the fish at its true-to-scale length. The stack must already sit at the
      * fish's position in whatever space the caller is drawing in.
