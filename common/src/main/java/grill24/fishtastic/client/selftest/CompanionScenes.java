@@ -694,6 +694,71 @@ final class CompanionScenes {
         return false;
     }
 
+    /**
+     * Card portraits keep the whole fish in the box at the bob's peak and trough. A betta (short, so
+     * drawn large) bobbed out of its box when the idle bob was left in blocks. Logs every species'
+     * bob as a share of its length, then shoots betta / bluegill / glass squid at the betta's peak and
+     * trough with the cap off and on, in one run.
+     */
+    static void queuePortraitBobScene() {
+        String[] cards = {"betta", "bluegill", "glass_squid"};
+        float[] sizes = {11f, 30f, 40f}; // a smallish betta, the others at their means
+        queue(1, CompanionScenes::paradeSetup);
+        queue(1, mc -> server(mc, s -> {
+            for (ServerPlayer player : s.getPlayerList().getPlayers()) {
+                grill24.fishtastic.companion.CompanionStorage.clear(player);
+                for (int i = 0; i < cards.length; i++) {
+                    run(s, "fishtastic companion unlock @p fishtastic:" + cards[i]);
+                    grill24.fishtastic.companion.Companions.equip(player, i, fish(cards[i], sizes[i]));
+                }
+            }
+        }));
+        queue(10, mc -> {
+            List<String> ratios = new java.util.ArrayList<>();
+            int over = 0;
+            for (var item : net.minecraft.core.registries.BuiltInRegistries.ITEM) {
+                if (!new ItemStack(item).is(grill24.fishtastic.FishtasticItemTags.FISH)) continue;
+                var id = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(item);
+                var profile = mc.level.registryAccess().registryOrThrow(grill24.FishtasticRegistries.FISH_PROFILE_REGISTRY_KEY)
+                        .getOptional(id).orElse(null);
+                if (profile == null) continue;
+                // At the species' mean size: a bare stack has no size and draws at a fallback length.
+                ItemStack stack = fish(id.getPath(), profile.size().mean());
+                var pose = new grill24.fishtastic.client.renderer.CompanionFishPose(stack, mc.level, 0f);
+                float ratio = pose.idleBobAmplitude() / Math.max(1e-3f, pose.length());
+                if (ratio > 0.4f) over++;
+                ratios.add(net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(item).getPath()
+                        + String.format(java.util.Locale.ROOT, "=%.2f", ratio));
+            }
+            note("portraitbob.ratios(at mean size; over 0.4: " + over + ") " + ratios);
+            grill24.fishtastic.client.companions.CompanionsScreen.open(ItemStack.EMPTY, false);
+        });
+        queue(20, mc -> shootAtExtremes(mc, false, 0));
+    }
+
+    /** Waits for the betta card's next bob peak, then trough, shooting each; then repeats capped. */
+    private static void shootAtExtremes(Minecraft mc, boolean capped, int phase) {
+        grill24.fishtastic.client.companions.CompanionPortrait.bobCapEnabled = capped;
+        var pose = grill24.fishtastic.client.companions.CompanionPortrait.poseFor(0);
+        check("portraitbob.betta_drawn", pose != null, "screen=" + mc.screen);
+        if (pose == null) return;
+        long now = net.minecraft.Util.getMillis();
+        float amplitude = pose.idleBobAmplitude();
+        int best = 1;
+        for (int d = 1; d < 600; d++) {
+            float bob = pose.idleBob(grill24.fishtastic.client.companions.CompanionPortrait.slotTicks(0, now + d * 50L));
+            if (phase == 0 ? bob > amplitude * 0.98f : bob < -amplitude * 0.98f) { best = d; break; }
+        }
+        String tag = (capped ? "capped_" : "uncapped_") + (phase == 0 ? "peak" : "trough");
+        // Runs next (ahead of the run's finish step): delays are only known once the clock is read.
+        STEPS.addFirst(new Step(best, m -> {
+            screenshot(m, "companionportraitbob", tag);
+            if (phase == 0) shootAtExtremes(m, capped, 1);
+            else if (!capped) shootAtExtremes(m, true, 0);
+            else grill24.fishtastic.client.companions.CompanionPortrait.bobCapEnabled = true;
+        }));
+    }
+
     private static void ui(Minecraft mc, java.util.function.Consumer<grill24.fishtastic.client.companions.CompanionsScreen> action) {
         if (mc.screen instanceof grill24.fishtastic.client.companions.CompanionsScreen screen) action.accept(screen);
         else check("bond.screenStillOpen", false, "screen=" + mc.screen);

@@ -24,6 +24,14 @@ public final class CompanionPortrait {
     private static final int FULL_BRIGHT = 15728880;
     /** Lifts the model clear of the card panel; its own depth spans about ±size/2 around this. */
     private static final float Z = 100f;
+    /**
+     * The card fits the fish's length to its box, but the idle bob is in blocks, so a short fish (a
+     * betta) bobbed several of its own heights off the card. On a card the bob peaks at this share of
+     * the fish's length; the box leaves about 0.64 lengths above and below the centre line.
+     */
+    static final float BOB_CAP = 0.15f;
+    /** Self-test only (companionportraitbob scene): false draws the uncapped bob for an A/B. */
+    public static boolean bobCapEnabled = true;
 
     /** Poses are built per fish (resolving visuals isn't free); cached per slot until the fish changes. */
     private static final Map<Integer, CachedPose> POSES = new HashMap<>();
@@ -43,6 +51,24 @@ public final class CompanionPortrait {
         pose.popPose();
     }
 
+    /** The bob a card draws at {@code ticks}, blocks: the pose's own, scaled down to {@link #BOB_CAP}. */
+    public static float portraitBob(CompanionFishPose fish, float ticks) {
+        float amplitude = fish.idleBobAmplitude(), cap = BOB_CAP * fish.length();
+        float bob = fish.idleBob(ticks);
+        return bobCapEnabled && amplitude > cap ? bob * cap / amplitude : bob;
+    }
+
+    /** The per-slot clock the cards use, so a scene can predict a card's bob. */
+    public static float slotTicks(int slot, long millis) {
+        return (millis % 3_600_000L) / 50f + slot * 37f;
+    }
+
+    /** Self-test: the cached pose a card is drawing, or null. */
+    public static CompanionFishPose poseFor(int slot) {
+        CachedPose cached = POSES.get(slot);
+        return cached == null ? null : cached.pose();
+    }
+
     private static boolean drawModel(GuiGraphics g, ItemStack fish, int x, int y, int size, int slot) {
         Minecraft mc = Minecraft.getInstance();
         if (fish.isEmpty() || mc.level == null) return false;
@@ -52,7 +78,7 @@ public final class CompanionPortrait {
             POSES.put(slot, cached);
         }
         CompanionFishPose fishPose = cached.pose();
-        float ticks = (net.minecraft.Util.getMillis() % 3_600_000L) / 50f + slot * 37f;
+        float ticks = slotTicks(slot, net.minecraft.Util.getMillis());
         float scale = size * FILL / Math.max(0.05f, fishPose.length());
 
         g.flush();
@@ -61,6 +87,9 @@ public final class CompanionPortrait {
         pose.translate(x + size / 2f, y + size / 2f, Z);
         // GUI orientation is y-down, the model's is y-up.
         pose.scale(scale, -scale, scale);
+        // Cancel the part of this frame's bob above the cap; phase and timing stay the pose's own.
+        float excess = fishPose.idleBob(ticks) - portraitBob(fishPose, ticks);
+        if (excess != 0f) pose.translate(0f, -excess, 0f);
         Lighting.setupForFlatItems();
         fishPose.submit(pose, g.bufferSource(), FULL_BRIGHT, ticks, 0f, 0f, 0f);
         g.flush();
