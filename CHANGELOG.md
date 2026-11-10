@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 2.1.27
+
+- Fish companions have a new screen. Three cards show your companions as live, swimming fish, and below them every fish you carry, loose or in a Pile of Fish, is listed by species, with search, an Unlocked filter, rename, make lead and unequip. An Unlocks page shows which species you can make companions and how close the rest are.
+- Open the companions screen with B, the heart tab on the survival inventory, the button in the creative Inventory tab, a species' Fishopedia page or the help menu.
+- Unequipping a companion puts it back in your inventory and never drops it. With a full inventory it stays equipped.
+- The companions screen works with the keyboard (Tab, the arrow keys, Enter) and with the narrator.
+- Requires Gelatin UI 1.0.40 or newer.
+
 ## 2.1.26
 
 - Fish tanks built with glass or stained glass now show it without the frame drawn into vanilla glass, so the panes read clean. The tank keeps the glass it was built with. Turn this off with `/fishtastic tank borderlessglass false`.
